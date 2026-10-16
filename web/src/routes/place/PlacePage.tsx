@@ -1,0 +1,294 @@
+import { Code, ConnectError } from "@connectrpc/connect";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Crown, PenLine } from "lucide-react";
+import { Link, useParams, useSearchParams } from "react-router";
+
+import { formatDay, genreLabel, loreStatusLabel, placeKindLabel } from "@/components/reader/format";
+import { Button } from "@/components/ui/Button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { EpicTab, Genre, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
+import type { EpicArc, EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
+import { clients } from "@/lib/connect";
+
+// The tab and genre live in the address as lower-case words (?tab=tales,
+// ?genre=slice_of_life) so a filtered epic is linkable; the defaults (Ranked,
+// every genre) are the bare address.
+const tabs = [
+  { slug: "ranked", label: "Ranked", tab: EpicTab.RANKED },
+  { slug: "newest", label: "Newest", tab: EpicTab.NEWEST },
+  { slug: "tales", label: "Tales", tab: EpicTab.TALES },
+] as const;
+type TabSlug = (typeof tabs)[number]["slug"];
+
+const genres = [Genre.DRAMA, Genre.COMEDY, Genre.ROMANCE, Genre.MYSTERY, Genre.HORROR, Genre.SLICE_OF_LIFE, Genre.ACTION];
+const ALL_GENRES = "all";
+const genreSlug = (g: Genre) => Genre[g].toLowerCase();
+
+function parseTab(value: string | null): TabSlug {
+  return tabs.find((t) => t.slug === value)?.slug ?? "ranked";
+}
+
+function parseGenre(value: string | null): Genre {
+  return genres.find((g) => genreSlug(g) === value) ?? Genre.UNSPECIFIED;
+}
+
+function isNotFound(err: unknown): boolean {
+  return ConnectError.from(err).code === Code.NotFound;
+}
+
+function ArcItem({ arc }: { arc: EpicArc }) {
+  return (
+    <li className="py-3">
+      <Link to={`/arcs/${arc.arcId}`} className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">
+        {arc.title}
+      </Link>
+      <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
+        {arc.canonLoreId && (
+          <span className="inline-flex items-center gap-1 font-medium text-ink">
+            <Crown aria-hidden size={16} className="text-accent" />
+            Canon
+          </span>
+        )}
+        <span className="wrap-anywhere">{arc.place?.name}</span>
+        <span>{formatDay(arc.localDate, arc.hour)}</span>
+        {arc.memberCount > 0 && <span>{arc.memberCount} in lore</span>}
+        <span>
+          {arc.perspectiveCount} {arc.perspectiveCount === 1 ? "perspective" : "perspectives"}
+        </span>
+      </p>
+    </li>
+  );
+}
+
+function TaleItem({ tale }: { tale: EpicTale }) {
+  return (
+    <li className="py-3">
+      <Link
+        to={`/perspectives/${tale.perspectiveId}`}
+        className="block font-serif text-prose wrap-anywhere text-ink underline-offset-4 hover:underline"
+      >
+        {tale.excerpt || "Read this tale"}
+      </Link>
+      <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-ink-muted">
+        <span>{tale.author?.username}</span>
+        <span>{loreStatusLabel(tale.loreStatus)}</span>
+        {tale.genre !== Genre.UNSPECIFIED && <span>{genreLabel(tale.genre)}</span>}
+        <span className="wrap-anywhere">{tale.place?.name}</span>
+        <span>{formatDay(tale.localDate, tale.hour)}</span>
+        <Link to={`/arcs/${tale.arcId}`} className="wrap-anywhere text-accent underline underline-offset-4">
+          {tale.arcTitle}
+        </Link>
+      </p>
+    </li>
+  );
+}
+
+function EpicList({ placeId, tab, genre }: { placeId: string; tab: EpicTab; genre: Genre }) {
+  const epic = useInfiniteQuery({
+    queryKey: ["place", "getEpic", { placeId, tab, genre }],
+    queryFn: ({ pageParam, signal }) => clients.place.getEpic({ placeId, tab, genre, pageToken: pageParam }, { signal }),
+    initialPageParam: "",
+    getNextPageParam: (last) => last.nextPageToken || undefined,
+  });
+  if (epic.isPending) {
+    return (
+      <p role="status" className="text-sm text-ink-muted">
+        Loading…
+      </p>
+    );
+  }
+  if (epic.isError) {
+    return (
+      <p role="alert" className="text-sm text-error">
+        This list could not be loaded. Try again in a moment.
+      </p>
+    );
+  }
+  const isTales = tab === EpicTab.TALES;
+  const arcs = epic.data.pages.flatMap((p) => p.arcs);
+  const tales = epic.data.pages.flatMap((p) => p.tales);
+  if ((isTales ? tales.length : arcs.length) === 0) {
+    return <p className="text-ink-muted">{isTales ? "No tales here yet." : "No arcs here yet."}</p>;
+  }
+  return (
+    <>
+      {isTales ? (
+        <ul aria-label="Tales" className="divide-y divide-rule">
+          {tales.map((tale) => (
+            <TaleItem key={tale.perspectiveId} tale={tale} />
+          ))}
+        </ul>
+      ) : (
+        <ul aria-label="Arcs" className="divide-y divide-rule">
+          {arcs.map((arc) => (
+            <ArcItem key={arc.arcId} arc={arc} />
+          ))}
+        </ul>
+      )}
+      {epic.hasNextPage && (
+        <Button variant="secondary" className="mt-4" disabled={epic.isFetchingNextPage} onClick={() => void epic.fetchNextPage()}>
+          {epic.isFetchingNextPage ? "Loading…" : "Show more"}
+        </Button>
+      )}
+    </>
+  );
+}
+
+function Children({ place }: { place: Place }) {
+  const children = useInfiniteQuery({
+    queryKey: ["place", "listChildren", { parentId: place.id }],
+    queryFn: ({ pageParam, signal }) =>
+      clients.place.listChildren({ parentId: place.id, pageToken: pageParam, pageSize: 100 }, { signal }),
+    initialPageParam: "",
+    getNextPageParam: (last) => last.nextPageToken || undefined,
+    // A store is a leaf of the hierarchy.
+    enabled: place.kind !== PlaceKind.STORE,
+  });
+  const places = children.data?.pages.flatMap((p) => p.places) ?? [];
+  if (places.length === 0) return null;
+  return (
+    <nav aria-label={`Places in ${place.name}`} className="min-w-0">
+      <h2 className="text-xl wrap-anywhere">Places in {place.name}</h2>
+      <ul className="mt-2 flex flex-wrap gap-x-4 md:block">
+        {places.map((child) => (
+          <li key={child.id}>
+            <Link
+              to={`/places/${child.id}`}
+              className="inline-flex min-h-11 max-w-full items-center wrap-anywhere text-accent underline underline-offset-4"
+            >
+              {child.name}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {children.hasNextPage && (
+        <Button variant="ghost" size="sm" disabled={children.isFetchingNextPage} onClick={() => void children.fetchNextPage()}>
+          More places
+        </Button>
+      )}
+    </nav>
+  );
+}
+
+/**
+ * A place page is its epic: arcs at the place and at every place inside it,
+ * Ranked (the server's order: canon first, then member count, then newest),
+ * Newest, or the Tales told there. The order is the server's and is never
+ * re-sorted here.
+ */
+export function Component() {
+  const { placeId = "" } = useParams();
+  const [params, setParams] = useSearchParams();
+  const tab = parseTab(params.get("tab"));
+  const genre = parseGenre(params.get("genre"));
+
+  const placeQuery = useQuery({
+    queryKey: ["place", "getPlace", { placeId }],
+    queryFn: ({ signal }) => clients.place.getPlace({ placeId }, { signal }),
+  });
+
+  function update(key: "tab" | "genre", value: string, fallback: string) {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value === fallback) next.delete(key);
+        else next.set(key, value);
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  if (placeQuery.isPending) {
+    return (
+      <p role="status" className="text-ink-muted">
+        Loading…
+      </p>
+    );
+  }
+  if (placeQuery.isError || !placeQuery.data.place) {
+    const missing = !placeQuery.data?.place || isNotFound(placeQuery.error);
+    return (
+      <section className="mx-auto max-w-measure py-12" aria-labelledby="place-missing">
+        <h1 id="place-missing" className="text-2xl sm:text-3xl">
+          {missing ? "Place not found" : "This place could not be loaded"}
+        </h1>
+        <p className="mt-3 text-ink-muted">{missing ? "It may have been removed or hidden." : "Try again in a moment."}</p>
+        <p className="mt-6">
+          <Link to="/" className="text-accent underline underline-offset-4">
+            Search for a place
+          </Link>
+        </p>
+      </section>
+    );
+  }
+  const place = placeQuery.data.place;
+  const epicTab = tabs.find((t) => t.slug === tab)!.tab;
+
+  return (
+    <div className="min-w-0">
+      <header className="min-w-0">
+        {place.ancestors.length > 0 && (
+          <nav aria-label="Breadcrumb">
+            <ol className="flex flex-wrap items-center gap-x-2 text-sm text-ink-muted">
+              {place.ancestors.map((a, i) => (
+                <li key={a.id} className="inline-flex items-center gap-2">
+                  {i > 0 && <span aria-hidden>›</span>}
+                  <Link to={`/places/${a.id}`} className="inline-flex min-h-11 items-center wrap-anywhere text-accent underline underline-offset-4">
+                    {a.name}
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )}
+        <h1 className="text-2xl wrap-anywhere sm:text-3xl">{place.name}</h1>
+        <p className="mt-1 text-sm text-ink-muted">{placeKindLabel(place.kind)}</p>
+        <Button asChild variant="secondary" className="mt-4">
+          <Link to={`/compose?placeId=${encodeURIComponent(place.id)}`}>
+            <PenLine aria-hidden size={16} />
+            Write about this place
+          </Link>
+        </Button>
+      </header>
+
+      <div className="mt-8 grid min-w-0 gap-8 md:grid-cols-[minmax(0,1fr)_16rem]">
+        <section aria-label="Epic" className="min-w-0">
+          <Tabs value={tab} onValueChange={(v) => update("tab", v, "ranked")}>
+            <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
+              <TabsList aria-label="Epic listing">
+                {tabs.map((t) => (
+                  <TabsTrigger key={t.slug} value={t.slug}>
+                    {t.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <Select value={genre === Genre.UNSPECIFIED ? ALL_GENRES : genreSlug(genre)} onValueChange={(v) => update("genre", v, ALL_GENRES)}>
+                <SelectTrigger aria-label="Genre" className="w-auto min-w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_GENRES}>Every genre</SelectItem>
+                  {genres.map((g) => (
+                    <SelectItem key={g} value={genreSlug(g)}>
+                      {genreLabel(g)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {tabs.map((t) => (
+              <TabsContent key={t.slug} value={t.slug}>
+                {t.slug === tab && <EpicList placeId={place.id} tab={epicTab} genre={genre} />}
+              </TabsContent>
+            ))}
+          </Tabs>
+        </section>
+        <aside className="min-w-0">
+          <Children place={place} />
+        </aside>
+      </div>
+    </div>
+  );
+}
