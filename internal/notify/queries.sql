@@ -1,0 +1,113 @@
+-- name: ListInbox :many
+-- The caller's inbox, newest first, keyset-paginated on (created_at, id) so
+-- it is served by notifications_inbox_idx. after_at/after_id are NULL on the
+-- first page. The actor's username and the arc's title are joined for display.
+SELECT n.id, n.kind, n.payload, n.read_at, n.created_at,
+       a.username AS actor_username,
+       ar.title   AS arc_title
+FROM notifications n
+LEFT JOIN users a ON a.id = (n.payload ->> 'actor_id')::uuid
+LEFT JOIN arcs ar ON ar.id = (n.payload ->> 'arc_id')::uuid
+WHERE n.user_id = sqlc.arg(user_id)::uuid
+  AND (NOT sqlc.arg(unread_only)::boolean OR n.read_at IS NULL)
+  AND (sqlc.narg(after_at)::timestamptz IS NULL
+       OR (n.created_at, n.id) < (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY n.created_at DESC, n.id DESC
+LIMIT sqlc.arg(row_limit)::int;
+
+-- name: CountUnread :one
+SELECT count(*)::int AS unread
+FROM notifications
+WHERE user_id = $1 AND read_at IS NULL;
+
+-- name: MarkRead :exec
+-- Ids that are not the caller's, or already read, are left alone.
+UPDATE notifications
+SET read_at = now()
+WHERE user_id = sqlc.arg(user_id)::uuid
+  AND id = ANY(sqlc.arg(ids)::uuid[])
+  AND read_at IS NULL;
+
+-- name: MarkAllRead :exec
+UPDATE notifications
+SET read_at = now()
+WHERE user_id = $1 AND read_at IS NULL;
+
+-- name: ListPreferences :many
+-- Stored toggles only; a kind with no row has both toggles on.
+SELECT kind, in_app, email
+FROM notification_preferences
+WHERE user_id = $1;
+
+-- name: UpsertPreference :exec
+INSERT INTO notification_preferences (user_id, kind, in_app, email)
+VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(kind)::text, sqlc.arg(in_app)::boolean, sqlc.arg(email)::boolean)
+ON CONFLICT (user_id, kind) DO UPDATE
+SET in_app = EXCLUDED.in_app, email = EXCLUDED.email;
+
+-- name: ClaimFacts :one
+-- A claim with the perspective holding its character (whose author receives
+-- the claim) and the claimant.
+SELECT c.claimant_user_id, ch.perspective_id AS character_perspective_id,
+       p.author_id AS character_author_id, p.arc_id
+FROM claims c
+JOIN characters ch ON ch.id = c.character_id
+JOIN perspectives p ON p.id = ch.perspective_id
+WHERE c.id = $1;
+
+-- name: PerspectiveFacts :one
+SELECT author_id, arc_id, lore_id, status, deleted_at, hidden_at
+FROM perspectives
+WHERE id = $1;
+
+-- name: ArcAuthors :many
+-- Authors of the arc's visible published perspectives.
+SELECT DISTINCT author_id
+FROM perspectives
+WHERE arc_id = $1
+  AND status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND deleted_at IS NULL
+  AND hidden_at IS NULL;
+
+-- name: LoreAuthors :many
+-- Authors of a lore's visible member perspectives.
+SELECT DISTINCT p.author_id
+FROM lore_members lm
+JOIN perspectives p ON p.id = lm.perspective_id
+WHERE lm.lore_id = $1
+  AND p.deleted_at IS NULL
+  AND p.hidden_at IS NULL;
+
+-- name: LoreArc :one
+SELECT arc_id FROM lores WHERE id = $1;
+
+-- name: ReportReporter :one
+SELECT reporter_id FROM reports WHERE id = $1;
+
+-- name: Recipients :many
+-- Candidates who still have an account, are not the actor, and have not
+-- blocked the actor, with their toggles for kind (a missing preference row
+-- means both on). actor_id is NULL for a system event.
+SELECT u.id, u.email,
+       COALESCE(np.in_app, true)::boolean AS in_app,
+       COALESCE(np.email, true)::boolean  AS email_on
+FROM users u
+LEFT JOIN notification_preferences np
+       ON np.user_id = u.id AND np.kind = sqlc.arg(kind)::text
+WHERE u.id = ANY(sqlc.arg(candidates)::uuid[])
+  AND u.deleted_at IS NULL
+  AND u.id IS DISTINCT FROM sqlc.narg(actor_id)::uuid
+  AND NOT EXISTS (
+      SELECT 1 FROM blocks b
+      WHERE b.blocker_id = u.id AND b.blocked_id = sqlc.narg(actor_id)::uuid)
+ORDER BY u.id;
+
+-- name: InsertNotification :exec
+INSERT INTO notifications (user_id, kind, payload)
+VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(kind)::text, sqlc.arg(payload)::jsonb);
+
+-- name: Username :one
+SELECT username FROM users WHERE id = $1;
+
+-- name: ArcTitle :one
+SELECT title FROM arcs WHERE id = $1;
