@@ -1,0 +1,28 @@
+# Code generation for the perspectiv.v1 API. `make generate` runs `buf generate`
+# with the pinned protoc-gen-go and protoc-gen-connect-go from bin/tools and
+# protoc-gen-es from web/node_modules/.bin on PATH.
+#
+#   Go:         gen/perspectiv/v1                    (import perspectivv1 "perspectiv/gen/perspectiv/v1")
+#   Connect Go: gen/perspectiv/v1/perspectivv1connect
+#   TypeScript: web/src/gen/perspectiv/v1/<file>_pb.ts (messages, enums and
+#               service descriptors that Connect-Web 2 consumes directly)
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: perspectiv/gen
+clean: true
+plugins:
+  - local: protoc-gen-go
+    out: gen
+    opt: paths=source_relative
+  - local: protoc-gen-connect-go
+    out: gen
+    opt: paths=source_relative
+  - local: protoc-gen-es
+    out: web/src/gen
+    include_imports: false
+    opt:
+      - target=ts
+      - import_extension=none

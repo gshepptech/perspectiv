@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+import "google/protobuf/timestamp.proto";
+import "perspectiv/v1/enums.proto";
+import "perspectiv/v1/user.proto";
+
+// PlaceService reads the place hierarchy, adds user places and lists a
+// place's epic. Reads are public.
+service PlaceService {
+  // Typeahead over place names.
+  rpc SearchPlaces(SearchPlacesRequest) returns (SearchPlacesResponse);
+  rpc GetPlace(GetPlaceRequest) returns (GetPlaceResponse);
+  // Drill-down: the children of a place, or the states when parent_id is empty.
+  rpc ListChildren(ListChildrenRequest) returns (ListChildrenResponse);
+  // Adds a MALL or STORE under any place not hidden by moderation.
+  rpc CreatePlace(CreatePlaceRequest) returns (CreatePlaceResponse);
+  // A place page: arcs at the place and all its descendants, or its tales.
+  rpc GetEpic(GetEpicRequest) returns (GetEpicResponse);
+}
+
+// PlaceRef is a place as a link: id, kind and name.
+message PlaceRef {
+  string id = 1;
+  PlaceKind kind = 2;
+  string name = 3;
+}
+
+// Place is one node of the STATE > CITY > TOWN > MALL > STORE hierarchy.
+message Place {
+  string id = 1;
+  PlaceKind kind = 2;
+  string name = 3;
+  // Empty for a STATE.
+  string parent_id = 4;
+  // IANA time zone, for example America/New_York. An arc's date is the
+  // calendar day in this zone.
+  string timezone = 5;
+  PlaceSource source = 6;
+  bool user_added = 7;
+  // Ancestors from the STATE down to the parent; empty for a STATE.
+  repeated PlaceRef ancestors = 8;
+}
+
+message SearchPlacesRequest {
+  // Required, non-blank.
+  string query = 1;
+  // Restricts matches to descendants of this place when set.
+  string parent_id = 2;
+  // Restricts matches to one kind; UNSPECIFIED matches every kind.
+  PlaceKind kind = 3;
+}
+
+message SearchPlacesResponse {
+  repeated Place places = 1;
+}
+
+message GetPlaceRequest {
+  string place_id = 1;
+}
+
+message GetPlaceResponse {
+  Place place = 1;
+}
+
+message ListChildrenRequest {
+  // Empty lists the states.
+  string parent_id = 1;
+  string page_token = 2;
+  int32 page_size = 3;
+}
+
+message ListChildrenResponse {
+  repeated Place places = 1;
+  // Empty on the last page.
+  string next_page_token = 2;
+}
+
+message CreatePlaceRequest {
+  string name = 1;
+  // MALL or STORE only.
+  PlaceKind kind = 2;
+  string parent_id = 3;
+}
+
+message CreatePlaceResponse {
+  string place_id = 1;
+  Place place = 2;
+}
+
+message GetEpicRequest {
+  string place_id = 1;
+  EpicTab tab = 2;
+  string page_token = 3;
+  int32 page_size = 4;
+  // Reading filter; UNSPECIFIED shows every genre. Applies to TALES, and to
+  // arcs through the genres of their perspectives.
+  Genre genre = 5;
+}
+
+// EpicArc is one arc in a place's epic listing.
+message EpicArc {
+  string arc_id = 1;
+  string title = 2;
+  // The place the arc lives at: the epic's place or one of its descendants.
+  PlaceRef place = 3;
+  // Place-local calendar day, YYYY-MM-DD.
+  string local_date = 4;
+  // Hour 0 to 23 for an hour arc; unset for a day arc.
+  optional int32 hour = 5;
+  // Empty when the arc has no canon.
+  string canon_lore_id = 6;
+  double canon_score = 7;
+  int32 member_count = 8;
+  int32 perspective_count = 9;
+  google.protobuf.Timestamp created_at = 10;
+}
+
+// EpicTale is one SOLO or REMOVED perspective in a place's TALES tab.
+message EpicTale {
+  string perspective_id = 1;
+  string arc_id = 2;
+  string arc_title = 3;
+  PlaceRef place = 4;
+  string local_date = 5;
+  optional int32 hour = 6;
+  UserRef author = 7;
+  Genre genre = 8;
+  LoreStatus lore_status = 9;
+  google.protobuf.Timestamp published_at = 10;
+  // The opening of the first part.
+  string excerpt = 11;
+}
+
+message GetEpicResponse {
+  // The epic's own place.
+  Place place = 1;
+  // Set for RANKED and NEWEST.
+  repeated EpicArc arcs = 2;
+  // Set for TALES.
+  repeated EpicTale tales = 3;
+  string next_page_token = 4;
+}

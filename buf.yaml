@@ -1,0 +1,11 @@
+# buf v2 workspace: one module rooted at proto/. The package directory layout
+# (proto/perspectiv/v1) matches the proto package perspectiv.v1.
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE

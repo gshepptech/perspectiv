@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+import "google/protobuf/timestamp.proto";
+import "perspectiv/v1/lore.proto";
+import "perspectiv/v1/perspective.proto";
+import "perspectiv/v1/place.proto";
+import "perspectiv/v1/user.proto";
+
+// ArcService reads an arc page: canon first, then sublores, then tales.
+service ArcService {
+  // Public.
+  rpc GetArc(GetArcRequest) returns (GetArcResponse);
+  rpc RetitleHourArc(RetitleHourArcRequest) returns (RetitleHourArcResponse);
+}
+
+// Arc is one place and one place-local day, or one hour child of a day arc.
+message Arc {
+  string id = 1;
+  string title = 2;
+  PlaceRef place = 3;
+  // From the STATE down to the arc's own place.
+  repeated PlaceRef place_chain = 4;
+  // Place-local calendar day, YYYY-MM-DD.
+  string local_date = 5;
+  // 0 to 23 for an hour arc; unset for a day arc.
+  optional int32 hour = 6;
+  // The day arc of an hour arc; empty for a day arc.
+  string parent_arc_id = 7;
+  // Empty when the arc has no canon.
+  string canon_lore_id = 8;
+  double canon_score = 9;
+  int32 member_count = 10;
+  UserRef created_by = 11;
+  google.protobuf.Timestamp created_at = 12;
+}
+
+// ArcLore is one lore on an arc page with its perspectives.
+message ArcLore {
+  Lore lore = 1;
+  repeated PerspectiveSummary perspectives = 2;
+}
+
+// HourArc is one hour child on a day arc's timeline, with its canon.
+message HourArc {
+  Arc arc = 1;
+  // Unset when the hour arc has no canon.
+  ArcLore canon = 2;
+  int32 perspective_count = 3;
+}
+
+message GetArcRequest {
+  string arc_id = 1;
+}
+
+message GetArcResponse {
+  Arc arc = 1;
+  // Unset when the arc has no canon.
+  ArcLore canon = 2;
+  // Every other lore, highest rank first; a demoted lore stays here.
+  repeated ArcLore sublores = 3;
+  // SOLO and REMOVED perspectives.
+  repeated PerspectiveSummary tales = 4;
+  // PENDING perspectives: published, not yet linked, expiry window open.
+  repeated PerspectiveSummary unlinked = 5;
+  // A day arc's hour children in ascending hour order; empty for an hour arc.
+  repeated HourArc hours = 6;
+}
+
+message RetitleHourArcRequest {
+  string arc_id = 1;
+  string title = 2;
+}
+
+message RetitleHourArcResponse {
+  Arc arc = 1;
+}

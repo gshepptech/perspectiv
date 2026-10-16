@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+// VoteService casts up-votes and remove votes. There is no downvote.
+service VoteService {
+  // Up-vote toggle; only authors with a published perspective in the arc.
+  rpc Vote(VoteRequest) returns (VoteResponse);
+  // A remove vote by a member of the target's own lore.
+  rpc VoteRemove(VoteRemoveRequest) returns (VoteRemoveResponse);
+}
+
+message VoteRequest {
+  string perspective_id = 1;
+  // True up-votes, false clears the caller's vote.
+  bool on = 2;
+}
+
+message VoteResponse {
+  int32 upvotes = 1;
+  bool on = 2;
+}
+
+message VoteRemoveRequest {
+  string perspective_id = 1;
+}
+
+message VoteRemoveResponse {
+  int32 remove_votes = 1;
+  // Members of the target's lore excluding its author.
+  int32 eligible_voters = 2;
+  // True when this vote reached the majority and the target is now REMOVED.
+  bool removed = 3;
+}

@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+// Package perspectiv.v1 is the wire API of Perspectiv. The enums in this file
+// are the single source of truth for every enumerated value: Go consumes the
+// generated types, the web app imports the generated TypeScript enums, and the
+// database stores the full value name (for example 'PLACE_KIND_STORE') in a
+// text column whose CHECK constraint lists exactly the non-zero values below.
+// Value 0 of every enum is *_UNSPECIFIED and is always invalid input.
+package perspectiv.v1;
+
+// PlaceKind is the level of a place in the fixed five-level hierarchy; there is
+// no other level. Only a STATE has no parent.
+enum PlaceKind {
+  PLACE_KIND_UNSPECIFIED = 0;
+  PLACE_KIND_STATE = 1;
+  PLACE_KIND_CITY = 2;
+  PLACE_KIND_TOWN = 3;
+  PLACE_KIND_MALL = 4;
+  PLACE_KIND_STORE = 5;
+}
+
+// PlaceSource records where a place row came from.
+enum PlaceSource {
+  PLACE_SOURCE_UNSPECIFIED = 0;
+  PLACE_SOURCE_OVERTURE = 1;
+  PLACE_SOURCE_FOURSQUARE = 2;
+  // A MALL or STORE added by a signed-in user.
+  PLACE_SOURCE_USER = 3;
+}
+
+// Genre is the single genre tag a perspective carries; readers filter by it.
+enum Genre {
+  GENRE_UNSPECIFIED = 0;
+  GENRE_DRAMA = 1;
+  GENRE_COMEDY = 2;
+  GENRE_ROMANCE = 3;
+  GENRE_MYSTERY = 4;
+  GENRE_HORROR = 5;
+  GENRE_SLICE_OF_LIFE = 6;
+  GENRE_ACTION = 7;
+}
+
+// Role is a user's site role. ADMIN is granted only by `perspectiv admin grant`.
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_USER = 1;
+  ROLE_ADMIN = 2;
+}
+
+// PerspectiveStatus is the writing state of a perspective.
+enum PerspectiveStatus {
+  PERSPECTIVE_STATUS_UNSPECIFIED = 0;
+  // Autosaved and visible only to its author; not yet in an arc.
+  PERSPECTIVE_STATUS_DRAFT = 1;
+  PERSPECTIVE_STATUS_PUBLISHED = 2;
+}
+
+// LoreStatus is where a published perspective stands in its arc's lore.
+enum LoreStatus {
+  LORE_STATUS_UNSPECIFIED = 0;
+  // Published, no accepted claim yet, expiry window still open.
+  LORE_STATUS_PENDING = 1;
+  // Linked to at least one other perspective by an accepted claim.
+  LORE_STATUS_IN_LORE = 2;
+  // A tale: the expiry window passed with no accepted claim. Revivable.
+  LORE_STATUS_SOLO = 3;
+  // A tale voted out of its lore. Terminal.
+  LORE_STATUS_REMOVED = 4;
+}
+
+// ClaimStatus is the state of a claim on a character.
+enum ClaimStatus {
+  CLAIM_STATUS_UNSPECIFIED = 0;
+  CLAIM_STATUS_PENDING = 1;
+  CLAIM_STATUS_ACCEPTED = 2;
+  CLAIM_STATUS_REJECTED = 3;
+}
+
+// ClaimDirection selects which side of a claim the caller is on when listing.
+enum ClaimDirection {
+  CLAIM_DIRECTION_UNSPECIFIED = 0;
+  // Claims on characters in the caller's perspectives.
+  CLAIM_DIRECTION_INCOMING = 1;
+  // Claims the caller made on other authors' characters.
+  CLAIM_DIRECTION_OUTGOING = 2;
+}
+
+// LoreStanding is a lore's rank state within its arc: at most one CANON per
+// arc, every other lore is SUBLORE. Only the rank job changes it.
+enum LoreStanding {
+  LORE_STANDING_UNSPECIFIED = 0;
+  LORE_STANDING_CANON = 1;
+  LORE_STANDING_SUBLORE = 2;
+}
+
+// Emoji is the fixed set of six reacts. A user holds at most one of each per
+// perspective. The set is: heart, laugh, wow, sad, fire, clap; the web app
+// owns the glyph each value renders as.
+enum Emoji {
+  EMOJI_UNSPECIFIED = 0;
+  EMOJI_HEART = 1;
+  EMOJI_LAUGH = 2;
+  EMOJI_WOW = 3;
+  EMOJI_SAD = 4;
+  EMOJI_FIRE = 5;
+  EMOJI_CLAP = 6;
+}
+
+// NotificationKind is the six events that reach a user's inbox and email.
+enum NotificationKind {
+  NOTIFICATION_KIND_UNSPECIFIED = 0;
+  NOTIFICATION_KIND_CLAIM_RECEIVED = 1;
+  NOTIFICATION_KIND_CLAIM_ACCEPTED = 2;
+  NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC = 3;
+  NOTIFICATION_KIND_VOTE_OUT_OPENED = 4;
+  NOTIFICATION_KIND_CANON_CHANGE = 5;
+  NOTIFICATION_KIND_REPORT_RESOLVED = 6;
+}
+
+// ReportTargetKind is what a report points at.
+enum ReportTargetKind {
+  REPORT_TARGET_KIND_UNSPECIFIED = 0;
+  REPORT_TARGET_KIND_PERSPECTIVE = 1;
+  REPORT_TARGET_KIND_PLACE = 2;
+  REPORT_TARGET_KIND_USER = 3;
+}
+
+// ReportReason is why something was reported. The first value is the rule the
+// sign-up terms state: no real names or handles of people who are not users.
+enum ReportReason {
+  REPORT_REASON_UNSPECIFIED = 0;
+  REPORT_REASON_REAL_NAME_OR_HANDLE_OF_NON_USER = 1;
+  REPORT_REASON_HARASSMENT = 2;
+  REPORT_REASON_HATEFUL_CONTENT = 3;
+  REPORT_REASON_SEXUAL_CONTENT = 4;
+  REPORT_REASON_SPAM = 5;
+  REPORT_REASON_OTHER = 6;
+}
+
+// ReportStatus is whether an admin has resolved a report.
+enum ReportStatus {
+  REPORT_STATUS_UNSPECIFIED = 0;
+  REPORT_STATUS_OPEN = 1;
+  REPORT_STATUS_RESOLVED = 2;
+}
+
+// ModerationAction is how an admin resolves a report.
+enum ModerationAction {
+  MODERATION_ACTION_UNSPECIFIED = 0;
+  MODERATION_ACTION_HIDE_PERSPECTIVE = 1;
+  MODERATION_ACTION_HIDE_PLACE = 2;
+  MODERATION_ACTION_SUSPEND_USER = 3;
+  MODERATION_ACTION_DISMISS = 4;
+}
+
+// EpicTab selects the listing a place page shows.
+enum EpicTab {
+  EPIC_TAB_UNSPECIFIED = 0;
+  // Arcs at the place and every descendant: arcs with a canon first, then by
+  // canon score, member count and newest.
+  EPIC_TAB_RANKED = 1;
+  // The same arcs, newest first.
+  EPIC_TAB_NEWEST = 2;
+  // SOLO and REMOVED perspectives at the place and descendants, newest first.
+  EPIC_TAB_TALES = 3;
+}

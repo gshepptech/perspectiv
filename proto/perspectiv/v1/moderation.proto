@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+import "google/protobuf/timestamp.proto";
+import "perspectiv/v1/enums.proto";
+import "perspectiv/v1/user.proto";
+
+// ModerationService takes reports from users and lets admins resolve them.
+service ModerationService {
+  rpc Report(ReportRequest) returns (ReportResponse);
+  // ADMIN only.
+  rpc ListReports(ListReportsRequest) returns (ListReportsResponse);
+  // ADMIN only. Every resolution writes a moderation audit row.
+  rpc Resolve(ResolveRequest) returns (ResolveResponse);
+}
+
+// Report is one user report as the admin queue shows it.
+message Report {
+  string id = 1;
+  UserRef reporter = 2;
+  ReportTargetKind target_kind = 3;
+  string target_id = 4;
+  // A short human label for the target: a username, place name or arc title.
+  string target_label = 5;
+  ReportReason reason = 6;
+  string details = 7;
+  ReportStatus status = 8;
+  // Set once resolved.
+  UserRef resolved_by = 9;
+  ModerationAction resolution = 10;
+  string resolution_reason = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp resolved_at = 13;
+}
+
+message ReportRequest {
+  ReportTargetKind target_kind = 1;
+  string target_id = 2;
+  ReportReason reason = 3;
+  // Optional free text from the reporter.
+  string details = 4;
+}
+
+message ReportResponse {
+  string report_id = 1;
+}
+
+message ListReportsRequest {
+  // UNSPECIFIED lists every status.
+  ReportStatus status = 1;
+  string page_token = 2;
+  int32 page_size = 3;
+}
+
+message ListReportsResponse {
+  repeated Report reports = 1;
+  string next_page_token = 2;
+}
+
+message ResolveRequest {
+  string report_id = 1;
+  ModerationAction action = 2;
+  // Why; written to the audit row.
+  string reason = 3;
+}
+
+message ResolveResponse {
+  Report report = 1;
+}

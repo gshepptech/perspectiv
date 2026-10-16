@@ -1,0 +1,187 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+import "google/protobuf/timestamp.proto";
+import "perspectiv/v1/enums.proto";
+import "perspectiv/v1/place.proto";
+import "perspectiv/v1/react.proto";
+import "perspectiv/v1/user.proto";
+
+// PerspectiveService writes and reads perspectives: one user's entry in one
+// arc, at most 10 parts of at most 300 words, at most 10 characters.
+service PerspectiveService {
+  // Creates or replaces the caller's draft (autosave).
+  rpc SaveDraft(SaveDraftRequest) returns (SaveDraftResponse);
+  // Publishes into the arc for the place, day and optional hour, creating the
+  // arc in the same transaction when absent.
+  rpc Publish(PublishRequest) returns (PublishResponse);
+  // Edits a published perspective's text, genre and characters.
+  rpc Update(PerspectiveServiceUpdateRequest) returns (PerspectiveServiceUpdateResponse);
+  // Soft-deletes; reading views show a placeholder.
+  rpc Delete(PerspectiveServiceDeleteRequest) returns (PerspectiveServiceDeleteResponse);
+  // Public for published perspectives; drafts only to their author.
+  rpc Get(PerspectiveServiceGetRequest) returns (PerspectiveServiceGetResponse);
+  // The caller's own drafts and published perspectives.
+  rpc ListMine(ListMineRequest) returns (ListMineResponse);
+}
+
+// Part is one page of a perspective.
+message Part {
+  // 1 to 10.
+  int32 position = 1;
+  string body = 2;
+}
+
+// Character is a person described inside a perspective, whom another author
+// in the same arc may claim.
+message Character {
+  string id = 1;
+  // 1 to 10.
+  int32 position = 2;
+  string label = 3;
+  // True when a claim on this character is ACCEPTED; such a character cannot
+  // be removed.
+  bool has_accepted_claim = 4;
+  // True when a claim on this character is PENDING.
+  bool has_pending_claim = 5;
+}
+
+// CharacterInput declares a character when saving or publishing.
+message CharacterInput {
+  // Empty for a new character; the id of an existing one to keep it.
+  string id = 1;
+  string label = 2;
+}
+
+// Perspective is a full perspective with its parts. A deleted or hidden one
+// keeps its ids and flags but carries no text, characters or author.
+message Perspective {
+  string id = 1;
+  // Empty while a draft.
+  string arc_id = 2;
+  string arc_title = 3;
+  UserRef author = 4;
+  Genre genre = 5;
+  PerspectiveStatus status = 6;
+  // UNSPECIFIED while a draft.
+  LoreStatus lore_status = 7;
+  // Empty unless IN_LORE.
+  string lore_id = 8;
+  // The place, day and optional hour the perspective is (or will be) filed
+  // under. Fixed once published.
+  PlaceRef place = 9;
+  // Place-local calendar day, YYYY-MM-DD.
+  string local_date = 10;
+  optional int32 hour = 11;
+  // Draft only: the title the arc gets if this publish creates it.
+  string title_if_new_arc = 12;
+  repeated Part parts = 13;
+  repeated Character characters = 14;
+  int32 upvotes = 15;
+  // True when the caller has up-voted it.
+  bool voted = 16;
+  repeated ReactCount reacts = 17;
+  google.protobuf.Timestamp created_at = 18;
+  google.protobuf.Timestamp published_at = 19;
+  google.protobuf.Timestamp updated_at = 20;
+  bool deleted = 21;
+  bool hidden = 22;
+}
+
+// PerspectiveSummary is a perspective as an entry in a listing.
+message PerspectiveSummary {
+  string id = 1;
+  string arc_id = 2;
+  UserRef author = 3;
+  Genre genre = 4;
+  LoreStatus lore_status = 5;
+  string lore_id = 6;
+  // The opening of the first part; empty when deleted or hidden.
+  string excerpt = 7;
+  int32 part_count = 8;
+  int32 upvotes = 9;
+  google.protobuf.Timestamp published_at = 10;
+  bool deleted = 11;
+  bool hidden = 12;
+}
+
+message SaveDraftRequest {
+  // Empty creates a new draft.
+  string perspective_id = 1;
+  string place_id = 2;
+  // YYYY-MM-DD, the place-local day the author picked.
+  string local_date = 3;
+  optional int32 hour = 4;
+  string title_if_new_arc = 5;
+  Genre genre = 6;
+  // Part bodies in order; position is index + 1.
+  repeated string parts = 7;
+  repeated CharacterInput characters = 8;
+}
+
+message SaveDraftResponse {
+  Perspective perspective = 1;
+}
+
+message PublishRequest {
+  // A draft to publish; empty publishes without a saved draft.
+  string perspective_id = 1;
+  string place_id = 2;
+  // YYYY-MM-DD, the place-local day the author picked.
+  string local_date = 3;
+  // 0 to 23 files under the hour child arc; unset files under the day arc.
+  optional int32 hour = 4;
+  // Required only when this publish creates the arc.
+  string title_if_new_arc = 5;
+  Genre genre = 6;
+  repeated string parts = 7;
+  repeated CharacterInput characters = 8;
+}
+
+message PublishResponse {
+  string perspective_id = 1;
+  string arc_id = 2;
+}
+
+message PerspectiveServiceUpdateRequest {
+  string perspective_id = 1;
+  Genre genre = 2;
+  repeated string parts = 3;
+  repeated CharacterInput characters = 4;
+}
+
+message PerspectiveServiceUpdateResponse {
+  Perspective perspective = 1;
+}
+
+message PerspectiveServiceDeleteRequest {
+  string perspective_id = 1;
+}
+
+message PerspectiveServiceDeleteResponse {}
+
+message PerspectiveServiceGetRequest {
+  string perspective_id = 1;
+}
+
+message PerspectiveServiceGetResponse {
+  Perspective perspective = 1;
+}
+
+message ListMineRequest {
+  // UNSPECIFIED lists drafts and published perspectives.
+  PerspectiveStatus status = 1;
+  // Optional filters; together they find the caller's perspective for one
+  // place and day, which the composer opens after ALREADY_EXISTS.
+  string place_id = 2;
+  string local_date = 3;
+  optional int32 hour = 4;
+  string page_token = 5;
+  int32 page_size = 6;
+}
+
+message ListMineResponse {
+  repeated Perspective perspectives = 1;
+  string next_page_token = 2;
+}

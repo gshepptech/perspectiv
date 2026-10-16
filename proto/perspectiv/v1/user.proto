@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+import "google/protobuf/timestamp.proto";
+import "perspectiv/v1/enums.proto";
+
+// UserService manages the caller's profile, username, blocks and account.
+// Users are pseudonymous: another user is only ever shown as a UserRef.
+service UserService {
+  // Public. Any user's public profile; the caller's own profile also carries
+  // its Account.
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  // At most once per 30 days.
+  rpc ChangeUsername(ChangeUsernameRequest) returns (ChangeUsernameResponse);
+  rpc BlockUser(BlockUserRequest) returns (BlockUserResponse);
+  rpc UnblockUser(UnblockUserRequest) returns (UnblockUserResponse);
+  // Soft-deletes the account and its perspectives.
+  rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
+}
+
+// UserRef is how one user appears to another: an id and a chosen username,
+// never an email or a real name.
+message UserRef {
+  string user_id = 1;
+  string username = 2;
+}
+
+// Profile is a user's public profile.
+message Profile {
+  string user_id = 1;
+  string username = 2;
+  string bio = 3;
+  // Relative URL of the avatar image; empty when none is set.
+  string avatar_url = 4;
+  google.protobuf.Timestamp joined_at = 5;
+  // True when the account is suspended by an admin.
+  bool suspended = 6;
+  // True when the account was deleted; the other fields are then blank.
+  bool deleted = 7;
+}
+
+// Account is the caller's own private account state. It is the only message
+// in the API that carries an email address, and it is returned only to the
+// account's owner.
+message Account {
+  string email = 1;
+  bool email_verified = 2;
+  Role role = 3;
+  // When the username was last changed; unset if never.
+  google.protobuf.Timestamp username_changed_at = 4;
+  // Earliest time ChangeUsername will succeed again; unset when it may now.
+  google.protobuf.Timestamp next_username_change_at = 5;
+  // Users the caller has blocked.
+  repeated UserRef blocked = 6;
+}
+
+message GetProfileRequest {
+  // Exactly one of user_id or username identifies the profile; both empty
+  // means the caller's own profile (requires sign-in).
+  string user_id = 1;
+  string username = 2;
+}
+
+message GetProfileResponse {
+  Profile profile = 1;
+  // Set only when the profile is the caller's own.
+  Account account = 2;
+}
+
+message UpdateProfileRequest {
+  string bio = 1;
+  // A new avatar image; empty leaves the avatar unchanged.
+  bytes avatar = 2;
+  // MIME type of avatar, for example image/png.
+  string avatar_content_type = 3;
+  // Removes the current avatar; ignored when avatar is set.
+  bool clear_avatar = 4;
+}
+
+message UpdateProfileResponse {
+  Profile profile = 1;
+}
+
+message ChangeUsernameRequest {
+  string username = 1;
+}
+
+message ChangeUsernameResponse {
+  Profile profile = 1;
+  google.protobuf.Timestamp next_username_change_at = 2;
+}
+
+message BlockUserRequest {
+  string user_id = 1;
+}
+
+message BlockUserResponse {}
+
+message UnblockUserRequest {
+  string user_id = 1;
+}
+
+message UnblockUserResponse {}
+
+message DeleteAccountRequest {
+  // The caller's current password, to confirm the deletion.
+  string password = 1;
+}
+
+message DeleteAccountResponse {}

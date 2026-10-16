@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+import "perspectiv/v1/enums.proto";
+
+// ReactService toggles emoji reacts. Any signed-in, verified user may react.
+service ReactService {
+  rpc React(ReactRequest) returns (ReactResponse);
+}
+
+// ReactCount is how many users hold one emoji on a perspective.
+message ReactCount {
+  Emoji emoji = 1;
+  int32 count = 2;
+  // True when the caller holds this emoji on the perspective.
+  bool mine = 3;
+}
+
+message ReactRequest {
+  string perspective_id = 1;
+  Emoji emoji = 2;
+  // True adds the react, false clears it.
+  bool on = 3;
+}
+
+message ReactResponse {
+  // One entry per emoji in the fixed set, in enum order.
+  repeated ReactCount counts = 1;
+}

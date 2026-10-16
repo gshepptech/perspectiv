@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+import "google/protobuf/timestamp.proto";
+import "perspectiv/v1/enums.proto";
+
+// AuthService signs users up and in. The access token is returned in the body
+// for the browser to hold in memory; the refresh token travels only as an
+// HttpOnly cookie and never appears in a message.
+service AuthService {
+  rpc SignUp(SignUpRequest) returns (SignUpResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  // Rotates the refresh cookie and returns a new access token.
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+}
+
+// SessionUser is the signed-in caller as the web app's session sees it.
+message SessionUser {
+  string user_id = 1;
+  string username = 2;
+  Role role = 3;
+  bool email_verified = 4;
+}
+
+message SignUpRequest {
+  string email = 1;
+  string password = 2;
+  string username = 3;
+  // The 18-or-over confirmation; false is rejected.
+  bool age_confirmed = 4;
+}
+
+message SignUpResponse {
+  string user_id = 1;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  google.protobuf.Timestamp access_token_expires_at = 2;
+  SessionUser user = 3;
+}
+
+message LogoutRequest {}
+
+message LogoutResponse {}
+
+message RefreshRequest {}
+
+message RefreshResponse {
+  string access_token = 1;
+  google.protobuf.Timestamp access_token_expires_at = 2;
+  SessionUser user = 3;
+}
+
+message VerifyEmailRequest {
+  string token = 1;
+}
+
+message VerifyEmailResponse {}
+
+message RequestPasswordResetRequest {
+  string email = 1;
+}
+
+// Always empty and always OK, whether or not the email has an account.
+message RequestPasswordResetResponse {}
+
+message ResetPasswordRequest {
+  string token = 1;
+  string new_password = 2;
+}
+
+message ResetPasswordResponse {}

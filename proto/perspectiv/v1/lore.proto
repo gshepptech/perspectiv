@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+import "google/protobuf/timestamp.proto";
+import "perspectiv/v1/enums.proto";
+import "perspectiv/v1/user.proto";
+
+// LoreService handles claims on characters and reads lore membership.
+service LoreService {
+  // Claims a character in another perspective in the same arc: "that was me".
+  rpc ClaimCharacter(ClaimCharacterRequest) returns (ClaimCharacterResponse);
+  // The character's author accepts or rejects a PENDING claim.
+  rpc ResolveClaim(ResolveClaimRequest) returns (ResolveClaimResponse);
+  // The caller's incoming or outgoing claims.
+  rpc ListClaims(ListClaimsRequest) returns (ListClaimsResponse);
+  // Public. One lore with its members and encounters.
+  rpc GetLore(GetLoreRequest) returns (GetLoreResponse);
+}
+
+// Claim is one author saying a character in another author's perspective was
+// them.
+message Claim {
+  string id = 1;
+  string arc_id = 2;
+  string character_id = 3;
+  string character_label = 4;
+  // The perspective that declares the character, and its author.
+  string perspective_id = 5;
+  UserRef author = 6;
+  // The claimant and the claimant's perspective in the same arc.
+  UserRef claimant = 7;
+  string claimant_perspective_id = 8;
+  ClaimStatus status = 9;
+  google.protobuf.Timestamp created_at = 10;
+  google.protobuf.Timestamp resolved_at = 11;
+}
+
+// Encounter is an accepted claim seen as a link between two perspectives.
+message Encounter {
+  string claim_id = 1;
+  // The perspective declaring the claimed character.
+  string perspective_id = 2;
+  string claimant_perspective_id = 3;
+}
+
+// LoreMember is one perspective in a lore and its author.
+message LoreMember {
+  string perspective_id = 1;
+  UserRef user = 2;
+}
+
+// Lore is a connected web of two or more linked perspectives in one arc.
+message Lore {
+  string id = 1;
+  string arc_id = 2;
+  LoreStanding standing = 3;
+  int32 member_count = 4;
+  // UP votes across the lore's perspectives.
+  int32 upvotes = 5;
+  // log(1 + members) * log(1 + upvotes), as of computed_at.
+  double rank_score = 6;
+  google.protobuf.Timestamp computed_at = 7;
+  repeated LoreMember members = 8;
+  repeated Encounter encounters = 9;
+}
+
+message ClaimCharacterRequest {
+  string character_id = 1;
+}
+
+message ClaimCharacterResponse {
+  string claim_id = 1;
+  ClaimStatus status = 2;
+}
+
+message ResolveClaimRequest {
+  string claim_id = 1;
+  bool accept = 2;
+}
+
+message ResolveClaimResponse {
+  ClaimStatus status = 1;
+}
+
+message ListClaimsRequest {
+  ClaimDirection direction = 1;
+  // UNSPECIFIED lists every status.
+  ClaimStatus status = 2;
+  string page_token = 3;
+  int32 page_size = 4;
+}
+
+message ListClaimsResponse {
+  repeated Claim claims = 1;
+  string next_page_token = 2;
+}
+
+message GetLoreRequest {
+  string lore_id = 1;
+}
+
+message GetLoreResponse {
+  Lore lore = 1;
+}

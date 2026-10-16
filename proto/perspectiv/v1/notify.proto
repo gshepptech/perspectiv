@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package perspectiv.v1;
+
+import "google/protobuf/timestamp.proto";
+import "perspectiv/v1/enums.proto";
+import "perspectiv/v1/user.proto";
+
+// NotifyService reads the caller's inbox and notification preferences.
+service NotifyService {
+  rpc ListInbox(ListInboxRequest) returns (ListInboxResponse);
+  rpc MarkRead(MarkReadRequest) returns (MarkReadResponse);
+  rpc GetPreferences(GetPreferencesRequest) returns (GetPreferencesResponse);
+  rpc UpdatePreferences(UpdatePreferencesRequest) returns (UpdatePreferencesResponse);
+}
+
+// Notification is one inbox entry. The id fields that apply to its kind are
+// set; the rest are empty.
+message Notification {
+  string id = 1;
+  NotificationKind kind = 2;
+  // Who caused it, when a user did; unset for system events.
+  UserRef actor = 3;
+  string arc_id = 4;
+  string arc_title = 5;
+  string perspective_id = 6;
+  string claim_id = 7;
+  string lore_id = 8;
+  string report_id = 9;
+  google.protobuf.Timestamp created_at = 10;
+  // Unset while unread.
+  google.protobuf.Timestamp read_at = 11;
+}
+
+// Preference is the two toggles for one notification kind. Both default on.
+message Preference {
+  NotificationKind kind = 1;
+  bool in_app = 2;
+  bool email = 3;
+}
+
+message ListInboxRequest {
+  string page_token = 1;
+  int32 page_size = 2;
+  bool unread_only = 3;
+}
+
+message ListInboxResponse {
+  repeated Notification notifications = 1;
+  string next_page_token = 2;
+  int32 unread_count = 3;
+}
+
+message MarkReadRequest {
+  repeated string notification_ids = 1;
+  // Marks every notification read; notification_ids is then ignored.
+  bool all = 2;
+}
+
+message MarkReadResponse {
+  int32 unread_count = 1;
+}
+
+message GetPreferencesRequest {}
+
+message GetPreferencesResponse {
+  // One entry per kind, in enum order.
+  repeated Preference preferences = 1;
+}
+
+message UpdatePreferencesRequest {
+  // Kinds not listed keep their current toggles.
+  repeated Preference preferences = 1;
+}
+
+message UpdatePreferencesResponse {
+  repeated Preference preferences = 1;
+}
