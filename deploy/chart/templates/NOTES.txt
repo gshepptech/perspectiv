@@ -1,0 +1,11 @@
+Perspectiv {{ .Chart.AppVersion }} is installing as release {{ .Release.Name }}.
+
+The api and worker pods wait for Job/{{ include "perspectiv.migrateJob" . }} to
+complete before they start. Follow it with:
+
+  kubectl -n {{ .Release.Namespace }} logs -f job/{{ include "perspectiv.migrateJob" . }}
+
+Once the certificate is issued:
+
+  curl -fsS https://{{ include "perspectiv.host" . }}/healthz
+  curl -fsS https://{{ include "perspectiv.host" . }}/about

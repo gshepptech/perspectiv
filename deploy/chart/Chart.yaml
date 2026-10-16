@@ -1,0 +1,11 @@
+apiVersion: v2
+name: perspectiv
+description: >-
+  Perspectiv on one Kubernetes cluster: the api and worker Deployments from one
+  image, a migration Job that runs before either serves, PostgreSQL 18 on a
+  persistent volume with a daily backup, and an ingress-nginx Ingress with a
+  cert-manager certificate.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.29.0-0"

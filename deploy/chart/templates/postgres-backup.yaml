@@ -1,0 +1,98 @@
+{{- if .Values.postgres.backup.enabled }}
+{{- $name := printf "%s-postgres-backup" (include "perspectiv.fullname" .) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+data:
+  backup.sh: |
+{{ .Files.Get "files/backup.sh" | trimSuffix "\n" | indent 4 }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "perspectiv.fullname" . }}-postgres-backups
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: {{ .Values.postgres.backup.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.postgres.backup.size }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backup
+spec:
+  schedule: {{ .Values.postgres.backup.schedule | quote }}
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            {{- include "perspectiv.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: backup
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+            fsGroup: 70
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: backup
+              image: {{ .Values.postgres.image }}
+              command: ["sh", "/scripts/backup.sh"]
+              env:
+                - name: PGHOST
+                  value: {{ include "perspectiv.postgresHost" . }}
+                - name: PGUSER
+                  value: perspectiv
+                - name: PGDATABASE
+                  value: perspectiv
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "perspectiv.secret" . }}
+                      key: POSTGRES_PASSWORD
+                - name: BACKUP_DIR
+                  value: /backups
+                - name: BACKUP_KEEP
+                  value: {{ .Values.postgres.backup.keep | quote }}
+              securityContext:
+                {{- include "perspectiv.containerSecurity" . | nindent 16 }}
+              resources:
+                {{- toYaml .Values.postgres.backup.resources | nindent 16 }}
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: scripts
+              configMap:
+                name: {{ $name }}
+            - name: backups
+              persistentVolumeClaim:
+                claimName: {{ include "perspectiv.fullname" . }}-postgres-backups
+{{- end }}

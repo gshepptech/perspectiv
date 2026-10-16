@@ -1,0 +1,25 @@
+# Values for the ingress-nginx chart on the perspectiv k3s VM. Install with:
+#   helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+#     --version 4.15.1 --namespace ingress-nginx --create-namespace \
+#     -f deploy/k3s/ingress-nginx-values.yaml
+controller:
+  ingressClassResource:
+    name: nginx
+    default: true
+  # k3s ServiceLB (klipper-lb) binds 80 and 443 on the VM's address.
+  service:
+    type: LoadBalancer
+    externalTrafficPolicy: Local
+  config:
+    # Strict-Transport-Security on every HTTPS response: one year, covering
+    # subdomains. Preload stays off until the domain is submitted on purpose.
+    hsts: "true"
+    hsts-max-age: "31536000"
+    hsts-include-subdomains: "true"
+    hsts-preload: "false"
+    ssl-redirect: "true"
+    # Pass the real client address to the app for per-IP rate limits.
+    use-forwarded-headers: "false"
+    compute-full-forwarded-for: "true"
+  metrics:
+    enabled: true

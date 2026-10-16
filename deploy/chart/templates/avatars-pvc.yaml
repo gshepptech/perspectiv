@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "perspectiv.fullname" . }}-avatars
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+  annotations:
+    # User uploads outlive a helm uninstall.
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: {{ .Values.api.avatars.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.api.avatars.size }}

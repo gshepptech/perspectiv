@@ -1,0 +1,107 @@
+# Values for the perspectiv chart. Every value left empty here with a
+# "required" note must be supplied at install time; the chart refuses to render
+# without it. deploy/k3s/README.md walks through a production install.
+
+image:
+  # required: the registry path of the image built from the repository Dockerfile.
+  repository: ""
+  # Defaults to the chart appVersion.
+  tag: ""
+  # Optional sha256 digest; when set the image is pulled by digest.
+  digest: ""
+  pullPolicy: IfNotPresent
+
+# required: the public hostname, e.g. perspectiv.example.com. The Ingress, the
+# certificate and PUBLIC_BASE_URL all derive from it.
+host: ""
+
+secrets:
+  # required: a Secret in the release namespace, created outside the chart so
+  # no secret value ever sits in a values file. Keys:
+  #   JWT_SECRET         HS256 signing key, at least 32 bytes
+  #   POSTGRES_PASSWORD  URL-safe (hex) password for the perspectiv database role
+  #   RESEND_API_KEY     Resend API key; may be omitted when app.mail.provider is smtp
+  existingSecret: ""
+
+app:
+  # Defaults to https://<host>.
+  publicBaseURL: ""
+  mail:
+    provider: resend
+    # required: the From header on every email.
+    from: ""
+    # Only read when provider is smtp.
+    smtpAddr: ""
+  rankInterval: 60s
+  canonMinMembers: 4
+  expiryWindow: 168h
+  logLevel: info
+  # Empty disables trace export.
+  otlpEndpoint: ""
+
+api:
+  replicas: 1
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {memory: 512Mi}
+  avatars:
+    storageClass: local-path
+    size: 5Gi
+
+worker:
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 512Mi}
+
+migrate:
+  backoffLimit: 4
+  activeDeadlineSeconds: 900
+  # The api and worker pods wait for the migration Job with kubectl wait.
+  waitImage: registry.k8s.io/kubectl:v1.36.5
+  waitTimeout: 15m
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {memory: 256Mi}
+
+postgres:
+  image: postgres:18.6-alpine3.24
+  # k3s ships the local-path provisioner; on another cluster set its class.
+  storageClass: local-path
+  size: 20Gi
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 2Gi}
+  backup:
+    enabled: true
+    # Every day at 03:15 UTC, the quietest hour for a US audience.
+    schedule: "15 3 * * *"
+    # Number of newest dumps kept on the backup volume.
+    keep: 14
+    storageClass: local-path
+    size: 40Gi
+    resources:
+      requests: {cpu: 50m, memory: 64Mi}
+      limits: {memory: 512Mi}
+
+ingress:
+  className: nginx
+  # Upper bound for a request body (avatar uploads).
+  proxyBodySize: 8m
+  # Route /metrics at the public edge to a Service with no endpoints, so the
+  # Prometheus endpoint answers in-cluster only.
+  blockMetrics: true
+
+tls:
+  issuer:
+    # true creates a namespaced ACME Issuer for Let's Encrypt; false references
+    # an issuer that already exists (kind and name below).
+    create: true
+    kind: Issuer
+    # Defaults to <fullname>-letsencrypt when create is true.
+    name: ""
+  acme:
+    # required when tls.issuer.create is true: the Let's Encrypt account email.
+    email: ""
+    # Staging, for a dry run: https://acme-staging-v02.api.letsencrypt.org/directory
+    server: https://acme-v02.api.letsencrypt.org/directory

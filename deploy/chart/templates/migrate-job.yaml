@@ -1,0 +1,61 @@
+{{- /*
+A plain Job rather than a Helm hook: a pre-install hook would run before the
+Postgres StatefulSet in this same release exists. The Job is named per release
+revision and carries no ttlSecondsAfterFinished, so it stays readable for the
+api and worker init containers that wait on it, including after a pod restart.
+*/ -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "perspectiv.migrateJob" . }}
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrate
+spec:
+  backoffLimit: {{ .Values.migrate.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrate.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "perspectiv.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        {{- include "perspectiv.podSecurity" . | nindent 8 }}
+      initContainers:
+        - name: wait-for-postgres
+          image: {{ .Values.postgres.image }}
+          command:
+            - sh
+            - -c
+            - until pg_isready -h "$PGHOST" -p 5432 -U perspectiv -d perspectiv; do sleep 2; done
+          env:
+            - name: PGHOST
+              value: {{ include "perspectiv.postgresHost" . }}
+          securityContext:
+            {{- include "perspectiv.containerSecurity" . | nindent 12 }}
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 64Mi}
+      containers:
+        - name: migrate
+          image: {{ include "perspectiv.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["migrate"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "perspectiv.fullname" . }}-env
+          env:
+            {{- include "perspectiv.appEnv" . | nindent 12 }}
+          securityContext:
+            {{- include "perspectiv.containerSecurity" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.migrate.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

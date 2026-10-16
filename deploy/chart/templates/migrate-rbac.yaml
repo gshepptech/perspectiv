@@ -1,0 +1,33 @@
+{{- /* The api and worker pods run as this account so their init container can wait on the migration Job; it may read Jobs and nothing else. */ -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "perspectiv.waiterSA" . }}
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "perspectiv.waiterSA" . }}
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "perspectiv.waiterSA" . }}
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "perspectiv.waiterSA" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "perspectiv.waiterSA" . }}
+    namespace: {{ .Release.Namespace }}

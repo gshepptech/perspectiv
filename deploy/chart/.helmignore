@@ -1,0 +1,6 @@
+# Go tests that render and exercise this chart live beside it; they are not
+# part of the packaged chart.
+*.go
+.DS_Store
+*.swp
+*.tmp

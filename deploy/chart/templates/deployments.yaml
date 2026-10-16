@@ -1,0 +1,80 @@
+{{- /* One image, two Deployments: ROLE selects api or worker. */ -}}
+{{- range $role := list "api" "worker" }}
+{{- $cfg := index $.Values $role }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "perspectiv.fullname" $ }}-{{ $role }}
+  labels:
+    {{- include "perspectiv.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $role }}
+spec:
+  replicas: {{ $cfg.replicas }}
+  selector:
+    matchLabels:
+      {{- include "perspectiv.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $role }}
+  template:
+    metadata:
+      labels:
+        {{- include "perspectiv.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $role }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: /metrics
+        checksum/env: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "perspectiv.waiterSA" $ }}
+      securityContext:
+        {{- include "perspectiv.podSecurity" $ | nindent 8 }}
+      initContainers:
+        {{- include "perspectiv.waitForMigration" $ | nindent 8 }}
+      containers:
+        - name: perspectiv
+          image: {{ include "perspectiv.image" $ }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "perspectiv.fullname" $ }}-env
+          env:
+            - name: ROLE
+              value: {{ $role }}
+            {{- include "perspectiv.appEnv" $ | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+          # /healthz reports dependencies, so it gates readiness only; a
+          # database outage must not restart every pod.
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          securityContext:
+            {{- include "perspectiv.containerSecurity" $ | nindent 12 }}
+          resources:
+            {{- toYaml $cfg.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if eq $role "api" }}
+            - name: avatars
+              mountPath: /var/lib/perspectiv/avatars
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if eq $role "api" }}
+        - name: avatars
+          persistentVolumeClaim:
+            claimName: {{ include "perspectiv.fullname" $ }}-avatars
+        {{- end }}
+{{- end }}

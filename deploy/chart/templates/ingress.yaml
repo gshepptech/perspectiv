@@ -1,0 +1,82 @@
+{{- $full := include "perspectiv.fullname" . -}}
+{{- $issuerName := .Values.tls.issuer.name -}}
+{{- if and .Values.tls.issuer.create (not $issuerName) -}}
+{{- $issuerName = printf "%s-letsencrypt" $full -}}
+{{- end -}}
+{{- if not $issuerName -}}
+{{- fail "tls.issuer.name is required when tls.issuer.create is false" -}}
+{{- end -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $full }}
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+  annotations:
+    {{- if eq .Values.tls.issuer.kind "ClusterIssuer" }}
+    cert-manager.io/cluster-issuer: {{ $issuerName }}
+    {{- else }}
+    cert-manager.io/issuer: {{ $issuerName }}
+    {{- end }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.proxyBodySize | quote }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    - hosts:
+        - {{ include "perspectiv.host" . }}
+      secretName: {{ $full }}-tls
+  rules:
+    - host: {{ include "perspectiv.host" . }}
+      http:
+        paths:
+          {{- if .Values.ingress.blockMetrics }}
+          - path: /metrics
+            pathType: Exact
+            backend:
+              service:
+                name: {{ $full }}-edge-blocked
+                port:
+                  number: 80
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $full }}-api
+                port:
+                  name: http
+{{- if .Values.ingress.blockMetrics }}
+---
+# No selector and no endpoints: ingress-nginx answers 503 for any path routed
+# here, which keeps /metrics off the public edge while Prometheus still scrapes
+# the pods directly.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $full }}-edge-blocked
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+spec:
+  ports:
+    - port: 80
+{{- end }}
+{{- if .Values.tls.issuer.create }}
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ $issuerName }}
+  labels:
+    {{- include "perspectiv.labels" . | nindent 4 }}
+spec:
+  acme:
+    server: {{ .Values.tls.acme.server }}
+    email: {{ required "tls.acme.email is required when tls.issuer.create is true" .Values.tls.acme.email }}
+    privateKeySecretRef:
+      name: {{ $issuerName }}-account
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: {{ .Values.ingress.className }}
+{{- end }}
