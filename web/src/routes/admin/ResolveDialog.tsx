@@ -44,7 +44,7 @@ export function ResolveDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogTitle>Resolve report</DialogTitle>
-        <DialogDescription>
+        <DialogDescription className="[overflow-wrap:anywhere]">
           {targetKindLabel(report.targetKind)}: {report.targetLabel}
         </DialogDescription>
         <Form {...form}>

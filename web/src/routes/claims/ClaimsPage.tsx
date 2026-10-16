@@ -100,7 +100,7 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
       <Dialog open={confirmReject} onOpenChange={setConfirmReject}>
         <DialogContent>
           <DialogTitle>Reject this claim?</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="[overflow-wrap:anywhere]">
             {claimant} will not be able to claim {label} again.
           </DialogDescription>
           <div className="mt-6 flex flex-wrap justify-end gap-2">
