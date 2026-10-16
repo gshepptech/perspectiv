@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -16,6 +17,26 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"go.yaml.in/yaml/v3"
 )
+
+func TestMain(m *testing.M) {
+	useDockerContext()
+	os.Exit(m.Run())
+}
+
+// useDockerContext points testcontainers at the Docker CLI's current context
+// when DOCKER_HOST is unset, as internal/testdb does: testcontainers-go does
+// not read `docker context`, so an engine reached through one (OrbStack,
+// Colima) would not be found although `docker` works. A failed lookup leaves
+// the environment unchanged and testcontainers reports its own error.
+func useDockerContext() {
+	if os.Getenv("DOCKER_HOST") != "" {
+		return
+	}
+	out, err := exec.CommandContext(context.Background(), "docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}").Output()
+	if host := strings.TrimSpace(string(out)); err == nil && host != "" {
+		_ = os.Setenv("DOCKER_HOST", host)
+	}
+}
 
 // backupEnv is the environment the CronJob gives the script, pointed at the
 // server inside the same container.
