@@ -1,0 +1,72 @@
+# golangci-lint v2 configuration. The STANDARD preset plus the complexity
+# linters at the community golden-config baseline. Thresholds are a hard
+# ceiling: never raise one to make a change fit.
+version: "2"
+
+run:
+  timeout: 15m
+  modules-download-mode: readonly
+  tests: true
+  # Lint the integration tier as well as the unit tier.
+  build-tags:
+    - integration
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - cyclop
+    - errorlint
+    - funlen
+    - gocognit
+    - gosec
+    - misspell
+    - nestif
+    - noctx
+  settings:
+    cyclop:
+      max-complexity: 30
+    gocognit:
+      min-complexity: 20
+    funlen:
+      lines: 100
+      statements: 50
+    nestif:
+      min-complexity: 5
+  exclusions:
+    # Generated files (sqlc dbq packages, buf output under gen/) carry the
+    # "Code generated ... DO NOT EDIT." header and are skipped by that marker.
+    generated: lax
+    paths:
+      - ^tmp/
+      - ^bin/
+      - ^web/node_modules/
+    rules:
+      # Table-driven tests keep every case in one slice literal, so a test
+      # function's length tracks its case count, not its logic. Complexity
+      # limits still apply to tests.
+      - path: _test\.go$
+        linters:
+          - funlen
+      # Tests read, write and execute files under t.TempDir() and the repo's
+      # own scripts; the file-inclusion, permission and subprocess rules are
+      # for request-driven paths in production code.
+      - path: _test\.go$
+        linters:
+          - gosec
+        text: "G204|G302|G304|G306|G703"
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - perspectiv
+  exclusions:
+    generated: lax
+    paths:
+      - ^tmp/
+      - ^bin/
+      - ^web/node_modules/

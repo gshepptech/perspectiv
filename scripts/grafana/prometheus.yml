@@ -1,0 +1,9 @@
+# Scrapes the dev server's /metrics on the host (HTTP_ADDR :8080 by default).
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: perspectiv
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8080"]

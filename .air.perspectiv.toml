@@ -1,0 +1,49 @@
+# Air live reload for the perspectiv server (ROLE from .env.dev, default all).
+# scripts/dev.sh starts it; do not share this file with another binary.
+root = "."
+tmp_dir = "tmp/air-perspectiv"
+# Dev settings, in the same order scripts/dev.sh sources them: the tracked
+# defaults, then the gitignored local overrides.
+env_files = [".env.dev", ".env.dev.local"]
+
+[build]
+# The exact production build, including the ldflags that stamp build info.
+cmd = """CGO_ENABLED=0 go build -trimpath \
+  -ldflags "-s -w \
+    -X perspectiv/internal/api/buildinfo.Version=$(git describe --tags --always --dirty 2>/dev/null || echo dev) \
+    -X perspectiv/internal/api/buildinfo.Commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown) \
+    -X perspectiv/internal/api/buildinfo.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  -o ./tmp/air-perspectiv/perspectiv ./cmd/perspectiv"""
+entrypoint = ["./tmp/air-perspectiv/perspectiv"]
+include_ext = ["go"]
+exclude_dir = [
+  ".git",
+  "bin",
+  "deploy",
+  "docs",
+  "forge-specs",
+  "gen",
+  "node_modules",
+  "proto",
+  "scripts",
+  "tmp",
+  "trowel-archive",
+  "web",
+]
+# Generated sqlc accessors live in each domain's dbq/ directory.
+exclude_regex = ["_test\\.go$", "/dbq/"]
+exclude_unchanged = true
+delay = 1000
+stop_on_error = true
+send_interrupt = true
+kill_delay = "1000ms"
+log = "air-build.log"
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true
+
+[screen]
+clear_on_rebuild = false
