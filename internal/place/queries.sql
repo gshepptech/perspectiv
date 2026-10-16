@@ -1,0 +1,212 @@
+-- Place hierarchy reads, user-created places and the epic listings.
+--
+-- A place is visible when neither it nor any ancestor has hidden_at set:
+-- hiding a place by moderation hides its whole subtree from every read here.
+-- Recursive walks stop at depth 8; the hierarchy has five levels, so the cap
+-- only matters for a corrupt cycle, which it turns into a short result rather
+-- than an endless query.
+
+-- name: GetVisiblePlace :one
+WITH RECURSIVE chain AS (
+    SELECT p.id, p.parent_id, p.hidden_at, 1 AS depth
+    FROM places p
+    WHERE p.id = @id::uuid
+    UNION ALL
+    SELECT a.id, a.parent_id, a.hidden_at, c.depth + 1
+    FROM places a
+    JOIN chain c ON a.id = c.parent_id
+    WHERE c.depth < 8
+)
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+FROM places p
+WHERE p.id = @id::uuid
+  AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.hidden_at IS NOT NULL);
+
+-- name: ListAncestors :many
+-- Every ancestor of each given place, root first within a place.
+WITH RECURSIVE chain AS (
+    SELECT p.id AS place_id, p.parent_id AS ancestor_id, 1 AS depth
+    FROM places p
+    WHERE p.id = ANY(@ids::uuid[]) AND p.parent_id IS NOT NULL
+    UNION ALL
+    SELECT c.place_id, a.parent_id, c.depth + 1
+    FROM chain c
+    JOIN places a ON a.id = c.ancestor_id
+    WHERE a.parent_id IS NOT NULL AND c.depth < 8
+)
+SELECT c.place_id, a.id AS ancestor_id, a.kind, a.name, c.depth::integer AS depth
+FROM chain c
+JOIN places a ON a.id = c.ancestor_id
+ORDER BY c.place_id, c.depth DESC;
+
+-- name: SearchPlaces :many
+-- Typeahead. Candidates are visible-by-row places whose lowercased name
+-- contains the pattern (served by the trigram index), restricted to the
+-- descendants of parent_id when it is set. Ranking: exact name, then name
+-- prefix, then substring; within each, broader kinds first (STATE before
+-- STORE), then shorter names, then name and id. The top candidate_limit
+-- candidates are then checked for a hidden ancestor, and the first
+-- result_limit survivors returned.
+WITH RECURSIVE scope AS (
+    SELECT p.id, 0 AS depth
+    FROM places p
+    WHERE p.id = sqlc.narg(parent_id)::uuid AND p.hidden_at IS NULL
+    UNION ALL
+    SELECT ch.id, s.depth + 1
+    FROM places ch
+    JOIN scope s ON ch.parent_id = s.id
+    WHERE ch.hidden_at IS NULL AND s.depth < 8
+),
+candidates AS (
+    SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+           (lower(p.name) = @exact::text) AS is_exact,
+           (lower(p.name) LIKE @prefix::text) AS is_prefix,
+           array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level
+    FROM places p
+    WHERE p.hidden_at IS NULL
+      AND lower(p.name) LIKE @contains::text
+      AND (sqlc.narg(kind)::text IS NULL OR p.kind = sqlc.narg(kind)::text)
+      AND (sqlc.narg(parent_id)::uuid IS NULL
+           OR p.id IN (SELECT scope.id FROM scope WHERE scope.depth > 0))
+    ORDER BY is_exact DESC, is_prefix DESC, level, char_length(p.name), lower(p.name), p.id
+    LIMIT @candidate_limit::integer
+),
+up AS (
+    SELECT m.id AS place_id, m.parent_id AS ancestor_id, 1 AS depth
+    FROM candidates m
+    WHERE m.parent_id IS NOT NULL
+    UNION ALL
+    SELECT u.place_id, a.parent_id, u.depth + 1
+    FROM up u
+    JOIN places a ON a.id = u.ancestor_id
+    WHERE a.parent_id IS NOT NULL AND u.depth < 8
+)
+SELECT m.id, m.kind, m.name, m.parent_id, m.timezone, m.source, m.user_added
+FROM candidates m
+WHERE NOT EXISTS (
+    SELECT 1 FROM up u JOIN places a ON a.id = u.ancestor_id
+    WHERE u.place_id = m.id AND a.hidden_at IS NOT NULL)
+ORDER BY m.is_exact DESC, m.is_prefix DESC, m.level, char_length(m.name), lower(m.name), m.id
+LIMIT @result_limit::integer;
+
+-- name: ListStates :many
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+FROM places p
+WHERE p.parent_id IS NULL AND p.hidden_at IS NULL
+  AND (sqlc.narg(after_id)::uuid IS NULL
+       OR (lower(p.name), p.id) > (sqlc.narg(after_name)::text, sqlc.narg(after_id)::uuid))
+ORDER BY lower(p.name), p.id
+LIMIT @lim::integer;
+
+-- name: ListChildren :many
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+FROM places p
+WHERE p.parent_id = @parent_id::uuid AND p.hidden_at IS NULL
+  AND (sqlc.narg(after_id)::uuid IS NULL
+       OR (lower(p.name), p.id) > (sqlc.narg(after_name)::text, sqlc.narg(after_id)::uuid))
+ORDER BY lower(p.name), p.id
+LIMIT @lim::integer;
+
+-- name: LockVisibleParent :one
+-- Holds the parent row against a concurrent hide until the insert commits.
+SELECT p.kind, p.timezone
+FROM places p
+WHERE p.id = @id::uuid AND p.hidden_at IS NULL
+FOR SHARE;
+
+-- name: InsertUserPlace :one
+INSERT INTO places (kind, name, parent_id, timezone, source, user_added, created_by)
+VALUES (@kind::text, @name::text, @parent_id::uuid, @timezone::text, 'PLACE_SOURCE_USER', true, @created_by::uuid)
+RETURNING id, kind, name, parent_id, timezone, source, user_added;
+
+-- name: EpicArcsRanked :many
+-- Arcs at the place and every visible descendant (a listing only: each
+-- arc keeps its own stored canon). An arc is listed when it has at least one
+-- readable perspective, of the genre when one is given. Order: arcs with a
+-- canon first, then the stored canon score, member count, newest, id.
+WITH RECURSIVE scope AS (
+    SELECT @place_id::uuid AS id, 0 AS depth
+    UNION ALL
+    SELECT ch.id, s.depth + 1
+    FROM places ch
+    JOIN scope s ON ch.parent_id = s.id
+    WHERE ch.hidden_at IS NULL AND s.depth < 8
+)
+SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+       a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
+FROM arcs a
+JOIN scope s ON s.id = a.place_id
+JOIN places pl ON pl.id = a.place_id
+WHERE EXISTS (
+        SELECT 1 FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+          AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+  AND (sqlc.narg(after_id)::uuid IS NULL
+       OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
+          < (sqlc.narg(after_has_canon)::boolean, sqlc.narg(after_score)::double precision,
+             sqlc.narg(after_members)::integer, sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY (a.canon_lore_id IS NOT NULL) DESC, a.canon_score DESC, a.member_count DESC, a.created_at DESC, a.id DESC
+LIMIT @lim::integer;
+
+-- name: EpicArcsNewest :many
+-- The same arcs as EpicArcsRanked, newest first.
+WITH RECURSIVE scope AS (
+    SELECT @place_id::uuid AS id, 0 AS depth
+    UNION ALL
+    SELECT ch.id, s.depth + 1
+    FROM places ch
+    JOIN scope s ON ch.parent_id = s.id
+    WHERE ch.hidden_at IS NULL AND s.depth < 8
+)
+SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+       a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
+FROM arcs a
+JOIN scope s ON s.id = a.place_id
+JOIN places pl ON pl.id = a.place_id
+WHERE EXISTS (
+        SELECT 1 FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+          AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+  AND (sqlc.narg(after_id)::uuid IS NULL
+       OR (a.created_at, a.id) < (sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY a.created_at DESC, a.id DESC
+LIMIT @lim::integer;
+
+-- name: EpicTales :many
+-- SOLO and REMOVED perspectives in arcs at the place and every visible
+-- descendant, newest published first. Deleted and hidden perspectives are
+-- left out. The excerpt is the first 200 characters of the first part.
+WITH RECURSIVE scope AS (
+    SELECT @place_id::uuid AS id, 0 AS depth
+    UNION ALL
+    SELECT ch.id, s.depth + 1
+    FROM places ch
+    JOIN scope s ON ch.parent_id = s.id
+    WHERE ch.hidden_at IS NULL AND s.depth < 8
+)
+SELECT v.id, v.arc_id, a.title AS arc_title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+       a.local_date, a.hour, v.author_id, u.username, v.genre, v.lore_status, v.published_at,
+       coalesce((SELECT left(pp.body, 200) FROM perspective_parts pp
+                 WHERE pp.perspective_id = v.id ORDER BY pp.position LIMIT 1), '')::text AS excerpt
+FROM perspectives v
+JOIN arcs a ON a.id = v.arc_id
+JOIN scope s ON s.id = a.place_id
+JOIN places pl ON pl.id = a.place_id
+JOIN users u ON u.id = v.author_id
+WHERE v.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
+  AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+  AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text)
+  AND (sqlc.narg(after_id)::uuid IS NULL
+       OR (v.published_at, v.id) < (sqlc.narg(after_published)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY v.published_at DESC, v.id DESC
+LIMIT @lim::integer;
