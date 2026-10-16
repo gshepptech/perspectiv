@@ -399,6 +399,9 @@ func checkIngress(t *testing.T, objs map[string]object) {
 	if got := str(ing, "metadata", "annotations", "cert-manager.io/issuer"); got != "perspectiv-letsencrypt" {
 		t.Errorf("issuer annotation = %q", got)
 	}
+	if got := str(ing, "metadata", "annotations", "cert-manager.io/common-name"); got != "perspectiv.example" {
+		t.Errorf("certificate common name = %q", got)
+	}
 	if str(ing, "metadata", "annotations", "nginx.ingress.kubernetes.io/force-ssl-redirect") != "true" {
 		t.Error("ingress does not force HTTPS")
 	}

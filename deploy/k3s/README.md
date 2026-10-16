@@ -223,4 +223,5 @@ the api and worker started, that `/healthz` and `/about` answer through the
 ingress hostname over TLS with HSTS, that `/metrics` answers in-cluster and
 not at the edge, that a backup runs, and that an upgrade migrates again.
 Let's Encrypt cannot reach a local cluster, so the certificate comes from a
-cert-manager self-signed issuer. Set `KEEP_CLUSTER=1` to leave the cluster up.
+throwaway cert-manager CA issuer. It needs k3d 5.9 or later. Set
+`KEEP_CLUSTER=1` to leave the cluster up.

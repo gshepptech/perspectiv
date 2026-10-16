@@ -18,6 +18,9 @@ metadata:
     {{- else }}
     cert-manager.io/issuer: {{ $issuerName }}
     {{- end }}
+    # A subject common name as well as the SAN: some TLS stacks (macOS
+    # SecureTransport among them) reject a leaf certificate with an empty subject.
+    cert-manager.io/common-name: {{ include "perspectiv.host" . }}
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.proxyBodySize | quote }}
 spec:

@@ -7,7 +7,7 @@
 # at the edge, that a backup runs, and that a helm upgrade migrates again.
 #
 # Let's Encrypt cannot reach a cluster on a laptop, so the certificate comes
-# from a cert-manager self-signed ClusterIssuer; everything else matches
+# from a throwaway cert-manager CA ClusterIssuer; everything else matches
 # production. Needs docker, k3d 5.9 or later (older k3d never sees a k3s 1.36
 # server become ready), helm, kubectl, curl and openssl, plus network access to
 # the chart repositories and image registries.
@@ -93,14 +93,42 @@ step "cert-manager $CERT_MANAGER_VERSION"
 helm upgrade --install cert-manager cert-manager \
 	--repo https://charts.jetstack.io --version "$CERT_MANAGER_VERSION" \
 	--namespace cert-manager --create-namespace --set crds.enabled=true --wait --timeout 5m
+# A self-signed root, then a CA issuer signing the ingress certificate with it.
 kubectl apply -f - <<'YAML'
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
-  name: e2e-selfsigned
+  name: e2e-bootstrap
 spec:
   selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: e2e-root
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: perspectiv e2e root
+  secretName: e2e-root
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: e2e-bootstrap
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: e2e-ca
+spec:
+  ca:
+    secretName: e2e-root
 YAML
+kubectl -n cert-manager wait --for=condition=Ready --timeout=2m certificate/e2e-root
+kubectl wait --for=condition=Ready --timeout=1m clusterissuer/e2e-ca
+kubectl -n cert-manager get secret e2e-root -o jsonpath='{.data.ca\.crt}' | openssl base64 -d -A >"$WORK/ca.crt"
 
 step "secret and chart"
 kubectl create namespace "$NS"
@@ -112,7 +140,7 @@ CHART_ARGS=(
 	--set image.repository="$IMAGE_REPO" --set image.tag="$IMAGE_TAG" --set image.pullPolicy=Never
 	--set host="$HOST"
 	--set secrets.existingSecret=perspectiv-secrets
-	--set tls.issuer.create=false --set tls.issuer.kind=ClusterIssuer --set tls.issuer.name=e2e-selfsigned
+	--set tls.issuer.create=false --set tls.issuer.kind=ClusterIssuer --set tls.issuer.name=e2e-ca
 	--set app.mail.provider=smtp --set app.mail.smtpAddr=localhost:1025
 	--set "app.mail.from=Perspectiv <no-reply@perspectiv.test>"
 	--set postgres.size=1Gi --set postgres.backup.size=1Gi --set api.avatars.size=1Gi
@@ -136,7 +164,6 @@ worker_img="$(kubectl -n "$NS" get deploy "$REL-worker" -o jsonpath='{.spec.temp
 
 step "certificate"
 kubectl -n "$NS" wait --for=condition=Ready --timeout=3m "certificate/$REL-tls"
-kubectl -n "$NS" get secret "$REL-tls" -o jsonpath='{.data.ca\.crt}' | openssl base64 -d -A >"$WORK/ca.crt"
 
 CURL=(curl -sS --max-time 10 --resolve "$HOST:$HTTPS_PORT:127.0.0.1" --cacert "$WORK/ca.crt")
 BASE="https://$HOST:$HTTPS_PORT"
