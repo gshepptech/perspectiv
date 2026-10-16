@@ -1,0 +1,22 @@
+{"id":"div-us","subtype":"country","class":null,"country":"US","region":null,"names":{"primary":"United States"},"parent_division_id":null,"lng":-98.5,"lat":39.8}
+{"type":"Feature","id":"div-tx","geometry":{"type":"Point","coordinates":[-99.3,31.4]},"properties":{"theme":"divisions","type":"division","subtype":"region","country":"US","region":"US-TX","names":{"primary":"Texas"},"parent_division_id":"div-us"}}
+{"id":"div-fl","subtype":"region","country":"US","region":"US-FL","names":{"primary":"Florida"},"parent_division_id":"div-us","lng":-81.7,"lat":27.8}
+{"id":"div-az","subtype":"region","country":"US","region":"US-AZ","names":{"primary":"Arizona"},"parent_division_id":"div-us","lng":-111.7,"lat":34.3}
+
+{"id":"div-elpaso-co","subtype":"county","country":"US","region":"US-TX","names":{"primary":"El Paso County"},"parent_division_id":"div-tx"}
+{"id":"div-harris-co","subtype":"county","country":"US","region":"US-TX","names":{"primary":"Harris County"},"parent_division_id":"div-tx"}
+{"id":"div-escambia-co","subtype":"county","country":"US","region":"US-FL","names":{"primary":"Escambia County"},"parent_division_id":"div-fl"}
+{"id":"div-dade-co","subtype":"county","country":"US","region":"US-FL","names":{"primary":"Miami-Dade County"},"parent_division_id":"div-fl"}
+{"id":"div-apache-co","subtype":"county","country":"US","region":"US-AZ","names":{"primary":"Apache County"},"parent_division_id":"div-az"}
+{"id":"div-maricopa-co","subtype":"county","country":"US","region":"US-AZ","names":{"primary":"Maricopa County"},"parent_division_id":"div-az"}
+{"id":"div-elpaso","subtype":"locality","class":"city","country":"US","region":"US-TX","names":{"primary":"El Paso"},"parent_division_id":"div-elpaso-co","lng":-106.44,"lat":31.76}
+{"type":"Feature","id":"div-houston","geometry":{"type":"Point","coordinates":[-95.37,29.76]},"properties":{"subtype":"locality","class":"megacity","country":"US","region":"US-TX","names":{"primary":"Houston"},"parent_division_id":"div-harris-co"}}
+{"id":"div-socorro","subtype":"locality","class":"town","country":"US","region":"US-TX","names":{"primary":"Socorro"},"parent_division_id":"div-elpaso-co","lng":-106.30,"lat":31.65}
+{"id":"div-montecillo","subtype":"locality","class":"village","country":"US","region":"US-TX","names":{"primary":"Montecillo"},"parent_division_id":"div-elpaso","lng":-106.50,"lat":31.80}
+{"id":"div-pensacola","subtype":"locality","class":"city","country":"US","region":"US-FL","names":{"primary":"Pensacola"},"parent_division_id":"div-escambia-co","lng":-87.22,"lat":30.42}
+{"id":"div-miami","subtype":"locality","class":"city","country":"US","region":"US-FL","names":{"primary":"Miami"},"parent_division_id":"div-dade-co","lng":-80.19,"lat":25.76}
+{"id":"div-windowrock","subtype":"locality","class":"town","country":"US","region":"US-AZ","names":{"primary":"Window Rock"},"parent_division_id":"div-apache-co","lng":-109.05,"lat":35.68}
+{"id":"div-phoenix","subtype":"locality","class":"city","country":"US","region":"US-AZ","names":{"primary":"Phoenix"},"parent_division_id":"div-maricopa-co","lng":-112.07,"lat":33.45}
+{"id":"div-ca","subtype":"country","country":"CA","names":{"primary":"Canada"}}
+{"id":"div-on","subtype":"region","country":"CA","region":"CA-ON","names":{"primary":"Ontario"},"parent_division_id":"div-ca"}
+{"id":"div-toronto","subtype":"locality","class":"city","country":"CA","region":"CA-ON","names":{"primary":"Toronto"},"parent_division_id":"div-on"}

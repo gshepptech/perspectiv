@@ -1,0 +1,103 @@
+//go:build integration
+
+package main
+
+import (
+	"bytes"
+	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"perspectiv/internal/testdb"
+)
+
+func TestMain(m *testing.M) { testdb.Main(m) }
+
+func countPlaces(t *testing.T, pool *pgxpool.Pool) int {
+	t.Helper()
+	var n int
+	if err := pool.QueryRow(context.Background(), `SELECT count(*) FROM places`).Scan(&n); err != nil {
+		t.Fatalf("count places: %v", err)
+	}
+	return n
+}
+
+// OT-010: placectl import of the United States fixtures produces STATE, CITY
+// and TOWN rows with parent links and an IANA zone on every row.
+func TestPlacectlImportFixtures(t *testing.T) {
+	t.Parallel()
+	pool := testdb.New(t)
+	var stderr bytes.Buffer
+	code := run(context.Background(),
+		[]string{"import", "--divisions", fixture("us_divisions.ndjson"), "--places", fixture("us_places.ndjson")},
+		env(map[string]string{"DATABASE_URL": pool.Config().ConnString(), "LOG_LEVEL": "info"}), &stderr)
+	if code != exitOK {
+		t.Fatalf("exit = %d, want 0; stderr:\n%s", code, stderr.String())
+	}
+
+	var states, cities, towns, orphans, noZone, badParent int
+	err := pool.QueryRow(context.Background(), `
+		SELECT
+		  count(*) FILTER (WHERE p.kind = 'PLACE_KIND_STATE'),
+		  count(*) FILTER (WHERE p.kind = 'PLACE_KIND_CITY'),
+		  count(*) FILTER (WHERE p.kind = 'PLACE_KIND_TOWN'),
+		  count(*) FILTER (WHERE p.kind <> 'PLACE_KIND_STATE' AND pp.id IS NULL),
+		  count(*) FILTER (WHERE p.timezone = ''),
+		  count(*) FILTER (WHERE p.kind = 'PLACE_KIND_CITY' AND pp.kind <> 'PLACE_KIND_STATE')
+		FROM places p LEFT JOIN places pp ON pp.id = p.parent_id`).
+		Scan(&states, &cities, &towns, &orphans, &noZone, &badParent)
+	if err != nil {
+		t.Fatalf("summarise places: %v", err)
+	}
+	if states != 3 || cities != 5 || towns != 3 {
+		t.Errorf("imported %d states, %d cities, %d towns; want 3, 5, 3", states, cities, towns)
+	}
+	if orphans != 0 || noZone != 0 || badParent != 0 {
+		t.Errorf("%d rows without a parent, %d without a zone, %d cities not under a state", orphans, noZone, badParent)
+	}
+	if !bytes.Contains(stderr.Bytes(), []byte(`"place import committed"`)) {
+		t.Errorf("no commit log line on stderr:\n%s", stderr.String())
+	}
+}
+
+// CT-016: an unparsable file or an unresolved parent exits non-zero and
+// writes nothing.
+func TestPlacectlImportFailuresWriteNothing(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	bad := filepath.Join(dir, "bad.ndjson")
+	if err := os.WriteFile(bad, []byte("not json\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	strayStore := filepath.Join(dir, "stray.ndjson")
+	if err := os.WriteFile(strayStore, []byte(`{"fsq_place_id":"s","name":"Shop","country":"US","region":"TX","locality":"Nowhere"}`+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		name              string
+		divisions, places string
+	}{
+		{"unparsable divisions", bad, fixture("us_places.ndjson")},
+		{"unparsable places", fixture("us_divisions.ndjson"), bad},
+		{"store with no city", fixture("us_divisions.ndjson"), strayStore},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			pool := testdb.New(t)
+			var stderr bytes.Buffer
+			code := run(context.Background(),
+				[]string{"import", "--divisions", tc.divisions, "--places", tc.places},
+				env(map[string]string{"DATABASE_URL": pool.Config().ConnString()}), &stderr)
+			if code != exitFailure {
+				t.Errorf("exit = %d, want %d; stderr:\n%s", code, exitFailure, stderr.String())
+			}
+			if n := countPlaces(t, pool); n != 0 {
+				t.Errorf("failed import left %d places", n)
+			}
+		})
+	}
+}

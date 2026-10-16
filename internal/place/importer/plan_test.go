@@ -1,0 +1,287 @@
+package importer_test
+
+import (
+	"errors"
+	"os"
+	"strings"
+	"testing"
+
+	perspectivv1 "perspectiv/gen/perspectiv/v1"
+	"perspectiv/internal/place/importer"
+)
+
+const (
+	state = perspectivv1.PlaceKind_PLACE_KIND_STATE
+	city  = perspectivv1.PlaceKind_PLACE_KIND_CITY
+	town  = perspectivv1.PlaceKind_PLACE_KIND_TOWN
+	mall  = perspectivv1.PlaceKind_PLACE_KIND_MALL
+	store = perspectivv1.PlaceKind_PLACE_KIND_STORE
+)
+
+func openFixture(t *testing.T, name string) *os.File {
+	t.Helper()
+	f, err := os.Open("testdata/" + name)
+	if err != nil {
+		t.Fatalf("open fixture: %v", err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	return f
+}
+
+func fixturePlan(t *testing.T) *importer.Plan {
+	t.Helper()
+	plan, err := importer.Prepare(openFixture(t, "us_divisions.ndjson"), openFixture(t, "us_places.ndjson"))
+	if err != nil {
+		t.Fatalf("Prepare: %v", err)
+	}
+	return plan
+}
+
+// FR-050, OT-010: every row of the US fixtures has a kind, a parent of the
+// expected node and an IANA zone.
+func TestPrepareFixtures(t *testing.T) {
+	t.Parallel()
+	plan := fixturePlan(t)
+	byKey := map[string]importer.Node{}
+	for _, n := range plan.Nodes() {
+		byKey[n.Key] = n
+	}
+
+	cases := []struct {
+		key, name, parent, zone string
+		kind                    perspectivv1.PlaceKind
+		source                  perspectivv1.PlaceSource
+	}{
+		{"overture:div-tx", "Texas", "", "America/Chicago", state, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-fl", "Florida", "", "America/New_York", state, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-az", "Arizona", "", "America/Phoenix", state, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-elpaso", "El Paso", "overture:div-tx", "America/Denver", city, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-houston", "Houston", "overture:div-tx", "America/Chicago", city, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-pensacola", "Pensacola", "overture:div-fl", "America/Chicago", city, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-miami", "Miami", "overture:div-fl", "America/New_York", city, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-phoenix", "Phoenix", "overture:div-az", "America/Phoenix", city, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-socorro", "Socorro", "overture:div-tx", "America/Denver", town, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-montecillo", "Montecillo", "overture:div-elpaso", "America/Denver", town, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"overture:div-windowrock", "Window Rock", "overture:div-az", "America/Denver", town, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"foursquare:fsq-cielo", "Cielo Vista Mall", "overture:div-elpaso", "America/Denver", mall, perspectivv1.PlaceSource_PLACE_SOURCE_FOURSQUARE},
+		{"overture:ov-galleria", "The Galleria", "overture:div-houston", "America/Chicago", mall, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"foursquare:fsq-books", "Desert Books", "overture:div-elpaso", "America/Denver", store, perspectivv1.PlaceSource_PLACE_SOURCE_FOURSQUARE},
+		{"overture:ov-coffee", "Palafox Coffee", "overture:div-pensacola", "America/Chicago", store, perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE},
+		{"foursquare:fsq-navajo-store", "Window Rock Trading Post", "overture:div-windowrock", "America/Denver", store, perspectivv1.PlaceSource_PLACE_SOURCE_FOURSQUARE},
+	}
+	if got, want := len(plan.Nodes()), len(cases); got != want {
+		t.Errorf("plan has %d nodes, want %d", got, want)
+	}
+	for _, tc := range cases {
+		t.Run(tc.key, func(t *testing.T) {
+			t.Parallel()
+			n, ok := byKey[tc.key]
+			if !ok {
+				t.Fatalf("no node %s", tc.key)
+			}
+			if n.Name != tc.name || n.Kind != tc.kind || n.ParentKey != tc.parent || n.Timezone != tc.zone || n.Source != tc.source {
+				t.Errorf("node = {%q %v parent %q %q %v}, want {%q %v parent %q %q %v}",
+					n.Name, n.Kind, n.ParentKey, n.Timezone, n.Source, tc.name, tc.kind, tc.parent, tc.zone, tc.source)
+			}
+		})
+	}
+}
+
+func TestPrepareOrderMergeAndSkip(t *testing.T) {
+	t.Parallel()
+	plan := fixturePlan(t)
+
+	t.Run("parents come before children", func(t *testing.T) {
+		t.Parallel()
+		seen := map[string]bool{}
+		for _, n := range plan.Nodes() {
+			if n.ParentKey != "" && !seen[n.ParentKey] {
+				t.Errorf("%s precedes its parent %s", n.Key, n.ParentKey)
+			}
+			seen[n.Key] = true
+		}
+	})
+	t.Run("same-named store under one parent is merged", func(t *testing.T) {
+		t.Parallel()
+		if got := plan.Merged()["foursquare:fsq-books-2"]; got != "foursquare:fsq-books" {
+			t.Errorf("fsq-books-2 merged into %q, want foursquare:fsq-books", got)
+		}
+	})
+	t.Run("non-US records are skipped", func(t *testing.T) {
+		t.Parallel()
+		// Ontario, Toronto and the Toronto mall.
+		if plan.Skipped != 3 {
+			t.Errorf("Skipped = %d, want 3", plan.Skipped)
+		}
+	})
+}
+
+func nodeByKey(t *testing.T, plan *importer.Plan, key string) importer.Node {
+	t.Helper()
+	for _, n := range plan.Nodes() {
+		if n.Key == key {
+			return n
+		}
+	}
+	t.Fatalf("no node %s", key)
+	return importer.Node{}
+}
+
+func TestPrepareCoordinates(t *testing.T) {
+	t.Parallel()
+	plan := fixturePlan(t)
+	cases := []struct {
+		key      string
+		lng, lat float64
+	}{
+		{"overture:div-houston", -95.37, 29.76},  // GeoJSON Feature geometry
+		{"overture:div-elpaso", -106.44, 31.76},  // flat lng and lat
+		{"foursquare:fsq-cielo", -106.38, 31.78}, // Foursquare longitude and latitude
+		{"overture:ov-coffee", -87.21, 30.41},    // Overture place Feature
+	}
+	for _, tc := range cases {
+		t.Run(tc.key, func(t *testing.T) {
+			t.Parallel()
+			n := nodeByKey(t, plan, tc.key)
+			if n.Lng == nil || n.Lat == nil || *n.Lng != tc.lng || *n.Lat != tc.lat {
+				t.Errorf("coordinates = %v, %v; want %v, %v", n.Lng, n.Lat, tc.lng, tc.lat)
+			}
+		})
+	}
+	if n := nodeByKey(t, plan, "overture:div-tx"); n.Lng == nil {
+		t.Error("Texas coordinates from Feature geometry not read")
+	}
+}
+
+const (
+	usDiv    = `{"id":"div-us","subtype":"country","country":"US","names":{"primary":"United States"}}`
+	txDiv    = `{"id":"div-tx","subtype":"region","country":"US","region":"US-TX","names":{"primary":"Texas"},"parent_division_id":"div-us"}`
+	cityDiv  = `{"id":"div-austin","subtype":"locality","class":"city","country":"US","region":"US-TX","names":{"primary":"Austin"},"parent_division_id":"div-tx"}`
+	goodDivs = usDiv + "\n" + txDiv + "\n" + cityDiv + "\n"
+)
+
+// CT-016: a file that cannot be parsed and a parent that cannot be resolved
+// are errors naming the file and line.
+func TestPrepareErrors(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name       string
+		divisions  string
+		places     string
+		wantParse  bool
+		wantFile   string
+		wantLine   int
+		wantSubstr string
+	}{
+		{
+			name: "invalid JSON in divisions", divisions: usDiv + "\n{not json\n", wantParse: true,
+			wantFile: "divisions", wantLine: 2, wantSubstr: "invalid JSON",
+		},
+		{
+			name: "array line in divisions", divisions: "[1,2]\n", wantParse: true,
+			wantFile: "divisions", wantLine: 1, wantSubstr: "not a JSON object",
+		},
+		{
+			name: "polygon geometry", wantParse: true, wantFile: "divisions", wantLine: 1, wantSubstr: "Point",
+			divisions: `{"type":"Feature","geometry":{"type":"Polygon","coordinates":[]},"properties":{"id":"x","subtype":"region","country":"US","region":"US-TX","names":{"primary":"Texas"},"parent_division_id":"div-us"}}`,
+		},
+		{
+			name: "missing subtype", divisions: `{"id":"x","country":"US"}`, wantParse: true,
+			wantFile: "divisions", wantLine: 1, wantSubstr: "subtype",
+		},
+		{
+			name: "region that is not a state", wantParse: true, wantFile: "divisions", wantLine: 2, wantSubstr: "US-ZZ",
+			divisions: usDiv + "\n" + `{"id":"zz","subtype":"region","country":"US","region":"US-ZZ","names":{"primary":"Nowhere"},"parent_division_id":"div-us"}`,
+		},
+		{
+			name: "unknown locality class", wantParse: true, wantFile: "divisions", wantLine: 3, wantSubstr: "class",
+			divisions: usDiv + "\n" + txDiv + "\n" + `{"id":"q","subtype":"locality","class":"spaceport","country":"US","names":{"primary":"Q"},"parent_division_id":"div-tx"}`,
+		},
+		{
+			name: "duplicate id", divisions: usDiv + "\n" + usDiv, wantParse: true,
+			wantFile: "divisions", wantLine: 2, wantSubstr: "duplicate",
+		},
+		{
+			name: "out of range coordinates", wantParse: true, wantFile: "divisions", wantLine: 1, wantSubstr: "range",
+			divisions: `{"id":"div-us","subtype":"country","country":"US","lng":200,"lat":0}`,
+		},
+		{
+			name: "invalid JSON in places", divisions: goodDivs, places: `{"fsq_place_id":`, wantParse: true,
+			wantFile: "places", wantLine: 1, wantSubstr: "invalid JSON",
+		},
+		{
+			name: "place with no id", divisions: goodDivs, places: `{"names":{"primary":"X"},"addresses":[{"country":"US"}]}`,
+			wantParse: true, wantFile: "places", wantLine: 1, wantSubstr: "id",
+		},
+		{
+			name: "place with no name", divisions: goodDivs, places: `{"fsq_place_id":"a","country":"US","region":"TX","locality":"Austin"}`,
+			wantParse: true, wantFile: "places", wantLine: 1, wantSubstr: "name",
+		},
+		{
+			name: "city whose parent is not in the file", wantFile: "divisions", wantLine: 2, wantSubstr: "div-missing",
+			divisions: usDiv + "\n" + `{"id":"c","subtype":"locality","class":"city","country":"US","names":{"primary":"Lost"},"parent_division_id":"div-missing"}`,
+		},
+		{
+			name: "city with no state above it", wantFile: "divisions", wantLine: 2, wantSubstr: "no state",
+			divisions: usDiv + "\n" + `{"id":"c","subtype":"locality","class":"city","country":"US","names":{"primary":"Orphan"},"parent_division_id":"div-us"}`,
+		},
+		{
+			name: "cyclic chain", wantFile: "divisions", wantLine: 3, wantSubstr: "cyclic",
+			divisions: `{"id":"a","subtype":"county","country":"US","names":{"primary":"A County"},"parent_division_id":"b"}` + "\n" +
+				`{"id":"b","subtype":"county","country":"US","names":{"primary":"B County"},"parent_division_id":"a"}` + "\n" +
+				`{"id":"c","subtype":"locality","country":"US","names":{"primary":"C"},"parent_division_id":"a"}`,
+		},
+		{
+			name: "store in an unknown locality", divisions: goodDivs, wantFile: "places", wantLine: 1, wantSubstr: "Dallas",
+			places: `{"fsq_place_id":"s1","name":"Shop","country":"US","region":"TX","locality":"Dallas"}`,
+		},
+		{
+			name: "store in an unknown region", divisions: goodDivs, wantFile: "places", wantLine: 2, wantSubstr: "Atlantis",
+			places: "\n" + `{"fsq_place_id":"s1","name":"Shop","country":"US","region":"Atlantis","locality":"Austin"}`,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := importer.Prepare(strings.NewReader(tc.divisions), strings.NewReader(tc.places))
+			checkPrepareError(t, err, tc.wantParse, tc.wantFile, tc.wantLine, tc.wantSubstr)
+		})
+	}
+}
+
+// checkPrepareError asserts err is a ParseError (wantParse) or an
+// UnresolvedParentError at file:line whose message mentions substr.
+func checkPrepareError(t *testing.T, err error, wantParse bool, file string, line int, substr string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("Prepare succeeded, want an error")
+	}
+	if !strings.Contains(err.Error(), substr) {
+		t.Errorf("error %q does not mention %q", err, substr)
+	}
+	var pe *importer.ParseError
+	var ue *importer.UnresolvedParentError
+	gotFile, gotLine := "", 0
+	switch {
+	case wantParse && errors.As(err, &pe):
+		gotFile, gotLine = pe.File, pe.Line
+	case !wantParse && errors.As(err, &ue):
+		gotFile, gotLine = ue.File, ue.Line
+	default:
+		t.Fatalf("error %T %v, want ParseError=%v", err, err, wantParse)
+	}
+	if gotFile != file || gotLine != line {
+		t.Errorf("error at %s:%d, want %s:%d", gotFile, gotLine, file, line)
+	}
+}
+
+func TestPrepareEmptyFiles(t *testing.T) {
+	t.Parallel()
+	plan, err := importer.Prepare(strings.NewReader(""), strings.NewReader(""))
+	if err != nil {
+		t.Fatalf("Prepare: %v", err)
+	}
+	if len(plan.Nodes()) != 0 || plan.Skipped != 0 {
+		t.Errorf("empty files gave %d nodes, %d skipped", len(plan.Nodes()), plan.Skipped)
+	}
+}

@@ -1,0 +1,7 @@
+{"fsq_place_id":"fsq-cielo","name":"Cielo Vista Mall","latitude":31.78,"longitude":-106.38,"locality":"El Paso","region":"TX","country":"US","fsq_category_labels":["Retail > Shopping Mall"]}
+{"fsq_place_id":"fsq-books","name":"Desert  Books","latitude":31.77,"longitude":-106.44,"locality":"El Paso","region":"TX","country":"US","fsq_category_labels":["Retail > Bookstore"]}
+{"fsq_place_id":"fsq-books-2","name":"desert books","latitude":31.70,"longitude":-106.40,"locality":"el paso","region":"Texas","country":"US","fsq_category_labels":["Retail > Bookstore"]}
+{"type":"Feature","id":"ov-coffee","geometry":{"type":"Point","coordinates":[-87.21,30.41]},"properties":{"names":{"primary":"Palafox Coffee"},"basic_category":"coffee_shop","addresses":[{"locality":"Pensacola","region":"US-FL","country":"US"}]}}
+{"id":"ov-galleria","names":{"primary":"The Galleria"},"taxonomy":{"primary":"shopping_mall","hierarchy":["retail","shopping_mall"]},"addresses":[{"locality":"Houston","region":"US-TX","country":"US"}],"lng":-95.46,"lat":29.74}
+{"fsq_place_id":"fsq-navajo-store","name":"Window Rock Trading Post","latitude":35.68,"longitude":-109.05,"locality":"Window Rock","region":"AZ","country":"US","fsq_category_labels":["Retail > General Store"]}
+{"fsq_place_id":"fsq-toronto","name":"Eaton Centre","latitude":43.65,"longitude":-79.38,"locality":"Toronto","region":"ON","country":"CA","fsq_category_labels":["Retail > Shopping Mall"]}
