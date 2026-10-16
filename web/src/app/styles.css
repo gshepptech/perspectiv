@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+/*
+ * Folio tokens (docs/design-system.md). The Paper theme is the default; the
+ * Lamplight theme follows prefers-color-scheme. Components use the generated
+ * utilities (bg-paper, text-ink, border-control, ...) and never a raw colour.
+ */
+:root {
+  --paper: #f7f5f0;
+  --surface: #efece5;
+  --ink: #1f1d1a;
+  --ink-muted: #5c574f;
+  --rule: #d6d1c7;
+  --control: #8a8478;
+  --accent: #2b4c7e;
+  --accent-ink: #ffffff;
+  --success: #2f6b3a;
+  --warning: #8a5a00;
+  --error: #a3322a;
+  --info: #1f5f7a;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #161514;
+    --surface: #201e1c;
+    --ink: #e8e4dc;
+    --ink-muted: #aba59a;
+    --rule: #34312d;
+    --control: #7a746a;
+    --accent: #9db8e6;
+    --accent-ink: #12223a;
+    --success: #7cc48a;
+    --warning: #e0b455;
+    --error: #f08a80;
+    --info: #7fc4dd;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-rule: var(--rule);
+  --color-control: var(--control);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+}
+
+@theme {
+  --font-serif: "Literata Variable", Georgia, "Times New Roman", serif;
+  --font-sans: "Public Sans Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --text-prose: 1.125rem;
+  --text-prose--line-height: 1.7;
+  --max-width-measure: 65ch;
+  --max-width-shell: 72rem;
+  --container-measure: 65ch;
+  --container-shell: 72rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    min-height: 100dvh;
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-serif font-semibold;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  img,
+  svg,
+  video {
+    max-width: 100%;
+  }
+
+  .prose-body {
+    @apply font-serif text-prose max-w-measure;
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+
+  .prose-body p + p {
+    margin-top: 1.7em;
+  }
+}
+
+/* Reduced motion means no motion: every transition and animation is cut to zero. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}
