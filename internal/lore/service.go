@@ -117,30 +117,9 @@ func (s *Service) ClaimCharacter(ctx context.Context, caller, characterID uuid.U
 	if err := q.LockArcLore(ctx, arcID); err != nil {
 		return uuid.Nil, apiutil.Internal(fmt.Errorf("lock arc: %w", err))
 	}
-	if ch.AuthorID == caller {
-		return uuid.Nil, apiutil.FailedPrecondition("you cannot claim a character in your own perspective")
-	}
-	mine, err := q.FindAuthorPerspectiveInArc(ctx, dbq.FindAuthorPerspectiveInArcParams{ArcID: arcID, AuthorID: caller})
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, apiutil.Internal(fmt.Errorf("find claimant perspective: %w", err))
-	}
-	target, own, err := lockPair(ctx, q, ch.PerspectiveID, mine)
+	mine, err := claimantPerspective(ctx, q, ch, caller)
 	if err != nil {
 		return uuid.Nil, err
-	}
-	if !readable(target) {
-		return uuid.Nil, apiutil.NotFound("character not found")
-	}
-	if hidden, err := q.ArcPlaceHidden(ctx, target.ArcID.UUID); err != nil {
-		return uuid.Nil, apiutil.Internal(fmt.Errorf("arc place hidden: %w", err))
-	} else if hidden {
-		return uuid.Nil, apiutil.NotFound("character not found")
-	}
-	if mine == uuid.Nil || !readable(own) {
-		return uuid.Nil, apiutil.FailedPrecondition("write your perspective in this arc first")
-	}
-	if removed(target) || removed(own) {
-		return uuid.Nil, apiutil.FailedPrecondition("this story was removed from lore")
 	}
 	if err := s.checkClaimable(ctx, q, ch.AuthorID, caller, characterID); err != nil {
 		return uuid.Nil, err
@@ -227,10 +206,8 @@ func (s *Service) ResolveClaim(ctx context.Context, caller, claimID uuid.UUID, a
 		if err := acceptable(cl.target, cl.claimant); err != nil {
 			return 0, err
 		}
-		if hidden, err := q.ArcPlaceHidden(ctx, cl.arcID); err != nil {
-			return 0, apiutil.Internal(fmt.Errorf("arc place hidden: %w", err))
-		} else if hidden {
-			return 0, apiutil.FailedPrecondition("one of these perspectives is no longer published")
+		if err := refuseHiddenArc(ctx, q, cl.arcID, apiutil.FailedPrecondition("one of these perspectives is no longer published")); err != nil {
+			return 0, err
 		}
 	}
 	if err := q.SetClaimStatus(ctx, dbq.SetClaimStatusParams{ID: claimID, Status: next.String()}); err != nil {
@@ -309,6 +286,51 @@ func (s *Service) linkAccepted(ctx context.Context, tx pgx.Tx, caller uuid.UUID,
 		ClaimID:       cl.id,
 	}); err != nil {
 		return apiutil.Internal(err)
+	}
+	return nil
+}
+
+// claimantPerspective locks the character's perspective and the caller's own
+// perspective in the arc and checks that the caller may claim the character
+// from it: not their own character, both perspectives readable and not
+// REMOVED, and the arc not at or below a hidden place. It returns the
+// caller's perspective.
+func claimantPerspective(ctx context.Context, q *dbq.Queries, ch dbq.GetCharacterRow, caller uuid.UUID) (uuid.UUID, error) {
+	if ch.AuthorID == caller {
+		return uuid.Nil, apiutil.FailedPrecondition("you cannot claim a character in your own perspective")
+	}
+	mine, err := q.FindAuthorPerspectiveInArc(ctx, dbq.FindAuthorPerspectiveInArcParams{ArcID: ch.ArcID.UUID, AuthorID: caller})
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, apiutil.Internal(fmt.Errorf("find claimant perspective: %w", err))
+	}
+	target, own, err := lockPair(ctx, q, ch.PerspectiveID, mine)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if !readable(target) {
+		return uuid.Nil, apiutil.NotFound("character not found")
+	}
+	if err := refuseHiddenArc(ctx, q, ch.ArcID.UUID, apiutil.NotFound("character not found")); err != nil {
+		return uuid.Nil, err
+	}
+	if mine == uuid.Nil || !readable(own) {
+		return uuid.Nil, apiutil.FailedPrecondition("write your perspective in this arc first")
+	}
+	if removed(target) || removed(own) {
+		return uuid.Nil, apiutil.FailedPrecondition("this story was removed from lore")
+	}
+	return mine, nil
+}
+
+// refuseHiddenArc returns refusal when the arc's place, or any place above
+// it, is hidden: hiding a place closes its whole subtree to lore writes.
+func refuseHiddenArc(ctx context.Context, q *dbq.Queries, arcID uuid.UUID, refusal error) error {
+	hidden, err := q.ArcPlaceHidden(ctx, arcID)
+	if err != nil {
+		return apiutil.Internal(fmt.Errorf("arc place hidden: %w", err))
+	}
+	if hidden {
+		return refusal
 	}
 	return nil
 }
