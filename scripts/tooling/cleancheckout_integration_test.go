@@ -3,12 +3,7 @@
 package tooling
 
 import (
-	"archive/tar"
-	"bytes"
-	"errors"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -19,49 +14,13 @@ import (
 // directory and returns it.
 func extractHEAD(t *testing.T, root string) string {
 	t.Helper()
-	cmd := exec.CommandContext(t.Context(), "git", "archive", "--format=tar", "HEAD")
-	cmd.Dir = root
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatalf("git archive HEAD: %v\n%s", err, stderr.String())
+	archive := filepath.Join(t.TempDir(), "head.tar")
+	if out, code := runCmd(t, root, nil, "git", "archive", "--format=tar", "-o", archive, "HEAD"); code != 0 {
+		t.Fatalf("git archive HEAD exit %d: %s", code, out)
 	}
 	dst := t.TempDir()
-	tr := tar.NewReader(bytes.NewReader(out))
-	for {
-		hdr, err := tr.Next()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			t.Fatalf("read archive: %v", err)
-		}
-		p := filepath.Join(dst, filepath.FromSlash(hdr.Name))
-		switch hdr.Typeflag {
-		case tar.TypeDir:
-			if err := os.MkdirAll(p, 0o750); err != nil {
-				t.Fatalf("mkdir %s: %v", p, err)
-			}
-		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
-				t.Fatalf("mkdir: %v", err)
-			}
-			f, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(hdr.Mode)&0o755)
-			if err != nil {
-				t.Fatalf("create %s: %v", p, err)
-			}
-			if _, err := io.Copy(f, tr); err != nil { //nolint:gosec // archive of our own HEAD
-				t.Fatalf("write %s: %v", p, err)
-			}
-			if err := f.Close(); err != nil {
-				t.Fatalf("close %s: %v", p, err)
-			}
-		case tar.TypeSymlink:
-			if err := os.Symlink(hdr.Linkname, p); err != nil {
-				t.Fatalf("symlink %s: %v", p, err)
-			}
-		}
+	if out, code := runCmd(t, dst, nil, "tar", "-xf", archive); code != 0 {
+		t.Fatalf("tar -xf exit %d: %s", code, out)
 	}
 	return dst
 }
