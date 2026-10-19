@@ -334,6 +334,76 @@ func (q *Queries) InsertPublished(ctx context.Context, arg InsertPublishedParams
 	return i, err
 }
 
+const listByAuthor = `-- name: ListByAuthor :many
+WITH RECURSIVE mine AS (
+    SELECT p.id, p.published_at, a.place_id
+    FROM perspectives p
+    JOIN arcs a ON a.id = p.arc_id
+    WHERE p.author_id = $2::uuid
+      AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND p.deleted_at IS NULL
+      AND p.hidden_at IS NULL
+      AND p.published_at IS NOT NULL
+      AND ($3::timestamptz IS NULL
+           OR (p.published_at, p.id) < ($3::timestamptz, $4::uuid))
+), up AS (
+    SELECT m.id AS perspective_id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM mine m
+    JOIN places pl ON pl.id = m.place_id
+    UNION ALL
+    SELECT up.perspective_id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT m.id, m.published_at::timestamptz AS published_at
+FROM mine m
+WHERE NOT EXISTS (SELECT 1 FROM up WHERE up.perspective_id = m.id AND up.hidden_at IS NOT NULL)
+ORDER BY m.published_at DESC, m.id DESC
+LIMIT $1::int
+`
+
+type ListByAuthorParams struct {
+	RowLimit int32
+	AuthorID uuid.UUID
+	AfterAt  *time.Time
+	AfterID  *uuid.UUID
+}
+
+type ListByAuthorRow struct {
+	ID          uuid.UUID
+	PublishedAt time.Time
+}
+
+// One author's readable published perspectives, newest first, keyset-
+// paginated on (published_at, id); mine is served by
+// perspectives_author_published_idx. A perspective whose arc's place or any
+// ancestor is hidden is left out: hiding a place hides its whole subtree.
+func (q *Queries) ListByAuthor(ctx context.Context, arg ListByAuthorParams) ([]ListByAuthorRow, error) {
+	rows, err := q.db.Query(ctx, listByAuthor,
+		arg.RowLimit,
+		arg.AuthorID,
+		arg.AfterAt,
+		arg.AfterID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListByAuthorRow
+	for rows.Next() {
+		var i ListByAuthorRow
+		if err := rows.Scan(&i.ID, &i.PublishedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCharacterClaims = `-- name: ListCharacterClaims :many
 SELECT ch.id,
        EXISTS (SELECT 1 FROM claims c WHERE c.character_id = ch.id

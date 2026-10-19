@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { EpicTab, Genre, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { EpicArc, EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
 import { clients } from "@/lib/connect";
+import { AuthorLink } from "@/components/reader/AuthorLink";
 
 // The tab and genre live in the address as lower-case words (?tab=tales,
 // ?genre=slice_of_life) so a filtered epic is linkable; the defaults (Ranked,
@@ -71,7 +72,7 @@ function TaleItem({ tale }: { tale: EpicTale }) {
         {tale.excerpt || "Read this tale"}
       </Link>
       <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-ink-muted">
-        <span>{tale.author?.username}</span>
+        {tale.author && <AuthorLink username={tale.author.username} />}
         <span>{loreStatusLabel(tale.loreStatus)}</span>
         {tale.genre !== Genre.UNSPECIFIED && <span>{genreLabel(tale.genre)}</span>}
         <span className="wrap-anywhere">{tale.place?.name}</span>

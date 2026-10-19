@@ -13,6 +13,7 @@ import { Genre, PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
+import { AuthorLink } from "@/components/reader/AuthorLink";
 
 /**
  * The part in the address, clamped to the perspective: a missing, malformed
@@ -31,7 +32,11 @@ function Byline({ p }: { p: Perspective }) {
   ].filter(Boolean);
   return (
     <p className="flex flex-wrap gap-x-3 gap-y-1">
-      {p.author && <span>by {p.author.username}</span>}
+      {p.author && (
+        <span>
+          by <AuthorLink username={p.author.username} />
+        </span>
+      )}
       {p.place && (
         <Link to={`/places/${p.place.id}`} className="wrap-anywhere text-accent underline underline-offset-4">
           {p.place.name}

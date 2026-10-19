@@ -50,6 +50,9 @@ const (
 	// PerspectiveServiceListMineProcedure is the fully-qualified name of the PerspectiveService's
 	// ListMine RPC.
 	PerspectiveServiceListMineProcedure = "/perspectiv.v1.PerspectiveService/ListMine"
+	// PerspectiveServiceListByAuthorProcedure is the fully-qualified name of the PerspectiveService's
+	// ListByAuthor RPC.
+	PerspectiveServiceListByAuthorProcedure = "/perspectiv.v1.PerspectiveService/ListByAuthor"
 )
 
 // PerspectiveServiceClient is a client for the perspectiv.v1.PerspectiveService service.
@@ -67,6 +70,10 @@ type PerspectiveServiceClient interface {
 	Get(context.Context, *connect.Request[v1.PerspectiveServiceGetRequest]) (*connect.Response[v1.PerspectiveServiceGetResponse], error)
 	// The caller's own drafts and published perspectives.
 	ListMine(context.Context, *connect.Request[v1.ListMineRequest]) (*connect.Response[v1.ListMineResponse], error)
+	// Public. One user's published perspectives for their profile, tales
+	// (SOLO and REMOVED) included, newest first. Never drafts, deleted or
+	// hidden perspectives, or ones at or below a hidden place.
+	ListByAuthor(context.Context, *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error)
 }
 
 // NewPerspectiveServiceClient constructs a client for the perspectiv.v1.PerspectiveService service.
@@ -116,17 +123,24 @@ func NewPerspectiveServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(perspectiveServiceMethods.ByName("ListMine")),
 			connect.WithClientOptions(opts...),
 		),
+		listByAuthor: connect.NewClient[v1.ListByAuthorRequest, v1.ListByAuthorResponse](
+			httpClient,
+			baseURL+PerspectiveServiceListByAuthorProcedure,
+			connect.WithSchema(perspectiveServiceMethods.ByName("ListByAuthor")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // perspectiveServiceClient implements PerspectiveServiceClient.
 type perspectiveServiceClient struct {
-	saveDraft *connect.Client[v1.SaveDraftRequest, v1.SaveDraftResponse]
-	publish   *connect.Client[v1.PublishRequest, v1.PublishResponse]
-	update    *connect.Client[v1.PerspectiveServiceUpdateRequest, v1.PerspectiveServiceUpdateResponse]
-	delete    *connect.Client[v1.PerspectiveServiceDeleteRequest, v1.PerspectiveServiceDeleteResponse]
-	get       *connect.Client[v1.PerspectiveServiceGetRequest, v1.PerspectiveServiceGetResponse]
-	listMine  *connect.Client[v1.ListMineRequest, v1.ListMineResponse]
+	saveDraft    *connect.Client[v1.SaveDraftRequest, v1.SaveDraftResponse]
+	publish      *connect.Client[v1.PublishRequest, v1.PublishResponse]
+	update       *connect.Client[v1.PerspectiveServiceUpdateRequest, v1.PerspectiveServiceUpdateResponse]
+	delete       *connect.Client[v1.PerspectiveServiceDeleteRequest, v1.PerspectiveServiceDeleteResponse]
+	get          *connect.Client[v1.PerspectiveServiceGetRequest, v1.PerspectiveServiceGetResponse]
+	listMine     *connect.Client[v1.ListMineRequest, v1.ListMineResponse]
+	listByAuthor *connect.Client[v1.ListByAuthorRequest, v1.ListByAuthorResponse]
 }
 
 // SaveDraft calls perspectiv.v1.PerspectiveService.SaveDraft.
@@ -159,6 +173,11 @@ func (c *perspectiveServiceClient) ListMine(ctx context.Context, req *connect.Re
 	return c.listMine.CallUnary(ctx, req)
 }
 
+// ListByAuthor calls perspectiv.v1.PerspectiveService.ListByAuthor.
+func (c *perspectiveServiceClient) ListByAuthor(ctx context.Context, req *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error) {
+	return c.listByAuthor.CallUnary(ctx, req)
+}
+
 // PerspectiveServiceHandler is an implementation of the perspectiv.v1.PerspectiveService service.
 type PerspectiveServiceHandler interface {
 	// Creates or replaces the caller's draft (autosave).
@@ -174,6 +193,10 @@ type PerspectiveServiceHandler interface {
 	Get(context.Context, *connect.Request[v1.PerspectiveServiceGetRequest]) (*connect.Response[v1.PerspectiveServiceGetResponse], error)
 	// The caller's own drafts and published perspectives.
 	ListMine(context.Context, *connect.Request[v1.ListMineRequest]) (*connect.Response[v1.ListMineResponse], error)
+	// Public. One user's published perspectives for their profile, tales
+	// (SOLO and REMOVED) included, newest first. Never drafts, deleted or
+	// hidden perspectives, or ones at or below a hidden place.
+	ListByAuthor(context.Context, *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error)
 }
 
 // NewPerspectiveServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -219,6 +242,12 @@ func NewPerspectiveServiceHandler(svc PerspectiveServiceHandler, opts ...connect
 		connect.WithSchema(perspectiveServiceMethods.ByName("ListMine")),
 		connect.WithHandlerOptions(opts...),
 	)
+	perspectiveServiceListByAuthorHandler := connect.NewUnaryHandler(
+		PerspectiveServiceListByAuthorProcedure,
+		svc.ListByAuthor,
+		connect.WithSchema(perspectiveServiceMethods.ByName("ListByAuthor")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.PerspectiveService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PerspectiveServiceSaveDraftProcedure:
@@ -233,6 +262,8 @@ func NewPerspectiveServiceHandler(svc PerspectiveServiceHandler, opts ...connect
 			perspectiveServiceGetHandler.ServeHTTP(w, r)
 		case PerspectiveServiceListMineProcedure:
 			perspectiveServiceListMineHandler.ServeHTTP(w, r)
+		case PerspectiveServiceListByAuthorProcedure:
+			perspectiveServiceListByAuthorHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -264,4 +295,8 @@ func (UnimplementedPerspectiveServiceHandler) Get(context.Context, *connect.Requ
 
 func (UnimplementedPerspectiveServiceHandler) ListMine(context.Context, *connect.Request[v1.ListMineRequest]) (*connect.Response[v1.ListMineResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PerspectiveService.ListMine is not implemented"))
+}
+
+func (UnimplementedPerspectiveServiceHandler) ListByAuthor(context.Context, *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PerspectiveService.ListByAuthor is not implemented"))
 }

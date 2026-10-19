@@ -6,6 +6,7 @@ import type { PerspectiveSummary } from "@/gen/perspectiv/v1/perspective_pb";
 import { cn } from "@/lib/cn";
 
 import { genreLabel, loreStatusLabel } from "./labels";
+import { AuthorLink } from "@/components/reader/AuthorLink";
 
 const tones = { muted: "text-ink-muted", warning: "text-warning", success: "text-success" } as const;
 
@@ -42,7 +43,14 @@ export function PerspectiveCard({
     <article aria-labelledby={headingId} className="min-w-0 rounded-md border border-rule bg-paper p-4">
       <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <Heading id={headingId} className="min-w-0 font-sans text-base font-medium break-words">
-          {name ? `${name}'s perspective` : "A perspective"}
+          {name ? (
+            <>
+              <AuthorLink username={name} />
+              {"'s perspective"}
+            </>
+          ) : (
+            "A perspective"
+          )}
         </Heading>
         <p className="flex flex-wrap gap-x-2 text-sm text-ink-muted">
           {genre && <span>{genre}</span>}

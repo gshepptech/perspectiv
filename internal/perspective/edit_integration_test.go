@@ -4,6 +4,7 @@ package perspective_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -305,4 +306,67 @@ func (w *world) walkMine(user uuid.UUID) []string {
 	}
 	w.t.Fatal("ListMine did not reach its last page")
 	return nil
+}
+
+// A profile lists its author's published perspectives to anyone, newest
+// first, tales (SOLO and REMOVED) included; drafts, deleted and hidden
+// perspectives, and those at or below a hidden place, are left out.
+func TestListByAuthor(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	w := newWorld(t)
+	me, other := w.user(), w.user()
+	pub := func(place uuid.UUID, hour int32) string {
+		t.Helper()
+		r := w.publishReq()
+		r.PlaceId, r.Hour = place.String(), hourPtr(hour)
+		return w.publish(me, r).GetPerspectiveId()
+	}
+	ids := make([]string, 6)
+	for i := range ids {
+		ids[i] = pub(w.place, int32(10+i))
+		w.exec(`UPDATE perspectives SET published_at = '2026-10-15T12:00:00Z'::timestamptz + make_interval(mins => $2) WHERE id = $1`, ids[i], i)
+	}
+	w.exec(`UPDATE perspectives SET lore_status = 'LORE_STATUS_SOLO' WHERE id = $1`, ids[2])
+	w.exec(`UPDATE perspectives SET lore_status = 'LORE_STATUS_REMOVED' WHERE id = $1`, ids[3])
+	w.exec(`UPDATE perspectives SET hidden_at = now() WHERE id = $1`, ids[4])
+	w.exec(`UPDATE perspectives SET deleted_at = now() WHERE id = $1`, ids[5])
+	city := w.id(`INSERT INTO places (kind, name, parent_id, timezone, source)
+		VALUES ('PLACE_KIND_CITY', 'Hidden Springs', (SELECT parent_id FROM places WHERE id = $1), 'America/New_York', 'PLACE_SOURCE_USER') RETURNING id`, w.place)
+	store := w.id(`INSERT INTO places (kind, name, parent_id, timezone, source)
+		VALUES ('PLACE_KIND_STORE', 'Corner Shop', $1, 'America/New_York', 'PLACE_SOURCE_USER') RETURNING id`, city)
+	pub(store, 9)
+	w.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, city)
+	if _, err := w.client.SaveDraft(ctx, as(me, &perspectivv1.SaveDraftRequest{PlaceId: w.place.String(), LocalDate: "2026-01-01"})); err != nil {
+		t.Fatal(err)
+	}
+	w.publish(other, func() *perspectivv1.PublishRequest { r := w.publishReq(); r.TitleIfNewArc = ""; return r }())
+
+	var walked []string
+	token := ""
+	for range 10 {
+		resp, err := w.client.ListByAuthor(ctx, as(uuid.Nil, &perspectivv1.ListByAuthorRequest{UserId: me.String(), PageSize: 1, PageToken: token}))
+		if err != nil {
+			t.Fatalf("ListByAuthor signed out: %v", err)
+		}
+		for _, p := range resp.Msg.GetPerspectives() {
+			if p.GetAuthor().GetUserId() != me.String() || len(p.GetParts()) == 0 || p.GetArcTitle() == "" {
+				t.Fatalf("listed perspective = %v; want the author's readable perspective", p)
+			}
+			walked = append(walked, p.GetId())
+		}
+		if token = resp.Msg.GetNextPageToken(); token == "" {
+			break
+		}
+	}
+	want := []string{ids[3], ids[2], ids[1], ids[0]}
+	if strings.Join(walked, ",") != strings.Join(want, ",") {
+		t.Fatalf("walked %v, want %v", walked, want)
+	}
+	if _, err := w.client.ListByAuthor(ctx, as(uuid.Nil, &perspectivv1.ListByAuthorRequest{UserId: "nope"})); codeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("bad user id code = %v", codeOf(err))
+	}
+	if _, err := w.client.ListByAuthor(ctx, as(uuid.Nil, &perspectivv1.ListByAuthorRequest{UserId: me.String(), PageToken: "garbage"})); codeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("bad token code = %v", codeOf(err))
+	}
 }

@@ -1,8 +1,11 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router";
 
+import { formatDay, loreStatusLabel } from "@/components/reader/format";
+import { Button } from "@/components/ui/Button";
+import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import type { Profile } from "@/gen/perspectiv/v1/user_pb";
 import { clients } from "@/lib/connect";
 
@@ -42,6 +45,69 @@ function Header({ profile }: { profile: Profile }) {
         {profile.suspended && <p className="mt-1 text-sm text-warning">This account is suspended.</p>}
       </div>
     </header>
+  );
+}
+
+const PAGE_SIZE = 20;
+
+function WritingRow({ p }: { p: Perspective }) {
+  const title = p.arcTitle || "Untitled";
+  const where = [p.place?.name, formatDay(p.localDate, p.hour), loreStatusLabel(p.loreStatus)].filter(Boolean).join(" · ");
+  return (
+    <li className="py-2">
+      <Link to={`/perspectives/${encodeURIComponent(p.id)}`} className="flex min-h-11 min-w-0 flex-col justify-center">
+        <span className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">{title}</span>
+        <span className="text-sm wrap-anywhere text-ink-muted">{where}</span>
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * The user's published perspectives, newest first, tales included. The
+ * server leaves out drafts and anything deleted or hidden.
+ */
+function Writing({ userId, username }: { userId: string; username: string }) {
+  const list = useInfiniteQuery({
+    queryKey: ["perspective", "listByAuthor", { userId }],
+    queryFn: ({ pageParam, signal }) => clients.perspective.listByAuthor({ userId, pageToken: pageParam, pageSize: PAGE_SIZE }, { signal }),
+    initialPageParam: "",
+    getNextPageParam: (last) => last.nextPageToken || undefined,
+  });
+  return (
+    <section aria-labelledby="profile-writing" className="mt-10">
+      <h2 id="profile-writing" className="text-xl">
+        Perspectives
+      </h2>
+      {list.isPending && (
+        <p role="status" className="mt-3 text-ink-muted">
+          Loading…
+        </p>
+      )}
+      {list.isError && (
+        <p role="alert" className="mt-3 text-sm text-error">
+          {username}&apos;s perspectives could not be loaded. Try again in a moment.
+        </p>
+      )}
+      {list.isSuccess && <WritingList pages={list.data.pages} username={username} />}
+      {list.hasNextPage && (
+        <Button variant="secondary" className="mt-3" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+          Show more
+        </Button>
+      )}
+    </section>
+  );
+}
+
+function WritingList({ pages, username }: { pages: readonly { perspectives: Perspective[] }[]; username: string }) {
+  const items = pages.flatMap((page) => page.perspectives);
+  if (items.length === 0) return <p className="mt-3 text-ink-muted">{username} has not published a perspective yet.</p>;
+  return (
+    <ul className="mt-3 divide-y divide-rule border-y border-rule">
+      {items.map((p) => (
+        <WritingRow key={p.id} p={p} />
+      ))}
+    </ul>
   );
 }
 
@@ -88,6 +154,7 @@ export function Component() {
     <article className="mx-auto min-w-0 max-w-measure">
       <Header profile={profile} />
       {profile.bio && <p className="mt-6 whitespace-pre-line wrap-anywhere">{profile.bio}</p>}
+      <Writing userId={profile.userId} username={profile.username} />
     </article>
   );
 }

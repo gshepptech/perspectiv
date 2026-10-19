@@ -101,6 +101,50 @@ func (s *Service) ListMine(ctx context.Context, caller uuid.UUID, f ListFilter, 
 	return out, next, nil
 }
 
+// ListByAuthor pages one author's readable published perspectives for their
+// profile, newest first: tales (SOLO and REMOVED) included; drafts, deleted
+// and hidden perspectives, and those at or below a hidden place, left out.
+// viewer is uuid.Nil for a signed-out reader.
+func (s *Service) ListByAuthor(ctx context.Context, viewer, author uuid.UUID, pageToken string, pageSize int32) ([]*perspectivv1.Perspective, string, error) {
+	page, err := apiutil.ParsePageToken(pageToken, pageSize)
+	if err != nil {
+		return nil, "", err
+	}
+	params := dbq.ListByAuthorParams{AuthorID: author, RowLimit: page.Limit + 1}
+	if page.After != "" {
+		at, id, err := parseCursor(page.After)
+		if err != nil {
+			return nil, "", err
+		}
+		params.AfterAt, params.AfterID = &at, &id
+	}
+	var (
+		out  []*perspectivv1.Perspective
+		next string
+	)
+	err = s.readTx(ctx, func(q *dbq.Queries) error {
+		rows, err := q.ListByAuthor(ctx, params)
+		if err != nil {
+			return apiutil.Internal(fmt.Errorf("list perspectives by author: %w", err))
+		}
+		if len(rows) > int(page.Limit) {
+			rows = rows[:page.Limit]
+			last := rows[len(rows)-1]
+			next = apiutil.NextPageToken(last.PublishedAt.UTC().Format(time.RFC3339Nano) + "|" + last.ID.String())
+		}
+		ids := make([]uuid.UUID, len(rows))
+		for i, r := range rows {
+			ids[i] = r.ID
+		}
+		out, err = load(ctx, q, viewer, ids)
+		return err
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	return out, next, nil
+}
+
 func parseCursor(after string) (time.Time, uuid.UUID, error) {
 	ts, idText, ok := strings.Cut(after, "|")
 	if !ok {

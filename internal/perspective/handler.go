@@ -133,6 +133,24 @@ func (h *Handler) ListMine(ctx context.Context, req *connect.Request[perspectivv
 	return connect.NewResponse(&perspectivv1.ListMineResponse{Perspectives: ps, NextPageToken: next}), nil
 }
 
+// ListByAuthor pages one author's published perspectives for their profile.
+// It is public; a signed-in viewer also gets their own vote state.
+func (h *Handler) ListByAuthor(ctx context.Context, req *connect.Request[perspectivv1.ListByAuthorRequest]) (*connect.Response[perspectivv1.ListByAuthorResponse], error) {
+	author, err := parseID("user_id", req.Msg.GetUserId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	viewer := uuid.Nil
+	if c, ok := apiutil.CallerFrom(ctx); ok {
+		viewer = c.UserID
+	}
+	ps, next, err := h.svc.ListByAuthor(ctx, viewer, author, req.Msg.GetPageToken(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ListByAuthorResponse{Perspectives: ps, NextPageToken: next}), nil
+}
+
 func signedIn(ctx context.Context) (uuid.UUID, error) {
 	c, ok := apiutil.CallerFrom(ctx)
 	if !ok {

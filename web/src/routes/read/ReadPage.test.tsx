@@ -39,7 +39,7 @@ describe("read page (US-007, OT-033, OT-036)", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "The night the fountain froze" })).toBeInTheDocument();
     expect(screen.getByText("The doors opened at nine.")).toBeInTheDocument();
     expect(screen.getByText("Part 1 of 3")).toBeInTheDocument();
-    expect(screen.getByText(/wren/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "wren" })).toHaveAttribute("href", "/users/wren");
     expect(screen.getByText(/Prairie Books/)).toBeInTheDocument();
     expect(screen.getByText(/January 14, 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Mystery/)).toBeInTheDocument();

@@ -1,4 +1,5 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { connectError } from "@/lib/fakeApi.testutil";
@@ -37,5 +38,46 @@ describe("public profile page", () => {
       "UserService/GetProfile": () => ({ body: { profile: { userId: "u-2", deleted: true } } }),
     });
     expect(await screen.findByText("This account was deleted.")).toBeInTheDocument();
+  });
+
+  it("lists the user's published perspectives, tales included, newest first, a page at a time", async () => {
+    const user = userEvent.setup();
+    const written = (id: string, arcTitle: string, loreStatus: string) => ({
+      id,
+      arcId: `arc-${id}`,
+      arcTitle,
+      author: { userId: "u-1", username: "wren" },
+      status: "PERSPECTIVE_STATUS_PUBLISHED",
+      loreStatus,
+      place: { id: "pl-1", kind: "PLACE_KIND_STORE", name: "Prairie Books" },
+      localDate: "2026-01-14",
+      parts: [{ position: 1, body: "text" }],
+    });
+    const { calls } = renderApp("/users/wren", {
+      "UserService/GetProfile": () => ({ body: { profile } }),
+      "PerspectiveService/ListByAuthor": (body) =>
+        body.pageToken
+          ? { body: { perspectives: [written("p-2", "An older night", "LORE_STATUS_IN_LORE")] } }
+          : { body: { perspectives: [written("p-1", "The night the fountain froze", "LORE_STATUS_SOLO")], nextPageToken: "t-1" } },
+    });
+    const list = await screen.findByRole("list");
+    const first = within(list).getByRole("link", { name: /The night the fountain froze/ });
+    expect(first).toHaveAttribute("href", "/perspectives/p-1");
+    expect(first).toHaveTextContent(/Prairie Books/);
+    expect(first).toHaveTextContent(/Tale/);
+    await user.click(screen.getByRole("button", { name: "Show more" }));
+    expect(await within(list).findByRole("link", { name: /An older night/ })).toHaveAttribute("href", "/perspectives/p-2");
+    expect(calls("PerspectiveService/ListByAuthor")).toEqual([
+      { userId: "u-1", pageSize: 20 },
+      { userId: "u-1", pageToken: "t-1", pageSize: 20 },
+    ]);
+  });
+
+  it("says when the user has published nothing", async () => {
+    renderApp("/users/wren", {
+      "UserService/GetProfile": () => ({ body: { profile } }),
+      "PerspectiveService/ListByAuthor": () => ({ body: {} }),
+    });
+    expect(await screen.findByText("wren has not published a perspective yet.")).toBeInTheDocument();
   });
 });

@@ -24,6 +24,10 @@ service PerspectiveService {
   rpc Get(PerspectiveServiceGetRequest) returns (PerspectiveServiceGetResponse);
   // The caller's own drafts and published perspectives.
   rpc ListMine(ListMineRequest) returns (ListMineResponse);
+  // Public. One user's published perspectives for their profile, tales
+  // (SOLO and REMOVED) included, newest first. Never drafts, deleted or
+  // hidden perspectives, or ones at or below a hidden place.
+  rpc ListByAuthor(ListByAuthorRequest) returns (ListByAuthorResponse);
 }
 
 // Part is one page of a perspective.
@@ -182,6 +186,18 @@ message ListMineRequest {
 }
 
 message ListMineResponse {
+  repeated Perspective perspectives = 1;
+  string next_page_token = 2;
+}
+
+message ListByAuthorRequest {
+  // The author, as GetProfile returns them.
+  string user_id = 1;
+  string page_token = 2;
+  int32 page_size = 3;
+}
+
+message ListByAuthorResponse {
   repeated Perspective perspectives = 1;
   string next_page_token = 2;
 }
