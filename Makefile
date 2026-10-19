@@ -211,7 +211,7 @@ check: ## The full local gate: lint vet fmt test test-integration and coverage f
 
 generate: $(SQLC) $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_CONNECT_GO) ## Regenerate sqlc accessors and buf (Go and TS) code
 	@for cfg in $$(find internal -name sqlc.yaml -not -path '*/node_modules/*' | sort); do \
-		echo "sqlc generate -f $$cfg"; $(SQLC) generate -f "$$cfg"; \
+		echo "sqlc generate -f $$cfg"; $(SQLC) generate -f "$$cfg" || exit 1; \
 	done
 	@if [[ -f buf.gen.yaml ]]; then \
 		PATH="$(dir $(PROTOC_GEN_GO)):$(dir $(PROTOC_GEN_CONNECT_GO)):$(CURDIR)/$(WEB_DIR)/node_modules/.bin:$$PATH" $(BUF) generate; \
