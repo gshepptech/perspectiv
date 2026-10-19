@@ -75,21 +75,6 @@ func (q *Queries) DeleteStaleRateWindows(ctx context.Context, arg DeleteStaleRat
 	return err
 }
 
-const emailVerified = `-- name: EmailVerified :one
-SELECT (email_verified_at IS NOT NULL AND suspended_at IS NULL)::boolean AS verified
-FROM users
-WHERE id = $1 AND deleted_at IS NULL
-`
-
-// The shared write gate: true only for a live account whose email is
-// verified and which moderation has not suspended.
-func (q *Queries) EmailVerified(ctx context.Context, id uuid.UUID) (bool, error) {
-	row := q.db.QueryRow(ctx, emailVerified, id)
-	var verified bool
-	err := row.Scan(&verified)
-	return verified, err
-}
-
 const getLiveSessionRole = `-- name: GetLiveSessionRole :one
 SELECT u.role
 FROM sessions s
@@ -440,4 +425,24 @@ type UpdatePasswordHashParams struct {
 func (q *Queries) UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) error {
 	_, err := q.db.Exec(ctx, updatePasswordHash, arg.ID, arg.PasswordHash)
 	return err
+}
+
+const writeStanding = `-- name: WriteStanding :one
+SELECT (email_verified_at IS NOT NULL)::boolean AS verified, (suspended_at IS NOT NULL)::boolean AS suspended
+FROM users
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type WriteStandingRow struct {
+	Verified  bool
+	Suspended bool
+}
+
+// The shared write gate's inputs for a live account: whether its email is
+// verified and whether moderation suspended it.
+func (q *Queries) WriteStanding(ctx context.Context, id uuid.UUID) (WriteStandingRow, error) {
+	row := q.db.QueryRow(ctx, writeStanding, id)
+	var i WriteStandingRow
+	err := row.Scan(&i.Verified, &i.Suspended)
+	return i, err
 }

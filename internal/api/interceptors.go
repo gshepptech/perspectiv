@@ -34,9 +34,25 @@ type Authenticator interface {
 	Authenticate(ctx context.Context, h http.Header) (apiutil.Caller, bool, error)
 }
 
-// Gate reports whether a user's email is verified.
+// Standing is what the shared write gate knows about an account. The zero
+// value refuses the write, so a gate that answers nothing fails closed.
+type Standing int
+
+const (
+	// StandingUnverified: the email is not verified, or the account is
+	// unknown or deleted.
+	StandingUnverified Standing = iota
+	// StandingSuspended: moderation suspended the account. It still signs in
+	// and reads, but writes nothing other people read.
+	StandingSuspended
+	// StandingWriter: verified and not suspended.
+	StandingWriter
+)
+
+// Gate answers the shared write gate from the users row on every call, so a
+// suspension or a verification takes effect on the account's next write.
 type Gate interface {
-	EmailVerified(ctx context.Context, userID uuid.UUID) (bool, error)
+	WriteStanding(ctx context.Context, userID uuid.UUID) (Standing, error)
 }
 
 // Limiter counts one attempt of action by subject and reports whether it is
@@ -50,6 +66,7 @@ const RequestIDHeader = "X-Request-Id"
 
 const (
 	msgVerifyEmail = "verify your email first"
+	msgSuspended   = "your account is suspended"
 	msgSlowDown    = "slow down"
 	msgUnavailable = "service temporarily unavailable"
 )
@@ -388,17 +405,26 @@ func authorize(ctx context.Context, log zerolog.Logger, gate Gate, lim Limiter, 
 }
 
 func checkVerified(ctx context.Context, log zerolog.Logger, gate Gate, caller apiutil.Caller, d *denial) error {
-	verified, err := gate.EmailVerified(ctx, caller.UserID)
+	standing, err := gate.WriteStanding(ctx, caller.UserID)
 	if err != nil {
 		d.reason = "gate_error"
-		logging.Ctx(ctx, log).Error().Err(err).Str("method", d.method).Msg("email gate failed")
+		logging.Ctx(ctx, log).Error().Err(err).Str("method", d.method).Msg("write gate failed")
 		return deny(ctx, log, *d, unavailable())
 	}
-	if !verified {
+	switch standing {
+	case StandingWriter:
+		return nil
+	case StandingSuspended:
+		d.reason = "suspended"
+		return deny(ctx, log, *d, apiutil.ToConnect(apiutil.PermissionDenied(msgSuspended)))
+	case StandingUnverified:
 		d.reason = "email_unverified"
 		return deny(ctx, log, *d, apiutil.ToConnect(apiutil.FailedPrecondition(msgVerifyEmail)))
+	default:
+		d.reason = "gate_error"
+		logging.Ctx(ctx, log).Error().Int("standing", int(standing)).Str("method", d.method).Msg("write gate gave an unknown standing")
+		return deny(ctx, log, *d, unavailable())
 	}
-	return nil
 }
 
 // checkRateLimit counts the call against every subject, user first. The

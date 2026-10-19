@@ -57,16 +57,26 @@ func (tokenAuthn) Authenticate(_ context.Context, h http.Header) (apiutil.Caller
 	return apiutil.Caller{UserID: id, Role: role, SessionID: uuid.New()}, true, nil
 }
 
-// dbGate answers the verified-email question from the users row.
+// dbGate answers the write gate from the users row. It leaves deleted
+// accounts to the handler: in production auth's Authenticate refuses them
+// before the gate runs, and tokenAuthn does not, so these tests can reach
+// moderation's own check for an account deleted after its token was minted.
 type dbGate struct{ pool *pgxpool.Pool }
 
-func (g dbGate) EmailVerified(ctx context.Context, id uuid.UUID) (bool, error) {
-	var ok bool
-	err := g.pool.QueryRow(ctx, `SELECT email_verified_at IS NOT NULL FROM users WHERE id = $1`, id).Scan(&ok)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return false, nil
+func (g dbGate) WriteStanding(ctx context.Context, id uuid.UUID) (api.Standing, error) {
+	var verified, suspended bool
+	err := g.pool.QueryRow(ctx, `SELECT email_verified_at IS NOT NULL, suspended_at IS NOT NULL FROM users WHERE id = $1`, id).Scan(&verified, &suspended)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return api.StandingUnverified, nil
+	case err != nil:
+		return api.StandingUnverified, err
+	case suspended:
+		return api.StandingSuspended, nil
+	case !verified:
+		return api.StandingUnverified, nil
 	}
-	return ok, err
+	return api.StandingWriter, nil
 }
 
 // switchLimiter allows every call until exhausted is set. The Postgres

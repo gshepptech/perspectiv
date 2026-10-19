@@ -4,12 +4,15 @@ package react_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -46,10 +49,20 @@ func (bearerAuthn) Authenticate(_ context.Context, h http.Header) (apiutil.Calle
 // dbGate reads the verified flag from the users table, as auth's gate does.
 type dbGate struct{ pool *pgxpool.Pool }
 
-func (g dbGate) EmailVerified(ctx context.Context, id uuid.UUID) (bool, error) {
-	var ok bool
-	err := g.pool.QueryRow(ctx, `SELECT email_verified_at IS NOT NULL FROM users WHERE id = $1`, id).Scan(&ok)
-	return ok, err
+func (g dbGate) WriteStanding(ctx context.Context, id uuid.UUID) (api.Standing, error) {
+	var verified, suspended bool
+	err := g.pool.QueryRow(ctx, `SELECT email_verified_at IS NOT NULL, suspended_at IS NOT NULL FROM users WHERE id = $1 AND deleted_at IS NULL`, id).Scan(&verified, &suspended)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return api.StandingUnverified, nil
+	case err != nil:
+		return api.StandingUnverified, err
+	case suspended:
+		return api.StandingSuspended, nil
+	case !verified:
+		return api.StandingUnverified, nil
+	}
+	return api.StandingWriter, nil
 }
 
 type allowAll struct{}

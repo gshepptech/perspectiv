@@ -117,6 +117,19 @@ func TestInterceptorPolicy(t *testing.T) {
 			wantCode: connect.CodeFailedPrecondition, wantMsg: "verify your email first",
 		},
 		{
+			name: "suspended account cannot publish", procedure: publish, token: "suspended",
+			wantCode: connect.CodePermissionDenied, wantMsg: "your account is suspended",
+			wantDenial: map[string]string{"sub": suspID.String(), "required": "verified_email", "reason": "suspended"},
+		},
+		{
+			name: "suspended account cannot edit its profile", procedure: "/perspectiv.v1.UserService/UpdateProfile", token: "suspended",
+			wantCode: connect.CodePermissionDenied, wantMsg: "your account is suspended",
+		},
+		{
+			name: "an unknown standing fails closed", procedure: publish, token: "user", gate: fakeGate{standing: api.Standing(99)},
+			wantCode: connect.CodeUnavailable, wantDenial: map[string]string{"reason": "gate_error"},
+		},
+		{
 			name: "gate error fails closed", procedure: publish, token: "user", gate: fakeGate{err: gateDown},
 			wantCode: connect.CodeUnavailable, wantDenial: map[string]string{"reason": "gate_error"},
 		},

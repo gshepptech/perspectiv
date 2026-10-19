@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 
+	"perspectiv/internal/api"
 	"perspectiv/internal/api/apiutil"
 	"perspectiv/internal/auth/dbq"
 )
@@ -52,21 +53,27 @@ func (s *Service) Authenticate(ctx context.Context, h http.Header) (apiutil.Call
 	return apiutil.Caller{UserID: userID, Role: role, SessionID: sessionID}, true, nil
 }
 
-// EmailVerified is the gate every content write passes through: it reports
-// whether the user may write, which needs a verified email and an account
-// that is not suspended. An unknown or deleted account may not. A suspended
-// account keeps signing in and reading; it is refused here, on every call,
-// from the users row rather than the access token, so a suspension takes
-// effect on the account's next write.
-func (s *Service) EmailVerified(ctx context.Context, userID uuid.UUID) (bool, error) {
-	ok, err := s.q.EmailVerified(ctx, userID)
+// WriteStanding is the gate every content write passes through: a write needs
+// a verified email and an account that is not suspended. An unknown or deleted
+// account is unverified. A suspended account keeps signing in and reading; it
+// is refused here, on every call, from the users row rather than the access
+// token, so a suspension takes effect on the account's next write.
+func (s *Service) WriteStanding(ctx context.Context, userID uuid.UUID) (api.Standing, error) {
+	row, err := s.q.WriteStanding(ctx, userID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return false, nil
+		return api.StandingUnverified, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("email verified: %w", err)
+		return api.StandingUnverified, fmt.Errorf("write standing: %w", err)
 	}
-	return ok, nil
+	switch {
+	case row.Suspended:
+		return api.StandingSuspended, nil
+	case !row.Verified:
+		return api.StandingUnverified, nil
+	default:
+		return api.StandingWriter, nil
+	}
 }
 
 // Refresh exchanges a refresh token for a new one and a new access token.

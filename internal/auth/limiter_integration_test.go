@@ -126,30 +126,34 @@ func TestLimiterRefusesUnknownInput(t *testing.T) {
 	}
 }
 
-// The gate reads verification from Postgres; an unknown or deleted user is
-// not verified.
+// The gate reads verification and suspension from Postgres; an unknown or
+// deleted user is unverified, and suspension wins over verification.
 func TestGate(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
 	ctx := context.Background()
 	id := e.signUp("Writer_One")
-	check := func(want bool) {
+	check := func(want api.Standing) {
 		t.Helper()
-		got, err := e.svc.EmailVerified(ctx, id)
+		got, err := e.svc.WriteStanding(ctx, id)
 		if err != nil || got != want {
-			t.Fatalf("EmailVerified = %v, %v; want %v", got, err, want)
+			t.Fatalf("WriteStanding = %v, %v; want %v", got, err, want)
 		}
 	}
-	check(false)
-	e.exec(`UPDATE users SET email_verified_at = now() WHERE id = $1`, id)
-	check(true)
+	check(api.StandingUnverified)
+	e.exec(`UPDATE users SET suspended_at = now() WHERE id = $1`, id)
+	check(api.StandingSuspended)
+	e.exec(`UPDATE users SET email_verified_at = now(), suspended_at = NULL WHERE id = $1`, id)
+	check(api.StandingWriter)
+	e.exec(`UPDATE users SET suspended_at = now() WHERE id = $1`, id)
+	check(api.StandingSuspended)
 	e.exec(`UPDATE users SET deleted_at = now() WHERE id = $1`, id)
-	check(false)
-	if ok, err := e.svc.EmailVerified(ctx, uuid.New()); err != nil || ok {
-		t.Fatalf("unknown user: %v, %v", ok, err)
+	check(api.StandingUnverified)
+	if got, err := e.svc.WriteStanding(ctx, uuid.New()); err != nil || got != api.StandingUnverified {
+		t.Fatalf("unknown user: %v, %v", got, err)
 	}
 	e.pool.Close()
-	if _, err := e.svc.EmailVerified(ctx, id); err == nil {
-		t.Fatal("EmailVerified on a closed pool did not fail")
+	if _, err := e.svc.WriteStanding(ctx, id); err == nil {
+		t.Fatal("WriteStanding on a closed pool did not fail")
 	}
 }

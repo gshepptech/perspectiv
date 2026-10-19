@@ -58,6 +58,7 @@ var (
 	userID  = uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000001")
 	adminID = uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000002")
 	unverID = uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000003")
+	suspID  = uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000004")
 )
 
 // fakeAuthn maps bearer tokens to callers. "expired" is an invalid
@@ -74,6 +75,8 @@ func (fakeAuthn) Authenticate(_ context.Context, h http.Header) (apiutil.Caller,
 		return apiutil.Caller{UserID: adminID, Role: perspectivv1.Role_ROLE_ADMIN, SessionID: uuid.New()}, true, nil
 	case "Bearer unverified":
 		return apiutil.Caller{UserID: unverID, Role: perspectivv1.Role_ROLE_USER, SessionID: uuid.New()}, true, nil
+	case "Bearer suspended":
+		return apiutil.Caller{UserID: suspID, Role: perspectivv1.Role_ROLE_USER, SessionID: uuid.New()}, true, nil
 	case "Bearer expired":
 		return apiutil.Caller{}, false, apiutil.Unauthenticated("token expired")
 	default:
@@ -81,13 +84,25 @@ func (fakeAuthn) Authenticate(_ context.Context, h http.Header) (apiutil.Caller,
 	}
 }
 
-type fakeGate struct{ err error }
+// fakeGate answers the write gate by user id; standing, when set, overrides
+// the answer for every user.
+type fakeGate struct {
+	err      error
+	standing api.Standing
+}
 
-func (g fakeGate) EmailVerified(_ context.Context, id uuid.UUID) (bool, error) {
-	if g.err != nil {
-		return false, g.err
+func (g fakeGate) WriteStanding(_ context.Context, id uuid.UUID) (api.Standing, error) {
+	switch {
+	case g.err != nil:
+		return api.StandingUnverified, g.err
+	case g.standing != 0:
+		return g.standing, nil
+	case id == unverID:
+		return api.StandingUnverified, nil
+	case id == suspID:
+		return api.StandingSuspended, nil
 	}
-	return id != unverID, nil
+	return api.StandingWriter, nil
 }
 
 // fakeLimiter records every Allow call and denies the subjects in deny.

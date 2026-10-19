@@ -4,6 +4,7 @@ package auth_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -34,8 +35,8 @@ func TestSuspendedAccountFailsWriteGate(t *testing.T) {
 	e.exec(`UPDATE users SET suspended_at = coalesce(suspended_at, now()) WHERE id = $1`, id)
 
 	for rpc, err := range e.verifiedRoutes(access) {
-		if connect.CodeOf(err) != connect.CodeFailedPrecondition {
-			t.Errorf("%s while suspended: %v, want FailedPrecondition", rpc, err)
+		if connect.CodeOf(err) != connect.CodePermissionDenied || !strings.Contains(err.Error(), "your account is suspended") {
+			t.Errorf("%s while suspended: %v, want PermissionDenied naming the suspension", rpc, err)
 		}
 	}
 }

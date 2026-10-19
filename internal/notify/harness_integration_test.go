@@ -103,8 +103,10 @@ func (bearerAuthn) Authenticate(_ context.Context, h http.Header) (apiutil.Calle
 
 type allowAll struct{}
 
-func (allowAll) EmailVerified(context.Context, uuid.UUID) (bool, error) { return true, nil }
-func (allowAll) Allow(context.Context, string, string) (bool, error)    { return true, nil }
+func (allowAll) WriteStanding(context.Context, uuid.UUID) (api.Standing, error) {
+	return api.StandingWriter, nil
+}
+func (allowAll) Allow(context.Context, string, string) (bool, error) { return true, nil }
 
 type bearer uuid.UUID
 

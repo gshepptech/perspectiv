@@ -65,8 +65,8 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.AuthService/ResetPassword":        {Access: Public},
 
 	"/perspectiv.v1.UserService/GetProfile":     {Access: Public},
-	"/perspectiv.v1.UserService/UpdateProfile":  {Access: User},
-	"/perspectiv.v1.UserService/ChangeUsername": {Access: User},
+	"/perspectiv.v1.UserService/UpdateProfile":  {Access: User, Verified: true},
+	"/perspectiv.v1.UserService/ChangeUsername": {Access: User, Verified: true},
 	"/perspectiv.v1.UserService/BlockUser":      {Access: User},
 	"/perspectiv.v1.UserService/UnblockUser":    {Access: User},
 	"/perspectiv.v1.UserService/DeleteAccount":  {Access: User},

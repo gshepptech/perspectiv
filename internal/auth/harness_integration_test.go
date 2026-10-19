@@ -122,6 +122,9 @@ func newEnvOn(t *testing.T, pool *pgxpool.Pool) *env {
 		func(o ...connect.HandlerOption) (string, http.Handler) {
 			return perspectivv1connect.NewNotifyServiceHandler(perspectivv1connect.UnimplementedNotifyServiceHandler{}, append(o, ics)...)
 		},
+		func(o ...connect.HandlerOption) (string, http.Handler) {
+			return perspectivv1connect.NewUserServiceHandler(perspectivv1connect.UnimplementedUserServiceHandler{}, append(o, ics)...)
+		},
 	}
 	srv := httptest.NewServer(api.NewRouter(api.RouterConfig{Log: log, Handlers: mounts}))
 	t.Cleanup(srv.Close)

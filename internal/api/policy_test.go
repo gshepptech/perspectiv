@@ -62,6 +62,8 @@ func TestRoutePolicies(t *testing.T) {
 		"/perspectiv.v1.VoteService/VoteRemove":     api.LimitVote,
 		"/perspectiv.v1.ReactService/React":         api.LimitReact,
 		"/perspectiv.v1.ModerationService/Report":   api.LimitReport,
+		"/perspectiv.v1.UserService/UpdateProfile":  "",
+		"/perspectiv.v1.UserService/ChangeUsername": "",
 	}
 	admin := map[string]bool{
 		"/perspectiv.v1.ModerationService/ListReports": true,

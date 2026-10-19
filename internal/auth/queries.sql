@@ -13,10 +13,10 @@ SELECT id, email, password_hash, username, role, email_verified_at
 FROM users
 WHERE id = $1 AND deleted_at IS NULL;
 
--- name: EmailVerified :one
--- The shared write gate: true only for a live account whose email is
--- verified and which moderation has not suspended.
-SELECT (email_verified_at IS NOT NULL AND suspended_at IS NULL)::boolean AS verified
+-- name: WriteStanding :one
+-- The shared write gate's inputs for a live account: whether its email is
+-- verified and whether moderation suspended it.
+SELECT (email_verified_at IS NOT NULL)::boolean AS verified, (suspended_at IS NOT NULL)::boolean AS suspended
 FROM users
 WHERE id = $1 AND deleted_at IS NULL;
 

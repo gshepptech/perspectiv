@@ -32,6 +32,9 @@ func (e *env) verifiedRoutes(access string) map[string]error {
 		React(ctx, connect.NewRequest(&perspectivv1.ReactRequest{}))
 	_, out["Report"] = perspectivv1connect.NewModerationServiceClient(h, base, o...).
 		Report(ctx, connect.NewRequest(&perspectivv1.ReportRequest{}))
+	user := perspectivv1connect.NewUserServiceClient(h, base, o...)
+	_, out["UpdateProfile"] = user.UpdateProfile(ctx, connect.NewRequest(&perspectivv1.UpdateProfileRequest{}))
+	_, out["ChangeUsername"] = user.ChangeUsername(ctx, connect.NewRequest(&perspectivv1.ChangeUsernameRequest{}))
 	return out
 }
 
