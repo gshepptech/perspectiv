@@ -1,14 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ArrowLeft, Clock, PenLine } from "lucide-react";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 
 import type { ViewerRights } from "@/components/actions/PerspectiveActions";
 import { ReportDialog } from "@/components/actions/ReportDialog";
 import { Button } from "@/components/ui/Button";
-import type { Arc, ArcLore, GetArcResponse, HourArc } from "@/gen/perspectiv/v1/arc_pb";
-import { ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
+import type { Arc, ArcLore, GetArcResponse, HourArc, ListArcSectionResponse } from "@/gen/perspectiv/v1/arc_pb";
+import { ArcSection, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { PerspectiveSummary } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 import { useSession, type Session } from "@/lib/session";
@@ -18,35 +18,65 @@ import { PerspectiveCard } from "./PerspectiveCard";
 
 export const arcKey = (arcId: string) => ["arc", "getArc", { arcId }] as const;
 
-/** Every perspective filed directly under this arc, in any standing. */
-function arcPerspectives(res: GetArcResponse): PerspectiveSummary[] {
-  return [
-    ...(res.canon?.perspectives ?? []),
-    ...res.sublores.flatMap((l) => l.perspectives),
-    ...res.tales,
-    ...res.unlinked,
-  ];
+/** How many entries each further page of a list holds. */
+const PAGE_SIZE = 20;
+
+/**
+ * The viewer's rights in this arc, from where the server says they stand: a
+ * participant is anyone with a published perspective here, in any standing
+ * (a REMOVED perspective is still published, and the server counts it for
+ * votes and claims). A remove vote needs the viewer to be a member of the
+ * target's own lore, and the lore 4 members or more. The lists are paged, so
+ * the viewer's own perspective may not be on screen.
+ */
+function rightsIn(res: GetArcResponse, session: Session | null) {
+  const mineId = session ? res.viewer?.perspectiveId || "" : "";
+  const participant = mineId !== "";
+  const forLore = (lore: ArcLore | undefined): ViewerRights => ({
+    participant,
+    loreVoter: !!session && !!lore?.lore && lore.lore.memberCount >= 4 && lore.lore.id === res.viewer?.loreId,
+  });
+  return { mineId, participant, forLore, outsideLore: { participant, loreVoter: false } satisfies ViewerRights };
 }
 
 /**
- * The viewer's rights in this arc. A participant is anyone with a published
- * perspective here, in any standing: a REMOVED perspective is still published,
- * and the server counts it for votes and claims. A remove vote needs the
- * viewer to be a member of the target's own lore, and the lore 4 members or
- * more.
+ * The pages of one list after the first, which GetArc returned. Nothing is
+ * fetched until the reader asks for more.
  */
-function rightsIn(res: GetArcResponse, session: Session | null) {
-  const mine = session ? arcPerspectives(res).find((p) => p.author?.userId === session.userId) : undefined;
-  const participant = !!mine;
-  const forLore = (lore: ArcLore | undefined): ViewerRights => ({
-    participant,
-    loreVoter:
-      !!session &&
-      !!lore?.lore &&
-      lore.lore.memberCount >= 4 &&
-      lore.lore.members.some((m) => m.user?.userId === session.userId),
+function useMore<T>(arcId: string, section: ArcSection, firstToken: string, pick: (page: ListArcSectionResponse) => T[]) {
+  const [asked, setAsked] = useState(false);
+  const more = useInfiniteQuery({
+    queryKey: ["arc", "listArcSection", { arcId, section, firstToken }],
+    queryFn: ({ pageParam, signal }) =>
+      clients.arc.listArcSection({ arcId, section, pageToken: pageParam, pageSize: PAGE_SIZE }, { signal }),
+    initialPageParam: firstToken,
+    getNextPageParam: (last) => last.nextPageToken || undefined,
+    enabled: asked && firstToken !== "",
   });
-  return { mine, participant, forLore, outsideLore: { participant, loreVoter: false } satisfies ViewerRights };
+  return {
+    items: more.data?.pages.flatMap(pick) ?? [],
+    hasMore: asked ? more.hasNextPage : firstToken !== "",
+    loading: more.isFetching,
+    failed: more.isError,
+    showMore: () => (asked ? void more.fetchNextPage() : setAsked(true)),
+  };
+}
+
+function MoreButton({ label, more }: { label: string; more: ReturnType<typeof useMore> }) {
+  return (
+    <>
+      {more.failed && (
+        <p role="alert" className="mt-3 text-sm text-error">
+          More could not be loaded. Try again in a moment.
+        </p>
+      )}
+      {more.hasMore && (
+        <Button variant="secondary" className="mt-4" disabled={more.loading} onClick={more.showMore}>
+          {label}
+        </Button>
+      )}
+    </>
+  );
 }
 
 function composeHref(arc: Arc): string {
@@ -89,8 +119,9 @@ function loreLine(l: ArcLore): string {
  * stitched in read-only: voting and claiming in an hour depend on who wrote in
  * that hour's arc, so those actions live on the hour arc's own page.
  */
-function HourTimeline({ hours }: { hours: HourArc[] }) {
-  const sorted = [...hours].sort((a, b) => (a.arc?.hour ?? 0) - (b.arc?.hour ?? 0));
+function HourTimeline({ arcId, first, firstToken }: { arcId: string; first: HourArc[]; firstToken: string }) {
+  const more = useMore(arcId, ArcSection.HOURS, firstToken, (p) => p.hours);
+  const sorted = [...first, ...more.items].sort((a, b) => (a.arc?.hour ?? 0) - (b.arc?.hour ?? 0));
   return (
     <Section id="arc-hours" title="Hours">
       <ol className="mt-4 grid min-w-0 gap-6 border-l-2 border-rule pl-4">
@@ -121,6 +152,7 @@ function HourTimeline({ hours }: { hours: HourArc[] }) {
           );
         })}
       </ol>
+      <MoreButton label="Show more hours" more={more} />
     </Section>
   );
 }
@@ -131,9 +163,6 @@ function ArcView({ res }: { res: GetArcResponse }) {
   if (!arc) return <Missing />;
   const rights = rightsIn(res, session);
   const isHour = arc.hour !== undefined;
-  // A lore whose group vanished keeps its row with no perspectives; it has
-  // nothing to read, so it is not listed. Every lore with a perspective is.
-  const sublores = res.sublores.filter((l) => l.perspectives.length > 0);
   return (
     <article aria-labelledby="arc-title" className="min-w-0">
       <header className="min-w-0">
@@ -176,9 +205,9 @@ function ArcView({ res }: { res: GetArcResponse }) {
           </p>
         )}
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          {rights.mine ? (
+          {rights.mineId ? (
             <Button asChild variant="secondary" size="sm">
-              <Link to={`/perspectives/${rights.mine.id}`}>Read yours</Link>
+              <Link to={`/perspectives/${rights.mineId}`}>Read yours</Link>
             </Button>
           ) : (
             <Button asChild size="sm">
@@ -217,39 +246,80 @@ function ArcView({ res }: { res: GetArcResponse }) {
         )}
       </Section>
 
-      {!isHour && res.hours.length > 0 && <HourTimeline hours={res.hours} />}
+      {!isHour && res.hours.length > 0 && <HourTimeline arcId={arc.id} first={res.hours} firstToken={res.hoursNextPageToken} />}
 
-      {sublores.length > 0 && (
-        <Section id="arc-sublores" title="Sublores">
-          <ol className="mt-4 grid min-w-0 gap-6">
-            {sublores.map((l, i) => (
-              <li key={l.lore?.id ?? i} className="min-w-0">
-                <h3 className="text-xl">
-                  Sublore {i + 1} <span className="font-sans text-sm font-normal text-ink-muted">{loreLine(l)}</span>
-                </h3>
-                <CardList items={l.perspectives} rights={rights.forLore(l)} level={4} />
-              </li>
-            ))}
-          </ol>
-        </Section>
-      )}
+      <Sublores arcId={arc.id} res={res} rights={rights} />
 
-      {res.tales.length > 0 && (
-        <Section id="arc-tales" title="Tales">
-          <p className="mt-2 text-sm text-ink-muted">Perspectives that stand alone, outside any lore.</p>
-          <CardList items={res.tales} rights={rights.outsideLore} />
-        </Section>
-      )}
+      <PerspectiveList
+        arcId={arc.id}
+        section={ArcSection.TALES}
+        id="arc-tales"
+        title="Tales"
+        intro="Perspectives that stand alone, outside any lore."
+        moreLabel="Show more tales"
+        first={res.tales}
+        firstToken={res.talesNextPageToken}
+        rights={rights.outsideLore}
+      />
 
-      {res.unlinked.length > 0 && (
-        <Section id="arc-unlinked" title="Not yet linked">
-          <p className="mt-2 text-sm text-ink-muted">
-            Published within the last week and waiting for a claim to link them into a lore.
-          </p>
-          <CardList items={res.unlinked} rights={rights.outsideLore} />
-        </Section>
-      )}
+      <PerspectiveList
+        arcId={arc.id}
+        section={ArcSection.UNLINKED}
+        id="arc-unlinked"
+        title="Not yet linked"
+        intro="Published within the last week and waiting for a claim to link them into a lore."
+        moreLabel="Show more perspectives"
+        first={res.unlinked}
+        firstToken={res.unlinkedNextPageToken}
+        rights={rights.outsideLore}
+      />
     </article>
+  );
+}
+
+/** Every lore but the canon that has a member, highest rank first, a page at a time. */
+function Sublores({ arcId, res, rights }: { arcId: string; res: GetArcResponse; rights: ReturnType<typeof rightsIn> }) {
+  const more = useMore(arcId, ArcSection.SUBLORES, res.subloresNextPageToken, (p) => p.sublores);
+  const sublores = [...res.sublores, ...more.items];
+  if (sublores.length === 0) return null;
+  return (
+    <Section id="arc-sublores" title="Sublores">
+      <ol className="mt-4 grid min-w-0 gap-6">
+        {sublores.map((l, i) => (
+          <li key={l.lore?.id ?? i} className="min-w-0">
+            <h3 className="text-xl">
+              Sublore {i + 1} <span className="font-sans text-sm font-normal text-ink-muted">{loreLine(l)}</span>
+            </h3>
+            <CardList items={l.perspectives} rights={rights.forLore(l)} level={4} />
+          </li>
+        ))}
+      </ol>
+      <MoreButton label="Show more sublores" more={more} />
+    </Section>
+  );
+}
+
+/** Tales or perspectives not yet linked, oldest first, a page at a time. */
+function PerspectiveList(props: {
+  arcId: string;
+  section: ArcSection;
+  id: string;
+  title: string;
+  intro: string;
+  moreLabel: string;
+  first: PerspectiveSummary[];
+  firstToken: string;
+  rights: ViewerRights;
+}) {
+  const more = useMore(props.arcId, props.section, props.firstToken, (p) => p.perspectives);
+  const items = [...props.first, ...more.items];
+  if (items.length === 0) return null;
+  return (
+    <Section id={props.id} title={props.title}>
+      <p className="mt-2 text-sm text-ink-muted">{props.intro}</p>
+      <CardList items={items} rights={props.rights} />
+      <MoreButton label={props.moreLabel} more={more} />
+    </Section>
   );
 }
 

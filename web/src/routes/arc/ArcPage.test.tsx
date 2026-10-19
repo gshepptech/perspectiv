@@ -170,6 +170,7 @@ describe("participation", () => {
     // wren is in none of these perspectives.
     res.canon.perspectives = res.canon.perspectives.filter((p) => p.author?.userId !== ME);
     res.canon.lore = lore("lore-canon", "CANON", [{ perspectiveId: "p-otter", user: OTTER }]);
+    res.viewer = { perspectiveId: "", loreId: "" };
     await open("/arcs/arc-day", () => ({ body: res }), { signedIn: true });
     const write = await screen.findByRole("link", { name: "Write your perspective" });
     expect(write).toHaveAttribute("href", "/compose?placeId=pl-store&date=2026-10-01");
@@ -211,3 +212,42 @@ describe("participation", () => {
     });
   });
 });
+
+describe("arc page lists are paged (NFR-008)", () => {
+  it("shows more tales from the token GetArc returned, after the first page", async () => {
+    const user = userEvent.setup();
+    const res = { ...dayArcResponse(), talesNextPageToken: "tales-2" };
+    const { api } = await open("/arcs/arc-day", () => ({ body: res }), {
+      routes: {
+        "ArcService/ListArcSection": () => ({
+          body: { perspectives: [summary({ id: "p-later", loreStatus: "LORE_STATUS_SOLO", excerpt: "A later tale" })] },
+        }),
+      },
+    });
+    const tales = await screen.findByRole("region", { name: "Tales" });
+    expect(within(tales).queryByText("A later tale")).toBeNull();
+    await user.click(within(tales).getByRole("button", { name: "Show more tales" }));
+    expect(await within(tales).findByText("A later tale")).toBeInTheDocument();
+    expect(within(tales).getByText("A tale nobody claimed")).toBeInTheDocument();
+    expect(bodiesFor(api, "ArcService/ListArcSection")).toEqual([
+      { arcId: "arc-day", section: "ARC_SECTION_TALES", pageToken: "tales-2", pageSize: 20 },
+    ]);
+    expect(within(tales).queryByRole("button", { name: "Show more tales" })).toBeNull();
+  });
+
+  it("offers no more when a list has no next page", async () => {
+    await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
+    await screen.findByRole("region", { name: "Tales" });
+    expect(screen.queryByRole("button", { name: /^Show more/ })).toBeNull();
+  });
+
+  it("takes the viewer's standing from the server when their perspective is on a later page", async () => {
+    const res = dayArcResponse();
+    res.canon.perspectives = res.canon.perspectives.filter((p) => p.author?.userId !== ME);
+    res.viewer = { perspectiveId: "p-page-three", loreId: "lore-elsewhere" };
+    await open("/arcs/arc-day", () => ({ body: res }), { signedIn: true });
+    expect(await screen.findByRole("link", { name: "Read yours" })).toHaveAttribute("href", "/perspectives/p-page-three");
+    expect(screen.queryByText(/Only people with a perspective in this arc can upvote/)).toBeNull();
+  });
+});
+

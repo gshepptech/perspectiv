@@ -929,6 +929,66 @@ func (EpicTab) EnumDescriptor() ([]byte, []int) {
 	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{15}
 }
 
+// ArcSection names one paginated list on an arc page.
+type ArcSection int32
+
+const (
+	ArcSection_ARC_SECTION_UNSPECIFIED ArcSection = 0
+	// Every lore but the canon, highest rank first.
+	ArcSection_ARC_SECTION_SUBLORES ArcSection = 1
+	// SOLO and REMOVED perspectives, oldest first.
+	ArcSection_ARC_SECTION_TALES ArcSection = 2
+	// Published perspectives not yet linked into a lore, oldest first.
+	ArcSection_ARC_SECTION_UNLINKED ArcSection = 3
+	// A day arc's hour children, in hour order.
+	ArcSection_ARC_SECTION_HOURS ArcSection = 4
+)
+
+// Enum value maps for ArcSection.
+var (
+	ArcSection_name = map[int32]string{
+		0: "ARC_SECTION_UNSPECIFIED",
+		1: "ARC_SECTION_SUBLORES",
+		2: "ARC_SECTION_TALES",
+		3: "ARC_SECTION_UNLINKED",
+		4: "ARC_SECTION_HOURS",
+	}
+	ArcSection_value = map[string]int32{
+		"ARC_SECTION_UNSPECIFIED": 0,
+		"ARC_SECTION_SUBLORES":    1,
+		"ARC_SECTION_TALES":       2,
+		"ARC_SECTION_UNLINKED":    3,
+		"ARC_SECTION_HOURS":       4,
+	}
+)
+
+func (x ArcSection) Enum() *ArcSection {
+	p := new(ArcSection)
+	*p = x
+	return p
+}
+
+func (x ArcSection) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ArcSection) Descriptor() protoreflect.EnumDescriptor {
+	return file_perspectiv_v1_enums_proto_enumTypes[16].Descriptor()
+}
+
+func (ArcSection) Type() protoreflect.EnumType {
+	return &file_perspectiv_v1_enums_proto_enumTypes[16]
+}
+
+func (x ArcSection) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ArcSection.Descriptor instead.
+func (ArcSection) EnumDescriptor() ([]byte, []int) {
+	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{16}
+}
+
 var File_perspectiv_v1_enums_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_enums_proto_rawDesc = "" +
@@ -1029,7 +1089,14 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\x14EPIC_TAB_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fEPIC_TAB_RANKED\x10\x01\x12\x13\n" +
 	"\x0fEPIC_TAB_NEWEST\x10\x02\x12\x12\n" +
-	"\x0eEPIC_TAB_TALES\x10\x03B\x9f\x01\n" +
+	"\x0eEPIC_TAB_TALES\x10\x03*\x8b\x01\n" +
+	"\n" +
+	"ArcSection\x12\x1b\n" +
+	"\x17ARC_SECTION_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14ARC_SECTION_SUBLORES\x10\x01\x12\x15\n" +
+	"\x11ARC_SECTION_TALES\x10\x02\x12\x18\n" +
+	"\x14ARC_SECTION_UNLINKED\x10\x03\x12\x15\n" +
+	"\x11ARC_SECTION_HOURS\x10\x04B\x9f\x01\n" +
 	"\x11com.perspectiv.v1B\n" +
 	"EnumsProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
@@ -1045,7 +1112,7 @@ func file_perspectiv_v1_enums_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_enums_proto_rawDescData
 }
 
-var file_perspectiv_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 16)
+var file_perspectiv_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 17)
 var file_perspectiv_v1_enums_proto_goTypes = []any{
 	(PlaceKind)(0),         // 0: perspectiv.v1.PlaceKind
 	(PlaceSource)(0),       // 1: perspectiv.v1.PlaceSource
@@ -1063,6 +1130,7 @@ var file_perspectiv_v1_enums_proto_goTypes = []any{
 	(ReportStatus)(0),      // 13: perspectiv.v1.ReportStatus
 	(ModerationAction)(0),  // 14: perspectiv.v1.ModerationAction
 	(EpicTab)(0),           // 15: perspectiv.v1.EpicTab
+	(ArcSection)(0),        // 16: perspectiv.v1.ArcSection
 }
 var file_perspectiv_v1_enums_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1082,7 +1150,7 @@ func file_perspectiv_v1_enums_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_enums_proto_rawDesc), len(file_perspectiv_v1_enums_proto_rawDesc)),
-			NumEnums:      16,
+			NumEnums:      17,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

@@ -4,10 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
 	"perspectiv/internal/api/apiutil"
@@ -18,48 +22,106 @@ import (
 // summary carries; a longer opening is cut there and ends in "…".
 const excerptLen = 240
 
-// GetArc assembles an arc page: the arc with its place chain, its canon lore,
-// every other lore (highest rank first; a lore the rank job demoted stays
-// listed), its tales (SOLO and REMOVED perspectives), its unlinked PENDING
-// perspectives, and for a day arc its hour child arcs in ascending hour order,
-// each with its own canon. Nothing is left out because of standing.
+// GetArc assembles the first screen of an arc page: the arc with its place
+// chain, its canon lore, the first page of each list (every other lore that
+// has a member, highest rank first, a lore the rank job demoted included; the
+// tales, SOLO and REMOVED; the PENDING perspectives not yet linked; and for a
+// day arc its hour children in hour order, each with its own canon), a next
+// page token for each list, and for a signed-in viewer where they stand in
+// the arc. ListArcSection serves the later pages. viewer is uuid.Nil for a
+// signed-out reader.
 //
 // An arc whose place, or any ancestor of it, moderation hid is NotFound, like
-// an unknown arc: hiding a place hides its whole subtree. A
-// deleted or hidden perspective stays in its place on the page as a
-// placeholder (see summary).
+// an unknown arc: hiding a place hides its whole subtree. A deleted or hidden
+// perspective stays in its place on the page as a placeholder (see summary).
 //
 // Everything is read in one REPEATABLE READ snapshot, so the page never mixes
 // two runs of the rank job.
-func (s *Service) GetArc(ctx context.Context, arcID uuid.UUID) (*perspectivv1.GetArcResponse, error) {
-	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
-	if err != nil {
-		return nil, apiutil.Internal(fmt.Errorf("begin: %w", err))
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-	q := dbq.New(tx)
-
-	arc, err := loadArc(ctx, q, arcID)
+func (s *Service) GetArc(ctx context.Context, viewer, arcID uuid.UUID, pageSize int32) (*perspectivv1.GetArcResponse, error) {
+	first, err := apiutil.ParsePageToken("", pageSize)
 	if err != nil {
 		return nil, err
 	}
-	content, err := loadContent(ctx, q, arcID, parseID(arc.GetCanonLoreId()))
-	if err != nil {
-		return nil, err
-	}
-	resp := &perspectivv1.GetArcResponse{
-		Arc:      arc,
-		Canon:    content.canon,
-		Sublores: content.sublores,
-		Tales:    content.tales,
-		Unlinked: content.unlinked,
-	}
-	if arc.Hour == nil {
-		if resp.Hours, err = loadHours(ctx, q, arcID, arc.GetPlaceChain()); err != nil {
-			return nil, err
+	var resp *perspectivv1.GetArcResponse
+	err = s.readTx(ctx, func(q *dbq.Queries) error {
+		arc, err := loadArc(ctx, q, arcID)
+		if err != nil {
+			return err
 		}
+		canonID := parseID(arc.GetCanonLoreId())
+		resp = &perspectivv1.GetArcResponse{Arc: arc}
+		if resp.Canon, err = loadCanon(ctx, q, arcID, canonID); err != nil {
+			return err
+		}
+		if resp.Sublores, resp.SubloresNextPageToken, err = listSublores(ctx, q, arcID, canonID, first); err != nil {
+			return err
+		}
+		if resp.Tales, resp.TalesNextPageToken, err = listPerspectives(ctx, q, arcID, perspectivv1.ArcSection_ARC_SECTION_TALES, first); err != nil {
+			return err
+		}
+		if resp.Unlinked, resp.UnlinkedNextPageToken, err = listPerspectives(ctx, q, arcID, perspectivv1.ArcSection_ARC_SECTION_UNLINKED, first); err != nil {
+			return err
+		}
+		if arc.Hour == nil {
+			if resp.Hours, resp.HoursNextPageToken, err = listHours(ctx, q, arcID, arc.GetPlaceChain(), first); err != nil {
+				return err
+			}
+		}
+		if viewer != uuid.Nil {
+			resp.Viewer, err = viewerIn(ctx, q, arcID, viewer)
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
 	}
 	return resp, nil
+}
+
+// ListArcSection serves the next page of one list on an arc page, from a
+// token GetArc or an earlier call returned. An hour arc has no hours list,
+// so asking for it there returns an empty page.
+func (s *Service) ListArcSection(ctx context.Context, arcID uuid.UUID, section perspectivv1.ArcSection, pageToken string, pageSize int32) (*perspectivv1.ListArcSectionResponse, error) {
+	page, err := apiutil.ParsePageToken(pageToken, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	resp := &perspectivv1.ListArcSectionResponse{}
+	err = s.readTx(ctx, func(q *dbq.Queries) error {
+		arc, err := loadArc(ctx, q, arcID)
+		if err != nil {
+			return err
+		}
+		switch section {
+		case perspectivv1.ArcSection_ARC_SECTION_SUBLORES:
+			resp.Sublores, resp.NextPageToken, err = listSublores(ctx, q, arcID, parseID(arc.GetCanonLoreId()), page)
+		case perspectivv1.ArcSection_ARC_SECTION_TALES, perspectivv1.ArcSection_ARC_SECTION_UNLINKED:
+			resp.Perspectives, resp.NextPageToken, err = listPerspectives(ctx, q, arcID, section, page)
+		case perspectivv1.ArcSection_ARC_SECTION_HOURS:
+			if arc.Hour == nil {
+				resp.Hours, resp.NextPageToken, err = listHours(ctx, q, arcID, arc.GetPlaceChain(), page)
+			}
+		case perspectivv1.ArcSection_ARC_SECTION_UNSPECIFIED:
+			err = apiutil.InvalidArg("section is required")
+		default:
+			err = apiutil.InvalidArg("section is not a known arc page list")
+		}
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// readTx runs fn in one read-only REPEATABLE READ snapshot.
+func (s *Service) readTx(ctx context.Context, fn func(q *dbq.Queries) error) error {
+	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+	if err != nil {
+		return apiutil.Internal(fmt.Errorf("begin: %w", err))
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	return fn(dbq.New(tx))
 }
 
 // loadArc reads one arc with its place chain. A missing arc, or one at a
@@ -126,104 +188,217 @@ func arcProto(r dbq.ListHourArcsRow, chain []*perspectivv1.PlaceRef) *perspectiv
 	return a
 }
 
-// loadHours lists a day arc's hour children in ascending hour order, each with
-// its canon and the number of its perspectives that are neither deleted nor
-// hidden.
-func loadHours(ctx context.Context, q *dbq.Queries, dayID uuid.UUID, chain []*perspectivv1.PlaceRef) ([]*perspectivv1.HourArc, error) {
-	rows, err := q.ListHourArcs(ctx, uuid.NullUUID{UUID: dayID, Valid: true})
+// listHours pages a day arc's hour children in hour order, each with its
+// canon and the number of its perspectives that are neither deleted nor
+// hidden. The cursor is the last hour listed.
+func listHours(ctx context.Context, q *dbq.Queries, dayID uuid.UUID, chain []*perspectivv1.PlaceRef, page apiutil.PageToken) ([]*perspectivv1.HourArc, string, error) {
+	params := dbq.ListHourArcsParams{ParentArcID: dayID, RowLimit: page.Limit + 1}
+	if page.After != "" {
+		h, err := strconv.ParseInt(page.After, 10, 16)
+		if err != nil || h < 0 || h > 23 {
+			return nil, "", errBadToken
+		}
+		params.AfterHour = pgtype.Int2{Int16: int16(h), Valid: true}
+	}
+	rows, err := q.ListHourArcs(ctx, params)
 	if err != nil {
-		return nil, apiutil.Internal(fmt.Errorf("list hour arcs: %w", err))
+		return nil, "", apiutil.Internal(fmt.Errorf("list hour arcs: %w", err))
+	}
+	next := ""
+	if len(rows) > int(page.Limit) {
+		rows = rows[:page.Limit]
+		next = apiutil.NextPageToken(strconv.Itoa(int(rows[len(rows)-1].Hour.Int16)))
 	}
 	hours := make([]*perspectivv1.HourArc, 0, len(rows))
 	for _, r := range rows {
-		canonID := uuid.Nil
-		if r.CanonLoreID.Valid {
-			canonID = r.CanonLoreID.UUID
-		}
-		content, err := loadContent(ctx, q, r.ID, canonID)
+		canon, err := loadCanon(ctx, q, r.ID, r.CanonLoreID.UUID)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
-		hours = append(hours, &perspectivv1.HourArc{
-			Arc:              arcProto(r, chain),
-			Canon:            content.canon,
-			PerspectiveCount: content.visible,
-		})
+		visible, err := q.CountVisiblePerspectives(ctx, uuid.NullUUID{UUID: r.ID, Valid: true})
+		if err != nil {
+			return nil, "", apiutil.Internal(fmt.Errorf("count perspectives: %w", err))
+		}
+		hours = append(hours, &perspectivv1.HourArc{Arc: arcProto(r, chain), Canon: canon, PerspectiveCount: visible})
 	}
-	return hours, nil
+	return hours, next, nil
 }
 
-// content is what an arc holds, sorted into the sections of its page.
-type content struct {
-	canon    *perspectivv1.ArcLore
-	sublores []*perspectivv1.ArcLore
-	tales    []*perspectivv1.PerspectiveSummary
-	unlinked []*perspectivv1.PerspectiveSummary
-	// visible counts published perspectives that are neither deleted nor hidden.
-	visible int32
+// errBadToken answers a page token this package did not write.
+var errBadToken = apiutil.InvalidArg("invalid page token")
+
+// perspectiveRow is one perspective on an arc page; every arc page
+// perspective query returns these columns.
+type perspectiveRow = dbq.ListArcTalesRow
+
+// loreRow is one lore on an arc page.
+type loreRow = dbq.ListArcSubloresRow
+
+// loadCanon reads the lore the rank job made canon, with its members and
+// encounters; nil when canonID is uuid.Nil or names no lore. The canon is
+// shown while the rank job points at it, even with no members left.
+func loadCanon(ctx context.Context, q *dbq.Queries, arcID, canonID uuid.UUID) (*perspectivv1.ArcLore, error) {
+	if canonID == uuid.Nil {
+		return nil, nil
+	}
+	row, err := q.GetArcLore(ctx, canonID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, apiutil.Internal(fmt.Errorf("read canon lore: %w", err))
+	}
+	lores, err := withMembers(ctx, q, arcID, []loreRow{loreRow(row)})
+	if err != nil {
+		return nil, err
+	}
+	return lores[0], nil
 }
 
-// loadContent sorts an arc's published perspectives into its sections.
-//
-// Lore membership is read from lore_members. A member sits under its lore; the
-// lore named by canonID (the rank job's arcs.canon_lore_id) is the canon and
-// every other lore is a sublore, in rank order. A sublore whose group has
-// dissolved (no members left) has nothing to read and is not listed; the
-// canon is always shown while the rank job still points at it. A perspective
-// in no lore is a tale when SOLO or REMOVED and unlinked otherwise (PENDING,
-// or IN_LORE before the rank job recomputes membership). Each section is in
-// publish order, oldest first.
-func loadContent(ctx context.Context, q *dbq.Queries, arcID, canonID uuid.UUID) (content, error) {
-	var c content
-	rows, err := q.ListArcPerspectives(ctx, uuid.NullUUID{UUID: arcID, Valid: true})
-	if err != nil {
-		return c, apiutil.Internal(fmt.Errorf("list perspectives: %w", err))
+// listSublores pages every lore but the canon that has a member, highest
+// rank first. The cursor is the last lore's (rank score, id).
+func listSublores(ctx context.Context, q *dbq.Queries, arcID, canonID uuid.UUID, page apiutil.PageToken) ([]*perspectivv1.ArcLore, string, error) {
+	params := dbq.ListArcSubloresParams{ArcID: arcID, RowLimit: page.Limit + 1}
+	if canonID != uuid.Nil {
+		params.CanonID = uuid.NullUUID{UUID: canonID, Valid: true}
 	}
-	lores, err := q.ListArcLores(ctx, arcID)
-	if err != nil {
-		return c, apiutil.Internal(fmt.Errorf("list lores: %w", err))
+	if page.After != "" {
+		scoreText, idText, ok := strings.Cut(page.After, "|")
+		score, serr := strconv.ParseFloat(scoreText, 64)
+		id, ierr := uuid.Parse(idText)
+		if !ok || serr != nil || ierr != nil {
+			return nil, "", errBadToken
+		}
+		params.AfterScore = pgtype.Float8{Float64: score, Valid: true}
+		params.AfterID = uuid.NullUUID{UUID: id, Valid: true}
 	}
-	encounters, err := q.ListArcEncounters(ctx, arcID)
+	rows, err := q.ListArcSublores(ctx, params)
 	if err != nil {
-		return c, apiutil.Internal(fmt.Errorf("list encounters: %w", err))
+		return nil, "", apiutil.Internal(fmt.Errorf("list sublores: %w", err))
 	}
+	next := ""
+	if len(rows) > int(page.Limit) {
+		rows = rows[:page.Limit]
+		last := rows[len(rows)-1]
+		next = apiutil.NextPageToken(strconv.FormatFloat(last.RankScore, 'g', -1, 64) + "|" + last.ID.String())
+	}
+	lores, err := withMembers(ctx, q, arcID, rows)
+	if err != nil {
+		return nil, "", err
+	}
+	return lores, next, nil
+}
 
+// withMembers builds the wire lores for rows, reading their member
+// perspectives and encounters in one query each.
+func withMembers(ctx context.Context, q *dbq.Queries, arcID uuid.UUID, rows []loreRow) ([]*perspectivv1.ArcLore, error) {
+	out := make([]*perspectivv1.ArcLore, 0, len(rows))
+	if len(rows) == 0 {
+		return out, nil
+	}
+	ids := make([]uuid.UUID, len(rows))
+	for i, r := range rows {
+		ids[i] = r.ID
+	}
+	memberRows, err := q.ListLorePerspectives(ctx, ids)
+	if err != nil {
+		return nil, apiutil.Internal(fmt.Errorf("list lore members: %w", err))
+	}
 	members := map[uuid.UUID][]*perspectivv1.PerspectiveSummary{}
+	for _, m := range memberRows {
+		sum, err := summary(arcID, memberRow(m))
+		if err != nil {
+			return nil, apiutil.Internal(err)
+		}
+		members[m.MemberOf] = append(members[m.MemberOf], sum)
+	}
+	encounters, err := q.ListLoreEncounters(ctx, ids)
+	if err != nil {
+		return nil, apiutil.Internal(fmt.Errorf("list encounters: %w", err))
+	}
+	for _, r := range rows {
+		al, err := arcLore(arcID, r, members[r.ID], encounters)
+		if err != nil {
+			return nil, apiutil.Internal(err)
+		}
+		out = append(out, al)
+	}
+	return out, nil
+}
+
+func memberRow(m dbq.ListLorePerspectivesRow) perspectiveRow {
+	return perspectiveRow{
+		ID: m.ID, AuthorID: m.AuthorID, AuthorUsername: m.AuthorUsername, Genre: m.Genre, LoreStatus: m.LoreStatus,
+		MemberOf: uuid.NullUUID{UUID: m.MemberOf, Valid: true}, PublishedAt: m.PublishedAt, DeletedAt: m.DeletedAt,
+		HiddenAt: m.HiddenAt, Opening: m.Opening, PartCount: m.PartCount, Upvotes: m.Upvotes,
+	}
+}
+
+// listPerspectives pages the tales or the unlinked perspectives, oldest
+// first. The cursor is the last perspective's (published_at, id).
+func listPerspectives(ctx context.Context, q *dbq.Queries, arcID uuid.UUID, section perspectivv1.ArcSection, page apiutil.PageToken) ([]*perspectivv1.PerspectiveSummary, string, error) {
+	params := dbq.ListArcTalesParams{ArcID: arcID, RowLimit: page.Limit + 1}
+	if page.After != "" {
+		atText, idText, ok := strings.Cut(page.After, "|")
+		at, terr := time.Parse(time.RFC3339Nano, atText)
+		id, ierr := uuid.Parse(idText)
+		if !ok || terr != nil || ierr != nil {
+			return nil, "", errBadToken
+		}
+		params.AfterAt = pgtype.Timestamptz{Time: at, Valid: true}
+		params.AfterID = uuid.NullUUID{UUID: id, Valid: true}
+	}
+	var rows []perspectiveRow
+	if section == perspectivv1.ArcSection_ARC_SECTION_TALES {
+		tales, err := q.ListArcTales(ctx, params)
+		if err != nil {
+			return nil, "", apiutil.Internal(fmt.Errorf("list tales: %w", err))
+		}
+		rows = tales
+	} else {
+		unlinked, err := q.ListArcUnlinked(ctx, dbq.ListArcUnlinkedParams(params))
+		if err != nil {
+			return nil, "", apiutil.Internal(fmt.Errorf("list unlinked perspectives: %w", err))
+		}
+		for _, r := range unlinked {
+			rows = append(rows, perspectiveRow(r))
+		}
+	}
+	next := ""
+	if len(rows) > int(page.Limit) {
+		rows = rows[:page.Limit]
+		last := rows[len(rows)-1]
+		next = apiutil.NextPageToken(last.PublishedAt.Time.UTC().Format(time.RFC3339Nano) + "|" + last.ID.String())
+	}
+	out := make([]*perspectivv1.PerspectiveSummary, 0, len(rows))
 	for _, r := range rows {
 		sum, err := summary(arcID, r)
 		if err != nil {
-			return c, apiutil.Internal(err)
+			return nil, "", apiutil.Internal(err)
 		}
-		if !r.DeletedAt.Valid && !r.HiddenAt.Valid {
-			c.visible++
-		}
-		switch {
-		case r.MemberOf.Valid:
-			members[r.MemberOf.UUID] = append(members[r.MemberOf.UUID], sum)
-		case sum.GetLoreStatus() == perspectivv1.LoreStatus_LORE_STATUS_SOLO,
-			sum.GetLoreStatus() == perspectivv1.LoreStatus_LORE_STATUS_REMOVED:
-			c.tales = append(c.tales, sum)
-		default:
-			c.unlinked = append(c.unlinked, sum)
-		}
+		out = append(out, sum)
 	}
-
-	for _, l := range lores {
-		al, err := arcLore(arcID, l, members[l.ID], encounters)
-		if err != nil {
-			return c, apiutil.Internal(err)
-		}
-		switch {
-		case l.ID == canonID:
-			c.canon = al
-		case len(members[l.ID]) > 0:
-			c.sublores = append(c.sublores, al)
-		}
-	}
-	return c, nil
+	return out, next, nil
 }
 
-func arcLore(arcID uuid.UUID, l dbq.ListArcLoresRow, members []*perspectivv1.PerspectiveSummary, encounters []dbq.ListArcEncountersRow) (*perspectivv1.ArcLore, error) {
+// viewerIn is where the viewer stands in the arc: their readable published
+// perspective there and its lore, both empty when they have none.
+func viewerIn(ctx context.Context, q *dbq.Queries, arcID, viewer uuid.UUID) (*perspectivv1.ArcViewer, error) {
+	row, err := q.ViewerInArc(ctx, dbq.ViewerInArcParams{ArcID: arcID, AuthorID: viewer})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return &perspectivv1.ArcViewer{}, nil
+	}
+	if err != nil {
+		return nil, apiutil.Internal(fmt.Errorf("read viewer: %w", err))
+	}
+	v := &perspectivv1.ArcViewer{PerspectiveId: row.ID.String()}
+	if row.MemberOf.Valid {
+		v.LoreId = row.MemberOf.UUID.String()
+	}
+	return v, nil
+}
+
+func arcLore(arcID uuid.UUID, l loreRow, members []*perspectivv1.PerspectiveSummary, encounters []dbq.ListLoreEncountersRow) (*perspectivv1.ArcLore, error) {
 	standing, err := loreStandingFromDB(l.Status)
 	if err != nil {
 		return nil, err
@@ -256,7 +431,7 @@ func arcLore(arcID uuid.UUID, l dbq.ListArcLoresRow, members []*perspectivv1.Per
 // perspective becomes a placeholder that the page renders as "[removed]": it
 // keeps its id, genre, lore status, lore and publish time and its deleted or
 // hidden flag, and carries no author, excerpt, part count or votes.
-func summary(arcID uuid.UUID, r dbq.ListArcPerspectivesRow) (*perspectivv1.PerspectiveSummary, error) {
+func summary(arcID uuid.UUID, r perspectiveRow) (*perspectivv1.PerspectiveSummary, error) {
 	genre, err := genreFromDB(r.Genre)
 	if err != nil {
 		return nil, err

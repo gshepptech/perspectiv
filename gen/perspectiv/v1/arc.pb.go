@@ -276,8 +276,10 @@ func (x *HourArc) GetPerspectiveCount() int32 {
 }
 
 type GetArcRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ArcId         string                 `protobuf:"bytes,1,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	ArcId string                 `protobuf:"bytes,1,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	// How many entries each list's first page holds; 0 means the default.
+	PageSize      int32 `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -319,26 +321,98 @@ func (x *GetArcRequest) GetArcId() string {
 	return ""
 }
 
+func (x *GetArcRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+// ArcViewer is where the signed-in caller stands in the arc.
+type ArcViewer struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The caller's published perspective in this arc, in any standing; empty
+	// when they have none.
+	PerspectiveId string `protobuf:"bytes,1,opt,name=perspective_id,json=perspectiveId,proto3" json:"perspective_id,omitempty"`
+	// The lore that perspective is a member of; empty when none.
+	LoreId        string `protobuf:"bytes,2,opt,name=lore_id,json=loreId,proto3" json:"lore_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ArcViewer) Reset() {
+	*x = ArcViewer{}
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ArcViewer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ArcViewer) ProtoMessage() {}
+
+func (x *ArcViewer) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ArcViewer.ProtoReflect.Descriptor instead.
+func (*ArcViewer) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ArcViewer) GetPerspectiveId() string {
+	if x != nil {
+		return x.PerspectiveId
+	}
+	return ""
+}
+
+func (x *ArcViewer) GetLoreId() string {
+	if x != nil {
+		return x.LoreId
+	}
+	return ""
+}
+
 type GetArcResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Arc   *Arc                   `protobuf:"bytes,1,opt,name=arc,proto3" json:"arc,omitempty"`
 	// Unset when the arc has no canon.
 	Canon *ArcLore `protobuf:"bytes,2,opt,name=canon,proto3" json:"canon,omitempty"`
-	// Every other lore, highest rank first; a demoted lore stays here.
+	// The first page of every other lore that has a member, highest rank
+	// first; a demoted lore stays here.
 	Sublores []*ArcLore `protobuf:"bytes,3,rep,name=sublores,proto3" json:"sublores,omitempty"`
-	// SOLO and REMOVED perspectives.
+	// The first page of SOLO and REMOVED perspectives.
 	Tales []*PerspectiveSummary `protobuf:"bytes,4,rep,name=tales,proto3" json:"tales,omitempty"`
-	// PENDING perspectives: published, not yet linked, expiry window open.
+	// The first page of published perspectives not yet linked into a lore.
 	Unlinked []*PerspectiveSummary `protobuf:"bytes,5,rep,name=unlinked,proto3" json:"unlinked,omitempty"`
-	// A day arc's hour children in ascending hour order; empty for an hour arc.
-	Hours         []*HourArc `protobuf:"bytes,6,rep,name=hours,proto3" json:"hours,omitempty"`
+	// The first page of a day arc's hour children in ascending hour order;
+	// empty for an hour arc.
+	Hours []*HourArc `protobuf:"bytes,6,rep,name=hours,proto3" json:"hours,omitempty"`
+	// Each list's next page, for ListArcSection; empty when it has no more.
+	SubloresNextPageToken string `protobuf:"bytes,7,opt,name=sublores_next_page_token,json=subloresNextPageToken,proto3" json:"sublores_next_page_token,omitempty"`
+	TalesNextPageToken    string `protobuf:"bytes,8,opt,name=tales_next_page_token,json=talesNextPageToken,proto3" json:"tales_next_page_token,omitempty"`
+	UnlinkedNextPageToken string `protobuf:"bytes,9,opt,name=unlinked_next_page_token,json=unlinkedNextPageToken,proto3" json:"unlinked_next_page_token,omitempty"`
+	HoursNextPageToken    string `protobuf:"bytes,10,opt,name=hours_next_page_token,json=hoursNextPageToken,proto3" json:"hours_next_page_token,omitempty"`
+	// Set only for a signed-in caller.
+	Viewer        *ArcViewer `protobuf:"bytes,11,opt,name=viewer,proto3" json:"viewer,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetArcResponse) Reset() {
 	*x = GetArcResponse{}
-	mi := &file_perspectiv_v1_arc_proto_msgTypes[4]
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -350,7 +424,7 @@ func (x *GetArcResponse) String() string {
 func (*GetArcResponse) ProtoMessage() {}
 
 func (x *GetArcResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_perspectiv_v1_arc_proto_msgTypes[4]
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -363,7 +437,7 @@ func (x *GetArcResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArcResponse.ProtoReflect.Descriptor instead.
 func (*GetArcResponse) Descriptor() ([]byte, []int) {
-	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{4}
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetArcResponse) GetArc() *Arc {
@@ -408,6 +482,181 @@ func (x *GetArcResponse) GetHours() []*HourArc {
 	return nil
 }
 
+func (x *GetArcResponse) GetSubloresNextPageToken() string {
+	if x != nil {
+		return x.SubloresNextPageToken
+	}
+	return ""
+}
+
+func (x *GetArcResponse) GetTalesNextPageToken() string {
+	if x != nil {
+		return x.TalesNextPageToken
+	}
+	return ""
+}
+
+func (x *GetArcResponse) GetUnlinkedNextPageToken() string {
+	if x != nil {
+		return x.UnlinkedNextPageToken
+	}
+	return ""
+}
+
+func (x *GetArcResponse) GetHoursNextPageToken() string {
+	if x != nil {
+		return x.HoursNextPageToken
+	}
+	return ""
+}
+
+func (x *GetArcResponse) GetViewer() *ArcViewer {
+	if x != nil {
+		return x.Viewer
+	}
+	return nil
+}
+
+type ListArcSectionRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	ArcId   string                 `protobuf:"bytes,1,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	Section ArcSection             `protobuf:"varint,2,opt,name=section,proto3,enum=perspectiv.v1.ArcSection" json:"section,omitempty"`
+	// A next page token from GetArc or an earlier ListArcSection.
+	PageToken     string `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListArcSectionRequest) Reset() {
+	*x = ListArcSectionRequest{}
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListArcSectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListArcSectionRequest) ProtoMessage() {}
+
+func (x *ListArcSectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListArcSectionRequest.ProtoReflect.Descriptor instead.
+func (*ListArcSectionRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListArcSectionRequest) GetArcId() string {
+	if x != nil {
+		return x.ArcId
+	}
+	return ""
+}
+
+func (x *ListArcSectionRequest) GetSection() ArcSection {
+	if x != nil {
+		return x.Section
+	}
+	return ArcSection_ARC_SECTION_UNSPECIFIED
+}
+
+func (x *ListArcSectionRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListArcSectionRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type ListArcSectionResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Set for ARC_SECTION_SUBLORES.
+	Sublores []*ArcLore `protobuf:"bytes,1,rep,name=sublores,proto3" json:"sublores,omitempty"`
+	// Set for ARC_SECTION_TALES and ARC_SECTION_UNLINKED.
+	Perspectives []*PerspectiveSummary `protobuf:"bytes,2,rep,name=perspectives,proto3" json:"perspectives,omitempty"`
+	// Set for ARC_SECTION_HOURS.
+	Hours         []*HourArc `protobuf:"bytes,3,rep,name=hours,proto3" json:"hours,omitempty"`
+	NextPageToken string     `protobuf:"bytes,4,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListArcSectionResponse) Reset() {
+	*x = ListArcSectionResponse{}
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListArcSectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListArcSectionResponse) ProtoMessage() {}
+
+func (x *ListArcSectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListArcSectionResponse.ProtoReflect.Descriptor instead.
+func (*ListArcSectionResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListArcSectionResponse) GetSublores() []*ArcLore {
+	if x != nil {
+		return x.Sublores
+	}
+	return nil
+}
+
+func (x *ListArcSectionResponse) GetPerspectives() []*PerspectiveSummary {
+	if x != nil {
+		return x.Perspectives
+	}
+	return nil
+}
+
+func (x *ListArcSectionResponse) GetHours() []*HourArc {
+	if x != nil {
+		return x.Hours
+	}
+	return nil
+}
+
+func (x *ListArcSectionResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 type RetitleHourArcRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ArcId         string                 `protobuf:"bytes,1,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
@@ -418,7 +667,7 @@ type RetitleHourArcRequest struct {
 
 func (x *RetitleHourArcRequest) Reset() {
 	*x = RetitleHourArcRequest{}
-	mi := &file_perspectiv_v1_arc_proto_msgTypes[5]
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -430,7 +679,7 @@ func (x *RetitleHourArcRequest) String() string {
 func (*RetitleHourArcRequest) ProtoMessage() {}
 
 func (x *RetitleHourArcRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_perspectiv_v1_arc_proto_msgTypes[5]
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -443,7 +692,7 @@ func (x *RetitleHourArcRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetitleHourArcRequest.ProtoReflect.Descriptor instead.
 func (*RetitleHourArcRequest) Descriptor() ([]byte, []int) {
-	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{5}
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RetitleHourArcRequest) GetArcId() string {
@@ -469,7 +718,7 @@ type RetitleHourArcResponse struct {
 
 func (x *RetitleHourArcResponse) Reset() {
 	*x = RetitleHourArcResponse{}
-	mi := &file_perspectiv_v1_arc_proto_msgTypes[6]
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -481,7 +730,7 @@ func (x *RetitleHourArcResponse) String() string {
 func (*RetitleHourArcResponse) ProtoMessage() {}
 
 func (x *RetitleHourArcResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_perspectiv_v1_arc_proto_msgTypes[6]
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -494,7 +743,7 @@ func (x *RetitleHourArcResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetitleHourArcResponse.ProtoReflect.Descriptor instead.
 func (*RetitleHourArcResponse) Descriptor() ([]byte, []int) {
-	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{6}
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RetitleHourArcResponse) GetArc() *Arc {
@@ -508,7 +757,7 @@ var File_perspectiv_v1_arc_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_arc_proto_rawDesc = "" +
 	"\n" +
-	"\x17perspectiv/v1/arc.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x18perspectiv/v1/lore.proto\x1a\x1fperspectiv/v1/perspective.proto\x1a\x19perspectiv/v1/place.proto\x1a\x18perspectiv/v1/user.proto\"\xd3\x03\n" +
+	"\x17perspectiv/v1/arc.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x18perspectiv/v1/lore.proto\x1a\x1fperspectiv/v1/perspective.proto\x1a\x19perspectiv/v1/place.proto\x1a\x18perspectiv/v1/user.proto\"\xd3\x03\n" +
 	"\x03Arc\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12-\n" +
@@ -535,24 +784,46 @@ const file_perspectiv_v1_arc_proto_rawDesc = "" +
 	"\aHourArc\x12$\n" +
 	"\x03arc\x18\x01 \x01(\v2\x12.perspectiv.v1.ArcR\x03arc\x12,\n" +
 	"\x05canon\x18\x02 \x01(\v2\x16.perspectiv.v1.ArcLoreR\x05canon\x12+\n" +
-	"\x11perspective_count\x18\x03 \x01(\x05R\x10perspectiveCount\"&\n" +
+	"\x11perspective_count\x18\x03 \x01(\x05R\x10perspectiveCount\"C\n" +
 	"\rGetArcRequest\x12\x15\n" +
-	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\"\xbe\x02\n" +
+	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"K\n" +
+	"\tArcViewer\x12%\n" +
+	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12\x17\n" +
+	"\alore_id\x18\x02 \x01(\tR\x06loreId\"\xc8\x04\n" +
 	"\x0eGetArcResponse\x12$\n" +
 	"\x03arc\x18\x01 \x01(\v2\x12.perspectiv.v1.ArcR\x03arc\x12,\n" +
 	"\x05canon\x18\x02 \x01(\v2\x16.perspectiv.v1.ArcLoreR\x05canon\x122\n" +
 	"\bsublores\x18\x03 \x03(\v2\x16.perspectiv.v1.ArcLoreR\bsublores\x127\n" +
 	"\x05tales\x18\x04 \x03(\v2!.perspectiv.v1.PerspectiveSummaryR\x05tales\x12=\n" +
 	"\bunlinked\x18\x05 \x03(\v2!.perspectiv.v1.PerspectiveSummaryR\bunlinked\x12,\n" +
-	"\x05hours\x18\x06 \x03(\v2\x16.perspectiv.v1.HourArcR\x05hours\"D\n" +
+	"\x05hours\x18\x06 \x03(\v2\x16.perspectiv.v1.HourArcR\x05hours\x127\n" +
+	"\x18sublores_next_page_token\x18\a \x01(\tR\x15subloresNextPageToken\x121\n" +
+	"\x15tales_next_page_token\x18\b \x01(\tR\x12talesNextPageToken\x127\n" +
+	"\x18unlinked_next_page_token\x18\t \x01(\tR\x15unlinkedNextPageToken\x121\n" +
+	"\x15hours_next_page_token\x18\n" +
+	" \x01(\tR\x12hoursNextPageToken\x120\n" +
+	"\x06viewer\x18\v \x01(\v2\x18.perspectiv.v1.ArcViewerR\x06viewer\"\x9f\x01\n" +
+	"\x15ListArcSectionRequest\x12\x15\n" +
+	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\x123\n" +
+	"\asection\x18\x02 \x01(\x0e2\x19.perspectiv.v1.ArcSectionR\asection\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"\xe9\x01\n" +
+	"\x16ListArcSectionResponse\x122\n" +
+	"\bsublores\x18\x01 \x03(\v2\x16.perspectiv.v1.ArcLoreR\bsublores\x12E\n" +
+	"\fperspectives\x18\x02 \x03(\v2!.perspectiv.v1.PerspectiveSummaryR\fperspectives\x12,\n" +
+	"\x05hours\x18\x03 \x03(\v2\x16.perspectiv.v1.HourArcR\x05hours\x12&\n" +
+	"\x0fnext_page_token\x18\x04 \x01(\tR\rnextPageToken\"D\n" +
 	"\x15RetitleHourArcRequest\x12\x15\n" +
 	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\">\n" +
 	"\x16RetitleHourArcResponse\x12$\n" +
-	"\x03arc\x18\x01 \x01(\v2\x12.perspectiv.v1.ArcR\x03arc2\xb2\x01\n" +
+	"\x03arc\x18\x01 \x01(\v2\x12.perspectiv.v1.ArcR\x03arc2\x91\x02\n" +
 	"\n" +
 	"ArcService\x12E\n" +
 	"\x06GetArc\x12\x1c.perspectiv.v1.GetArcRequest\x1a\x1d.perspectiv.v1.GetArcResponse\x12]\n" +
+	"\x0eListArcSection\x12$.perspectiv.v1.ListArcSectionRequest\x1a%.perspectiv.v1.ListArcSectionResponse\x12]\n" +
 	"\x0eRetitleHourArc\x12$.perspectiv.v1.RetitleHourArcRequest\x1a%.perspectiv.v1.RetitleHourArcResponseB\x9d\x01\n" +
 	"\x11com.perspectiv.v1B\bArcProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
@@ -568,46 +839,57 @@ func file_perspectiv_v1_arc_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_arc_proto_rawDescData
 }
 
-var file_perspectiv_v1_arc_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_perspectiv_v1_arc_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_perspectiv_v1_arc_proto_goTypes = []any{
 	(*Arc)(nil),                    // 0: perspectiv.v1.Arc
 	(*ArcLore)(nil),                // 1: perspectiv.v1.ArcLore
 	(*HourArc)(nil),                // 2: perspectiv.v1.HourArc
 	(*GetArcRequest)(nil),          // 3: perspectiv.v1.GetArcRequest
-	(*GetArcResponse)(nil),         // 4: perspectiv.v1.GetArcResponse
-	(*RetitleHourArcRequest)(nil),  // 5: perspectiv.v1.RetitleHourArcRequest
-	(*RetitleHourArcResponse)(nil), // 6: perspectiv.v1.RetitleHourArcResponse
-	(*PlaceRef)(nil),               // 7: perspectiv.v1.PlaceRef
-	(*UserRef)(nil),                // 8: perspectiv.v1.UserRef
-	(*timestamppb.Timestamp)(nil),  // 9: google.protobuf.Timestamp
-	(*Lore)(nil),                   // 10: perspectiv.v1.Lore
-	(*PerspectiveSummary)(nil),     // 11: perspectiv.v1.PerspectiveSummary
+	(*ArcViewer)(nil),              // 4: perspectiv.v1.ArcViewer
+	(*GetArcResponse)(nil),         // 5: perspectiv.v1.GetArcResponse
+	(*ListArcSectionRequest)(nil),  // 6: perspectiv.v1.ListArcSectionRequest
+	(*ListArcSectionResponse)(nil), // 7: perspectiv.v1.ListArcSectionResponse
+	(*RetitleHourArcRequest)(nil),  // 8: perspectiv.v1.RetitleHourArcRequest
+	(*RetitleHourArcResponse)(nil), // 9: perspectiv.v1.RetitleHourArcResponse
+	(*PlaceRef)(nil),               // 10: perspectiv.v1.PlaceRef
+	(*UserRef)(nil),                // 11: perspectiv.v1.UserRef
+	(*timestamppb.Timestamp)(nil),  // 12: google.protobuf.Timestamp
+	(*Lore)(nil),                   // 13: perspectiv.v1.Lore
+	(*PerspectiveSummary)(nil),     // 14: perspectiv.v1.PerspectiveSummary
+	(ArcSection)(0),                // 15: perspectiv.v1.ArcSection
 }
 var file_perspectiv_v1_arc_proto_depIdxs = []int32{
-	7,  // 0: perspectiv.v1.Arc.place:type_name -> perspectiv.v1.PlaceRef
-	7,  // 1: perspectiv.v1.Arc.place_chain:type_name -> perspectiv.v1.PlaceRef
-	8,  // 2: perspectiv.v1.Arc.created_by:type_name -> perspectiv.v1.UserRef
-	9,  // 3: perspectiv.v1.Arc.created_at:type_name -> google.protobuf.Timestamp
-	10, // 4: perspectiv.v1.ArcLore.lore:type_name -> perspectiv.v1.Lore
-	11, // 5: perspectiv.v1.ArcLore.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
+	10, // 0: perspectiv.v1.Arc.place:type_name -> perspectiv.v1.PlaceRef
+	10, // 1: perspectiv.v1.Arc.place_chain:type_name -> perspectiv.v1.PlaceRef
+	11, // 2: perspectiv.v1.Arc.created_by:type_name -> perspectiv.v1.UserRef
+	12, // 3: perspectiv.v1.Arc.created_at:type_name -> google.protobuf.Timestamp
+	13, // 4: perspectiv.v1.ArcLore.lore:type_name -> perspectiv.v1.Lore
+	14, // 5: perspectiv.v1.ArcLore.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
 	0,  // 6: perspectiv.v1.HourArc.arc:type_name -> perspectiv.v1.Arc
 	1,  // 7: perspectiv.v1.HourArc.canon:type_name -> perspectiv.v1.ArcLore
 	0,  // 8: perspectiv.v1.GetArcResponse.arc:type_name -> perspectiv.v1.Arc
 	1,  // 9: perspectiv.v1.GetArcResponse.canon:type_name -> perspectiv.v1.ArcLore
 	1,  // 10: perspectiv.v1.GetArcResponse.sublores:type_name -> perspectiv.v1.ArcLore
-	11, // 11: perspectiv.v1.GetArcResponse.tales:type_name -> perspectiv.v1.PerspectiveSummary
-	11, // 12: perspectiv.v1.GetArcResponse.unlinked:type_name -> perspectiv.v1.PerspectiveSummary
+	14, // 11: perspectiv.v1.GetArcResponse.tales:type_name -> perspectiv.v1.PerspectiveSummary
+	14, // 12: perspectiv.v1.GetArcResponse.unlinked:type_name -> perspectiv.v1.PerspectiveSummary
 	2,  // 13: perspectiv.v1.GetArcResponse.hours:type_name -> perspectiv.v1.HourArc
-	0,  // 14: perspectiv.v1.RetitleHourArcResponse.arc:type_name -> perspectiv.v1.Arc
-	3,  // 15: perspectiv.v1.ArcService.GetArc:input_type -> perspectiv.v1.GetArcRequest
-	5,  // 16: perspectiv.v1.ArcService.RetitleHourArc:input_type -> perspectiv.v1.RetitleHourArcRequest
-	4,  // 17: perspectiv.v1.ArcService.GetArc:output_type -> perspectiv.v1.GetArcResponse
-	6,  // 18: perspectiv.v1.ArcService.RetitleHourArc:output_type -> perspectiv.v1.RetitleHourArcResponse
-	17, // [17:19] is the sub-list for method output_type
-	15, // [15:17] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	4,  // 14: perspectiv.v1.GetArcResponse.viewer:type_name -> perspectiv.v1.ArcViewer
+	15, // 15: perspectiv.v1.ListArcSectionRequest.section:type_name -> perspectiv.v1.ArcSection
+	1,  // 16: perspectiv.v1.ListArcSectionResponse.sublores:type_name -> perspectiv.v1.ArcLore
+	14, // 17: perspectiv.v1.ListArcSectionResponse.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
+	2,  // 18: perspectiv.v1.ListArcSectionResponse.hours:type_name -> perspectiv.v1.HourArc
+	0,  // 19: perspectiv.v1.RetitleHourArcResponse.arc:type_name -> perspectiv.v1.Arc
+	3,  // 20: perspectiv.v1.ArcService.GetArc:input_type -> perspectiv.v1.GetArcRequest
+	6,  // 21: perspectiv.v1.ArcService.ListArcSection:input_type -> perspectiv.v1.ListArcSectionRequest
+	8,  // 22: perspectiv.v1.ArcService.RetitleHourArc:input_type -> perspectiv.v1.RetitleHourArcRequest
+	5,  // 23: perspectiv.v1.ArcService.GetArc:output_type -> perspectiv.v1.GetArcResponse
+	7,  // 24: perspectiv.v1.ArcService.ListArcSection:output_type -> perspectiv.v1.ListArcSectionResponse
+	9,  // 25: perspectiv.v1.ArcService.RetitleHourArc:output_type -> perspectiv.v1.RetitleHourArcResponse
+	23, // [23:26] is the sub-list for method output_type
+	20, // [20:23] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_arc_proto_init() }
@@ -615,6 +897,7 @@ func file_perspectiv_v1_arc_proto_init() {
 	if File_perspectiv_v1_arc_proto != nil {
 		return
 	}
+	file_perspectiv_v1_enums_proto_init()
 	file_perspectiv_v1_lore_proto_init()
 	file_perspectiv_v1_perspective_proto_init()
 	file_perspectiv_v1_place_proto_init()
@@ -626,7 +909,7 @@ func file_perspectiv_v1_arc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_arc_proto_rawDesc), len(file_perspectiv_v1_arc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -164,3 +164,16 @@ enum EpicTab {
   // SOLO and REMOVED perspectives at the place and descendants, newest first.
   EPIC_TAB_TALES = 3;
 }
+
+// ArcSection names one paginated list on an arc page.
+enum ArcSection {
+  ARC_SECTION_UNSPECIFIED = 0;
+  // Every lore but the canon, highest rank first.
+  ARC_SECTION_SUBLORES = 1;
+  // SOLO and REMOVED perspectives, oldest first.
+  ARC_SECTION_TALES = 2;
+  // Published perspectives not yet linked into a lore, oldest first.
+  ARC_SECTION_UNLINKED = 3;
+  // A day arc's hour children, in hour order.
+  ARC_SECTION_HOURS = 4;
+}

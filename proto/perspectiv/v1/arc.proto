@@ -3,6 +3,7 @@ syntax = "proto3";
 package perspectiv.v1;
 
 import "google/protobuf/timestamp.proto";
+import "perspectiv/v1/enums.proto";
 import "perspectiv/v1/lore.proto";
 import "perspectiv/v1/perspective.proto";
 import "perspectiv/v1/place.proto";
@@ -10,8 +11,11 @@ import "perspectiv/v1/user.proto";
 
 // ArcService reads an arc page: canon first, then sublores, then tales.
 service ArcService {
-  // Public.
+  // Public. The arc, its canon, the first page of each list and, for a
+  // signed-in caller, where they stand in the arc.
   rpc GetArc(GetArcRequest) returns (GetArcResponse);
+  // Public. The next page of one list on an arc page.
+  rpc ListArcSection(ListArcSectionRequest) returns (ListArcSectionResponse);
   rpc RetitleHourArc(RetitleHourArcRequest) returns (RetitleHourArcResponse);
 }
 
@@ -52,20 +56,58 @@ message HourArc {
 
 message GetArcRequest {
   string arc_id = 1;
+  // How many entries each list's first page holds; 0 means the default.
+  int32 page_size = 2;
+}
+
+// ArcViewer is where the signed-in caller stands in the arc.
+message ArcViewer {
+  // The caller's published perspective in this arc, in any standing; empty
+  // when they have none.
+  string perspective_id = 1;
+  // The lore that perspective is a member of; empty when none.
+  string lore_id = 2;
 }
 
 message GetArcResponse {
   Arc arc = 1;
   // Unset when the arc has no canon.
   ArcLore canon = 2;
-  // Every other lore, highest rank first; a demoted lore stays here.
+  // The first page of every other lore that has a member, highest rank
+  // first; a demoted lore stays here.
   repeated ArcLore sublores = 3;
-  // SOLO and REMOVED perspectives.
+  // The first page of SOLO and REMOVED perspectives.
   repeated PerspectiveSummary tales = 4;
-  // PENDING perspectives: published, not yet linked, expiry window open.
+  // The first page of published perspectives not yet linked into a lore.
   repeated PerspectiveSummary unlinked = 5;
-  // A day arc's hour children in ascending hour order; empty for an hour arc.
+  // The first page of a day arc's hour children in ascending hour order;
+  // empty for an hour arc.
   repeated HourArc hours = 6;
+  // Each list's next page, for ListArcSection; empty when it has no more.
+  string sublores_next_page_token = 7;
+  string tales_next_page_token = 8;
+  string unlinked_next_page_token = 9;
+  string hours_next_page_token = 10;
+  // Set only for a signed-in caller.
+  ArcViewer viewer = 11;
+}
+
+message ListArcSectionRequest {
+  string arc_id = 1;
+  ArcSection section = 2;
+  // A next page token from GetArc or an earlier ListArcSection.
+  string page_token = 3;
+  int32 page_size = 4;
+}
+
+message ListArcSectionResponse {
+  // Set for ARC_SECTION_SUBLORES.
+  repeated ArcLore sublores = 1;
+  // Set for ARC_SECTION_TALES and ARC_SECTION_UNLINKED.
+  repeated PerspectiveSummary perspectives = 2;
+  // Set for ARC_SECTION_HOURS.
+  repeated HourArc hours = 3;
+  string next_page_token = 4;
 }
 
 message RetitleHourArcRequest {

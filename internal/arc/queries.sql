@@ -95,17 +95,23 @@ FROM chain
 ORDER BY chain.depth DESC;
 
 -- name: ListHourArcs :many
+-- A day arc's hour children in hour order, a page at a time after
+-- after_hour (NULL on the first page); served by arcs_parent_arc_id_hour_idx.
+-- One hour arc exists per hour, so the hour alone is the cursor.
 SELECT a.id, a.place_id, a.local_date, a.hour, a.parent_arc_id, a.title, a.created_by,
        a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        u.username AS creator_username
 FROM arcs a
 JOIN users u ON u.id = a.created_by
-WHERE a.parent_arc_id = $1
-ORDER BY a.hour, a.id;
+WHERE a.parent_arc_id = sqlc.arg(parent_arc_id)::uuid
+  AND (sqlc.narg(after_hour)::smallint IS NULL OR a.hour > sqlc.narg(after_hour)::smallint)
+ORDER BY a.hour, a.id
+LIMIT sqlc.arg(row_limit)::int;
 
--- name: ListArcPerspectives :many
--- Every published perspective in the arc, oldest first, with the lore it is a
--- member of (from lore_members) and the opening of its first part.
+-- name: ListArcTales :many
+-- SOLO and REMOVED perspectives in the arc that are in no lore, oldest
+-- first, keyset-paginated on (published_at, id); served by
+-- perspectives_tales_idx scanned backwards.
 SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
        lm.lore_id AS member_of,
        pe.published_at, pe.deleted_at, pe.hidden_at,
@@ -116,22 +122,100 @@ SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_sta
 FROM perspectives pe
 JOIN users u ON u.id = pe.author_id
 LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
-WHERE pe.arc_id = $1 AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
+  AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND pe.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
+  AND lm.lore_id IS NULL
+  AND (sqlc.narg(after_at)::timestamptz IS NULL
+       OR (pe.published_at, pe.id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY pe.published_at, pe.id
+LIMIT sqlc.arg(row_limit)::int;
+
+-- name: ListArcUnlinked :many
+-- Published perspectives in the arc that are in no lore and are not tales:
+-- PENDING, or IN_LORE before membership is recomputed. Oldest first,
+-- keyset-paginated on (published_at, id); served by
+-- perspectives_arc_unlinked_idx.
+SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
+       lm.lore_id AS member_of,
+       pe.published_at, pe.deleted_at, pe.hidden_at,
+       COALESCE((SELECT left(pp.body, 241) FROM perspective_parts pp
+                 WHERE pp.perspective_id = pe.id ORDER BY pp.position LIMIT 1), '')::text AS opening,
+       (SELECT count(*) FROM perspective_parts pp WHERE pp.perspective_id = pe.id)::int AS part_count,
+       (SELECT count(*) FROM votes v WHERE v.perspective_id = pe.id)::int AS upvotes
+FROM perspectives pe
+JOIN users u ON u.id = pe.author_id
+LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
+WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
+  AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND pe.lore_status IN ('LORE_STATUS_PENDING', 'LORE_STATUS_IN_LORE')
+  AND lm.lore_id IS NULL
+  AND (sqlc.narg(after_at)::timestamptz IS NULL
+       OR (pe.published_at, pe.id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY pe.published_at, pe.id
+LIMIT sqlc.arg(row_limit)::int;
+
+-- name: ListLorePerspectives :many
+-- The published perspectives that are members of the given lores, oldest
+-- first. A page of lores is small, so their members come in one query.
+SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
+       lm.lore_id AS member_of,
+       pe.published_at, pe.deleted_at, pe.hidden_at,
+       COALESCE((SELECT left(pp.body, 241) FROM perspective_parts pp
+                 WHERE pp.perspective_id = pe.id ORDER BY pp.position LIMIT 1), '')::text AS opening,
+       (SELECT count(*) FROM perspective_parts pp WHERE pp.perspective_id = pe.id)::int AS part_count,
+       (SELECT count(*) FROM votes v WHERE v.perspective_id = pe.id)::int AS upvotes
+FROM lore_members lm
+JOIN perspectives pe ON pe.id = lm.perspective_id
+JOIN users u ON u.id = pe.author_id
+WHERE lm.lore_id = ANY(sqlc.arg(lore_ids)::uuid[])
+  AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
 ORDER BY pe.published_at, pe.id;
 
--- name: ListArcLores :many
+-- name: GetArcLore :one
 SELECT id, status, member_count, upvotes, rank_score, computed_at
 FROM lores
-WHERE arc_id = $1
-ORDER BY rank_score DESC, id;
+WHERE id = $1;
 
--- name: ListArcEncounters :many
--- Accepted claims linking two members of the same lore in the arc.
+-- name: ListArcSublores :many
+-- Every lore in the arc but the canon that has a member, highest rank
+-- first, keyset-paginated on (rank_score DESC, id); served by
+-- lores_arc_rank_idx. A lore whose group dissolved has nothing to read and
+-- is not listed.
+SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at
+FROM lores l
+WHERE l.arc_id = sqlc.arg(arc_id)::uuid
+  AND l.id IS DISTINCT FROM sqlc.narg(canon_id)::uuid
+  AND EXISTS (SELECT 1 FROM lore_members lm WHERE lm.lore_id = l.id)
+  AND (sqlc.narg(after_score)::float8 IS NULL
+       OR l.rank_score < sqlc.narg(after_score)::float8
+       OR (l.rank_score = sqlc.narg(after_score)::float8 AND l.id > sqlc.narg(after_id)::uuid))
+ORDER BY l.rank_score DESC, l.id
+LIMIT sqlc.arg(row_limit)::int;
+
+-- name: ListLoreEncounters :many
+-- Accepted claims linking two members of the same lore, for the given lores.
 SELECT c.id AS claim_id, m1.lore_id, ch.perspective_id, c.claimant_perspective_id
 FROM claims c
 JOIN characters ch ON ch.id = c.character_id
 JOIN lore_members m1 ON m1.perspective_id = ch.perspective_id
 JOIN lore_members m2 ON m2.perspective_id = c.claimant_perspective_id AND m2.lore_id = m1.lore_id
-JOIN lores l ON l.id = m1.lore_id
-WHERE l.arc_id = $1 AND c.status = 'CLAIM_STATUS_ACCEPTED'
+WHERE m1.lore_id = ANY(sqlc.arg(lore_ids)::uuid[]) AND c.status = 'CLAIM_STATUS_ACCEPTED'
 ORDER BY c.resolved_at, c.id;
+
+-- name: CountVisiblePerspectives :one
+-- Published perspectives in the arc that are neither deleted nor hidden.
+SELECT count(*)::int AS visible
+FROM perspectives
+WHERE arc_id = $1 AND status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND deleted_at IS NULL AND hidden_at IS NULL;
+
+-- name: ViewerInArc :one
+-- The caller's readable published perspective in the arc and its lore.
+SELECT pe.id, lm.lore_id AS member_of
+FROM perspectives pe
+LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
+WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
+  AND pe.author_id = sqlc.arg(author_id)::uuid
+  AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND pe.deleted_at IS NULL AND pe.hidden_at IS NULL;

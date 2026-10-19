@@ -12,6 +12,50 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countVisiblePerspectives = `-- name: CountVisiblePerspectives :one
+SELECT count(*)::int AS visible
+FROM perspectives
+WHERE arc_id = $1 AND status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND deleted_at IS NULL AND hidden_at IS NULL
+`
+
+// Published perspectives in the arc that are neither deleted nor hidden.
+func (q *Queries) CountVisiblePerspectives(ctx context.Context, arcID uuid.NullUUID) (int32, error) {
+	row := q.db.QueryRow(ctx, countVisiblePerspectives, arcID)
+	var visible int32
+	err := row.Scan(&visible)
+	return visible, err
+}
+
+const getArcLore = `-- name: GetArcLore :one
+SELECT id, status, member_count, upvotes, rank_score, computed_at
+FROM lores
+WHERE id = $1
+`
+
+type GetArcLoreRow struct {
+	ID          uuid.UUID
+	Status      string
+	MemberCount int32
+	Upvotes     int32
+	RankScore   float64
+	ComputedAt  pgtype.Timestamptz
+}
+
+func (q *Queries) GetArcLore(ctx context.Context, id uuid.UUID) (GetArcLoreRow, error) {
+	row := q.db.QueryRow(ctx, getArcLore, id)
+	var i GetArcLoreRow
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.MemberCount,
+		&i.Upvotes,
+		&i.RankScore,
+		&i.ComputedAt,
+	)
+	return i, err
+}
+
 const getArcRow = `-- name: GetArcRow :one
 WITH RECURSIVE up AS (
     SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
@@ -186,58 +230,28 @@ func (q *Queries) InsertArc(ctx context.Context, arg InsertArcParams) (uuid.UUID
 	return id, err
 }
 
-const listArcEncounters = `-- name: ListArcEncounters :many
-SELECT c.id AS claim_id, m1.lore_id, ch.perspective_id, c.claimant_perspective_id
-FROM claims c
-JOIN characters ch ON ch.id = c.character_id
-JOIN lore_members m1 ON m1.perspective_id = ch.perspective_id
-JOIN lore_members m2 ON m2.perspective_id = c.claimant_perspective_id AND m2.lore_id = m1.lore_id
-JOIN lores l ON l.id = m1.lore_id
-WHERE l.arc_id = $1 AND c.status = 'CLAIM_STATUS_ACCEPTED'
-ORDER BY c.resolved_at, c.id
+const listArcSublores = `-- name: ListArcSublores :many
+SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at
+FROM lores l
+WHERE l.arc_id = $1::uuid
+  AND l.id IS DISTINCT FROM $2::uuid
+  AND EXISTS (SELECT 1 FROM lore_members lm WHERE lm.lore_id = l.id)
+  AND ($3::float8 IS NULL
+       OR l.rank_score < $3::float8
+       OR (l.rank_score = $3::float8 AND l.id > $4::uuid))
+ORDER BY l.rank_score DESC, l.id
+LIMIT $5::int
 `
 
-type ListArcEncountersRow struct {
-	ClaimID               uuid.UUID
-	LoreID                uuid.UUID
-	PerspectiveID         uuid.UUID
-	ClaimantPerspectiveID uuid.UUID
+type ListArcSubloresParams struct {
+	ArcID      uuid.UUID
+	CanonID    uuid.NullUUID
+	AfterScore pgtype.Float8
+	AfterID    uuid.NullUUID
+	RowLimit   int32
 }
 
-// Accepted claims linking two members of the same lore in the arc.
-func (q *Queries) ListArcEncounters(ctx context.Context, arcID uuid.UUID) ([]ListArcEncountersRow, error) {
-	rows, err := q.db.Query(ctx, listArcEncounters, arcID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListArcEncountersRow
-	for rows.Next() {
-		var i ListArcEncountersRow
-		if err := rows.Scan(
-			&i.ClaimID,
-			&i.LoreID,
-			&i.PerspectiveID,
-			&i.ClaimantPerspectiveID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listArcLores = `-- name: ListArcLores :many
-SELECT id, status, member_count, upvotes, rank_score, computed_at
-FROM lores
-WHERE arc_id = $1
-ORDER BY rank_score DESC, id
-`
-
-type ListArcLoresRow struct {
+type ListArcSubloresRow struct {
 	ID          uuid.UUID
 	Status      string
 	MemberCount int32
@@ -246,15 +260,25 @@ type ListArcLoresRow struct {
 	ComputedAt  pgtype.Timestamptz
 }
 
-func (q *Queries) ListArcLores(ctx context.Context, arcID uuid.UUID) ([]ListArcLoresRow, error) {
-	rows, err := q.db.Query(ctx, listArcLores, arcID)
+// Every lore in the arc but the canon that has a member, highest rank
+// first, keyset-paginated on (rank_score DESC, id); served by
+// lores_arc_rank_idx. A lore whose group dissolved has nothing to read and
+// is not listed.
+func (q *Queries) ListArcSublores(ctx context.Context, arg ListArcSubloresParams) ([]ListArcSubloresRow, error) {
+	rows, err := q.db.Query(ctx, listArcSublores,
+		arg.ArcID,
+		arg.CanonID,
+		arg.AfterScore,
+		arg.AfterID,
+		arg.RowLimit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListArcLoresRow
+	var items []ListArcSubloresRow
 	for rows.Next() {
-		var i ListArcLoresRow
+		var i ListArcSubloresRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Status,
@@ -273,7 +297,7 @@ func (q *Queries) ListArcLores(ctx context.Context, arcID uuid.UUID) ([]ListArcL
 	return items, nil
 }
 
-const listArcPerspectives = `-- name: ListArcPerspectives :many
+const listArcTales = `-- name: ListArcTales :many
 SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
        lm.lore_id AS member_of,
        pe.published_at, pe.deleted_at, pe.hidden_at,
@@ -284,11 +308,24 @@ SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_sta
 FROM perspectives pe
 JOIN users u ON u.id = pe.author_id
 LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
-WHERE pe.arc_id = $1 AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+WHERE pe.arc_id = $1::uuid
+  AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND pe.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
+  AND lm.lore_id IS NULL
+  AND ($2::timestamptz IS NULL
+       OR (pe.published_at, pe.id) > ($2::timestamptz, $3::uuid))
 ORDER BY pe.published_at, pe.id
+LIMIT $4::int
 `
 
-type ListArcPerspectivesRow struct {
+type ListArcTalesParams struct {
+	ArcID    uuid.UUID
+	AfterAt  pgtype.Timestamptz
+	AfterID  uuid.NullUUID
+	RowLimit int32
+}
+
+type ListArcTalesRow struct {
 	ID             uuid.UUID
 	AuthorID       uuid.UUID
 	AuthorUsername string
@@ -303,17 +340,108 @@ type ListArcPerspectivesRow struct {
 	Upvotes        int32
 }
 
-// Every published perspective in the arc, oldest first, with the lore it is a
-// member of (from lore_members) and the opening of its first part.
-func (q *Queries) ListArcPerspectives(ctx context.Context, arcID uuid.NullUUID) ([]ListArcPerspectivesRow, error) {
-	rows, err := q.db.Query(ctx, listArcPerspectives, arcID)
+// SOLO and REMOVED perspectives in the arc that are in no lore, oldest
+// first, keyset-paginated on (published_at, id); served by
+// perspectives_tales_idx scanned backwards.
+func (q *Queries) ListArcTales(ctx context.Context, arg ListArcTalesParams) ([]ListArcTalesRow, error) {
+	rows, err := q.db.Query(ctx, listArcTales,
+		arg.ArcID,
+		arg.AfterAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListArcPerspectivesRow
+	var items []ListArcTalesRow
 	for rows.Next() {
-		var i ListArcPerspectivesRow
+		var i ListArcTalesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AuthorID,
+			&i.AuthorUsername,
+			&i.Genre,
+			&i.LoreStatus,
+			&i.MemberOf,
+			&i.PublishedAt,
+			&i.DeletedAt,
+			&i.HiddenAt,
+			&i.Opening,
+			&i.PartCount,
+			&i.Upvotes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArcUnlinked = `-- name: ListArcUnlinked :many
+SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
+       lm.lore_id AS member_of,
+       pe.published_at, pe.deleted_at, pe.hidden_at,
+       COALESCE((SELECT left(pp.body, 241) FROM perspective_parts pp
+                 WHERE pp.perspective_id = pe.id ORDER BY pp.position LIMIT 1), '')::text AS opening,
+       (SELECT count(*) FROM perspective_parts pp WHERE pp.perspective_id = pe.id)::int AS part_count,
+       (SELECT count(*) FROM votes v WHERE v.perspective_id = pe.id)::int AS upvotes
+FROM perspectives pe
+JOIN users u ON u.id = pe.author_id
+LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
+WHERE pe.arc_id = $1::uuid
+  AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND pe.lore_status IN ('LORE_STATUS_PENDING', 'LORE_STATUS_IN_LORE')
+  AND lm.lore_id IS NULL
+  AND ($2::timestamptz IS NULL
+       OR (pe.published_at, pe.id) > ($2::timestamptz, $3::uuid))
+ORDER BY pe.published_at, pe.id
+LIMIT $4::int
+`
+
+type ListArcUnlinkedParams struct {
+	ArcID    uuid.UUID
+	AfterAt  pgtype.Timestamptz
+	AfterID  uuid.NullUUID
+	RowLimit int32
+}
+
+type ListArcUnlinkedRow struct {
+	ID             uuid.UUID
+	AuthorID       uuid.UUID
+	AuthorUsername string
+	Genre          pgtype.Text
+	LoreStatus     pgtype.Text
+	MemberOf       uuid.NullUUID
+	PublishedAt    pgtype.Timestamptz
+	DeletedAt      pgtype.Timestamptz
+	HiddenAt       pgtype.Timestamptz
+	Opening        string
+	PartCount      int32
+	Upvotes        int32
+}
+
+// Published perspectives in the arc that are in no lore and are not tales:
+// PENDING, or IN_LORE before membership is recomputed. Oldest first,
+// keyset-paginated on (published_at, id); served by
+// perspectives_arc_unlinked_idx.
+func (q *Queries) ListArcUnlinked(ctx context.Context, arg ListArcUnlinkedParams) ([]ListArcUnlinkedRow, error) {
+	rows, err := q.db.Query(ctx, listArcUnlinked,
+		arg.ArcID,
+		arg.AfterAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListArcUnlinkedRow
+	for rows.Next() {
+		var i ListArcUnlinkedRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.AuthorID,
@@ -344,9 +472,17 @@ SELECT a.id, a.place_id, a.local_date, a.hour, a.parent_arc_id, a.title, a.creat
        u.username AS creator_username
 FROM arcs a
 JOIN users u ON u.id = a.created_by
-WHERE a.parent_arc_id = $1
+WHERE a.parent_arc_id = $1::uuid
+  AND ($2::smallint IS NULL OR a.hour > $2::smallint)
 ORDER BY a.hour, a.id
+LIMIT $3::int
 `
+
+type ListHourArcsParams struct {
+	ParentArcID uuid.UUID
+	AfterHour   pgtype.Int2
+	RowLimit    int32
+}
 
 type ListHourArcsRow struct {
 	ID              uuid.UUID
@@ -363,8 +499,11 @@ type ListHourArcsRow struct {
 	CreatorUsername string
 }
 
-func (q *Queries) ListHourArcs(ctx context.Context, parentArcID uuid.NullUUID) ([]ListHourArcsRow, error) {
-	rows, err := q.db.Query(ctx, listHourArcs, parentArcID)
+// A day arc's hour children in hour order, a page at a time after
+// after_hour (NULL on the first page); served by arcs_parent_arc_id_hour_idx.
+// One hour arc exists per hour, so the hour alone is the cursor.
+func (q *Queries) ListHourArcs(ctx context.Context, arg ListHourArcsParams) ([]ListHourArcsRow, error) {
+	rows, err := q.db.Query(ctx, listHourArcs, arg.ParentArcID, arg.AfterHour, arg.RowLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -385,6 +524,115 @@ func (q *Queries) ListHourArcs(ctx context.Context, parentArcID uuid.NullUUID) (
 			&i.MemberCount,
 			&i.CreatedAt,
 			&i.CreatorUsername,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLoreEncounters = `-- name: ListLoreEncounters :many
+SELECT c.id AS claim_id, m1.lore_id, ch.perspective_id, c.claimant_perspective_id
+FROM claims c
+JOIN characters ch ON ch.id = c.character_id
+JOIN lore_members m1 ON m1.perspective_id = ch.perspective_id
+JOIN lore_members m2 ON m2.perspective_id = c.claimant_perspective_id AND m2.lore_id = m1.lore_id
+WHERE m1.lore_id = ANY($1::uuid[]) AND c.status = 'CLAIM_STATUS_ACCEPTED'
+ORDER BY c.resolved_at, c.id
+`
+
+type ListLoreEncountersRow struct {
+	ClaimID               uuid.UUID
+	LoreID                uuid.UUID
+	PerspectiveID         uuid.UUID
+	ClaimantPerspectiveID uuid.UUID
+}
+
+// Accepted claims linking two members of the same lore, for the given lores.
+func (q *Queries) ListLoreEncounters(ctx context.Context, loreIds []uuid.UUID) ([]ListLoreEncountersRow, error) {
+	rows, err := q.db.Query(ctx, listLoreEncounters, loreIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLoreEncountersRow
+	for rows.Next() {
+		var i ListLoreEncountersRow
+		if err := rows.Scan(
+			&i.ClaimID,
+			&i.LoreID,
+			&i.PerspectiveID,
+			&i.ClaimantPerspectiveID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLorePerspectives = `-- name: ListLorePerspectives :many
+SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
+       lm.lore_id AS member_of,
+       pe.published_at, pe.deleted_at, pe.hidden_at,
+       COALESCE((SELECT left(pp.body, 241) FROM perspective_parts pp
+                 WHERE pp.perspective_id = pe.id ORDER BY pp.position LIMIT 1), '')::text AS opening,
+       (SELECT count(*) FROM perspective_parts pp WHERE pp.perspective_id = pe.id)::int AS part_count,
+       (SELECT count(*) FROM votes v WHERE v.perspective_id = pe.id)::int AS upvotes
+FROM lore_members lm
+JOIN perspectives pe ON pe.id = lm.perspective_id
+JOIN users u ON u.id = pe.author_id
+WHERE lm.lore_id = ANY($1::uuid[])
+  AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+ORDER BY pe.published_at, pe.id
+`
+
+type ListLorePerspectivesRow struct {
+	ID             uuid.UUID
+	AuthorID       uuid.UUID
+	AuthorUsername string
+	Genre          pgtype.Text
+	LoreStatus     pgtype.Text
+	MemberOf       uuid.UUID
+	PublishedAt    pgtype.Timestamptz
+	DeletedAt      pgtype.Timestamptz
+	HiddenAt       pgtype.Timestamptz
+	Opening        string
+	PartCount      int32
+	Upvotes        int32
+}
+
+// The published perspectives that are members of the given lores, oldest
+// first. A page of lores is small, so their members come in one query.
+func (q *Queries) ListLorePerspectives(ctx context.Context, loreIds []uuid.UUID) ([]ListLorePerspectivesRow, error) {
+	rows, err := q.db.Query(ctx, listLorePerspectives, loreIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLorePerspectivesRow
+	for rows.Next() {
+		var i ListLorePerspectivesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AuthorID,
+			&i.AuthorUsername,
+			&i.Genre,
+			&i.LoreStatus,
+			&i.MemberOf,
+			&i.PublishedAt,
+			&i.DeletedAt,
+			&i.HiddenAt,
+			&i.Opening,
+			&i.PartCount,
+			&i.Upvotes,
 		); err != nil {
 			return nil, err
 		}
@@ -493,4 +741,32 @@ type UpdateArcTitleParams struct {
 func (q *Queries) UpdateArcTitle(ctx context.Context, arg UpdateArcTitleParams) error {
 	_, err := q.db.Exec(ctx, updateArcTitle, arg.ID, arg.Title)
 	return err
+}
+
+const viewerInArc = `-- name: ViewerInArc :one
+SELECT pe.id, lm.lore_id AS member_of
+FROM perspectives pe
+LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
+WHERE pe.arc_id = $1::uuid
+  AND pe.author_id = $2::uuid
+  AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND pe.deleted_at IS NULL AND pe.hidden_at IS NULL
+`
+
+type ViewerInArcParams struct {
+	ArcID    uuid.UUID
+	AuthorID uuid.UUID
+}
+
+type ViewerInArcRow struct {
+	ID       uuid.UUID
+	MemberOf uuid.NullUUID
+}
+
+// The caller's readable published perspective in the arc and its lore.
+func (q *Queries) ViewerInArc(ctx context.Context, arg ViewerInArcParams) (ViewerInArcRow, error) {
+	row := q.db.QueryRow(ctx, viewerInArc, arg.ArcID, arg.AuthorID)
+	var i ViewerInArcRow
+	err := row.Scan(&i.ID, &i.MemberOf)
+	return i, err
 }

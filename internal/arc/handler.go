@@ -35,7 +35,25 @@ func (h *Handler) GetArc(ctx context.Context, req *connect.Request[perspectivv1.
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	resp, err := h.svc.GetArc(ctx, id)
+	viewer := uuid.Nil
+	if c, ok := apiutil.CallerFrom(ctx); ok {
+		viewer = c.UserID
+	}
+	resp, err := h.svc.GetArc(ctx, viewer, id, req.Msg.GetPageSize())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(resp), nil
+}
+
+// ListArcSection returns the next page of one list on an arc page. It is
+// public.
+func (h *Handler) ListArcSection(ctx context.Context, req *connect.Request[perspectivv1.ListArcSectionRequest]) (*connect.Response[perspectivv1.ListArcSectionResponse], error) {
+	id, err := parseArcID(req.Msg.GetArcId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	resp, err := h.svc.ListArcSection(ctx, id, req.Msg.GetSection(), req.Msg.GetPageToken(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}

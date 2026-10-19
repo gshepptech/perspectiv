@@ -97,6 +97,8 @@ export function dayArcResponse() {
   ];
   return {
     arc: arc(),
+    // Where the server says the signed-in user (wren) stands: in the canon.
+    viewer: { perspectiveId: "p-wren", loreId: "lore-canon" },
     canon: {
       lore: lore("lore-canon", "CANON", canonMembers, 9),
       perspectives: canonMembers.map((m) =>

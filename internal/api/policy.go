@@ -78,6 +78,7 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.PlaceService/GetEpic":      {Access: Public},
 
 	"/perspectiv.v1.ArcService/GetArc":         {Access: Public},
+	"/perspectiv.v1.ArcService/ListArcSection": {Access: Public},
 	"/perspectiv.v1.ArcService/RetitleHourArc": {Access: User, Verified: true},
 
 	"/perspectiv.v1.PerspectiveService/SaveDraft":    {Access: User},

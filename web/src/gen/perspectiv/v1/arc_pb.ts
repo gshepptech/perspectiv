@@ -6,6 +6,8 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { ArcSection } from "./enums_pb";
+import { file_perspectiv_v1_enums } from "./enums_pb";
 import type { Lore } from "./lore_pb";
 import { file_perspectiv_v1_lore } from "./lore_pb";
 import type { PerspectiveSummary } from "./perspective_pb";
@@ -20,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/arc.proto.
  */
 export const file_perspectiv_v1_arc: GenFile = /*@__PURE__*/
-  fileDesc("ChdwZXJzcGVjdGl2L3YxL2FyYy5wcm90bxINcGVyc3BlY3Rpdi52MSLbAgoDQXJjEgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEiYKBXBsYWNlGAMgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhIsCgtwbGFjZV9jaGFpbhgEIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSEgoKbG9jYWxfZGF0ZRgFIAEoCRIRCgRob3VyGAYgASgFSACIAQESFQoNcGFyZW50X2FyY19pZBgHIAEoCRIVCg1jYW5vbl9sb3JlX2lkGAggASgJEhMKC2Nhbm9uX3Njb3JlGAkgASgBEhQKDG1lbWJlcl9jb3VudBgKIAEoBRIqCgpjcmVhdGVkX2J5GAsgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmEi4KCmNyZWF0ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgcKBV9ob3VyImUKB0FyY0xvcmUSIQoEbG9yZRgBIAEoCzITLnBlcnNwZWN0aXYudjEuTG9yZRI3CgxwZXJzcGVjdGl2ZXMYAiADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeSJsCgdIb3VyQXJjEh8KA2FyYxgBIAEoCzISLnBlcnNwZWN0aXYudjEuQXJjEiUKBWNhbm9uGAIgASgLMhYucGVyc3BlY3Rpdi52MS5BcmNMb3JlEhkKEXBlcnNwZWN0aXZlX2NvdW50GAMgASgFIh8KDUdldEFyY1JlcXVlc3QSDgoGYXJjX2lkGAEgASgJIpACCg5HZXRBcmNSZXNwb25zZRIfCgNhcmMYASABKAsyEi5wZXJzcGVjdGl2LnYxLkFyYxIlCgVjYW5vbhgCIAEoCzIWLnBlcnNwZWN0aXYudjEuQXJjTG9yZRIoCghzdWJsb3JlcxgDIAMoCzIWLnBlcnNwZWN0aXYudjEuQXJjTG9yZRIwCgV0YWxlcxgEIAMoCzIhLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTdW1tYXJ5EjMKCHVubGlua2VkGAUgAygLMiEucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVN1bW1hcnkSJQoFaG91cnMYBiADKAsyFi5wZXJzcGVjdGl2LnYxLkhvdXJBcmMiNgoVUmV0aXRsZUhvdXJBcmNSZXF1ZXN0Eg4KBmFyY19pZBgBIAEoCRINCgV0aXRsZRgCIAEoCSI5ChZSZXRpdGxlSG91ckFyY1Jlc3BvbnNlEh8KA2FyYxgBIAEoCzISLnBlcnNwZWN0aXYudjEuQXJjMrIBCgpBcmNTZXJ2aWNlEkUKBkdldEFyYxIcLnBlcnNwZWN0aXYudjEuR2V0QXJjUmVxdWVzdBodLnBlcnNwZWN0aXYudjEuR2V0QXJjUmVzcG9uc2USXQoOUmV0aXRsZUhvdXJBcmMSJC5wZXJzcGVjdGl2LnYxLlJldGl0bGVIb3VyQXJjUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuUmV0aXRsZUhvdXJBcmNSZXNwb25zZUKdAQoRY29tLnBlcnNwZWN0aXYudjFCCEFyY1Byb3RvUAFaKXBlcnNwZWN0aXYvZ2VuL3BlcnNwZWN0aXYvdjE7cGVyc3BlY3RpdnYxogIDUFhYqgINUGVyc3BlY3Rpdi5WMcoCDVBlcnNwZWN0aXZcVjHiAhlQZXJzcGVjdGl2XFYxXEdQQk1ldGFkYXRh6gIOUGVyc3BlY3Rpdjo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_perspectiv_v1_lore, file_perspectiv_v1_perspective, file_perspectiv_v1_place, file_perspectiv_v1_user]);
+  fileDesc("ChdwZXJzcGVjdGl2L3YxL2FyYy5wcm90bxINcGVyc3BlY3Rpdi52MSLbAgoDQXJjEgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEiYKBXBsYWNlGAMgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhIsCgtwbGFjZV9jaGFpbhgEIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSEgoKbG9jYWxfZGF0ZRgFIAEoCRIRCgRob3VyGAYgASgFSACIAQESFQoNcGFyZW50X2FyY19pZBgHIAEoCRIVCg1jYW5vbl9sb3JlX2lkGAggASgJEhMKC2Nhbm9uX3Njb3JlGAkgASgBEhQKDG1lbWJlcl9jb3VudBgKIAEoBRIqCgpjcmVhdGVkX2J5GAsgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmEi4KCmNyZWF0ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgcKBV9ob3VyImUKB0FyY0xvcmUSIQoEbG9yZRgBIAEoCzITLnBlcnNwZWN0aXYudjEuTG9yZRI3CgxwZXJzcGVjdGl2ZXMYAiADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeSJsCgdIb3VyQXJjEh8KA2FyYxgBIAEoCzISLnBlcnNwZWN0aXYudjEuQXJjEiUKBWNhbm9uGAIgASgLMhYucGVyc3BlY3Rpdi52MS5BcmNMb3JlEhkKEXBlcnNwZWN0aXZlX2NvdW50GAMgASgFIjIKDUdldEFyY1JlcXVlc3QSDgoGYXJjX2lkGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBSI0CglBcmNWaWV3ZXISFgoOcGVyc3BlY3RpdmVfaWQYASABKAkSDwoHbG9yZV9pZBgCIAEoCSK8AwoOR2V0QXJjUmVzcG9uc2USHwoDYXJjGAEgASgLMhIucGVyc3BlY3Rpdi52MS5BcmMSJQoFY2Fub24YAiABKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSKAoIc3VibG9yZXMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSMAoFdGFsZXMYBCADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeRIzCgh1bmxpbmtlZBgFIAMoCzIhLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTdW1tYXJ5EiUKBWhvdXJzGAYgAygLMhYucGVyc3BlY3Rpdi52MS5Ib3VyQXJjEiAKGHN1YmxvcmVzX25leHRfcGFnZV90b2tlbhgHIAEoCRIdChV0YWxlc19uZXh0X3BhZ2VfdG9rZW4YCCABKAkSIAoYdW5saW5rZWRfbmV4dF9wYWdlX3Rva2VuGAkgASgJEh0KFWhvdXJzX25leHRfcGFnZV90b2tlbhgKIAEoCRIoCgZ2aWV3ZXIYCyABKAsyGC5wZXJzcGVjdGl2LnYxLkFyY1ZpZXdlciJ6ChVMaXN0QXJjU2VjdGlvblJlcXVlc3QSDgoGYXJjX2lkGAEgASgJEioKB3NlY3Rpb24YAiABKA4yGS5wZXJzcGVjdGl2LnYxLkFyY1NlY3Rpb24SEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUiuwEKFkxpc3RBcmNTZWN0aW9uUmVzcG9uc2USKAoIc3VibG9yZXMYASADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSNwoMcGVyc3BlY3RpdmVzGAIgAygLMiEucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVN1bW1hcnkSJQoFaG91cnMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkhvdXJBcmMSFwoPbmV4dF9wYWdlX3Rva2VuGAQgASgJIjYKFVJldGl0bGVIb3VyQXJjUmVxdWVzdBIOCgZhcmNfaWQYASABKAkSDQoFdGl0bGUYAiABKAkiOQoWUmV0aXRsZUhvdXJBcmNSZXNwb25zZRIfCgNhcmMYASABKAsyEi5wZXJzcGVjdGl2LnYxLkFyYzKRAgoKQXJjU2VydmljZRJFCgZHZXRBcmMSHC5wZXJzcGVjdGl2LnYxLkdldEFyY1JlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLkdldEFyY1Jlc3BvbnNlEl0KDkxpc3RBcmNTZWN0aW9uEiQucGVyc3BlY3Rpdi52MS5MaXN0QXJjU2VjdGlvblJlcXVlc3QaJS5wZXJzcGVjdGl2LnYxLkxpc3RBcmNTZWN0aW9uUmVzcG9uc2USXQoOUmV0aXRsZUhvdXJBcmMSJC5wZXJzcGVjdGl2LnYxLlJldGl0bGVIb3VyQXJjUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuUmV0aXRsZUhvdXJBcmNSZXNwb25zZUKdAQoRY29tLnBlcnNwZWN0aXYudjFCCEFyY1Byb3RvUAFaKXBlcnNwZWN0aXYvZ2VuL3BlcnNwZWN0aXYvdjE7cGVyc3BlY3RpdnYxogIDUFhYqgINUGVyc3BlY3Rpdi5WMcoCDVBlcnNwZWN0aXZcVjHiAhlQZXJzcGVjdGl2XFYxXEdQQk1ldGFkYXRh6gIOUGVyc3BlY3Rpdjo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_lore, file_perspectiv_v1_perspective, file_perspectiv_v1_place, file_perspectiv_v1_user]);
 
 /**
  * Arc is one place and one place-local day, or one hour child of a day arc.
@@ -169,6 +171,13 @@ export type GetArcRequest = Message<"perspectiv.v1.GetArcRequest"> & {
    * @generated from field: string arc_id = 1;
    */
   arcId: string;
+
+  /**
+   * How many entries each list's first page holds; 0 means the default.
+   *
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
 };
 
 /**
@@ -177,6 +186,35 @@ export type GetArcRequest = Message<"perspectiv.v1.GetArcRequest"> & {
  */
 export const GetArcRequestSchema: GenMessage<GetArcRequest> = /*@__PURE__*/
   messageDesc(file_perspectiv_v1_arc, 3);
+
+/**
+ * ArcViewer is where the signed-in caller stands in the arc.
+ *
+ * @generated from message perspectiv.v1.ArcViewer
+ */
+export type ArcViewer = Message<"perspectiv.v1.ArcViewer"> & {
+  /**
+   * The caller's published perspective in this arc, in any standing; empty
+   * when they have none.
+   *
+   * @generated from field: string perspective_id = 1;
+   */
+  perspectiveId: string;
+
+  /**
+   * The lore that perspective is a member of; empty when none.
+   *
+   * @generated from field: string lore_id = 2;
+   */
+  loreId: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ArcViewer.
+ * Use `create(ArcViewerSchema)` to create a new message.
+ */
+export const ArcViewerSchema: GenMessage<ArcViewer> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_arc, 4);
 
 /**
  * @generated from message perspectiv.v1.GetArcResponse
@@ -195,32 +233,63 @@ export type GetArcResponse = Message<"perspectiv.v1.GetArcResponse"> & {
   canon?: ArcLore | undefined;
 
   /**
-   * Every other lore, highest rank first; a demoted lore stays here.
+   * The first page of every other lore that has a member, highest rank
+   * first; a demoted lore stays here.
    *
    * @generated from field: repeated perspectiv.v1.ArcLore sublores = 3;
    */
   sublores: ArcLore[];
 
   /**
-   * SOLO and REMOVED perspectives.
+   * The first page of SOLO and REMOVED perspectives.
    *
    * @generated from field: repeated perspectiv.v1.PerspectiveSummary tales = 4;
    */
   tales: PerspectiveSummary[];
 
   /**
-   * PENDING perspectives: published, not yet linked, expiry window open.
+   * The first page of published perspectives not yet linked into a lore.
    *
    * @generated from field: repeated perspectiv.v1.PerspectiveSummary unlinked = 5;
    */
   unlinked: PerspectiveSummary[];
 
   /**
-   * A day arc's hour children in ascending hour order; empty for an hour arc.
+   * The first page of a day arc's hour children in ascending hour order;
+   * empty for an hour arc.
    *
    * @generated from field: repeated perspectiv.v1.HourArc hours = 6;
    */
   hours: HourArc[];
+
+  /**
+   * Each list's next page, for ListArcSection; empty when it has no more.
+   *
+   * @generated from field: string sublores_next_page_token = 7;
+   */
+  subloresNextPageToken: string;
+
+  /**
+   * @generated from field: string tales_next_page_token = 8;
+   */
+  talesNextPageToken: string;
+
+  /**
+   * @generated from field: string unlinked_next_page_token = 9;
+   */
+  unlinkedNextPageToken: string;
+
+  /**
+   * @generated from field: string hours_next_page_token = 10;
+   */
+  hoursNextPageToken: string;
+
+  /**
+   * Set only for a signed-in caller.
+   *
+   * @generated from field: perspectiv.v1.ArcViewer viewer = 11;
+   */
+  viewer?: ArcViewer | undefined;
 };
 
 /**
@@ -228,7 +297,79 @@ export type GetArcResponse = Message<"perspectiv.v1.GetArcResponse"> & {
  * Use `create(GetArcResponseSchema)` to create a new message.
  */
 export const GetArcResponseSchema: GenMessage<GetArcResponse> = /*@__PURE__*/
-  messageDesc(file_perspectiv_v1_arc, 4);
+  messageDesc(file_perspectiv_v1_arc, 5);
+
+/**
+ * @generated from message perspectiv.v1.ListArcSectionRequest
+ */
+export type ListArcSectionRequest = Message<"perspectiv.v1.ListArcSectionRequest"> & {
+  /**
+   * @generated from field: string arc_id = 1;
+   */
+  arcId: string;
+
+  /**
+   * @generated from field: perspectiv.v1.ArcSection section = 2;
+   */
+  section: ArcSection;
+
+  /**
+   * A next page token from GetArc or an earlier ListArcSection.
+   *
+   * @generated from field: string page_token = 3;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: int32 page_size = 4;
+   */
+  pageSize: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListArcSectionRequest.
+ * Use `create(ListArcSectionRequestSchema)` to create a new message.
+ */
+export const ListArcSectionRequestSchema: GenMessage<ListArcSectionRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_arc, 6);
+
+/**
+ * @generated from message perspectiv.v1.ListArcSectionResponse
+ */
+export type ListArcSectionResponse = Message<"perspectiv.v1.ListArcSectionResponse"> & {
+  /**
+   * Set for ARC_SECTION_SUBLORES.
+   *
+   * @generated from field: repeated perspectiv.v1.ArcLore sublores = 1;
+   */
+  sublores: ArcLore[];
+
+  /**
+   * Set for ARC_SECTION_TALES and ARC_SECTION_UNLINKED.
+   *
+   * @generated from field: repeated perspectiv.v1.PerspectiveSummary perspectives = 2;
+   */
+  perspectives: PerspectiveSummary[];
+
+  /**
+   * Set for ARC_SECTION_HOURS.
+   *
+   * @generated from field: repeated perspectiv.v1.HourArc hours = 3;
+   */
+  hours: HourArc[];
+
+  /**
+   * @generated from field: string next_page_token = 4;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListArcSectionResponse.
+ * Use `create(ListArcSectionResponseSchema)` to create a new message.
+ */
+export const ListArcSectionResponseSchema: GenMessage<ListArcSectionResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_arc, 7);
 
 /**
  * @generated from message perspectiv.v1.RetitleHourArcRequest
@@ -250,7 +391,7 @@ export type RetitleHourArcRequest = Message<"perspectiv.v1.RetitleHourArcRequest
  * Use `create(RetitleHourArcRequestSchema)` to create a new message.
  */
 export const RetitleHourArcRequestSchema: GenMessage<RetitleHourArcRequest> = /*@__PURE__*/
-  messageDesc(file_perspectiv_v1_arc, 5);
+  messageDesc(file_perspectiv_v1_arc, 8);
 
 /**
  * @generated from message perspectiv.v1.RetitleHourArcResponse
@@ -267,7 +408,7 @@ export type RetitleHourArcResponse = Message<"perspectiv.v1.RetitleHourArcRespon
  * Use `create(RetitleHourArcResponseSchema)` to create a new message.
  */
 export const RetitleHourArcResponseSchema: GenMessage<RetitleHourArcResponse> = /*@__PURE__*/
-  messageDesc(file_perspectiv_v1_arc, 6);
+  messageDesc(file_perspectiv_v1_arc, 9);
 
 /**
  * ArcService reads an arc page: canon first, then sublores, then tales.
@@ -276,7 +417,8 @@ export const RetitleHourArcResponseSchema: GenMessage<RetitleHourArcResponse> = 
  */
 export const ArcService: GenService<{
   /**
-   * Public.
+   * Public. The arc, its canon, the first page of each list and, for a
+   * signed-in caller, where they stand in the arc.
    *
    * @generated from rpc perspectiv.v1.ArcService.GetArc
    */
@@ -284,6 +426,16 @@ export const ArcService: GenService<{
     methodKind: "unary";
     input: typeof GetArcRequestSchema;
     output: typeof GetArcResponseSchema;
+  },
+  /**
+   * Public. The next page of one list on an arc page.
+   *
+   * @generated from rpc perspectiv.v1.ArcService.ListArcSection
+   */
+  listArcSection: {
+    methodKind: "unary";
+    input: typeof ListArcSectionRequestSchema;
+    output: typeof ListArcSectionResponseSchema;
   },
   /**
    * @generated from rpc perspectiv.v1.ArcService.RetitleHourArc

@@ -90,6 +90,7 @@ describe("react", () => {
   it("a signed-in non-participant toggles one emoji and sees per-emoji counts", async () => {
     const arc = dayArcResponse();
     arc.canon.perspectives = arc.canon.perspectives.filter((p) => p.author?.username !== "wren");
+    arc.viewer = { perspectiveId: "", loreId: "" };
     const store: Store = {};
     const app = await openSignedIn(
       {

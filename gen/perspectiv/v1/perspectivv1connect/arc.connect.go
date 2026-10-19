@@ -35,6 +35,9 @@ const (
 const (
 	// ArcServiceGetArcProcedure is the fully-qualified name of the ArcService's GetArc RPC.
 	ArcServiceGetArcProcedure = "/perspectiv.v1.ArcService/GetArc"
+	// ArcServiceListArcSectionProcedure is the fully-qualified name of the ArcService's ListArcSection
+	// RPC.
+	ArcServiceListArcSectionProcedure = "/perspectiv.v1.ArcService/ListArcSection"
 	// ArcServiceRetitleHourArcProcedure is the fully-qualified name of the ArcService's RetitleHourArc
 	// RPC.
 	ArcServiceRetitleHourArcProcedure = "/perspectiv.v1.ArcService/RetitleHourArc"
@@ -42,8 +45,11 @@ const (
 
 // ArcServiceClient is a client for the perspectiv.v1.ArcService service.
 type ArcServiceClient interface {
-	// Public.
+	// Public. The arc, its canon, the first page of each list and, for a
+	// signed-in caller, where they stand in the arc.
 	GetArc(context.Context, *connect.Request[v1.GetArcRequest]) (*connect.Response[v1.GetArcResponse], error)
+	// Public. The next page of one list on an arc page.
+	ListArcSection(context.Context, *connect.Request[v1.ListArcSectionRequest]) (*connect.Response[v1.ListArcSectionResponse], error)
 	RetitleHourArc(context.Context, *connect.Request[v1.RetitleHourArcRequest]) (*connect.Response[v1.RetitleHourArcResponse], error)
 }
 
@@ -64,6 +70,12 @@ func NewArcServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(arcServiceMethods.ByName("GetArc")),
 			connect.WithClientOptions(opts...),
 		),
+		listArcSection: connect.NewClient[v1.ListArcSectionRequest, v1.ListArcSectionResponse](
+			httpClient,
+			baseURL+ArcServiceListArcSectionProcedure,
+			connect.WithSchema(arcServiceMethods.ByName("ListArcSection")),
+			connect.WithClientOptions(opts...),
+		),
 		retitleHourArc: connect.NewClient[v1.RetitleHourArcRequest, v1.RetitleHourArcResponse](
 			httpClient,
 			baseURL+ArcServiceRetitleHourArcProcedure,
@@ -76,12 +88,18 @@ func NewArcServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 // arcServiceClient implements ArcServiceClient.
 type arcServiceClient struct {
 	getArc         *connect.Client[v1.GetArcRequest, v1.GetArcResponse]
+	listArcSection *connect.Client[v1.ListArcSectionRequest, v1.ListArcSectionResponse]
 	retitleHourArc *connect.Client[v1.RetitleHourArcRequest, v1.RetitleHourArcResponse]
 }
 
 // GetArc calls perspectiv.v1.ArcService.GetArc.
 func (c *arcServiceClient) GetArc(ctx context.Context, req *connect.Request[v1.GetArcRequest]) (*connect.Response[v1.GetArcResponse], error) {
 	return c.getArc.CallUnary(ctx, req)
+}
+
+// ListArcSection calls perspectiv.v1.ArcService.ListArcSection.
+func (c *arcServiceClient) ListArcSection(ctx context.Context, req *connect.Request[v1.ListArcSectionRequest]) (*connect.Response[v1.ListArcSectionResponse], error) {
+	return c.listArcSection.CallUnary(ctx, req)
 }
 
 // RetitleHourArc calls perspectiv.v1.ArcService.RetitleHourArc.
@@ -91,8 +109,11 @@ func (c *arcServiceClient) RetitleHourArc(ctx context.Context, req *connect.Requ
 
 // ArcServiceHandler is an implementation of the perspectiv.v1.ArcService service.
 type ArcServiceHandler interface {
-	// Public.
+	// Public. The arc, its canon, the first page of each list and, for a
+	// signed-in caller, where they stand in the arc.
 	GetArc(context.Context, *connect.Request[v1.GetArcRequest]) (*connect.Response[v1.GetArcResponse], error)
+	// Public. The next page of one list on an arc page.
+	ListArcSection(context.Context, *connect.Request[v1.ListArcSectionRequest]) (*connect.Response[v1.ListArcSectionResponse], error)
 	RetitleHourArc(context.Context, *connect.Request[v1.RetitleHourArcRequest]) (*connect.Response[v1.RetitleHourArcResponse], error)
 }
 
@@ -109,6 +130,12 @@ func NewArcServiceHandler(svc ArcServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(arcServiceMethods.ByName("GetArc")),
 		connect.WithHandlerOptions(opts...),
 	)
+	arcServiceListArcSectionHandler := connect.NewUnaryHandler(
+		ArcServiceListArcSectionProcedure,
+		svc.ListArcSection,
+		connect.WithSchema(arcServiceMethods.ByName("ListArcSection")),
+		connect.WithHandlerOptions(opts...),
+	)
 	arcServiceRetitleHourArcHandler := connect.NewUnaryHandler(
 		ArcServiceRetitleHourArcProcedure,
 		svc.RetitleHourArc,
@@ -119,6 +146,8 @@ func NewArcServiceHandler(svc ArcServiceHandler, opts ...connect.HandlerOption) 
 		switch r.URL.Path {
 		case ArcServiceGetArcProcedure:
 			arcServiceGetArcHandler.ServeHTTP(w, r)
+		case ArcServiceListArcSectionProcedure:
+			arcServiceListArcSectionHandler.ServeHTTP(w, r)
 		case ArcServiceRetitleHourArcProcedure:
 			arcServiceRetitleHourArcHandler.ServeHTTP(w, r)
 		default:
@@ -132,6 +161,10 @@ type UnimplementedArcServiceHandler struct{}
 
 func (UnimplementedArcServiceHandler) GetArc(context.Context, *connect.Request[v1.GetArcRequest]) (*connect.Response[v1.GetArcResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ArcService.GetArc is not implemented"))
+}
+
+func (UnimplementedArcServiceHandler) ListArcSection(context.Context, *connect.Request[v1.ListArcSectionRequest]) (*connect.Response[v1.ListArcSectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ArcService.ListArcSection is not implemented"))
 }
 
 func (UnimplementedArcServiceHandler) RetitleHourArc(context.Context, *connect.Request[v1.RetitleHourArcRequest]) (*connect.Response[v1.RetitleHourArcResponse], error) {

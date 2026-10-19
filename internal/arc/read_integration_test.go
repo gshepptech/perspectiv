@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"perspectiv/internal/api/apiutil"
+
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 
@@ -297,5 +299,130 @@ func TestRetitleHourArc(t *testing.T) {
 	}
 	if got := w.arcRow(t, dayID).title; got != "The long night" {
 		t.Fatalf("day title changed to %q", got)
+	}
+}
+
+// NFR-008: every list on an arc page pages with a cursor token while the
+// canon stays first, and the viewer's standing comes from the server, not
+// from whichever page their perspective is on.
+func TestArcPagination(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t, testdb.New(t))
+	ctx := context.Background()
+	in := func(h *int32) arc.ResolveInput {
+		return arc.ResolveInput{PlaceID: w.diner, LocalDate: day, Hour: h, Title: "The jukebox night", CreatedBy: w.user(t)}
+	}
+	dayID := w.mustResolve(t, in(nil))
+	var hourIDs []string
+	for _, h := range []int32{18, 9, 12} {
+		hourIDs = append(hourIDs, w.mustResolve(t, in(hourPtr(h))).String())
+	}
+	hourIDs = []string{hourIDs[1], hourIDs[2], hourIDs[0]} // 09:00, 12:00, 18:00
+
+	t0 := time.Now().Add(-time.Hour)
+	n := 0
+	next := func(status string) uuid.UUID {
+		n++
+		return w.perspective(t, dayID, perspectiveOpts{loreStatus: status, publishAt: t0.Add(time.Duration(n) * time.Minute)})
+	}
+	pair := func() []uuid.UUID { return []uuid.UUID{next("LORE_STATUS_IN_LORE"), next("LORE_STATUS_IN_LORE")} }
+	canon := w.lore(t, dayID, "LORE_STANDING_CANON", 5, pair()...)
+	var sublores []string
+	var lowest []uuid.UUID
+	for _, rank := range []float64{3, 2, 1} {
+		members := pair()
+		sublores = append(sublores, w.lore(t, dayID, "LORE_STANDING_SUBLORE", rank, members...).String())
+		lowest = members
+	}
+	var tales, unlinked []string
+	for range 3 {
+		tales = append(tales, next("LORE_STATUS_SOLO").String())
+		unlinked = append(unlinked, next("LORE_STATUS_PENDING").String())
+	}
+	viewer := w.id(t, `SELECT author_id FROM perspectives WHERE id = $1`, lowest[0])
+
+	client := w.client(t)
+	resp, err := client.GetArc(ctx, as(viewer, &perspectivv1.GetArcRequest{ArcId: dayID.String(), PageSize: 2}))
+	if err != nil {
+		t.Fatalf("GetArc: %v", err)
+	}
+	got := resp.Msg
+	if got.GetCanon().GetLore().GetId() != canon.String() || len(got.GetCanon().GetPerspectives()) != 2 {
+		t.Fatalf("canon = %v", got.GetCanon())
+	}
+	if v := got.GetViewer(); v.GetPerspectiveId() != lowest[0].String() || v.GetLoreId() != sublores[2] {
+		t.Fatalf("viewer = %v; want their perspective in the lowest sublore, which is on page 2", v)
+	}
+
+	walk := func(section perspectivv1.ArcSection, first []string, token string) []string {
+		t.Helper()
+		ids := first
+		for token != "" {
+			r, err := client.ListArcSection(ctx, as(uuid.Nil, &perspectivv1.ListArcSectionRequest{
+				ArcId: dayID.String(), Section: section, PageToken: token, PageSize: 2,
+			}))
+			if err != nil {
+				t.Fatalf("ListArcSection(%v): %v", section, err)
+			}
+			for _, l := range r.Msg.GetSublores() {
+				ids = append(ids, l.GetLore().GetId())
+			}
+			for _, p := range r.Msg.GetPerspectives() {
+				ids = append(ids, p.GetId())
+			}
+			for _, h := range r.Msg.GetHours() {
+				ids = append(ids, h.GetArc().GetId())
+			}
+			token = r.Msg.GetNextPageToken()
+		}
+		return ids
+	}
+	ids := func(n int, f func(i int) string) []string {
+		out := make([]string, n)
+		for i := range out {
+			out[i] = f(i)
+		}
+		return out
+	}
+	eq := func(name string, got, want []string) {
+		t.Helper()
+		if strings.Join(got, ",") != strings.Join(want, ",") {
+			t.Fatalf("%s = %v, want %v", name, got, want)
+		}
+	}
+	if len(got.GetSublores()) != 2 || len(got.GetTales()) != 2 || len(got.GetUnlinked()) != 2 || len(got.GetHours()) != 2 {
+		t.Fatalf("first pages: %d sublores, %d tales, %d unlinked, %d hours; want 2 of each",
+			len(got.GetSublores()), len(got.GetTales()), len(got.GetUnlinked()), len(got.GetHours()))
+	}
+	eq("sublores", walk(perspectivv1.ArcSection_ARC_SECTION_SUBLORES,
+		ids(2, func(i int) string { return got.GetSublores()[i].GetLore().GetId() }), got.GetSubloresNextPageToken()), sublores)
+	eq("tales", walk(perspectivv1.ArcSection_ARC_SECTION_TALES,
+		ids(2, func(i int) string { return got.GetTales()[i].GetId() }), got.GetTalesNextPageToken()), tales)
+	eq("unlinked", walk(perspectivv1.ArcSection_ARC_SECTION_UNLINKED,
+		ids(2, func(i int) string { return got.GetUnlinked()[i].GetId() }), got.GetUnlinkedNextPageToken()), unlinked)
+	eq("hours", walk(perspectivv1.ArcSection_ARC_SECTION_HOURS,
+		ids(2, func(i int) string { return got.GetHours()[i].GetArc().GetId() }), got.GetHoursNextPageToken()), hourIDs)
+
+	for name, req := range map[string]*perspectivv1.ListArcSectionRequest{
+		"no section":        {ArcId: dayID.String()},
+		"garbage token":     {ArcId: dayID.String(), Section: perspectivv1.ArcSection_ARC_SECTION_TALES, PageToken: "garbage"},
+		"another's token":   {ArcId: dayID.String(), Section: perspectivv1.ArcSection_ARC_SECTION_SUBLORES, PageToken: got.GetTalesNextPageToken()},
+		"hour out of range": {ArcId: dayID.String(), Section: perspectivv1.ArcSection_ARC_SECTION_HOURS, PageToken: apiutil.NextPageToken("24")},
+	} {
+		if _, err := client.ListArcSection(ctx, as(uuid.Nil, req)); codeOf(err) != connect.CodeInvalidArgument {
+			t.Errorf("%s: code = %v, want InvalidArgument", name, codeOf(err))
+		}
+	}
+	hourOnly, err := client.ListArcSection(ctx, as(uuid.Nil, &perspectivv1.ListArcSectionRequest{
+		ArcId: hourIDs[0], Section: perspectivv1.ArcSection_ARC_SECTION_HOURS,
+	}))
+	if err != nil || len(hourOnly.Msg.GetHours()) != 0 {
+		t.Fatalf("hours of an hour arc = %v, %v; want an empty page", hourOnly, err)
+	}
+	w.exec(t, `UPDATE places SET hidden_at = now() WHERE id = $1`, w.diner)
+	if _, err := client.ListArcSection(ctx, as(uuid.Nil, &perspectivv1.ListArcSectionRequest{
+		ArcId: dayID.String(), Section: perspectivv1.ArcSection_ARC_SECTION_TALES,
+	})); codeOf(err) != connect.CodeNotFound {
+		t.Fatalf("hidden arc: code = %v, want NotFound", codeOf(err))
 	}
 }
