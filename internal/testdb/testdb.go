@@ -43,6 +43,8 @@ const (
 	// of a run disconnects, before it removes the shared server. It covers
 	// the gap while `go test` is still compiling the next package.
 	reaperGrace = "2m"
+	// maxConnections sizes the shared server for a full run.
+	maxConnections = 1000
 )
 
 // server is the container's connection details, set once by Main before any
@@ -83,7 +85,14 @@ func run(m *testing.M) int {
 		testcontainers.WithTmpfs(map[string]string{dataDir: "rw"}),
 		// The module already turns fsync off; the rest of the durability
 		// work goes too, for the same reason: nothing outlives the run.
-		testcontainers.WithCmdArgs("-c", "synchronous_commit=off", "-c", "full_page_writes=off"),
+		// max_connections is sized for the whole run: every parallel test in
+		// every binary holds its own pool against this one server, and the
+		// default of 100 runs out.
+		testcontainers.WithCmdArgs(
+			"-c", "synchronous_commit=off",
+			"-c", "full_page_writes=off",
+			"-c", fmt.Sprintf("max_connections=%d", maxConnections),
+		),
 		// Same checks as postgres.BasicWaitStrategies (the server logs ready
 		// twice because the entrypoint restarts it after initdb), but under
 		// startTimeout instead of the default 60s.
