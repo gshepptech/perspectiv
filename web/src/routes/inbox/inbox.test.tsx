@@ -2,8 +2,9 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetSessionForTests } from "@/lib/session";
-import { expectFitsPhone, ok, fail, renderRoute, type Handlers } from "@/routes/auth/harness.testutil";
+import { expectFitsPhone, ok, fail, preloadAccountRoutes, renderRoute, type Handlers } from "@/routes/auth/harness.testutil";
 
+preloadAccountRoutes();
 beforeEach(() => resetSessionForTests());
 afterEach(() => vi.unstubAllGlobals());
 

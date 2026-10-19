@@ -3,8 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { currentSession, getAccessToken, resetSessionForTests } from "@/lib/session";
 
-import { expectFitsPhone, fail, ok, renderRoute, sessionBody } from "./harness.testutil";
+import { expectFitsPhone, fail, ok, preloadAccountRoutes, renderRoute, sessionBody } from "./harness.testutil";
 
+preloadAccountRoutes();
 beforeEach(() => resetSessionForTests());
 afterEach(() => vi.unstubAllGlobals());
 

@@ -2,10 +2,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import { expect, vi } from "vitest";
+import { beforeAll, expect, vi } from "vitest";
 
 import { createQueryClient } from "@/app/queryClient";
-import { buildRoutes } from "@/app/router";
+import { buildRoutes, globPageLoader, pages, type PageLoader, type RouteModule } from "@/app/router";
 
 /**
  * The account routes' test harness. It renders a path through the real route
@@ -89,12 +89,34 @@ export function installApi(handlers: Handlers) {
 
 export type RenderOptions = { signedIn?: boolean; emailVerified?: boolean; username?: string };
 
+// The account routes' page modules, loaded once per test file before any test
+// runs. The first import of a page is a cold Vite transform of the page and
+// everything it imports, which on a loaded host takes longer than a findBy
+// query's 1000 ms; done inside a test, that cost raced the test's first
+// assertion. Done in a beforeAll with its own timeout, every test renders a
+// page whose module is already in memory.
+const ACCOUNT_ROUTE = /^(auth|settings|inbox)\//;
+const PRELOAD_TIMEOUT_MS = 120_000;
+const loaded = new Map<string, RouteModule>();
+
+export function preloadAccountRoutes() {
+  beforeAll(async () => {
+    const modules = pages.map((p) => p.module).filter((m) => ACCOUNT_ROUTE.test(m));
+    await Promise.all(modules.map(async (m) => loaded.set(m, await globPageLoader(m))));
+  }, PRELOAD_TIMEOUT_MS);
+}
+
+const harnessLoader: PageLoader = (module) => {
+  const mod = loaded.get(module);
+  return mod ? Promise.resolve(mod) : globPageLoader(module);
+};
+
 export function renderRoute(path: string, handlers: Handlers = {}, opts: RenderOptions = {}) {
   const refresh: Handler = opts.signedIn
     ? () => ok(sessionBody({ username: opts.username, emailVerified: opts.emailVerified }))
     : () => fail("unauthenticated");
   const api = installApi({ "AuthService/Refresh": refresh, ...handlers });
-  const router = createMemoryRouter(buildRoutes(), { initialEntries: [path] });
+  const router = createMemoryRouter(buildRoutes(harnessLoader), { initialEntries: [path] });
   const client = createQueryClient();
   client.setDefaultOptions({ queries: { ...client.getDefaultOptions().queries, retry: false } });
   const user = userEvent.setup();
