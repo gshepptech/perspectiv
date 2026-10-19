@@ -19,6 +19,7 @@ import (
 	"github.com/peterldowns/pgtestdb"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	"perspectiv/internal/db"
 )
@@ -30,7 +31,17 @@ const Image = "postgres:18-alpine"
 const (
 	superUser     = "postgres"
 	superPassword = "postgres"
-	startTimeout  = 2 * time.Minute
+	// startTimeout bounds one container's start and readiness wait, which
+	// runs alone under the start lock. The module's own 60s readiness
+	// deadline is replaced so this is the single bound.
+	startTimeout = 2 * time.Minute
+	// lockTimeout bounds the wait for the start lock: every other test
+	// binary of the run may be starting its server ahead of this one.
+	lockTimeout = 15 * time.Minute
+	// dataDir is the image's PGDATA parent. It is mounted as tmpfs: the
+	// server is thrown away with the test binary, so its files never need
+	// to reach a disk.
+	dataDir = "/var/lib/postgresql"
 )
 
 // server is the container's connection details, set once by Main before any
@@ -46,16 +57,34 @@ func Main(m *testing.M) {
 }
 
 func run(m *testing.M) int {
+	lockCtx, lockCancel := context.WithTimeout(context.Background(), lockTimeout)
+	unlock, err := lockStart(lockCtx)
+	lockCancel()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "testdb: %v\n", err)
+		return 1
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), startTimeout)
 	useDockerContext(ctx)
 	ctr, err := postgres.Run(ctx, Image,
 		postgres.WithUsername(superUser),
 		postgres.WithPassword(superPassword),
 		postgres.WithDatabase("postgres"),
-		postgres.BasicWaitStrategies(),
+		testcontainers.WithTmpfs(map[string]string{dataDir: "rw"}),
+		// The module already turns fsync off; the rest of the durability
+		// work goes too, for the same reason: nothing outlives the run.
+		testcontainers.WithCmdArgs("-c", "synchronous_commit=off", "-c", "full_page_writes=off"),
+		// Same checks as postgres.BasicWaitStrategies (the server logs ready
+		// twice because the entrypoint restarts it after initdb), but under
+		// startTimeout instead of the default 60s.
+		testcontainers.WithWaitStrategyAndDeadline(startTimeout,
+			wait.ForLog("database system is ready to accept connections").WithOccurrence(2),
+			wait.ForListeningPort("5432/tcp"),
+		),
 	)
 	if err != nil {
 		cancel()
+		unlock()
 		fmt.Fprintf(os.Stderr, "testdb: start %s: %v\n", Image, err)
 		if ctr != nil {
 			_ = testcontainers.TerminateContainer(ctr)
@@ -89,6 +118,7 @@ func run(m *testing.M) int {
 		}
 	}
 	cancel()
+	unlock()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "testdb: read container address: %v\n", err)
 		return 1
