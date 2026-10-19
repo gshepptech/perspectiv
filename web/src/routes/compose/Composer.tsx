@@ -197,7 +197,7 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
         )}
 
         {published ? (
-          <p className="text-sm text-ink-muted">
+          <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
             Filed under {perspective?.localDate}, {perspective?.hour === undefined ? "whole day" : hourLabel(perspective.hour)}{" "}
             at {place.name}. The day and hour are fixed once published.
           </p>
@@ -330,12 +330,12 @@ function WhenFields({ control, place, today }: { control: Control<ComposeValues>
         control={control}
         name="localDate"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="min-w-0">
             <FormLabel>Day of your visit</FormLabel>
             <FormControl>
               <Input type="date" max={today} required {...field} />
             </FormControl>
-            <FormDescription>
+            <FormDescription className="[overflow-wrap:anywhere]">
               Today in {place.name} is {today}.
             </FormDescription>
             <FormMessage />
@@ -346,7 +346,7 @@ function WhenFields({ control, place, today }: { control: Control<ComposeValues>
         control={control}
         name="hour"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="min-w-0">
             <FormLabel>Hour</FormLabel>
             <Select value={field.value} onValueChange={field.onChange}>
               <FormControl>

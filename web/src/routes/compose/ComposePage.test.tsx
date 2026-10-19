@@ -447,6 +447,64 @@ describe("choosing a place", () => {
     expect(screen.getByLabelText("Day of your visit")).toBeInTheDocument();
   });
 
+  const nyCity = {
+    id: "p-city",
+    kind: "PLACE_KIND_CITY",
+    name: "New York City",
+    timezone: "America/New_York",
+    parentId: "p-state",
+    ancestors: [{ id: "p-state", kind: "PLACE_KIND_STATE", name: "New York" }],
+  };
+
+  async function startAdding(user: ReturnType<typeof userEvent.setup>, routes: Record<string, ApiHandler>) {
+    const api = installApi({
+      "PlaceService/SearchPlaces": (body) => ok({ places: body.query === "new york" ? [nyCity, nyStore] : [] }),
+      ...routes,
+    });
+    renderRoute("/compose");
+    await user.type(await screen.findByRole("searchbox", { name: "Where were you?" }), "Tiny Tea");
+    expect(await screen.findByText("No places match “Tiny Tea”.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add a mall or store" }));
+    const form = await screen.findByRole("form", { name: "Add a place" });
+    expect(within(form).getByRole("textbox", { name: "Name" })).toHaveValue("Tiny Tea");
+    await user.type(within(form).getByRole("searchbox", { name: "Where is it?" }), "new york");
+    const parents = await within(form).findByRole("radiogroup", { name: "Places it can be in" });
+    // A store cannot sit inside another store, so only the city is offered.
+    expect(within(parents).queryByRole("radio", { name: /Corner Books/ })).toBeNull();
+    await user.click(within(parents).getByRole("radio", { name: /New York City/ }));
+    return { api, form };
+  }
+
+  it("adds a store that is not listed and opens the composer there (FR-008)", async () => {
+    const user = userEvent.setup();
+    const added = { ...nyStore, id: "p-new", name: "Tiny Tea", parentId: "p-city", userAdded: true };
+    const { api, form } = await startAdding(user, {
+      "PlaceService/CreatePlace": () => ok({ placeId: "p-new", place: added }),
+      "PlaceService/GetPlace": () => ok({ place: added }),
+    });
+    await user.click(within(form).getByRole("button", { name: "Add and write" }));
+    expect(await screen.findByLabelText("Day of your visit")).toBeInTheDocument();
+    expect(api.callsTo("PlaceService/CreatePlace")[0]?.body).toEqual({
+      name: "Tiny Tea",
+      kind: "PLACE_KIND_STORE",
+      parentId: "p-city",
+    });
+    expect(api.callsTo("PlaceService/GetPlace")[0]?.body).toEqual({ placeId: "p-new" });
+  });
+
+  it.each([
+    ["already_exists", "a place with this name already exists there", /already a place called “Tiny Tea” there/],
+    ["not_found", "no such place", /no longer available/],
+    ["invalid_argument", "a mall cannot be added under a store", /a mall cannot be added under a store/],
+  ])("explains a %s refusal inline and stays on the form", async (code, message, shown) => {
+    const user = userEvent.setup();
+    const { api, form } = await startAdding(user, { "PlaceService/CreatePlace": () => apiError(code, message) });
+    await user.click(within(form).getByRole("button", { name: "Add and write" }));
+    expect(await within(form).findByRole("alert")).toHaveTextContent(shown);
+    expect(api.callsTo("PlaceService/GetPlace")).toHaveLength(0);
+    expect(screen.getByRole("form", { name: "Add a place" })).toBeInTheDocument();
+  });
+
   it("shows a not-found message for a place that does not exist", async () => {
     installApi({ "PlaceService/GetPlace": () => apiError("not_found", "no such place") });
     renderRoute("/compose?placeId=gone");

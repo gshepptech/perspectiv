@@ -1,28 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { MapPin } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { Place } from "@/gen/perspectiv/v1/place_pb";
 import { clients } from "@/lib/connect";
 
-// Wait this long after the last keystroke before searching.
-const SEARCH_DEBOUNCE_MS = 300;
-const MIN_QUERY = 2;
+import { AddPlace } from "./AddPlace";
+import { MIN_QUERY, SEARCH_DEBOUNCE_MS, useDebounced } from "./search";
 
-function useDebounced(value: string, ms: number): string {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return debounced;
-}
-
-/** The first step of writing: find the place the story happened. */
+/**
+ * The first step of writing: find the place the story happened, or add the
+ * mall or store when the search does not know it.
+ */
 export function PlacePicker({ onPick }: { onPick: (place: Place) => void }) {
   const inputId = useId();
   const [text, setText] = useState("");
+  const [adding, setAdding] = useState(false);
   const query = useDebounced(text.trim(), SEARCH_DEBOUNCE_MS);
   const search = useQuery({
     queryKey: ["place", "searchPlaces", query],
@@ -79,6 +74,16 @@ export function PlacePicker({ onPick }: { onPick: (place: Place) => void }) {
             </li>
           ))}
         </ul>
+      )}
+      {adding ? (
+        <AddPlace initialName={text.trim()} onAdded={onPick} onCancel={() => setAdding(false)} />
+      ) : (
+        <div className="grid justify-items-start gap-2">
+          <p className="text-sm text-ink-muted">Not listed? Add the mall or store yourself.</p>
+          <Button type="button" variant="secondary" onClick={() => setAdding(true)}>
+            Add a mall or store
+          </Button>
+        </div>
       )}
     </section>
   );

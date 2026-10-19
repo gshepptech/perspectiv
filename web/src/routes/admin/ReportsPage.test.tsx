@@ -74,6 +74,7 @@ describe("report queue (FR-035)", () => {
     const actions = within(dialog).getByRole("group", { name: "Action" });
     expect(within(actions).getAllByRole("radio").map((r) => r.getAttribute("aria-label") ?? r.closest("label")?.textContent)).toEqual([
       "Hide perspective",
+      "Suspend the author",
       "Dismiss",
     ]);
 
@@ -144,6 +145,8 @@ describe("report queue (FR-035)", () => {
     // Focus starts on the first action; arrows move between actions.
     expect(within(dialog).getByRole("radio", { name: "Hide perspective" })).toHaveFocus();
     await user.keyboard("{ArrowDown}");
+    expect(within(dialog).getByRole("radio", { name: "Suspend the author" })).toBeChecked();
+    await user.keyboard("{ArrowDown}");
     expect(within(dialog).getByRole("radio", { name: "Dismiss" })).toBeChecked();
     await user.tab();
     await user.keyboard("Not a real name");
@@ -155,6 +158,77 @@ describe("report queue (FR-035)", () => {
       action: "MODERATION_ACTION_DISMISS",
       reason: "Not a real name",
     });
+  });
+
+  it("suspends the author of a reported perspective through a report on that user (US-008, CT-013)", async () => {
+    const user = userEvent.setup();
+    const author = { userId: "u-author", username: "loudmouth" };
+    const api = installApi(
+      {
+        "ModerationService/ListReports": () => ok({ reports: [report()] }),
+        "PerspectiveService/Get": () => ok({ perspective: { id: "p-7", author, status: "PERSPECTIVE_STATUS_PUBLISHED" } }),
+        "ModerationService/Report": () => ok({ reportId: "r-user" }),
+        "ModerationService/Resolve": (body) =>
+          ok({
+            report: report({
+              id: body.reportId,
+              targetKind: "REPORT_TARGET_KIND_USER",
+              targetId: author.userId,
+              targetLabel: author.username,
+              status: "REPORT_STATUS_RESOLVED",
+            }),
+          }),
+      },
+      admin,
+    );
+    renderRoute("/admin/reports");
+    const item = await screen.findByRole("listitem", { name: /The rainy Thursday/ });
+    await user.click(within(item).getByRole("button", { name: "Resolve" }));
+    const dialog = await screen.findByRole("dialog", { name: "Resolve report" });
+    await user.click(within(dialog).getByRole("radio", { name: "Suspend the author" }));
+    await user.type(within(dialog).getByRole("textbox", { name: "Reason for the audit log" }), "Repeatedly names a neighbour");
+    await user.click(within(dialog).getByRole("button", { name: "Resolve report" }));
+
+    await waitFor(() => expect(api.callsTo("ModerationService/Resolve")).toHaveLength(1));
+    expect(api.callsTo("PerspectiveService/Get")[0]?.body).toEqual({ perspectiveId: "p-7" });
+    // The suspension is filed and resolved as a report on the author, so the
+    // audit row names the user.
+    expect(api.callsTo("ModerationService/Report")[0]?.body).toEqual({
+      targetKind: "REPORT_TARGET_KIND_USER",
+      targetId: "u-author",
+      reason: "REPORT_REASON_REAL_NAME_OR_HANDLE_OF_NON_USER",
+      details: "Filed from the report on perspective p-7: Repeatedly names a neighbour",
+    });
+    expect(api.callsTo("ModerationService/Resolve")[0]?.body).toEqual({
+      reportId: "r-user",
+      action: "MODERATION_ACTION_SUSPEND_USER",
+      reason: "Repeatedly names a neighbour",
+    });
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.getByRole("status", { name: "Queue status" })).toHaveTextContent("loudmouth is suspended.");
+  });
+
+  it("explains when a reported perspective no longer shows its author", async () => {
+    const user = userEvent.setup();
+    const api = installApi(
+      {
+        "ModerationService/ListReports": () => ok({ reports: [report()] }),
+        "PerspectiveService/Get": () => ok({ perspective: { id: "p-7", hidden: true } }),
+      },
+      admin,
+    );
+    renderRoute("/admin/reports");
+    const item = await screen.findByRole("listitem", { name: /The rainy Thursday/ });
+    await user.click(within(item).getByRole("button", { name: "Resolve" }));
+    const dialog = await screen.findByRole("dialog", { name: "Resolve report" });
+    await user.click(within(dialog).getByRole("radio", { name: "Suspend the author" }));
+    await user.type(within(dialog).getByRole("textbox", { name: "Reason for the audit log" }), "spam");
+    await user.click(within(dialog).getByRole("button", { name: "Resolve report" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "This perspective no longer shows its author, so they cannot be suspended from here.",
+    );
+    expect(api.callsTo("ModerationService/Report")).toHaveLength(0);
+    expect(api.callsTo("ModerationService/Resolve")).toHaveLength(0);
   });
 
   it("shows resolved reports with who resolved them and how", async () => {

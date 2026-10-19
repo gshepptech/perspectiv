@@ -48,10 +48,8 @@ export function actionLabel(action: ModerationAction): string {
 }
 
 /**
- * The actions an admin may take on a report: the one that acts on the
- * reported target's own kind, and dismissal. A report names one target, so a
- * perspective report hides that perspective rather than suspending its author;
- * suspending someone is done from a report on the user.
+ * The actions the server applies to a report: the one that acts on the
+ * reported target's own kind, and dismissal.
  */
 export function actionsFor(kind: ReportTargetKind): ModerationAction[] {
   switch (kind) {
@@ -64,6 +62,26 @@ export function actionsFor(kind: ReportTargetKind): ModerationAction[] {
     case ReportTargetKind.UNSPECIFIED:
       return [ModerationAction.DISMISS];
   }
+}
+
+/**
+ * The resolve dialog's choice that suspends the author of a reported
+ * perspective. The server suspends only the target of a user report, so this
+ * files a report on the author and resolves that one with SUSPEND_USER; the
+ * audit row then names the user, and the perspective report stays open for
+ * its own decision.
+ */
+export const SUSPEND_AUTHOR = "suspend-author";
+
+export type ResolveChoice = { value: string; label: string };
+
+/** The choices the resolve dialog offers for a report, in display order. */
+export function choicesFor(kind: ReportTargetKind): ResolveChoice[] {
+  const choices = actionsFor(kind).map((a) => ({ value: String(a), label: actionLabel(a) }));
+  if (kind === ReportTargetKind.PERSPECTIVE) {
+    choices.splice(1, 0, { value: SUSPEND_AUTHOR, label: "Suspend the author" });
+  }
+  return choices;
 }
 
 /** Where an admin reads the reported target, when it has a page. */

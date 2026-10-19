@@ -6,13 +6,13 @@ import { Link } from "react-router";
 
 import { Button } from "@/components/ui/Button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { ReportStatus, Role, type ModerationAction } from "@/gen/perspectiv/v1/enums_pb";
+import { ReportStatus, Role } from "@/gen/perspectiv/v1/enums_pb";
 import type { Report } from "@/gen/perspectiv/v1/moderation_pb";
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
 
 import { actionLabel, reasonLabel, targetHref, targetKindLabel } from "./labels";
-import { ResolveDialog } from "./ResolveDialog";
+import { ResolveDialog, type Resolution } from "./ResolveDialog";
 
 const reportsKey = ["moderation", "listReports"] as const;
 const ADMINS_ONLY = "Only site admins can open the report queue.";
@@ -55,7 +55,7 @@ function ReportItem({ report, onResolve }: { report: Report; onResolve?: () => v
   );
 }
 
-function ReportList({ status, onResolved }: { status: ReportStatus; onResolved: (a: ModerationAction) => void }) {
+function ReportList({ status, onResolved }: { status: ReportStatus; onResolved: (r: Resolution) => void }) {
   const queryClient = useQueryClient();
   const [resolving, setResolving] = useState<Report | null>(null);
   const list = useInfiniteQuery({
@@ -102,9 +102,9 @@ function ReportList({ status, onResolved }: { status: ReportStatus; onResolved: 
         <ResolveDialog
           report={resolving}
           onClose={() => setResolving(null)}
-          onResolved={(action) => {
+          onResolved={(r) => {
             setResolving(null);
-            onResolved(action);
+            onResolved(r);
             void queryClient.invalidateQueries({ queryKey: reportsKey });
           }}
         />
@@ -121,7 +121,7 @@ function ReportList({ status, onResolved }: { status: ReportStatus; onResolved: 
 export function Component() {
   const session = useSession();
   const [tab, setTab] = useState("open");
-  const [lastAction, setLastAction] = useState<ModerationAction | null>(null);
+  const [last, setLast] = useState<Resolution | null>(null);
   return (
     <section aria-labelledby="reports-title" className="mx-auto grid w-full max-w-shell min-w-0 gap-4">
       <h1 id="reports-title" className="text-2xl sm:text-3xl">
@@ -132,7 +132,10 @@ export function Component() {
       ) : (
         <>
           <p role="status" aria-label="Queue status" className="text-sm text-success">
-            {lastAction !== null && `Report resolved: ${actionLabel(lastAction).toLowerCase()}.`}
+            {last &&
+              (last.suspended
+                ? `${last.suspended} is suspended. The report on their perspective stays open.`
+                : `Report resolved: ${actionLabel(last.action).toLowerCase()}.`)}
           </p>
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList aria-label="Report status">
@@ -140,10 +143,10 @@ export function Component() {
               <TabsTrigger value="resolved">Resolved</TabsTrigger>
             </TabsList>
             <TabsContent value="open">
-              <ReportList status={ReportStatus.OPEN} onResolved={setLastAction} />
+              <ReportList status={ReportStatus.OPEN} onResolved={setLast} />
             </TabsContent>
             <TabsContent value="resolved">
-              <ReportList status={ReportStatus.RESOLVED} onResolved={setLastAction} />
+              <ReportList status={ReportStatus.RESOLVED} onResolved={setLast} />
             </TabsContent>
           </Tabs>
         </>
