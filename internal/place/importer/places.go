@@ -143,6 +143,15 @@ func overtureIsMall(p *placeRecord) bool {
 // store to the mall it is in, so both are filed under the CITY or TOWN their
 // address names (locality and region); a user files a store under a mall by
 // hand. The zone is inherited from that locality.
+//
+// The address is free text, not a link to a division: the US releases carry
+// POIs whose locality is empty or names a neighbourhood, borough or
+// unincorporated area that is no imported CITY or TOWN, or whose region is no
+// state. Such a POI has no authoritative parent, so it is left out and counted
+// in Plan.Unfiled rather than failing the import; filing it under its state
+// instead would give it the state's default zone, which is wrong in a state
+// that spans two zones. A division whose parent cannot be resolved is still
+// an *UnresolvedParentError, because parent_division_id is authoritative.
 func (b *builder) addPlaces(r io.Reader, locs localityIndex) error {
 	var malls, stores []parsedPlace
 	err := readRecords("places", r, func(rec record) error {
@@ -164,16 +173,10 @@ func (b *builder) addPlaces(r io.Reader, locs localityIndex) error {
 		return err
 	}
 	for _, p := range append(malls, stores...) {
-		unresolved := func(reason string) error {
-			return &UnresolvedParentError{File: "places", Line: p.line, SourceID: p.sourceID, Name: p.name, Reason: reason}
-		}
-		state, ok := stateCode(p.region)
+		parentKey, state, ok := locs.lookup(p.region, p.locality)
 		if !ok {
-			return unresolved(fmt.Sprintf("region %q is not a US state", p.region))
-		}
-		parentKey, ok := locs[state][nameKey(p.locality)]
-		if !ok || p.locality == "" {
-			return unresolved(fmt.Sprintf("no city or town %q in %s", p.locality, state))
+			b.plan.Unfiled++
+			continue
 		}
 		parent := b.node(parentKey)
 		b.add(Node{
@@ -189,6 +192,16 @@ func (b *builder) addPlaces(r io.Reader, locs localityIndex) error {
 		}, state)
 	}
 	return nil
+}
+
+// lookup finds the imported CITY or TOWN an address names, and its state.
+func (l localityIndex) lookup(region, locality string) (key, state string, ok bool) {
+	state, ok = stateCode(region)
+	if !ok || strings.TrimSpace(locality) == "" {
+		return "", "", false
+	}
+	key, ok = l[state][nameKey(locality)]
+	return key, state, ok
 }
 
 func sourcePrefix(s perspectivv1.PlaceSource) string {

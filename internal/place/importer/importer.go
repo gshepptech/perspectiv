@@ -28,6 +28,9 @@ type Result struct {
 	Merged int
 	// Skipped counts records outside the United States.
 	Skipped int
+	// Unfiled counts US malls and stores left out because their address
+	// names no imported city or town.
+	Unfiled int
 }
 
 // Importer writes a Plan to the places table.
@@ -42,8 +45,8 @@ func New(pool *pgxpool.Pool, log zerolog.Logger) *Importer {
 }
 
 // Import prepares the plan from the two files and writes it. A file that
-// cannot be parsed returns a *ParseError and a record whose parent cannot be
-// resolved an *UnresolvedParentError; either way nothing is written.
+// cannot be parsed returns a *ParseError and a division whose parent cannot
+// be resolved an *UnresolvedParentError; either way nothing is written.
 func (im *Importer) Import(ctx context.Context, divisions, places io.Reader) (Result, error) {
 	plan, err := Prepare(divisions, places)
 	if err != nil {
@@ -60,6 +63,7 @@ func (im *Importer) Write(ctx context.Context, plan *Plan) (Result, error) {
 		ByKind:  map[perspectivv1.PlaceKind]int{},
 		Merged:  len(plan.merged),
 		Skipped: plan.Skipped,
+		Unfiled: plan.Unfiled,
 	}
 	tx, err := im.pool.Begin(ctx)
 	if err != nil {
@@ -95,6 +99,7 @@ func (im *Importer) Write(ctx context.Context, plan *Plan) (Result, error) {
 		Int("matched", res.Matched).
 		Int("merged", res.Merged).
 		Int("skipped", res.Skipped).
+		Int("unfiled", res.Unfiled).
 		Msg("place import committed")
 	return res, nil
 }

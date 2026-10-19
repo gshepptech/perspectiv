@@ -160,8 +160,9 @@ const (
 	goodDivs = usDiv + "\n" + txDiv + "\n" + cityDiv + "\n"
 )
 
-// CT-016: a file that cannot be parsed and a parent that cannot be resolved
-// are errors naming the file and line.
+// CT-016: a file that cannot be parsed and a division parent that cannot be
+// resolved are errors naming the file and line. A place whose address names
+// no imported city or town is not an error; see TestPrepareUnfiledPlaces.
 func TestPrepareErrors(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -231,14 +232,6 @@ func TestPrepareErrors(t *testing.T) {
 				`{"id":"b","subtype":"county","country":"US","names":{"primary":"B County"},"parent_division_id":"a"}` + "\n" +
 				`{"id":"c","subtype":"locality","country":"US","names":{"primary":"C"},"parent_division_id":"a"}`,
 		},
-		{
-			name: "store in an unknown locality", divisions: goodDivs, wantFile: "places", wantLine: 1, wantSubstr: "Dallas",
-			places: `{"fsq_place_id":"s1","name":"Shop","country":"US","region":"TX","locality":"Dallas"}`,
-		},
-		{
-			name: "store in an unknown region", divisions: goodDivs, wantFile: "places", wantLine: 2, wantSubstr: "Atlantis",
-			places: "\n" + `{"fsq_place_id":"s1","name":"Shop","country":"US","region":"Atlantis","locality":"Austin"}`,
-		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -275,13 +268,68 @@ func checkPrepareError(t *testing.T, err error, wantParse bool, file string, lin
 	}
 }
 
+// FR-050: the US places releases carry POIs whose address locality is
+// empty or names a neighbourhood, borough or unincorporated area. The free-text
+// address is not an authoritative parent, so such a POI is left out and
+// counted, and the rest of the import goes ahead.
+func TestPrepareUnfiledPlaces(t *testing.T) {
+	t.Parallel()
+	divisions, err := os.ReadFile("testdata/us_divisions.ndjson")
+	if err != nil {
+		t.Fatal(err)
+	}
+	places, err := os.ReadFile("testdata/us_places.ndjson")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := len(fixturePlan(t).Nodes())
+
+	cases := []struct {
+		name    string
+		extra   string
+		unfiled int
+	}{
+		{"no extra places", "", 0},
+		{"null locality", `{"fsq_place_id":"fsq-x1","name":"Roadside Diner","country":"US","region":"TX","locality":null}`, 1},
+		{"empty locality", `{"fsq_place_id":"fsq-x2","name":"Roadside Diner","country":"US","region":"TX","locality":""}`, 1},
+		{"borough locality", `{"fsq_place_id":"fsq-x3","name":"Corner Bodega","country":"US","region":"TX","locality":"Northeast El Paso"}`, 1},
+		{"overture place with no address", `{"id":"ov-x4","names":{"primary":"Trailhead Kiosk"},"addresses":[{"country":"US","region":"US-TX"}]}`, 1},
+		{"region that is not a state", `{"fsq_place_id":"fsq-x5","name":"Shop","country":"US","region":"Atlantis","locality":"El Paso"}`, 1},
+		{
+			"several unfiled places",
+			`{"fsq_place_id":"fsq-x1","name":"Roadside Diner","country":"US","region":"TX","locality":null}` + "\n" +
+				`{"fsq_place_id":"fsq-x3","name":"Corner Bodega","country":"US","region":"TX","locality":"Northeast El Paso"}`,
+			2,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			plan, err := importer.Prepare(strings.NewReader(string(divisions)),
+				strings.NewReader(string(places)+tc.extra+"\n"))
+			if err != nil {
+				t.Fatalf("Prepare: %v", err)
+			}
+			if got := len(plan.Nodes()); got != want {
+				t.Errorf("plan has %d nodes, want the fixtures' %d", got, want)
+			}
+			if plan.Unfiled != tc.unfiled {
+				t.Errorf("Unfiled = %d, want %d", plan.Unfiled, tc.unfiled)
+			}
+			if plan.Skipped != 3 {
+				t.Errorf("Skipped = %d, want the fixtures' 3 non-US records", plan.Skipped)
+			}
+		})
+	}
+}
+
 func TestPrepareEmptyFiles(t *testing.T) {
 	t.Parallel()
 	plan, err := importer.Prepare(strings.NewReader(""), strings.NewReader(""))
 	if err != nil {
 		t.Fatalf("Prepare: %v", err)
 	}
-	if len(plan.Nodes()) != 0 || plan.Skipped != 0 {
-		t.Errorf("empty files gave %d nodes, %d skipped", len(plan.Nodes()), plan.Skipped)
+	if len(plan.Nodes()) != 0 || plan.Skipped != 0 || plan.Unfiled != 0 {
+		t.Errorf("empty files gave %d nodes, %d skipped, %d unfiled", len(plan.Nodes()), plan.Skipped, plan.Unfiled)
 	}
 }

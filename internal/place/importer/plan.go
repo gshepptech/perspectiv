@@ -18,10 +18,10 @@ const country = "US"
 // reported instead of looping.
 const maxDepth = 32
 
-// UnresolvedParentError reports a record whose parent place cannot be found
-// in the import. Import stops at the first one; nothing is written.
+// UnresolvedParentError reports a division whose parent place cannot be
+// found in the import. Import stops at the first one; nothing is written.
 type UnresolvedParentError struct {
-	File     string // "divisions" or "places"
+	File     string // "divisions"
 	Line     int
 	SourceID string
 	Name     string
@@ -57,6 +57,10 @@ type Plan struct {
 	merged map[string]string
 	// Skipped counts records outside the United States.
 	Skipped int
+	// Unfiled counts US malls and stores left out because their address
+	// names no imported city or town (an empty locality, a neighbourhood or
+	// an unincorporated area) or no state.
+	Unfiled int
 }
 
 // Nodes returns the nodes in write order: states, cities, towns, malls,

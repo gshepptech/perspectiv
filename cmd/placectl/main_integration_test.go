@@ -63,8 +63,8 @@ func TestPlacectlImportFixtures(t *testing.T) {
 	}
 }
 
-// CT-016: an unparsable file or an unresolved parent exits non-zero and
-// writes nothing.
+// CT-016: an unparsable file or an unresolved division parent exits non-zero
+// and writes nothing.
 func TestPlacectlImportFailuresWriteNothing(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
@@ -72,8 +72,8 @@ func TestPlacectlImportFailuresWriteNothing(t *testing.T) {
 	if err := os.WriteFile(bad, []byte("not json\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	strayStore := filepath.Join(dir, "stray.ndjson")
-	if err := os.WriteFile(strayStore, []byte(`{"fsq_place_id":"s","name":"Shop","country":"US","region":"TX","locality":"Nowhere"}`+"\n"), 0o600); err != nil {
+	orphan := filepath.Join(dir, "orphan.ndjson")
+	if err := os.WriteFile(orphan, []byte(`{"id":"c","subtype":"locality","class":"city","country":"US","names":{"primary":"Lost"},"parent_division_id":"nowhere"}`+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	cases := []struct {
@@ -82,7 +82,7 @@ func TestPlacectlImportFailuresWriteNothing(t *testing.T) {
 	}{
 		{"unparsable divisions", bad, fixture("us_places.ndjson")},
 		{"unparsable places", fixture("us_divisions.ndjson"), bad},
-		{"store with no city", fixture("us_divisions.ndjson"), strayStore},
+		{"city with no parent division", orphan, fixture("us_places.ndjson")},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -99,5 +99,46 @@ func TestPlacectlImportFailuresWriteNothing(t *testing.T) {
 				t.Errorf("failed import left %d places", n)
 			}
 		})
+	}
+}
+
+// FR-050: a US places extract with POIs whose locality is empty or is not an
+// imported city or town still imports; those POIs are left out, counted and
+// reported, and every other row is written.
+func TestPlacectlImportLeavesOutUnfiledPlaces(t *testing.T) {
+	t.Parallel()
+	places, err := os.ReadFile(fixture("us_places.ndjson"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	unfiled := `{"fsq_place_id":"fsq-x1","name":"Roadside Diner","country":"US","region":"TX","locality":null}` + "\n" +
+		`{"fsq_place_id":"fsq-x2","name":"Corner Bodega","country":"US","region":"TX","locality":"Northeast El Paso"}` + "\n"
+	path := filepath.Join(t.TempDir(), "places.ndjson")
+	if err := os.WriteFile(path, append(places, unfiled...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	pool := testdb.New(t)
+	var stderr bytes.Buffer
+	code := run(context.Background(),
+		[]string{"import", "--divisions", fixture("us_divisions.ndjson"), "--places", path},
+		env(map[string]string{"DATABASE_URL": pool.Config().ConnString(), "LOG_LEVEL": "info"}), &stderr)
+	if code != exitOK {
+		t.Fatalf("exit = %d, want 0; stderr:\n%s", code, stderr.String())
+	}
+	// The fixtures alone write 15 rows: 16 nodes less the merged bookstore.
+	if n := countPlaces(t, pool); n != 15 {
+		t.Errorf("imported %d places, want the fixtures' 15", n)
+	}
+	var stray int
+	if err := pool.QueryRow(context.Background(),
+		`SELECT count(*) FROM places WHERE name IN ('Roadside Diner', 'Corner Bodega')`).Scan(&stray); err != nil {
+		t.Fatalf("count unfiled: %v", err)
+	}
+	if stray != 0 {
+		t.Errorf("%d unfiled POIs were written", stray)
+	}
+	if !bytes.Contains(stderr.Bytes(), []byte(`"unfiled":2`)) {
+		t.Errorf("commit log does not report 2 unfiled places:\n%s", stderr.String())
 	}
 }

@@ -64,10 +64,12 @@
 // chain; a TOWN's is the nearest CITY or STATE. A place is a MALL when its
 // category is a shopping mall and a STORE otherwise; both are filed under
 // the CITY or TOWN named by their address's locality in their region's
-// state. Records for any country but the US are skipped and counted. A
-// division whose chain does not reach an imported state, or a place whose
-// locality is not an imported city or town, is an *UnresolvedParentError and
-// the import writes nothing.
+// state. Records for any country but the US are skipped and counted. A US
+// place whose address locality is empty or is not an imported city or town
+// (a neighbourhood, borough or unincorporated area), or whose region is not a
+// state, has no authoritative parent: it is left out and counted as unfiled.
+// A division whose chain does not reach an imported state is an
+// *UnresolvedParentError and the import writes nothing.
 //
 // The places_parent_name_key index allows one name per parent, so a record
 // whose name is already taken under its parent is folded into that place
