@@ -14,7 +14,9 @@ FROM users
 WHERE id = $1 AND deleted_at IS NULL;
 
 -- name: EmailVerified :one
-SELECT (email_verified_at IS NOT NULL)::boolean AS verified
+-- The shared write gate: true only for a live account whose email is
+-- verified and which moderation has not suspended.
+SELECT (email_verified_at IS NOT NULL AND suspended_at IS NULL)::boolean AS verified
 FROM users
 WHERE id = $1 AND deleted_at IS NULL;
 

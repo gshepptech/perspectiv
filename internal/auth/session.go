@@ -52,8 +52,12 @@ func (s *Service) Authenticate(ctx context.Context, h http.Header) (apiutil.Call
 	return apiutil.Caller{UserID: userID, Role: role, SessionID: sessionID}, true, nil
 }
 
-// EmailVerified reports whether the user's email is verified. An unknown or
-// deleted account is not.
+// EmailVerified is the gate every content write passes through: it reports
+// whether the user may write, which needs a verified email and an account
+// that is not suspended. An unknown or deleted account may not. A suspended
+// account keeps signing in and reading; it is refused here, on every call,
+// from the users row rather than the access token, so a suspension takes
+// effect on the account's next write.
 func (s *Service) EmailVerified(ctx context.Context, userID uuid.UUID) (bool, error) {
 	ok, err := s.q.EmailVerified(ctx, userID)
 	if errors.Is(err, pgx.ErrNoRows) {

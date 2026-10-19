@@ -76,11 +76,13 @@ func (q *Queries) DeleteStaleRateWindows(ctx context.Context, arg DeleteStaleRat
 }
 
 const emailVerified = `-- name: EmailVerified :one
-SELECT (email_verified_at IS NOT NULL)::boolean AS verified
+SELECT (email_verified_at IS NOT NULL AND suspended_at IS NULL)::boolean AS verified
 FROM users
 WHERE id = $1 AND deleted_at IS NULL
 `
 
+// The shared write gate: true only for a live account whose email is
+// verified and which moderation has not suspended.
 func (q *Queries) EmailVerified(ctx context.Context, id uuid.UUID) (bool, error) {
 	row := q.db.QueryRow(ctx, emailVerified, id)
 	var verified bool
