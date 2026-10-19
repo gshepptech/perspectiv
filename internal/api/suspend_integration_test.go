@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -175,8 +176,8 @@ func TestSuspendedAuthorCannotEditPublishedWork(t *testing.T) {
 	}
 	for _, tok := range tokens {
 		for rpc, err := range g.authorWrites(tok.access) {
-			if connect.CodeOf(err) != connect.CodeFailedPrecondition {
-				t.Errorf("suspended, %s: %s = %v, want FailedPrecondition before the handler", tok.name, rpc, err)
+			if connect.CodeOf(err) != connect.CodePermissionDenied || !strings.Contains(err.Error(), "your account is suspended") {
+				t.Errorf("suspended, %s: %s = %v, want PermissionDenied naming the suspension before the handler", tok.name, rpc, err)
 			}
 		}
 	}
