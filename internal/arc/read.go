@@ -24,7 +24,8 @@ const excerptLen = 240
 // perspectives, and for a day arc its hour child arcs in ascending hour order,
 // each with its own canon. Nothing is left out because of standing.
 //
-// An arc whose place moderation hid is NotFound, like an unknown arc. A
+// An arc whose place, or any ancestor of it, moderation hid is NotFound, like
+// an unknown arc: hiding a place hides its whole subtree. A
 // deleted or hidden perspective stays in its place on the page as a
 // placeholder (see summary).
 //
@@ -62,10 +63,10 @@ func (s *Service) GetArc(ctx context.Context, arcID uuid.UUID) (*perspectivv1.Ge
 }
 
 // loadArc reads one arc with its place chain. A missing arc, or one at a
-// place moderation hid, is NotFound.
+// place moderation hid or below one, is NotFound.
 func loadArc(ctx context.Context, q *dbq.Queries, arcID uuid.UUID) (*perspectivv1.Arc, error) {
 	row, err := q.GetArcRow(ctx, arcID)
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && row.PlaceHiddenAt.Valid) {
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && row.PlaceHidden) {
 		return nil, apiutil.NotFound("arc not found")
 	}
 	if err != nil {

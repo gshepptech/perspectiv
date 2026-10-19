@@ -58,7 +58,8 @@ type ResolveInput struct {
 //     hourTitle); the hour arc's creator may retitle it later.
 //
 // created reports whether the returned arc (the hour arc when an hour is given)
-// was inserted by this call. Concurrent first writers converge on one row: the
+// was inserted by this call. A place that is hidden, or sits below a hidden
+// place, is NotFound. Concurrent first writers converge on one row: the
 // insert does nothing on the (place_id, local_date, hour) unique index, whose
 // NULLS NOT DISTINCT makes two day arcs collide, and the loser reads the
 // winner's row. tx must run at READ COMMITTED (the default) so that read sees
@@ -69,7 +70,7 @@ func (s *Service) ResolveForPublish(ctx context.Context, tx pgx.Tx, in ResolveIn
 	}
 	q := dbq.New(tx)
 	place, err := q.GetPlaceForArc(ctx, in.PlaceID)
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && place.HiddenAt.Valid) {
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && place.SubtreeHidden) {
 		return uuid.Nil, false, apiutil.NotFound("place not found")
 	}
 	if err != nil {
@@ -179,7 +180,7 @@ func (s *Service) RetitleHourArc(ctx context.Context, caller, arcID uuid.UUID, t
 
 	q := dbq.New(tx)
 	row, err := q.LockArcForRetitle(ctx, arcID)
-	if errors.Is(err, pgx.ErrNoRows) || (err == nil && row.PlaceHiddenAt.Valid) {
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && row.PlaceHidden) {
 		return nil, apiutil.NotFound("arc not found")
 	}
 	if err != nil {

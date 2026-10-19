@@ -13,14 +13,26 @@ import (
 )
 
 const getArcRow = `-- name: GetArcRow :one
+WITH RECURSIVE up AS (
+    SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM places pl
+    JOIN arcs a0 ON a0.place_id = pl.id
+    WHERE a0.id = $1::uuid
+    UNION ALL
+    SELECT parent.id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
 SELECT a.id, a.place_id, a.local_date, a.hour, a.parent_arc_id, a.title, a.created_by,
        a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
-       p.name AS place_name, p.hidden_at AS place_hidden_at,
+       p.name AS place_name,
+       EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::bool AS place_hidden,
        u.username AS creator_username
 FROM arcs a
 JOIN places p ON p.id = a.place_id
 JOIN users u ON u.id = a.created_by
-WHERE a.id = $1
+WHERE a.id = $1::uuid
 `
 
 type GetArcRowRow struct {
@@ -36,10 +48,11 @@ type GetArcRowRow struct {
 	MemberCount     int32
 	CreatedAt       pgtype.Timestamptz
 	PlaceName       string
-	PlaceHiddenAt   pgtype.Timestamptz
+	PlaceHidden     bool
 	CreatorUsername string
 }
 
+// place_hidden is true when the arc's place or any ancestor is hidden.
 func (q *Queries) GetArcRow(ctx context.Context, id uuid.UUID) (GetArcRowRow, error) {
 	row := q.db.QueryRow(ctx, getArcRow, id)
 	var i GetArcRowRow
@@ -56,7 +69,7 @@ func (q *Queries) GetArcRow(ctx context.Context, id uuid.UUID) (GetArcRowRow, er
 		&i.MemberCount,
 		&i.CreatedAt,
 		&i.PlaceName,
-		&i.PlaceHiddenAt,
+		&i.PlaceHidden,
 		&i.CreatorUsername,
 	)
 	return i, err
@@ -110,21 +123,34 @@ func (q *Queries) GetHourArc(ctx context.Context, arg GetHourArcParams) (GetHour
 }
 
 const getPlaceForArc = `-- name: GetPlaceForArc :one
-SELECT id, name, hidden_at
-FROM places
-WHERE id = $1
+WITH RECURSIVE up AS (
+    SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM places pl
+    WHERE pl.id = $1::uuid
+    UNION ALL
+    SELECT parent.id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT p.id, p.name,
+       EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::bool AS subtree_hidden
+FROM places p
+WHERE p.id = $1::uuid
 `
 
 type GetPlaceForArcRow struct {
-	ID       uuid.UUID
-	Name     string
-	HiddenAt pgtype.Timestamptz
+	ID            uuid.UUID
+	Name          string
+	SubtreeHidden bool
 }
 
+// The place and whether it or any ancestor is hidden: hiding a place hides
+// its whole subtree.
 func (q *Queries) GetPlaceForArc(ctx context.Context, id uuid.UUID) (GetPlaceForArcRow, error) {
 	row := q.db.QueryRow(ctx, getPlaceForArc, id)
 	var i GetPlaceForArcRow
-	err := row.Scan(&i.ID, &i.Name, &i.HiddenAt)
+	err := row.Scan(&i.ID, &i.Name, &i.SubtreeHidden)
 	return i, err
 }
 
@@ -371,20 +397,32 @@ func (q *Queries) ListHourArcs(ctx context.Context, parentArcID uuid.NullUUID) (
 }
 
 const lockArcForRetitle = `-- name: LockArcForRetitle :one
-SELECT a.id, a.hour, a.local_date, a.created_by, p.name AS place_name, p.hidden_at AS place_hidden_at
+WITH RECURSIVE up AS (
+    SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM places pl
+    JOIN arcs a0 ON a0.place_id = pl.id
+    WHERE a0.id = $1::uuid
+    UNION ALL
+    SELECT parent.id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT a.id, a.hour, a.local_date, a.created_by, p.name AS place_name,
+       EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::bool AS place_hidden
 FROM arcs a
 JOIN places p ON p.id = a.place_id
-WHERE a.id = $1
+WHERE a.id = $1::uuid
 FOR UPDATE OF a
 `
 
 type LockArcForRetitleRow struct {
-	ID            uuid.UUID
-	Hour          pgtype.Int2
-	LocalDate     pgtype.Date
-	CreatedBy     uuid.UUID
-	PlaceName     string
-	PlaceHiddenAt pgtype.Timestamptz
+	ID          uuid.UUID
+	Hour        pgtype.Int2
+	LocalDate   pgtype.Date
+	CreatedBy   uuid.UUID
+	PlaceName   string
+	PlaceHidden bool
 }
 
 func (q *Queries) LockArcForRetitle(ctx context.Context, id uuid.UUID) (LockArcForRetitleRow, error) {
@@ -396,7 +434,7 @@ func (q *Queries) LockArcForRetitle(ctx context.Context, id uuid.UUID) (LockArcF
 		&i.LocalDate,
 		&i.CreatedBy,
 		&i.PlaceName,
-		&i.PlaceHiddenAt,
+		&i.PlaceHidden,
 	)
 	return i, err
 }

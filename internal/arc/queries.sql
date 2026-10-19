@@ -1,7 +1,20 @@
 -- name: GetPlaceForArc :one
-SELECT id, name, hidden_at
-FROM places
-WHERE id = $1;
+-- The place and whether it or any ancestor is hidden: hiding a place hides
+-- its whole subtree.
+WITH RECURSIVE up AS (
+    SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM places pl
+    WHERE pl.id = @id::uuid
+    UNION ALL
+    SELECT parent.id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT p.id, p.name,
+       EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::bool AS subtree_hidden
+FROM places p
+WHERE p.id = @id::uuid;
 
 -- name: GetDayArc :one
 SELECT id, title
@@ -22,20 +35,45 @@ ON CONFLICT (place_id, local_date, hour) DO NOTHING
 RETURNING id;
 
 -- name: GetArcRow :one
+-- place_hidden is true when the arc's place or any ancestor is hidden.
+WITH RECURSIVE up AS (
+    SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM places pl
+    JOIN arcs a0 ON a0.place_id = pl.id
+    WHERE a0.id = @id::uuid
+    UNION ALL
+    SELECT parent.id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
 SELECT a.id, a.place_id, a.local_date, a.hour, a.parent_arc_id, a.title, a.created_by,
        a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
-       p.name AS place_name, p.hidden_at AS place_hidden_at,
+       p.name AS place_name,
+       EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::bool AS place_hidden,
        u.username AS creator_username
 FROM arcs a
 JOIN places p ON p.id = a.place_id
 JOIN users u ON u.id = a.created_by
-WHERE a.id = $1;
+WHERE a.id = @id::uuid;
 
 -- name: LockArcForRetitle :one
-SELECT a.id, a.hour, a.local_date, a.created_by, p.name AS place_name, p.hidden_at AS place_hidden_at
+WITH RECURSIVE up AS (
+    SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM places pl
+    JOIN arcs a0 ON a0.place_id = pl.id
+    WHERE a0.id = @id::uuid
+    UNION ALL
+    SELECT parent.id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT a.id, a.hour, a.local_date, a.created_by, p.name AS place_name,
+       EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::bool AS place_hidden
 FROM arcs a
 JOIN places p ON p.id = a.place_id
-WHERE a.id = $1
+WHERE a.id = @id::uuid
 FOR UPDATE OF a;
 
 -- name: UpdateArcTitle :exec
