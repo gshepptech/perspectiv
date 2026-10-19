@@ -126,9 +126,10 @@ func TestPlacectlImportLeavesOutUnfiledPlaces(t *testing.T) {
 	if code != exitOK {
 		t.Fatalf("exit = %d, want 0; stderr:\n%s", code, stderr.String())
 	}
-	// The fixtures alone write 15 rows: 16 nodes less the merged bookstore.
-	if n := countPlaces(t, pool); n != 15 {
-		t.Errorf("imported %d places, want the fixtures' 15", n)
+	// The fixtures alone plan 16 nodes (the second bookstore is merged into
+	// the first, so it is not one of them).
+	if n := countPlaces(t, pool); n != 16 {
+		t.Errorf("imported %d places, want the fixtures' 16", n)
 	}
 	var stray int
 	if err := pool.QueryRow(context.Background(),
