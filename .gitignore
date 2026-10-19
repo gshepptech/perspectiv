@@ -1,0 +1,17 @@
+# Local dev overrides; .env.dev is the tracked template (scripts/dev.sh copies it).
+/.env.dev.local
+
+# Build output, pinned tools, Air builds, dev logs, coverage and test reports.
+/bin/
+/tmp/
+
+# Web dependencies and the SPA bundle (rebuilt by make web-build).
+/web/node_modules/
+/web/dist/
+
+# Playwright output.
+/web/test-results/
+/web/playwright-report/
+/web/e2e/.auth/
+
+.DS_Store

@@ -3,9 +3,6 @@
  * page, follows the verification link the server emailed (read from Mailpit's
  * API), grants the admin its role with `perspectiv admin grant`, signs in and
  * saves the browser state the specs start from.
- *
- * AC-043: in development, email lands in Mailpit and the suite reads the
- * verification link from it.
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
@@ -17,7 +14,7 @@ import { perspectivBin, stack } from "./support/env.ts";
 import { verificationLink } from "./support/mailpit.ts";
 
 for (const account of allAccounts()) {
-  setup(`AC-043 sign up ${account.key}, verify the email from Mailpit and sign in`, async ({ page }) => {
+  setup(`sign up ${account.key}, verify the email from Mailpit and sign in`, async ({ page }) => {
     await page.goto("/signup");
     await page.getByLabel("Email").fill(account.email);
     await page.getByLabel("Username").fill(account.username);
