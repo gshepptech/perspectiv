@@ -2,7 +2,9 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { polyfillRadix } from "@/components/actions/testing.testutil";
 import { connectError, sessionReply } from "@/lib/fakeApi.testutil";
+import { dayArcResponse, perspective as arcPerspective } from "@/routes/arc/fixtures.testutil";
 
 import { renderApp } from "./renderApp.testutil";
 
@@ -169,3 +171,20 @@ describe("read page (US-007, OT-033, OT-036)", () => {
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("could not be loaded"));
   });
 });
+
+describe("reader and arc page share one cached perspective", () => {
+  it("goes back to the arc after reading without crashing the action bar", async () => {
+    polyfillRadix();
+    const user = userEvent.setup();
+    renderApp("/perspectives/p-otter", {
+      "PerspectiveService/Get": (body) => ({ body: arcPerspective(String(body.perspectiveId)) }),
+      "ArcService/GetArc": () => ({ body: dayArcResponse() }),
+    });
+    await user.click(await screen.findByRole("link", { name: "Back to the arc" }));
+    const canon = await screen.findByRole("region", { name: "Canon" });
+    // The card of the perspective just read uses the reader's cache entry.
+    await waitFor(() => expect(within(canon).getAllByRole("group", { name: "Reacts" }).length).toBeGreaterThan(0));
+    expect(screen.queryByText(/Something went wrong/)).not.toBeInTheDocument();
+  });
+});
+

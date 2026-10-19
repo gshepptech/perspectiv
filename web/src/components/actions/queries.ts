@@ -9,7 +9,8 @@ export const perspectiveKey = (perspectiveId: string) => ["perspective", "get", 
 export function perspectiveQuery(perspectiveId: string) {
   return {
     queryKey: perspectiveKey(perspectiveId),
-    queryFn: async (): Promise<Perspective | null> => (await clients.perspective.get({ perspectiveId })).perspective ?? null,
+    queryFn: async ({ signal }: { signal: AbortSignal }): Promise<Perspective | null> =>
+      (await clients.perspective.get({ perspectiveId }, { signal })).perspective ?? null,
   };
 }
 

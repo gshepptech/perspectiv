@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
+import { perspectiveQuery } from "@/components/actions/queries";
 import { formatDay, genreLabel, loreStatusLabel } from "@/components/reader/format";
 import { Reader } from "@/components/reader/Reader";
 import { Button } from "@/components/ui/Button";
@@ -145,10 +146,9 @@ export function Component() {
   const { perspectiveId = "" } = useParams();
   const session = useSession();
   const [params, setParams] = useSearchParams();
-  const query = useQuery({
-    queryKey: ["perspective", "get", { perspectiveId }],
-    queryFn: ({ signal }) => clients.perspective.get({ perspectiveId }, { signal }),
-  });
+  // The action bar on the arc page reads the same cache entry, so both must
+  // store the same shape; perspectiveQuery owns it.
+  const query = useQuery(perspectiveQuery(perspectiveId));
   const onPartChange = useCallback(
     (n: number) =>
       setParams((prev) => {
@@ -176,7 +176,7 @@ export function Component() {
       </p>
     );
   }
-  const p = query.data.perspective;
+  const p = query.data;
   if (!p) return <Missing title="Perspective not found" detail="It may have been removed." />;
 
   if (p.deleted || p.hidden) {
