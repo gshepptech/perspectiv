@@ -136,8 +136,23 @@ func resolve(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, boo
 	default:
 		return event{}, false, nil
 	}
+	if !ok || err != nil {
+		return event{}, false, err
+	}
 	ev.kind = a.Kind
-	return ev, ok, err
+	if ev.payload.ArcID != nil {
+		// An event about an arc at or below a hidden place is not delivered:
+		// moderation removed what it is about, and neither the inbox nor the
+		// email may name the arc.
+		hidden, err := q.ArcPlaceHidden(ctx, *ev.payload.ArcID)
+		if err != nil {
+			return event{}, false, fmt.Errorf("arc place hidden: %w", err)
+		}
+		if hidden {
+			return event{}, false, nil
+		}
+	}
+	return ev, true, nil
 }
 
 // unlessMissing drops a not-found error, which means the event's subject is

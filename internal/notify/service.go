@@ -131,7 +131,12 @@ func notificationFromRow(r dbq.ListInboxRow) (Notification, error) {
 	if r.ActorUsername != nil {
 		n.ActorUsername = *r.ActorUsername
 	}
-	if r.ArcTitle != nil {
+	switch {
+	case r.ArcHidden:
+		// The arc's place, or a place above it, was hidden by moderation:
+		// the row stays, but it neither names nor links the arc.
+		n.Payload.ArcID = nil
+	case r.ArcTitle != nil:
 		n.ArcTitle = *r.ArcTitle
 	}
 	return n, nil

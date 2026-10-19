@@ -1249,3 +1249,29 @@ func TestConcurrentClaimsOnOneCharacter(t *testing.T) {
 		t.Errorf("opened %d, already-exists %d; want 1 and %d", ok, exists, len(claimants)-1)
 	}
 }
+
+// Hiding a place closes every arc at or below it to claims: a new claim on a
+// character there is NotFound, and a claim opened before the hide cannot be
+// accepted. Rejecting it still works, so the author can clear their inbox.
+func TestHiddenPlaceRefusesClaims(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t)
+	city := w.id(`INSERT INTO places (kind, name, parent_id, timezone, source)
+		VALUES ('PLACE_KIND_CITY', 'Columbus', $1, 'America/New_York', 'PLACE_SOURCE_USER') RETURNING id`, w.place)
+	w.exec(`UPDATE arcs SET place_id = $1 WHERE id = $2`, city, w.arc)
+	a, b, c := w.author("ana"), w.author("ben"), w.author("cal")
+	open := w.mustClaim(b.user, a.character)
+
+	w.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, w.place)
+
+	_, err := w.claim(c.user, a.character)
+	wantCode(t, err, connect.CodeNotFound)
+	_, err = w.resolve(a.user, open, true)
+	wantCode(t, err, connect.CodeFailedPrecondition)
+	if got := w.claimStatus(open); got != "CLAIM_STATUS_PENDING" {
+		t.Fatalf("claim after a refused accept = %s, want PENDING", got)
+	}
+	if got, err := w.resolve(a.user, open, false); err != nil || got != perspectivv1.ClaimStatus_CLAIM_STATUS_REJECTED {
+		t.Fatalf("reject under a hidden place = %v, %v; want REJECTED", got, err)
+	}
+}

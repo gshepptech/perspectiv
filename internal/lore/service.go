@@ -131,6 +131,11 @@ func (s *Service) ClaimCharacter(ctx context.Context, caller, characterID uuid.U
 	if !readable(target) {
 		return uuid.Nil, apiutil.NotFound("character not found")
 	}
+	if hidden, err := q.ArcPlaceHidden(ctx, target.ArcID.UUID); err != nil {
+		return uuid.Nil, apiutil.Internal(fmt.Errorf("arc place hidden: %w", err))
+	} else if hidden {
+		return uuid.Nil, apiutil.NotFound("character not found")
+	}
 	if mine == uuid.Nil || !readable(own) {
 		return uuid.Nil, apiutil.FailedPrecondition("write your perspective in this arc first")
 	}
@@ -221,6 +226,11 @@ func (s *Service) ResolveClaim(ctx context.Context, caller, claimID uuid.UUID, a
 		next = perspectivv1.ClaimStatus_CLAIM_STATUS_ACCEPTED
 		if err := acceptable(cl.target, cl.claimant); err != nil {
 			return 0, err
+		}
+		if hidden, err := q.ArcPlaceHidden(ctx, cl.arcID); err != nil {
+			return 0, apiutil.Internal(fmt.Errorf("arc place hidden: %w", err))
+		} else if hidden {
+			return 0, apiutil.FailedPrecondition("one of these perspectives is no longer published")
 		}
 	}
 	if err := q.SetClaimStatus(ctx, dbq.SetClaimStatusParams{ID: claimID, Status: next.String()}); err != nil {

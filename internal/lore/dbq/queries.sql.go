@@ -106,6 +106,31 @@ func (q *Queries) ArcMemberships(ctx context.Context, arcID uuid.UUID) ([]ArcMem
 	return items, nil
 }
 
+const arcPlaceHidden = `-- name: ArcPlaceHidden :one
+WITH RECURSIVE up AS (
+    SELECT pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM arcs a
+    JOIN places pl ON pl.id = a.place_id
+    WHERE a.id = $1::uuid
+    UNION ALL
+    SELECT parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::boolean AS hidden
+`
+
+// True when the arc's place or any ancestor is hidden: hiding a place hides
+// its whole subtree, the rule the arc domain's GetArcRow applies. An unknown
+// arc is not hidden.
+func (q *Queries) ArcPlaceHidden(ctx context.Context, arcID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, arcPlaceHidden, arcID)
+	var hidden bool
+	err := row.Scan(&hidden)
+	return hidden, err
+}
+
 const deleteArcMembers = `-- name: DeleteArcMembers :exec
 DELETE FROM lore_members m
 USING lores l

@@ -260,3 +260,20 @@ ORDER BY c.id;
 -- name: GetPerspectiveArc :one
 -- The arc a perspective is published in; NULL for a draft.
 SELECT arc_id FROM perspectives WHERE id = $1;
+
+-- name: ArcPlaceHidden :one
+-- True when the arc's place or any ancestor is hidden: hiding a place hides
+-- its whole subtree, the rule the arc domain's GetArcRow applies. An unknown
+-- arc is not hidden.
+WITH RECURSIVE up AS (
+    SELECT pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM arcs a
+    JOIN places pl ON pl.id = a.place_id
+    WHERE a.id = sqlc.arg(arc_id)::uuid
+    UNION ALL
+    SELECT parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::boolean AS hidden;

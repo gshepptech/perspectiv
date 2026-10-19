@@ -3,6 +3,10 @@
 package notify_test
 
 import (
+	"context"
+
+	"connectrpc.com/connect"
+
 	"testing"
 
 	"github.com/google/uuid"
@@ -303,4 +307,39 @@ func TestFanoutMissingSubject(t *testing.T) {
 	if n != 0 {
 		t.Fatalf("notifications = %d, want 0", n)
 	}
+}
+
+// Hiding a place hides its whole subtree from notifications: an inbox row
+// that already names an arc below the hidden place loses the arc, and a new
+// event about that arc is not delivered at all, in the inbox or by email.
+func TestHiddenPlaceSilencesItsArcs(t *testing.T) {
+	t.Parallel()
+	s := newStory(t)
+	state := s.id(`SELECT place_id FROM arcs WHERE id = $1`, s.arc)
+	city := s.id(`INSERT INTO places (kind, name, parent_id, timezone, source)
+		VALUES ('PLACE_KIND_CITY', 'Hidden Springs', $1, 'America/New_York', 'PLACE_SOURCE_USER') RETURNING id`, state)
+	s.exec(`UPDATE arcs SET place_id = $1 WHERE id = $2`, city, s.arc)
+
+	s.notifyNow(jobs.NotifyArgs{Kind: kNewInArc, ActorID: s.ann, ArcID: s.arc, PerspectiveID: s.pAnn})
+	s.expect(t, s.ben, "ben", []perspectivv1.NotificationKind{kNewInArc}, 1)
+	ctx := context.Background()
+	before, err := s.client(s.ben).ListInbox(ctx, connect.NewRequest(&perspectivv1.ListInboxRequest{}))
+	if err != nil || len(before.Msg.GetNotifications()) != 1 || before.Msg.GetNotifications()[0].GetArcTitle() != "Rainy Tuesday" {
+		t.Fatalf("inbox before the hide = %v, %v; want one row naming the arc", before, err)
+	}
+
+	// Moderation hides the state above the arc's city.
+	s.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, state)
+
+	after, err := s.client(s.ben).ListInbox(ctx, connect.NewRequest(&perspectivv1.ListInboxRequest{}))
+	if err != nil || len(after.Msg.GetNotifications()) != 1 {
+		t.Fatalf("inbox after the hide = %v, %v; want the one row kept", after, err)
+	}
+	if n := after.Msg.GetNotifications()[0]; n.GetArcTitle() != "" || n.GetArcId() != "" {
+		t.Fatalf("row after the hide names arc %q (%q); want neither", n.GetArcTitle(), n.GetArcId())
+	}
+
+	s.notifyNow(jobs.NotifyArgs{Kind: kNewInArc, ActorID: s.cat, ArcID: s.arc, PerspectiveID: s.pCat})
+	s.expect(t, s.ben, "ben", []perspectivv1.NotificationKind{kNewInArc}, 1)
+	s.expect(t, s.dan, "dan", []perspectivv1.NotificationKind{kNewInArc}, 1)
 }

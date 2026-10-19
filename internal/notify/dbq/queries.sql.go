@@ -42,6 +42,31 @@ func (q *Queries) ArcAuthors(ctx context.Context, arcID *uuid.UUID) ([]uuid.UUID
 	return items, nil
 }
 
+const arcPlaceHidden = `-- name: ArcPlaceHidden :one
+WITH RECURSIVE up AS (
+    SELECT pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM arcs a
+    JOIN places pl ON pl.id = a.place_id
+    WHERE a.id = $1::uuid
+    UNION ALL
+    SELECT parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::boolean AS hidden
+`
+
+// True when the arc's place or any ancestor is hidden: hiding a place hides
+// its whole subtree, the rule the arc domain's GetArcRow applies. An unknown
+// arc is not hidden.
+func (q *Queries) ArcPlaceHidden(ctx context.Context, arcID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, arcPlaceHidden, arcID)
+	var hidden bool
+	err := row.Scan(&hidden)
+	return hidden, err
+}
+
 const arcTitle = `-- name: ArcTitle :one
 SELECT title FROM arcs WHERE id = $1
 `
@@ -113,18 +138,36 @@ func (q *Queries) InsertNotification(ctx context.Context, arg InsertNotification
 }
 
 const listInbox = `-- name: ListInbox :many
-SELECT n.id, n.kind, n.payload, n.read_at, n.created_at,
+WITH RECURSIVE page AS (
+    SELECT n.id, n.kind, n.payload, n.read_at, n.created_at,
+           (n.payload ->> 'arc_id')::uuid AS arc_id
+    FROM notifications n
+    WHERE n.user_id = $1::uuid
+      AND (NOT $2::boolean OR n.read_at IS NULL)
+      AND ($3::timestamptz IS NULL
+           OR (n.created_at, n.id) < ($3::timestamptz, $4::uuid))
+    ORDER BY n.created_at DESC, n.id DESC
+    LIMIT $5::int
+), up AS (
+    SELECT ar.id AS arc_id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM arcs ar
+    JOIN places pl ON pl.id = ar.place_id
+    WHERE ar.id IN (SELECT page.arc_id FROM page)
+    UNION ALL
+    SELECT up.arc_id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT page.id, page.kind, page.payload, page.read_at, page.created_at,
        a.username AS actor_username,
-       ar.title   AS arc_title
-FROM notifications n
-LEFT JOIN users a ON a.id = (n.payload ->> 'actor_id')::uuid
-LEFT JOIN arcs ar ON ar.id = (n.payload ->> 'arc_id')::uuid
-WHERE n.user_id = $1::uuid
-  AND (NOT $2::boolean OR n.read_at IS NULL)
-  AND ($3::timestamptz IS NULL
-       OR (n.created_at, n.id) < ($3::timestamptz, $4::uuid))
-ORDER BY n.created_at DESC, n.id DESC
-LIMIT $5::int
+       ar.title   AS arc_title,
+       EXISTS (SELECT 1 FROM up WHERE up.arc_id = page.arc_id
+               AND up.hidden_at IS NOT NULL)::boolean AS arc_hidden
+FROM page
+LEFT JOIN users a ON a.id = (page.payload ->> 'actor_id')::uuid
+LEFT JOIN arcs ar ON ar.id = page.arc_id
+ORDER BY page.created_at DESC, page.id DESC
 `
 
 type ListInboxParams struct {
@@ -143,11 +186,14 @@ type ListInboxRow struct {
 	CreatedAt     time.Time
 	ActorUsername *string
 	ArcTitle      *string
+	ArcHidden     bool
 }
 
 // The caller's inbox, newest first, keyset-paginated on (created_at, id) so
 // it is served by notifications_inbox_idx. after_at/after_id are NULL on the
 // first page. The actor's username and the arc's title are joined for display.
+// arc_hidden is true when the arc's place or any ancestor is hidden; the
+// service then drops the arc from the row, so the inbox never names it.
 func (q *Queries) ListInbox(ctx context.Context, arg ListInboxParams) ([]ListInboxRow, error) {
 	rows, err := q.db.Query(ctx, listInbox,
 		arg.UserID,
@@ -171,6 +217,7 @@ func (q *Queries) ListInbox(ctx context.Context, arg ListInboxParams) ([]ListInb
 			&i.CreatedAt,
 			&i.ActorUsername,
 			&i.ArcTitle,
+			&i.ArcHidden,
 		); err != nil {
 			return nil, err
 		}
