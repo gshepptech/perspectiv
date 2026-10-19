@@ -108,6 +108,18 @@ func (q *Queries) GetPerspectiveRef(ctx context.Context, id uuid.UUID) (GetPersp
 }
 
 const getPerspectives = `-- name: GetPerspectives :many
+WITH RECURSIVE up AS (
+    SELECT p0.id AS perspective_id, pl0.parent_id, pl0.hidden_at, 1 AS depth
+    FROM perspectives p0
+    LEFT JOIN arcs a0 ON a0.id = p0.arc_id
+    JOIN places pl0 ON pl0.id = COALESCE(a0.place_id, p0.place_id)
+    WHERE p0.id = ANY($2::uuid[])
+    UNION ALL
+    SELECT up.perspective_id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
 SELECT p.id, p.arc_id, p.author_id, p.genre, p.status, p.lore_status, p.lore_id,
        p.title_if_new_arc, p.created_at, p.published_at, p.updated_at, p.deleted_at, p.hidden_at,
        p.place_id   AS draft_place_id,
@@ -120,6 +132,8 @@ SELECT p.id, p.arc_id, p.author_id, p.genre, p.status, p.lore_status, p.lore_id,
        pl.kind  AS place_kind,
        pl.name  AS place_name,
        u.username AS author_username,
+       EXISTS (SELECT 1 FROM up WHERE up.perspective_id = p.id
+               AND up.hidden_at IS NOT NULL)::boolean AS place_hidden,
        (SELECT count(*) FROM votes v WHERE v.perspective_id = p.id)::int AS upvotes,
        EXISTS (SELECT 1 FROM votes v WHERE v.perspective_id = p.id
                AND v.user_id = $1::uuid)::boolean AS voted
@@ -159,13 +173,16 @@ type GetPerspectivesRow struct {
 	PlaceKind      *string
 	PlaceName      *string
 	AuthorUsername string
+	PlaceHidden    bool
 	Upvotes        int32
 	Voted          bool
 }
 
 // Full rows for a set of perspectives with their arc, place and author. The
 // place joined is the arc's for a published perspective and the draft's own
-// otherwise; see placement in read.go.
+// otherwise; see placeholder in read.go. place_hidden is true when that
+// place or any ancestor is hidden: hiding a place hides its whole subtree,
+// the rule the arc domain's GetArcRow applies.
 func (q *Queries) GetPerspectives(ctx context.Context, arg GetPerspectivesParams) ([]GetPerspectivesRow, error) {
 	rows, err := q.db.Query(ctx, getPerspectives, arg.Viewer, arg.Ids)
 	if err != nil {
@@ -199,6 +216,7 @@ func (q *Queries) GetPerspectives(ctx context.Context, arg GetPerspectivesParams
 			&i.PlaceKind,
 			&i.PlaceName,
 			&i.AuthorUsername,
+			&i.PlaceHidden,
 			&i.Upvotes,
 			&i.Voted,
 		); err != nil {

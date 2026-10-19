@@ -240,7 +240,26 @@ func assemble(r dbq.GetPerspectivesRow, c contents) (*perspectivv1.Perspective, 
 //
 // A published perspective's place, day and hour are its arc's, fixed at
 // publish; a draft's are the ones it saved.
+//
+// A perspective filed at a hidden place, or below one, is hidden with it: a
+// published one reads as a hidden placeholder that names neither the place
+// nor the arc, which is NotFound on the arc page. A draft keeps its text for
+// its author but no longer names the place, as publishing there is refused.
 func placeholder(r dbq.GetPerspectivesRow) (*perspectivv1.Perspective, error) {
+	p, err := filed(r)
+	if err != nil || !r.PlaceHidden {
+		return p, err
+	}
+	p.Place = nil
+	if r.Status != statusDraft {
+		p.Hidden = true
+		p.ArcId, p.ArcTitle, p.LoreId = "", "", ""
+	}
+	return p, nil
+}
+
+// filed is placeholder before the hidden-place rule.
+func filed(r dbq.GetPerspectivesRow) (*perspectivv1.Perspective, error) {
 	status, err := statusFromDB(r.Status)
 	if err != nil {
 		return nil, err
