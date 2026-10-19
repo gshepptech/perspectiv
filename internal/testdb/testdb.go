@@ -31,17 +31,18 @@ const Image = "postgres:18-alpine"
 const (
 	superUser     = "postgres"
 	superPassword = "postgres"
-	// startTimeout bounds one container's start and readiness wait, which
-	// runs alone under the start lock. The module's own 60s readiness
-	// deadline is replaced so this is the single bound.
-	startTimeout = 2 * time.Minute
-	// lockTimeout bounds the wait for the start lock: every other test
-	// binary of the run may be starting its server ahead of this one.
-	lockTimeout = 15 * time.Minute
+	// startTimeout bounds the container start and its readiness wait. The
+	// module's own 60s readiness deadline is replaced so this is the single
+	// bound.
+	startTimeout = 3 * time.Minute
 	// dataDir is the image's PGDATA parent. It is mounted as tmpfs: the
-	// server is thrown away with the test binary, so its files never need
-	// to reach a disk.
+	// server is thrown away with the run, so its files never need to reach
+	// a disk.
 	dataDir = "/var/lib/postgresql"
+	// reaperGrace is how long the reaper waits, after the last test binary
+	// of a run disconnects, before it removes the shared server. It covers
+	// the gap while `go test` is still compiling the next package.
+	reaperGrace = "2m"
 )
 
 // server is the container's connection details, set once by Main before any
@@ -49,27 +50,36 @@ const (
 // signature carries no handle to it.
 var server *pgtestdb.Config
 
-// Main starts one PostgreSQL container for the test binary, runs the tests and
-// exits with m.Run's code. A container that cannot start fails the binary with
-// exit code 1 rather than skipping: integration tests never pass vacuously.
+// Main attaches the test binary to the run's PostgreSQL server, starting it
+// if no other binary of the same `go test` invocation has, then runs the
+// tests and exits with m.Run's code. A server that cannot start fails the
+// binary with exit code 1 rather than skipping: integration tests never pass
+// vacuously.
+//
+// One server serves every test binary of a run. `go test ./...` runs up to
+// GOMAXPROCS binaries at once; a container each meant a dozen initdb runs
+// competing for the Docker VM, and they missed their readiness deadline.
+// Tests stay isolated because every test gets its own pgtestdb database, and
+// pgtestdb builds the shared template under an advisory lock. The server is
+// named after the testcontainers session, which is the `go test` process, so
+// two runs never share one; the session's reaper removes it when the run
+// ends, so no binary terminates it.
 func Main(m *testing.M) {
 	os.Exit(run(m))
 }
 
 func run(m *testing.M) int {
-	lockCtx, lockCancel := context.WithTimeout(context.Background(), lockTimeout)
-	unlock, err := lockStart(lockCtx)
-	lockCancel()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "testdb: %v\n", err)
-		return 1
+	if os.Getenv("TESTCONTAINERS_RYUK_RECONNECTION_TIMEOUT") == "" && os.Getenv("RYUK_RECONNECTION_TIMEOUT") == "" {
+		_ = os.Setenv("TESTCONTAINERS_RYUK_RECONNECTION_TIMEOUT", reaperGrace)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), startTimeout)
+	defer cancel()
 	useDockerContext(ctx)
 	ctr, err := postgres.Run(ctx, Image,
 		postgres.WithUsername(superUser),
 		postgres.WithPassword(superPassword),
 		postgres.WithDatabase("postgres"),
+		testcontainers.WithReuseByName(containerName()),
 		testcontainers.WithTmpfs(map[string]string{dataDir: "rw"}),
 		// The module already turns fsync off; the rest of the durability
 		// work goes too, for the same reason: nothing outlives the run.
@@ -83,19 +93,9 @@ func run(m *testing.M) int {
 		),
 	)
 	if err != nil {
-		cancel()
-		unlock()
 		fmt.Fprintf(os.Stderr, "testdb: start %s: %v\n", Image, err)
-		if ctr != nil {
-			_ = testcontainers.TerminateContainer(ctr)
-		}
 		return 1
 	}
-	defer func() {
-		if err := testcontainers.TerminateContainer(ctr); err != nil {
-			fmt.Fprintf(os.Stderr, "testdb: terminate container: %v\n", err)
-		}
-	}()
 
 	host, err := ctr.Host(ctx)
 	if err == nil {
@@ -117,13 +117,17 @@ func run(m *testing.M) int {
 			}
 		}
 	}
-	cancel()
-	unlock()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "testdb: read container address: %v\n", err)
 		return 1
 	}
+	cancel()
 	return m.Run()
+}
+
+// containerName is the shared server's name for this `go test` run.
+func containerName() string {
+	return "perspectiv-testdb-" + testcontainers.SessionID()[:16]
 }
 
 // useDockerContext points testcontainers at the Docker CLI's current context
