@@ -49,6 +49,7 @@ const contract: [string, string][] = [
   ["/places/p-1", "place/PlacePage"],
   ["/perspectives/x-1", "read/ReadPage"],
   ["/arcs/a-1", "arc/ArcPage"],
+  ["/users/wren", "profile/ProfilePage"],
   ["/compose?placeId=p-1&date=2026-10-01&hour=14", "compose/ComposePage"],
   ["/claims", "claims/ClaimsPage"],
   ["/admin/reports", "admin/ReportsPage"],
