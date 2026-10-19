@@ -28,7 +28,11 @@ func (a Access) String() string {
 // Policy is what the authorization interceptor enforces for one procedure.
 type Policy struct {
 	Access Access
-	// Verified requires the caller's email to be verified.
+	// Verified passes the call through the shared write gate: the caller's
+	// email must be verified and the account must not be suspended. Every
+	// write that puts or changes text other people read carries it, so a
+	// suspended account can neither publish nor edit what it already
+	// published.
 	Verified bool
 	// RateLimit names the limiter action the call counts against; "" means
 	// none. One of the Limit* constants.
@@ -74,17 +78,17 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.PlaceService/GetEpic":      {Access: Public},
 
 	"/perspectiv.v1.ArcService/GetArc":         {Access: Public},
-	"/perspectiv.v1.ArcService/RetitleHourArc": {Access: User},
+	"/perspectiv.v1.ArcService/RetitleHourArc": {Access: User, Verified: true},
 
 	"/perspectiv.v1.PerspectiveService/SaveDraft": {Access: User},
 	"/perspectiv.v1.PerspectiveService/Publish":   {Access: User, Verified: true, RateLimit: LimitPublish},
-	"/perspectiv.v1.PerspectiveService/Update":    {Access: User},
+	"/perspectiv.v1.PerspectiveService/Update":    {Access: User, Verified: true},
 	"/perspectiv.v1.PerspectiveService/Delete":    {Access: User},
 	"/perspectiv.v1.PerspectiveService/Get":       {Access: Public},
 	"/perspectiv.v1.PerspectiveService/ListMine":  {Access: User},
 
 	"/perspectiv.v1.LoreService/ClaimCharacter": {Access: User, Verified: true, RateLimit: LimitClaim},
-	"/perspectiv.v1.LoreService/ResolveClaim":   {Access: User},
+	"/perspectiv.v1.LoreService/ResolveClaim":   {Access: User, Verified: true},
 	"/perspectiv.v1.LoreService/ListClaims":     {Access: User},
 	"/perspectiv.v1.LoreService/GetLore":        {Access: Public},
 
