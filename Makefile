@@ -33,6 +33,14 @@ WEB_DIR := web
 HAS_WEB := $(wildcard $(WEB_DIR)/package.json)
 PNPM    := pnpm --dir $(WEB_DIR)
 
+# web/embed.go embeds web/dist, so every target that compiles the Go module
+# (lint, vet, test, test-integration, the binaries, migrate, the dev loop)
+# depends on the bundle. It is rebuilt only when a web source is newer than it.
+WEB_DIST    := $(WEB_DIR)/dist/index.html
+WEB_SOURCES := $(if $(HAS_WEB),$(shell find $(WEB_DIR)/src $(WEB_DIR)/public -type f 2>/dev/null) \
+	$(wildcard $(WEB_DIR)/index.html $(WEB_DIR)/package.json $(WEB_DIR)/pnpm-lock.yaml \
+	$(WEB_DIR)/pnpm-workspace.yaml $(WEB_DIR)/vite.config.ts $(WEB_DIR)/tsconfig*.json))
+
 # ---------------------------------------------------------------------------
 # Pinned Go tools. Each installs into bin/tools/<name>-<version>/ with the Go
 # toolchain go.mod selects, so a version bump installs alongside the old one
@@ -97,7 +105,7 @@ $(PROTOC_GEN_CONNECT_GO):
 
 dev: dev-up ## Alias for dev-up
 
-dev-up: $(AIR) $(GOOSE) ## Start Postgres, Mailpit, migrations, server (Air) and web (Vite) in the background
+dev-up: $(AIR) $(GOOSE) $(WEB_DIST) ## Start Postgres, Mailpit, migrations, server (Air) and web (Vite) in the background
 	@$(DEV) up
 
 dev-down: ## Stop the dev loop; the Postgres volume is kept
@@ -136,13 +144,19 @@ ifneq ($(HAS_WEB),)
 	$(PNPM) run build
 endif
 
+$(WEB_DIST): $(WEB_SOURCES)
+	@$(MAKE) web-build
+	@touch $@
+
+bin/perspectiv: $(WEB_DIST)
+
 $(BIN_TARGETS): bin/%:
 	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o $@ ./cmd/$*
 
 # ---------------------------------------------------------------------------
 # Tests and gates
 
-test: $(GOTESTSUM) ## Unit tier: Go (race, no Docker) and web unit tests
+test: $(GOTESTSUM) $(WEB_DIST) ## Unit tier: Go (race, no Docker) and web unit tests
 	@mkdir -p $(COVER_DIR) $(REPORT_DIR)
 	$(GOTESTSUM) --format pkgname --junitfile $(REPORT_DIR)/unit.xml -- \
 		-race -count=1 -coverprofile=$(COVER_DIR)/unit.out ./...
@@ -151,7 +165,7 @@ ifneq ($(HAS_WEB),)
 	CI=1 $(PNPM) run --if-present test
 endif
 
-test-integration: $(GOTESTSUM) ## Integration tier: real postgres:18-alpine through testcontainers
+test-integration: $(GOTESTSUM) $(WEB_DIST) ## Integration tier: real postgres:18-alpine through testcontainers
 	@mkdir -p $(COVER_DIR) $(REPORT_DIR)
 	$(GOTESTSUM) --format pkgname --junitfile $(REPORT_DIR)/integration.xml -- \
 		-race -count=1 -tags integration -coverprofile=$(COVER_DIR)/integration.out ./...
@@ -162,7 +176,7 @@ coverage-floors: ## Enforce per-package coverage floors over the unit and integr
 e2e: ## Playwright E2E against the running dev loop (make dev-up first)
 	@$(DEV) e2e
 
-lint: $(GOLANGCI_LINT) ## golangci-lint, module layout, design-pass order, shellcheck, web lint
+lint: $(GOLANGCI_LINT) $(WEB_DIST) ## golangci-lint, module layout, design-pass order, shellcheck, web lint
 	$(GOLANGCI_LINT) run ./...
 	go run ./scripts/layoutcheck
 	go run ./scripts/designcheck
@@ -174,7 +188,7 @@ ifneq ($(HAS_WEB),)
 	$(PNPM) run --if-present typecheck
 endif
 
-vet: ## go vet over both test tiers
+vet: $(WEB_DIST) ## go vet over both test tiers
 	go vet ./...
 	go vet -tags integration ./...
 
@@ -203,7 +217,7 @@ generate: $(SQLC) $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_CONNECT_GO) ## Regenerate
 		PATH="$(dir $(PROTOC_GEN_GO)):$(dir $(PROTOC_GEN_CONNECT_GO)):$(CURDIR)/$(WEB_DIR)/node_modules/.bin:$$PATH" $(BUF) generate; \
 	fi
 
-migrate: ## Apply migrations to DATABASE_URL with the production binary path
+migrate: $(WEB_DIST) ## Apply migrations to DATABASE_URL with the production binary path
 	go run ./cmd/perspectiv migrate
 
 new-migration: ## Create the next goose migration: make new-migration NAME=snake_case
