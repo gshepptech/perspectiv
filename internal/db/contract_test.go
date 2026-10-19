@@ -130,12 +130,14 @@ func TestEnumValues(t *testing.T) {
 }
 
 // services lists every service of the API with the RPCs the contract fixes.
+// ListByAuthor serves the profile's perspectives and tales (AC-023), and
+// ListArcSection the arc page's later pages (NFR-008).
 var services = map[string][]string{
 	"AuthService":        {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword"},
 	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount"},
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic"},
-	"ArcService":         {"GetArc", "RetitleHourArc"},
-	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine"},
+	"ArcService":         {"GetArc", "ListArcSection", "RetitleHourArc"},
+	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor"},
 	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore"},
 	"VoteService":        {"Vote", "VoteRemove"},
 	"ReactService":       {"React"},
