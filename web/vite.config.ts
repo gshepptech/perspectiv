@@ -51,5 +51,9 @@ export default defineConfig({
     setupFiles: ["./src/app/test-setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
     css: false,
+    // Composer tests type whole paragraphs key by key and wait out the real
+    // 1500 ms autosave pause; alone they take up to about 3.5 s, past vitest's
+    // 5 s default on a loaded host. A hung test still fails, at 20 s.
+    testTimeout: 20_000,
   },
 });

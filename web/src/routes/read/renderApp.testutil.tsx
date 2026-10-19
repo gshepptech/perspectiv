@@ -4,8 +4,13 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { vi } from "vitest";
 
 import { buildRoutes } from "@/app/router";
+import { preloadedPageLoader, preloadPages } from "@/app/routes.testutil";
 import { connectError, installFakeApi, type FakeReply } from "@/lib/fakeApi.testutil";
 import { resetSessionForTests } from "@/lib/session";
+
+// Every test file that renders routes through this harness loads the pages
+// first, so no test races a cold module transform.
+preloadPages();
 
 /** One request the app sent: the procedure ("PlaceService/GetEpic") and its Connect JSON body. */
 export type SentRequest = { procedure: string; body: Record<string, unknown> };
@@ -38,7 +43,7 @@ export function renderApp(path: string, handlers: Record<string, BodyHandler>, o
     sent.push({ procedure: url.slice(url.indexOf("perspectiv.v1.") + "perspectiv.v1.".length), body });
     return fake(input, init);
   });
-  const router = createMemoryRouter(buildRoutes(), { initialEntries: [path] });
+  const router = createMemoryRouter(buildRoutes(preloadedPageLoader), { initialEntries: [path] });
   // Retries are off so an error reply shows at once.
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const view = render(

@@ -5,6 +5,11 @@ import { vi } from "vitest";
 
 import { createQueryClient } from "@/app/queryClient";
 import { buildRoutes } from "@/app/router";
+import { preloadedPageLoader, preloadPages } from "@/app/routes.testutil";
+
+// Every test file that renders routes through this harness loads the pages
+// first, so no test races a cold module transform.
+preloadPages();
 
 /**
  * A stand-in for the Go server at the HTTP boundary for the writing routes'
@@ -76,7 +81,7 @@ export function installApi(routes: Record<string, ApiHandler>, opts: { role?: st
 
 /** Renders the real route table (the same lazy modules the app loads) at a path. */
 export function renderRoute(path: string | { pathname: string; state?: unknown }) {
-  const router = createMemoryRouter(buildRoutes(), { initialEntries: [path] });
+  const router = createMemoryRouter(buildRoutes(preloadedPageLoader), { initialEntries: [path] });
   render(
     <QueryClientProvider client={createQueryClient()}>
       <RouterProvider router={router} />
