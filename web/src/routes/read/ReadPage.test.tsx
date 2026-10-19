@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -97,6 +97,66 @@ describe("read page (US-007, OT-033, OT-036)", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Frost" })).toBeInTheDocument();
     expect(screen.getByText("Draft")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Edit draft" })).toHaveAttribute("href", "/compose?perspectiveId=p-1");
+  });
+
+  it("lets the author edit and delete their published perspective, then shows the removed placeholder", async () => {
+    const user = userEvent.setup();
+    const me = "0b9e0a52-5d0f-4a8e-9a43-1f0f7f3c2a10";
+    let deleted = false;
+    const { calls } = renderApp(
+      "/perspectives/p-1",
+      {
+        "PerspectiveService/Get": () => ({
+          body: {
+            perspective: deleted
+              ? { ...perspective, parts: [], author: undefined, deleted: true }
+              : { ...perspective, author: { userId: me, username: "wren" } },
+          },
+        }),
+        "PerspectiveService/Delete": () => {
+          deleted = true;
+          return { body: {} };
+        },
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    await screen.findByText("The doors opened at nine.");
+    expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute("href", "/compose?perspectiveId=p-1");
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = await screen.findByRole("dialog", { name: "Delete this perspective?" });
+    expect(calls("PerspectiveService/Delete")).toEqual([]);
+    await user.click(within(dialog).getByRole("button", { name: "Delete perspective" }));
+    expect(await screen.findByText("This perspective was deleted by its author.")).toBeInTheDocument();
+    expect(calls("PerspectiveService/Delete")).toEqual([{ perspectiveId: "p-1" }]);
+  });
+
+  it("lets the author delete a draft and returns them to the landing page", async () => {
+    const user = userEvent.setup();
+    const { calls, router } = renderApp(
+      "/perspectives/p-1",
+      {
+        "PerspectiveService/Get": () => ({
+          body: { perspective: { ...perspective, arcId: "", arcTitle: "", titleIfNewArc: "Frost", status: "PERSPECTIVE_STATUS_DRAFT", loreStatus: undefined } },
+        }),
+        "PerspectiveService/Delete": () => ({ body: {} }),
+        "PerspectiveService/ListMine": () => ({ body: { perspectives: [] } }),
+        "PlaceService/ListChildren": () => ({ body: { places: [] } }),
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    await screen.findByRole("heading", { level: 1, name: "Frost" });
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Delete draft" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+    expect(calls("PerspectiveService/Delete")).toEqual([{ perspectiveId: "p-1" }]);
+  });
+
+  it("offers no edit or delete on someone else's perspective", async () => {
+    readPage("/perspectives/p-1", undefined, { refresh: () => sessionReply({ token: "tok", username: "teller" }) });
+    await screen.findByText("The doors opened at nine.");
+    expect(screen.queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
   });
 
   it("shows not found for an unknown perspective", async () => {

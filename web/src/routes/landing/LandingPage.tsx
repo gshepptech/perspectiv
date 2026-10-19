@@ -1,11 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
-import { placeChain } from "@/components/reader/format";
+import { formatDay, placeChain } from "@/components/reader/format";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
+import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
+import { useSession } from "@/lib/session";
 
 const DEBOUNCE_MS = 200;
 
@@ -80,9 +84,75 @@ function BrowseStates() {
   );
 }
 
+const MINE_PAGE_SIZE = 20;
+
+function MineRow({ p }: { p: Perspective }) {
+  const isDraft = p.status === PerspectiveStatus.DRAFT;
+  const title = p.arcTitle || p.titleIfNewArc || "Untitled";
+  const edit = `/compose?perspectiveId=${encodeURIComponent(p.id)}`;
+  const where = [p.place?.name, formatDay(p.localDate, p.hour)].filter(Boolean).join(" · ");
+  return (
+    <li className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 py-2">
+      <Link to={isDraft ? edit : `/perspectives/${encodeURIComponent(p.id)}`} className="flex min-h-11 min-w-0 flex-col justify-center">
+        <span className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">{title}</span>
+        <span className="text-sm wrap-anywhere text-ink-muted">
+          {isDraft ? "Draft · " : "Published · "}
+          {where}
+        </span>
+      </Link>
+      {!isDraft && (
+        <Link to={edit} aria-label={`Edit ${title}`} className="inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4">
+          Edit
+        </Link>
+      )}
+    </li>
+  );
+}
+
 /**
- * The landing page is a place search over the hierarchy and nothing else: no
- * feed. Results are links to place pages. The query lives in the address
+ * The signed-in author's own drafts and published perspectives, newest edit
+ * first. It is their own writing, not a feed: signed-out readers see nothing
+ * here and nothing of anyone else's is listed.
+ */
+function YourPerspectives() {
+  const mine = useInfiniteQuery({
+    queryKey: ["perspective", "listMine", {}],
+    queryFn: ({ pageParam, signal }) => clients.perspective.listMine({ pageToken: pageParam, pageSize: MINE_PAGE_SIZE }, { signal }),
+    initialPageParam: "",
+    getNextPageParam: (last) => last.nextPageToken || undefined,
+  });
+  if (mine.isPending) return null;
+  if (mine.isError) {
+    return (
+      <p role="alert" className="mt-12 text-sm text-error">
+        Your perspectives could not be loaded. Try again in a moment.
+      </p>
+    );
+  }
+  const items = mine.data.pages.flatMap((page) => page.perspectives);
+  if (items.length === 0) return null;
+  return (
+    <section aria-labelledby="landing-mine" className="mt-12">
+      <h2 id="landing-mine" className="text-xl">
+        Your perspectives
+      </h2>
+      <ul className="mt-3 divide-y divide-rule border-y border-rule">
+        {items.map((p) => (
+          <MineRow key={p.id} p={p} />
+        ))}
+      </ul>
+      {mine.hasNextPage && (
+        <Button variant="secondary" className="mt-3" disabled={mine.isFetchingNextPage} onClick={() => void mine.fetchNextPage()}>
+          Show more
+        </Button>
+      )}
+    </section>
+  );
+}
+
+/**
+ * The landing page is a place search over the hierarchy and no feed; a
+ * signed-in author also finds their own drafts and perspectives here. Results are links to place pages. The query lives in the address
  * (replacing the entry as the reader types) so the back button from a place
  * returns to the same results.
  */
@@ -91,6 +161,7 @@ export function Component() {
   const [text, setText] = useState(() => params.get("q") ?? "");
   const query = useDebounced(text.trim(), DEBOUNCE_MS);
   const inputId = useId();
+  const session = useSession();
 
   useEffect(() => {
     if ((params.get("q") ?? "") === query) return;
@@ -121,6 +192,7 @@ export function Component() {
         </div>
       </form>
       {query && <SearchResults query={query} />}
+      {session && <YourPerspectives />}
       <BrowseStates />
     </section>
   );

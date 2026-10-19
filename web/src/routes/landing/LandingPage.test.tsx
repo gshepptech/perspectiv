@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { connectError } from "@/lib/fakeApi.testutil";
+import { connectError, sessionReply } from "@/lib/fakeApi.testutil";
 import { renderApp } from "@/routes/read/renderApp.testutil";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -43,6 +43,49 @@ describe("landing page (AC-006, OT-036)", () => {
     const fetched = sent.map((r) => r.procedure);
     expect(fetched.filter((p) => !p.startsWith("AuthService/"))).toEqual(["PlaceService/ListChildren"]);
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  });
+
+  it("lists a signed-in author's drafts and published perspectives with ways to open, read and edit them", async () => {
+    const mine = {
+      perspectives: [
+        {
+          id: "d-1",
+          status: "PERSPECTIVE_STATUS_DRAFT",
+          titleIfNewArc: "Frost on the fountain",
+          place: { id: "ml-wh", kind: "PLACE_KIND_MALL", name: "White Oaks Mall" },
+          localDate: "2026-01-14",
+          parts: [{ position: 1, body: "The doors opened at nine." }],
+        },
+        {
+          id: "p-2",
+          arcId: "arc-2",
+          arcTitle: "The night the lights went out",
+          status: "PERSPECTIVE_STATUS_PUBLISHED",
+          loreStatus: "LORE_STATUS_SOLO",
+          place: { id: "ci-spr", kind: "PLACE_KIND_CITY", name: "Springfield" },
+          localDate: "2026-02-02",
+          parts: [{ position: 1, body: "It went dark." }],
+        },
+      ],
+    };
+    const { calls } = renderApp(
+      "/",
+      {
+        "PlaceService/ListChildren": () => ({ body: states }),
+        "PerspectiveService/ListMine": () => ({ body: mine }),
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    const draft = await within(yours).findByRole("link", { name: /Frost on the fountain/ });
+    expect(draft).toHaveAttribute("href", "/compose?perspectiveId=d-1");
+    expect(within(yours).getByText(/Draft/)).toBeInTheDocument();
+    expect(within(yours).getByRole("link", { name: /^The night the lights went out/ })).toHaveAttribute("href", "/perspectives/p-2");
+    expect(within(yours).getByRole("link", { name: "Edit The night the lights went out" })).toHaveAttribute(
+      "href",
+      "/compose?perspectiveId=p-2",
+    );
+    expect(calls("PerspectiveService/ListMine")).toHaveLength(1);
   });
 
   it("returns matching places with their parent chain as typed", async () => {

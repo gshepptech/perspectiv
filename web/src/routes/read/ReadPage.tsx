@@ -1,14 +1,17 @@
 import { Code, ConnectError } from "@connectrpc/connect";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
-import { useCallback } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { useCallback, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { formatDay, genreLabel, loreStatusLabel } from "@/components/reader/format";
 import { Reader } from "@/components/reader/Reader";
+import { Button } from "@/components/ui/Button";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
 import { Genre, PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
+import { useSession } from "@/lib/session";
 
 /**
  * The part in the address, clamped to the perspective: a missing, malformed
@@ -70,12 +73,77 @@ function Missing({ title, detail }: { title: string; detail: string }) {
 }
 
 /**
+ * The author's edit link and delete action. Editing opens the composer, which
+ * keeps published text editable and locks characters with accepted claims.
+ * Deleting a published perspective leaves the removed placeholder in its
+ * place; deleting a draft returns the author to the landing page, where their
+ * remaining drafts are listed.
+ */
+function AuthorActions({ p }: { p: Perspective }) {
+  const isDraft = p.status === PerspectiveStatus.DRAFT;
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const remove = useMutation({
+    mutationFn: () => clients.perspective.delete({ perspectiveId: p.id }),
+    onSuccess: async () => {
+      setOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["perspective"] });
+      if (isDraft) await navigate("/");
+    },
+  });
+  const noun = isDraft ? "draft" : "perspective";
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Link to={`/compose?perspectiveId=${encodeURIComponent(p.id)}`} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
+        {isDraft ? "Edit draft" : "Edit"}
+      </Link>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) remove.reset();
+        }}
+      >
+        <DialogTrigger asChild>
+          <Button variant="danger" size="sm">
+            Delete
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogTitle>Delete this {noun}?</DialogTitle>
+          <DialogDescription>
+            {isDraft
+              ? "The draft is gone for good."
+              : "Readers see a removed placeholder in its place, and any character claims it is part of are dissolved."}
+          </DialogDescription>
+          {remove.isError && (
+            <p role="alert" className="mt-3 text-sm text-error">
+              It could not be deleted. Try again in a moment.
+            </p>
+          )}
+          <div className="mt-6 flex flex-wrap justify-end gap-3">
+            <DialogClose asChild>
+              <Button variant="secondary">Cancel</Button>
+            </DialogClose>
+            <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate()}>
+              Delete {noun}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/**
  * Reads one perspective a part at a time. The current part is the `part`
  * search parameter, and each page change pushes a history entry, so a page
  * is linkable and the back button returns to the previous part.
  */
 export function Component() {
   const { perspectiveId = "" } = useParams();
+  const session = useSession();
   const [params, setParams] = useSearchParams();
   const query = useQuery({
     queryKey: ["perspective", "get", { perspectiveId }],
@@ -128,6 +196,7 @@ export function Component() {
   }
 
   const isDraft = p.status === PerspectiveStatus.DRAFT;
+  const mine = session !== null && p.author?.userId === session.userId;
   const bodies = p.parts.toSorted((a, b) => a.position - b.position).map((part) => part.body);
   const title = p.arcTitle || p.titleIfNewArc || "Untitled";
 
@@ -135,13 +204,16 @@ export function Component() {
     <div className="min-w-0">
       <BackLink p={p} />
       {isDraft && (
-        <p className="mx-auto mb-4 flex max-w-measure flex-wrap items-center gap-3 rounded-md border border-warning px-3 py-2 text-sm">
+        <div className="mx-auto mb-4 flex max-w-measure flex-wrap items-center gap-3 rounded-md border border-warning px-3 py-1 text-sm">
           <span className="font-medium text-warning">Draft</span>
           <span className="text-ink-muted">Only you can see this.</span>
-          <Link to={`/compose?perspectiveId=${encodeURIComponent(p.id)}`} className="text-accent underline underline-offset-4">
-            Edit draft
-          </Link>
-        </p>
+          <AuthorActions p={p} />
+        </div>
+      )}
+      {!isDraft && mine && (
+        <div className="mx-auto mb-4 max-w-measure text-sm">
+          <AuthorActions p={p} />
+        </div>
       )}
       <Reader
         title={title}
