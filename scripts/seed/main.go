@@ -158,11 +158,34 @@ func (a *app) seedArc(ctx context.Context, sa seedArc) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("date: %w", err)
 	}
+	ids, arcID, err := a.publishAll(ctx, sa, placeID, day)
+	if err != nil || ids == nil {
+		return false, err
+	}
+	if err := a.link(ctx, sa, ids); err != nil {
+		return false, err
+	}
+	if err := a.voteAndReact(ctx, sa, ids); err != nil {
+		return false, err
+	}
+	if err := a.markTales(ctx, sa, ids); err != nil {
+		return false, err
+	}
+	// Let the next rank pass see the arc, whatever the claims changed.
+	if _, err := a.pool.Exec(ctx, `UPDATE arcs SET lore_dirty_at = now() WHERE id = $1`, arcID); err != nil {
+		return false, fmt.Errorf("mark arc for ranking: %w", err)
+	}
+	return true, nil
+}
+
+// publishAll publishes the arc's perspectives in order, the first creating
+// the arc. It returns nil ids when the arc was already seeded.
+func (a *app) publishAll(ctx context.Context, sa seedArc, placeID uuid.UUID, day time.Time) (map[string]string, string, error) {
 	ids := map[string]string{}
 	var arcID string
 	for i, sp := range sa.Perspectives {
 		if err := a.ensureUser(ctx, sp.User); err != nil {
-			return false, err
+			return nil, "", err
 		}
 		req := &perspectivv1.PublishRequest{
 			PlaceId: placeID.String(), LocalDate: sa.Date, Hour: sa.Hour,
@@ -176,35 +199,32 @@ func (a *app) seedArc(ctx context.Context, sa seedArc) (bool, error) {
 		}
 		res, err := a.perspective.Publish(a.as(ctx, sp.User), connect.NewRequest(req))
 		if connect.CodeOf(err) == connect.CodeAlreadyExists && i == 0 {
-			return false, nil
+			return nil, "", nil
 		}
 		if err != nil {
-			return false, fmt.Errorf("publish as %s: %w", sp.User, err)
+			return nil, "", fmt.Errorf("publish as %s: %w", sp.User, err)
 		}
 		ids[sp.User], arcID = res.Msg.GetPerspectiveId(), res.Msg.GetArcId()
 		if err := a.backdate(ctx, res.Msg.GetPerspectiveId(), day, sa.Hour, i); err != nil {
-			return false, err
+			return nil, "", err
 		}
 	}
-	if err := a.link(ctx, sa, ids); err != nil {
-		return false, err
-	}
-	if err := a.voteAndReact(ctx, sa, ids); err != nil {
-		return false, err
-	}
+	return ids, arcID, nil
+}
+
+// markTales makes the perspectives the content marks solo into tales, as the
+// expiry job would have once their window passed unclaimed.
+func (a *app) markTales(ctx context.Context, sa seedArc, ids map[string]string) error {
 	for _, sp := range sa.Perspectives {
-		if sp.Solo {
-			if _, err := a.pool.Exec(ctx, `UPDATE perspectives SET lore_status = 'LORE_STATUS_SOLO'
-				WHERE id = $1 AND lore_status = 'LORE_STATUS_PENDING'`, ids[sp.User]); err != nil {
-				return false, fmt.Errorf("mark tale: %w", err)
-			}
+		if !sp.Solo {
+			continue
+		}
+		if _, err := a.pool.Exec(ctx, `UPDATE perspectives SET lore_status = 'LORE_STATUS_SOLO'
+			WHERE id = $1 AND lore_status = 'LORE_STATUS_PENDING'`, ids[sp.User]); err != nil {
+			return fmt.Errorf("mark tale: %w", err)
 		}
 	}
-	// Let the next rank pass see the arc, whatever the claims changed.
-	if _, err := a.pool.Exec(ctx, `UPDATE arcs SET lore_dirty_at = now() WHERE id = $1`, arcID); err != nil {
-		return false, fmt.Errorf("mark arc for ranking: %w", err)
-	}
-	return true, nil
+	return nil
 }
 
 // ensureUser creates a verified seed account with a password nobody knows
