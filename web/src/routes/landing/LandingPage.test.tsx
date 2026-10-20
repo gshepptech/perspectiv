@@ -142,4 +142,16 @@ describe("landing page (AC-006, OT-036)", () => {
     const browse = await screen.findByRole("navigation", { name: "Browse by state" });
     expect(within(browse).getByRole("link", { name: "Illinois" })).toHaveAttribute("href", "/places/st-il");
   });
+
+  it("explains Perspectiv to a newcomer with a labelled example, not a feed", async () => {
+    landing();
+    expect(await screen.findByRole("heading", { level: 1, name: "Same place. Same day. Every side of the story." })).toBeInTheDocument();
+    const example = screen.getByRole("figure", { name: /Example/ });
+    expect(within(example).getByText(/The power went out halfway through open mic/)).toBeInTheDocument();
+    expect(within(example).getByText(/I don’t sing/)).toBeInTheDocument();
+    expect(within(example).getByText(/that was me/)).toBeInTheDocument();
+    const how = screen.getByRole("list", { name: "How Perspectiv works" });
+    expect(within(how).getAllByRole("listitem")).toHaveLength(4);
+    expect(screen.getByText("Anyone can read. Sign up to write your side.")).toBeInTheDocument();
+  });
 });

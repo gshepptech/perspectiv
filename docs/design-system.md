@@ -148,36 +148,42 @@ ARIA behaviour come from Radix, not from hand-written handlers:
 Icons are `lucide-react`, imported by name, at 16px in interface text and 20px
 in navigation, with `aria-hidden` when a text label sits beside them.
 
-## Landing (the opening page)
+## Landing (the front door)
 
-The landing page is the first page of a novel, not a product pitch. A
-first-time reader learns what Perspectiv is from one paragraph of prose and is
-asked one question. There is no feed (AC-006), no hero image, no feature grid
-and no call-to-action banner.
+The landing page is the one surface that has to sell the idea to someone who
+has never seen it, so it is the one page where Folio's quiet gives way to a
+modern front door. Reading pages stay bookish; the front door does not have
+to be. There is still no feed (AC-006): the page shows one illustrated
+example, never other people's posts.
 
-- **Chapter mark.** The page opens with an asterism (`⁂`, `aria-hidden`) in
-  `ink-muted`, centred over a short hairline, the way a chapter opens in print.
-- **Title.** "Where were you?" in Literata 600 at `text-3xl`, rising to
-  `text-5xl` from `sm`, left-aligned on the reading measure.
-- **Opening paragraph.** The idea, told as prose at `text-prose` on the
-  measure, with a drop cap: the first letter floats left across three lines at
-  `--drop-cap` size in Literata 600 `ink`. The drop cap is decoration only; the
-  paragraph reads the same without it, and assistive technology hears the
-  plain text.
-- **Second paragraph.** What a reader can do: read anything without an
-  account, and write when they were there. `ink-muted`, no drop cap.
-- **The question.** The place search is introduced by a label line in
-  letter-spaced capitals ("Begin with a place", the `label-caps` utility:
-  Public Sans 500, 13px, `ink-muted`) and drawn as a ruled line, not a box: a transparent field with a
-  `control` bottom border that turns `accent` on focus, Literata at
-  `text-prose`. Results keep their list form.
-- **Section breaks.** "Your perspectives" (signed in) and "Browse by state"
-  follow, each opened by the same asterism break instead of a heavy heading
-  rule. Their headings use `label-caps`. States set as a
-  multi-column list (one column on phones, three from `md`) so fifty names
-  read as a page, not a wall of links.
-- Everything stays on the reading measure and the 16px gutter; nothing on the
-  page animates.
+- **Exceptions to Folio, here only.** Cards MAY use `rounded-xl` and a soft
+  shadow (`shadow-sm` and an offset "stacked page" layer) to read as objects
+  you can pick up. The accent MAY fill a tinted panel (`accent` at 6 to 10
+  percent over `paper`) behind the example. Still no gradients, blur or
+  motion.
+- **Hero.** One promise, said plainly: "Same place. Same day. Every side of
+  the story." in Literata 600, `text-4xl` rising to `text-6xl`, tight leading,
+  then one sentence that says what Perspectiv is in Public Sans at
+  `text-lg`, `ink-muted`.
+- **The search is the call to action.** A large rounded field (`rounded-full`,
+  `surface`, `control` border, 56px tall) labelled "Search places", with the
+  placeholder "Where were you? A store, mall, town or city". Results drop
+  below it as before. Under it, one line for newcomers: "Anyone can read.
+  Sign up to write your side."
+- **The example arc.** A labelled "Example" panel that shows the product
+  working: a place chip and a day chip, then two perspective cards by two
+  usernames from the same evening, each a few lines of prose in Literata. A
+  phrase in one card is highlighted as a character, and a link line shows the
+  other writer claiming it ("that was me"). Under the cards a lore badge says
+  the linked stories became the canon of the day. On phones the cards stack.
+- **How it works, as notes on the example.** Four short captions sit beside
+  (desktop) or under (phone) the example, each with a lucide icon and no
+  numbers: pinned to a place and a day; everyone writes their own side; claim
+  the character who was you; linked stories become lore, and the favourite
+  becomes canon.
+- "Your perspectives" (signed in) and "Browse by state" follow as before.
+- Nothing animates, and everything keeps the 16px gutter with no sideways
+  scroll at 375px.
 
 ## Voice
 

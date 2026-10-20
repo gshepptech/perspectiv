@@ -63,30 +63,6 @@
   --max-width-shell: 72rem;
   --container-measure: 65ch;
   --container-shell: 72rem;
-  --drop-cap: 5.3em;
-}
-
-/* A novel's drop cap: the first letter spans about three lines of prose. */
-@utility drop-cap {
-  &::first-letter {
-    float: left;
-    margin: 0.1em 0.1em -0.05em 0;
-    font-family: var(--font-serif);
-    font-size: var(--drop-cap);
-    font-weight: 600;
-    line-height: 0.78;
-    color: var(--ink);
-  }
-}
-
-/* Letter-spaced capitals for the small labels that introduce a section. */
-@utility label-caps {
-  font-family: var(--font-sans);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
 }
 
 @layer base {

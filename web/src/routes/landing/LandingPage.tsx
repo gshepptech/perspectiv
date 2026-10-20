@@ -11,6 +11,8 @@ import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
 
+import { ExampleArc, HowItWorks } from "./ExampleArc";
+
 const DEBOUNCE_MS = 200;
 
 function useDebounced(value: string, ms: number): string {
@@ -20,17 +22,6 @@ function useDebounced(value: string, ms: number): string {
     return () => clearTimeout(t);
   }, [value, ms]);
   return debounced;
-}
-
-/** A section break as a novel sets one: an asterism between hairlines. */
-function Asterism({ className = "" }: { className?: string }) {
-  return (
-    <div aria-hidden className={`flex items-center gap-4 text-ink-muted ${className}`}>
-      <span className="h-px flex-1 bg-rule" />
-      <span className="font-serif text-lg">⁂</span>
-      <span className="h-px flex-1 bg-rule" />
-    </div>
-  );
 }
 
 function SearchResults({ query }: { query: string }) {
@@ -80,15 +71,14 @@ function BrowseStates() {
   });
   if (!states.data || states.data.places.length === 0) return null;
   return (
-    <nav aria-label="Browse by state" className="mt-12">
-      <Asterism className="mb-8" />
-      <h2 className="label-caps">Or browse by state</h2>
-      <ul className="mt-4 gap-x-8 sm:columns-2 md:columns-3">
+    <nav aria-label="Browse by state" className="mt-16">
+      <h2 className="text-xl">Or browse by state</h2>
+      <ul className="mt-4 flex flex-wrap gap-2">
         {states.data.places.map((state) => (
-          <li key={state.id} className="break-inside-avoid">
+          <li key={state.id}>
             <Link
               to={`/places/${state.id}`}
-              className="inline-flex min-h-11 items-center font-serif text-lg text-accent underline-offset-4 hover:underline"
+              className="inline-flex min-h-11 items-center rounded-full border border-rule bg-paper px-3.5 text-sm text-ink hover:border-accent hover:text-accent sm:min-h-9"
             >
               {state.name}
             </Link>
@@ -148,8 +138,7 @@ function YourPerspectives() {
   if (items.length === 0) return null;
   return (
     <section aria-labelledby="landing-mine" className="mt-12">
-      <Asterism className="mb-8" />
-      <h2 id="landing-mine" className="label-caps">
+      <h2 id="landing-mine" className="text-xl">
         Your perspectives
       </h2>
       <ul className="mt-3 divide-y divide-rule border-y border-rule">
@@ -185,44 +174,47 @@ export function Component() {
   }, [query, params, setParams]);
 
   return (
-    <section className="mx-auto max-w-measure min-w-0 pt-8 pb-16 sm:pt-16" aria-labelledby="landing-title">
-      <Asterism className="mb-10 sm:mb-14" />
-      <h1 id="landing-title" className="text-3xl sm:text-5xl">
-        Where were you?
-      </h1>
-      <div className="prose-body mt-8">
-        <p className="drop-cap">
-          Everyone who stood in the same place on the same day saw a different afternoon. Here each of them writes it
-          down: one perspective, in their own words, filed under that place and that day. When a writer recognises
-          someone in another’s pages, the woman at the counter or the man who left without paying, the two stories link.
-          Linked stories become a lore, and the lore readers keep returning to becomes the canon of the day.
-        </p>
-        <p className="text-ink-muted">
-          Anyone can read. If you were there, you can write your part.
-        </p>
-      </div>
-      <form role="search" className="mt-12" onSubmit={(e) => e.preventDefault()}>
-        <p className="label-caps" aria-hidden>
-          Begin with a place
-        </p>
-        <label htmlFor={inputId} className="sr-only">
-          Search places
-        </label>
-        <div className="relative mt-2">
-          <Search aria-hidden size={20} className="pointer-events-none absolute top-1/2 left-0 -translate-y-1/2 text-ink-muted" />
-          {/* A ruled line rather than a box; the focus ring still draws on :focus-visible. */}
-          <Input
-            id={inputId}
-            type="search"
-            autoComplete="off"
-            placeholder="A state, city, town, mall or store"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="rounded-none border-0 border-b border-control bg-transparent py-3 pr-0 pl-8 font-serif text-prose focus:border-accent"
-          />
+    <section className="mx-auto min-w-0 max-w-shell pt-6 pb-16 sm:pt-12" aria-labelledby="landing-title">
+      {/* Phones read hero, example, then notes; from lg the notes sit under the search. */}
+      <div className="grid min-w-0 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-x-14">
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1 lg:pt-6">
+          <h1 id="landing-title" className="text-4xl leading-[1.05] tracking-tight sm:text-6xl">
+            Same place. Same day. Every side of the story.
+          </h1>
+          <p className="mt-5 max-w-xl text-lg text-ink-muted">
+            Perspectiv is where people who were in the same place at the same time each write what they saw, and find
+            the strangers who were in their story.
+          </p>
+          <form role="search" className="mt-8" onSubmit={(e) => e.preventDefault()}>
+            <label htmlFor={inputId} className="sr-only">
+              Search places
+            </label>
+            <div className="relative">
+              <Search aria-hidden size={20} className="pointer-events-none absolute top-1/2 left-5 -translate-y-1/2 text-ink-muted" />
+              <Input
+                id={inputId}
+                type="search"
+                autoComplete="off"
+                placeholder="Where were you? A store, mall, town or city"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                className="min-h-14 rounded-full pr-5 pl-13 text-lg shadow-sm"
+              />
+            </div>
+          </form>
+          {query ? (
+            <SearchResults query={query} />
+          ) : (
+            !session && <p className="mt-3 text-sm text-ink-muted">Anyone can read. Sign up to write your side.</p>
+          )}
         </div>
-      </form>
-      {query && <SearchResults query={query} />}
+        <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          <ExampleArc />
+        </div>
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+          <HowItWorks />
+        </div>
+      </div>
       {session && <YourPerspectives />}
       <BrowseStates />
     </section>
