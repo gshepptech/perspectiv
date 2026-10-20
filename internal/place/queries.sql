@@ -100,12 +100,37 @@ ORDER BY lower(p.name), p.id
 LIMIT @lim::integer;
 
 -- name: ListChildren :many
-SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+-- A parent's visible children in name order, ignoring leading quotes and
+-- symbols; served by places_parent_sort_idx. sort_key is the cursor.
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+       lower(regexp_replace(p.name, '^[^[:alnum:]]+', ''))::text AS sort_key
 FROM places p
 WHERE p.parent_id = @parent_id::uuid AND p.hidden_at IS NULL
   AND (sqlc.narg(after_id)::uuid IS NULL
-       OR (lower(p.name), p.id) > (sqlc.narg(after_name)::text, sqlc.narg(after_id)::uuid))
-ORDER BY lower(p.name), p.id
+       OR (lower(regexp_replace(p.name, '^[^[:alnum:]]+', '')), p.id) > (sqlc.narg(after_name)::text, sqlc.narg(after_id)::uuid))
+ORDER BY lower(regexp_replace(p.name, '^[^[:alnum:]]+', '')), p.id
+LIMIT @lim::integer;
+
+-- name: ListStoriedChildren :many
+-- The children of a parent (the states when parent_id is NULL) with at least
+-- one readable story at or below them, most recently started arc first.
+-- Found from the arcs' place paths, so a state with a million places costs
+-- what its arcs cost.
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+FROM (
+    SELECT CASE WHEN sqlc.narg(parent_id)::uuid IS NULL THEN a.place_path[1]
+                ELSE a.place_path[array_position(a.place_path, sqlc.narg(parent_id)::uuid) + 1] END AS child_id,
+           max(a.created_at) AS latest
+    FROM arcs a
+    WHERE (sqlc.narg(parent_id)::uuid IS NULL OR a.place_path @> ARRAY[sqlc.narg(parent_id)::uuid])
+      AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+      AND EXISTS (SELECT 1 FROM perspectives v
+                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
+    GROUP BY 1
+) t
+JOIN places p ON p.id = t.child_id
+ORDER BY t.latest DESC, p.id
 LIMIT @lim::integer;
 
 -- name: LockVisibleParent :one
@@ -121,27 +146,22 @@ VALUES (@kind::text, @name::text, @parent_id::uuid, @timezone::text, 'PLACE_SOUR
 RETURNING id, kind, name, parent_id, timezone, source, user_added;
 
 -- name: EpicArcsRanked :many
--- Arcs at the place and every visible descendant (a listing only: each
+-- Arcs at the place and every visible descendant, found by arcs.place_path
+-- (arcs_place_path_idx) (a listing only: each
 -- arc keeps its own stored canon). An arc is listed when it has at least one
 -- readable perspective, of the genre when one is given. Order: arcs with a
 -- canon first, then the stored canon score, member count, newest, id.
-WITH RECURSIVE scope AS (
-    SELECT @place_id::uuid AS id, 0 AS depth
-    UNION ALL
-    SELECT ch.id, s.depth + 1
-    FROM places ch
-    JOIN scope s ON ch.parent_id = s.id
-    WHERE ch.hidden_at IS NULL AND s.depth < 8
-)
 SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        (SELECT count(*) FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
 FROM arcs a
-JOIN scope s ON s.id = a.place_id
 JOIN places pl ON pl.id = a.place_id
-WHERE EXISTS (
+WHERE a.place_path @> ARRAY[@place_id::uuid]
+  -- Hiding a place hides every arc below it.
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND EXISTS (
         SELECT 1 FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
@@ -155,23 +175,17 @@ LIMIT @lim::integer;
 
 -- name: EpicArcsNewest :many
 -- The same arcs as EpicArcsRanked, newest first.
-WITH RECURSIVE scope AS (
-    SELECT @place_id::uuid AS id, 0 AS depth
-    UNION ALL
-    SELECT ch.id, s.depth + 1
-    FROM places ch
-    JOIN scope s ON ch.parent_id = s.id
-    WHERE ch.hidden_at IS NULL AND s.depth < 8
-)
 SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        (SELECT count(*) FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
 FROM arcs a
-JOIN scope s ON s.id = a.place_id
 JOIN places pl ON pl.id = a.place_id
-WHERE EXISTS (
+WHERE a.place_path @> ARRAY[@place_id::uuid]
+  -- Hiding a place hides every arc below it.
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND EXISTS (
         SELECT 1 FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
@@ -185,24 +199,18 @@ LIMIT @lim::integer;
 -- SOLO and REMOVED perspectives in arcs at the place and every visible
 -- descendant, newest published first. Deleted and hidden perspectives are
 -- left out. The excerpt is the first 200 characters of the first part.
-WITH RECURSIVE scope AS (
-    SELECT @place_id::uuid AS id, 0 AS depth
-    UNION ALL
-    SELECT ch.id, s.depth + 1
-    FROM places ch
-    JOIN scope s ON ch.parent_id = s.id
-    WHERE ch.hidden_at IS NULL AND s.depth < 8
-)
 SELECT v.id, v.arc_id, a.title AS arc_title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, v.author_id, u.username, v.genre, v.lore_status, v.published_at,
        coalesce((SELECT left(pp.body, 200) FROM perspective_parts pp
                  WHERE pp.perspective_id = v.id ORDER BY pp.position LIMIT 1), '')::text AS excerpt
 FROM perspectives v
 JOIN arcs a ON a.id = v.arc_id
-JOIN scope s ON s.id = a.place_id
 JOIN places pl ON pl.id = a.place_id
 JOIN users u ON u.id = v.author_id
-WHERE v.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
+WHERE a.place_path @> ARRAY[@place_id::uuid]
+  -- Hiding a place hides every arc below it.
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND v.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
   AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
   AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text)

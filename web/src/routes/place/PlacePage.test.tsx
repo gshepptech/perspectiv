@@ -87,7 +87,8 @@ function placePage(path = "/places/ci-spr", handlers: Record<string, BodyHandler
   return renderApp(path, {
     "PlaceService/GetPlace": () => ({ body: { place: springfield } }),
     "PlaceService/GetEpic": epic,
-    "PlaceService/ListChildren": () => ({ body: { places: [{ ...store, parentId: "ci-spr" }] } }),
+    "PlaceService/ListChildren": (body) =>
+      body.withStories ? { body: { places: [] } } : { body: { places: [{ ...store, parentId: "ci-spr" }] } },
     ...handlers,
   });
 }
@@ -189,6 +190,24 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     placePage();
     const inside = await screen.findByRole("navigation", { name: "Places in Springfield" });
     expect(within(inside).getByRole("link", { name: "Prairie Books" })).toHaveAttribute("href", "/places/so-bk");
+  });
+
+  it("lists the places with stories first, then every place, and filters within the place", async () => {
+    const user = userEvent.setup();
+    const diner = { id: "so-dn", kind: "PLACE_KIND_STORE", name: "Corner Diner", parentId: "ci-spr" };
+    const { calls } = placePage("/places/ci-spr", {
+      "PlaceService/ListChildren": (body) =>
+        body.withStories ? { body: { places: [diner] } } : { body: { places: [{ ...store, parentId: "ci-spr" }, diner] } },
+      "PlaceService/SearchPlaces": () => ({ body: { places: [{ ...store, parentId: "ci-spr" }] } }),
+    });
+    const storied = await screen.findByRole("list", { name: "Places with stories" });
+    expect(within(storied).getByRole("link", { name: "Corner Diner" })).toHaveAttribute("href", "/places/so-dn");
+    expect(within(screen.getByRole("list", { name: "All places in Springfield" })).getAllByRole("link")).toHaveLength(2);
+    await user.type(screen.getByRole("searchbox", { name: "Find a place in Springfield" }), "prairie");
+    const matches = await screen.findByRole("list", { name: "Matching places" });
+    expect(await within(matches).findByRole("link", { name: "Prairie Books" })).toBeInTheDocument();
+    expect(calls("PlaceService/SearchPlaces").at(-1)).toEqual({ query: "prairie", parentId: "ci-spr" });
+    expect(calls("PlaceService/ListChildren")).toContainEqual({ parentId: "ci-spr", withStories: true, pageSize: 20 });
   });
 
   it("offers writing here, which the shell sends a signed-out reader to sign in for", async () => {

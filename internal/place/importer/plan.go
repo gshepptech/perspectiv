@@ -61,6 +61,9 @@ type Plan struct {
 	// names no imported city or town (an empty locality, a neighbourhood or
 	// an unincorporated area) or no state.
 	Unfiled int
+	// Unlisted counts US places left out because they are offices, services
+	// or care places nobody would write about (see visitable.go).
+	Unlisted int
 }
 
 // Nodes returns the nodes in write order: states, cities, towns, malls,

@@ -333,3 +333,41 @@ func TestPrepareEmptyFiles(t *testing.T) {
 		t.Errorf("empty files gave %d nodes, %d skipped, %d unfiled", len(plan.Nodes()), plan.Skipped, plan.Unfiled)
 	}
 }
+
+// Offices, services and care places nobody would write about are left out
+// and counted; places people go, and places with no category, are kept.
+func TestPrepareLeavesOutUnlistedCategories(t *testing.T) {
+	t.Parallel()
+	ep := `"addresses":[{"locality":"El Paso","region":"TX","country":"US"}]`
+	places := strings.Join([]string{
+		`{"id":"ov-realtor","names":{"primary":"Sunbelt Realty"},"basic_category":"real_estate_service",` + ep + `}`,
+		`{"id":"ov-dentist","names":{"primary":"Bright Smile Dental"},"basic_category":"dental_clinic",` + ep + `}`,
+		`{"id":"ov-laundry","names":{"primary":"Suds Laundromat"},"basic_category":"laundry_service",` + ep + `}`,
+		`{"id":"ov-bar","names":{"primary":"Rosa's Cantina"},"basic_category":"bar",` + ep + `}`,
+		`{"id":"ov-none","names":{"primary":"Plaza Bench"},` + ep + `}`,
+		`{"fsq_place_id":"fsq-cpa","name":"Desert CPA","locality":"El Paso","region":"TX","country":"US","fsq_category_labels":["Business and Professional Services > Accounting and Bookkeeping Service"]}`,
+		`{"id":"ov-dot","names":{"primary":"."},"basic_category":"bar",` + ep + `}`,
+		`{"fsq_place_id":"fsq-wash","name":"Wash World","locality":"El Paso","region":"TX","country":"US","fsq_category_labels":["Business and Professional Services > Laundromat"]}`,
+	}, "\n")
+	plan, err := importer.Prepare(openFixture(t, "us_divisions.ndjson"), strings.NewReader(places))
+	if err != nil {
+		t.Fatalf("Prepare: %v", err)
+	}
+	if plan.Unlisted != 4 {
+		t.Errorf("Unlisted = %d, want 4 (realtor, dentist, accountant, a name with no letters)", plan.Unlisted)
+	}
+	have := map[string]bool{}
+	for _, n := range plan.Nodes() {
+		have[n.Name] = true
+	}
+	for _, name := range []string{"Suds Laundromat", "Rosa's Cantina", "Plaza Bench", "Wash World"} {
+		if !have[name] {
+			t.Errorf("%s was left out; want it kept", name)
+		}
+	}
+	for _, name := range []string{"Sunbelt Realty", "Bright Smile Dental", "Desert CPA"} {
+		if have[name] {
+			t.Errorf("%s was imported; want it left out", name)
+		}
+	}
+}

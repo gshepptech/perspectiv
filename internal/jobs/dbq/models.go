@@ -22,6 +22,7 @@ type Arc struct {
 	MemberCount int32
 	LoreDirtyAt pgtype.Timestamptz
 	CreatedAt   pgtype.Timestamptz
+	PlacePath   []uuid.UUID
 }
 
 type Block struct {

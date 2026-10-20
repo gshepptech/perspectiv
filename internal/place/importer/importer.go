@@ -31,6 +31,9 @@ type Result struct {
 	// Unfiled counts US malls and stores left out because their address
 	// names no imported city or town.
 	Unfiled int
+	// Unlisted counts US places left out as offices, services or care
+	// places nobody would write about.
+	Unlisted int
 }
 
 // Importer writes a Plan to the places table.
@@ -60,10 +63,11 @@ func (im *Importer) Import(ctx context.Context, divisions, places io.Reader) (Re
 // same import updates rows in place by source id.
 func (im *Importer) Write(ctx context.Context, plan *Plan) (Result, error) {
 	res := Result{
-		ByKind:  map[perspectivv1.PlaceKind]int{},
-		Merged:  len(plan.merged),
-		Skipped: plan.Skipped,
-		Unfiled: plan.Unfiled,
+		ByKind:   map[perspectivv1.PlaceKind]int{},
+		Merged:   len(plan.merged),
+		Skipped:  plan.Skipped,
+		Unfiled:  plan.Unfiled,
+		Unlisted: plan.Unlisted,
 	}
 	tx, err := im.pool.Begin(ctx)
 	if err != nil {
@@ -100,6 +104,7 @@ func (im *Importer) Write(ctx context.Context, plan *Plan) (Result, error) {
 		Int("merged", res.Merged).
 		Int("skipped", res.Skipped).
 		Int("unfiled", res.Unfiled).
+		Int("unlisted", res.Unlisted).
 		Msg("place import committed")
 	return res, nil
 }

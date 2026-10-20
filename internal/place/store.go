@@ -49,6 +49,9 @@ type Place struct {
 	Source    perspectivv1.PlaceSource
 	UserAdded bool
 	Ancestors []Ref
+	// sortKey is the name the children list orders and pages by; set by
+	// Children only.
+	sortKey string
 }
 
 // Store reads the place hierarchy, writes user-added places and lists the
@@ -210,6 +213,27 @@ func (s *Store) Children(ctx context.Context, parent uuid.UUID, after *ChildCurs
 	if err != nil {
 		return nil, fmt.Errorf("list children: %w", err)
 	}
+	for _, r := range rows {
+		p := placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded)
+		p.sortKey = r.SortKey
+		ps = append(ps, p)
+	}
+	return ps, nil
+}
+
+// StoriedChildren lists up to limit children of parent (the states when
+// parent is uuid.Nil) with a readable story at or below them, most recently
+// started arc first.
+func (s *Store) StoriedChildren(ctx context.Context, parent uuid.UUID, limit int32) ([]Place, error) {
+	var p uuid.NullUUID
+	if parent != uuid.Nil {
+		p = uuid.NullUUID{UUID: parent, Valid: true}
+	}
+	rows, err := s.q.ListStoriedChildren(ctx, dbq.ListStoriedChildrenParams{ParentID: p, Lim: limit})
+	if err != nil {
+		return nil, fmt.Errorf("list storied children: %w", err)
+	}
+	ps := make([]Place, 0, len(rows))
 	for _, r := range rows {
 		ps = append(ps, placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded))
 	}

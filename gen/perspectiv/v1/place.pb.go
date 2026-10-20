@@ -386,9 +386,13 @@ func (x *GetPlaceResponse) GetPlace() *Place {
 type ListChildrenRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Empty lists the states.
-	ParentId      string `protobuf:"bytes,1,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
-	PageToken     string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	PageSize      int32  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	ParentId  string `protobuf:"bytes,1,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	PageToken string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize  int32  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// Only the children with a readable story at or below them, most recently
+	// started arc first: the places a reader is likely to want. One page of
+	// page_size, with no next page token.
+	WithStories   bool `protobuf:"varint,4,opt,name=with_stories,json=withStories,proto3" json:"with_stories,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -442,6 +446,13 @@ func (x *ListChildrenRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *ListChildrenRequest) GetWithStories() bool {
+	if x != nil {
+		return x.WithStories
+	}
+	return false
 }
 
 type ListChildrenResponse struct {
@@ -1034,12 +1045,13 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"\x0fGetPlaceRequest\x12\x19\n" +
 	"\bplace_id\x18\x01 \x01(\tR\aplaceId\">\n" +
 	"\x10GetPlaceResponse\x12*\n" +
-	"\x05place\x18\x01 \x01(\v2\x14.perspectiv.v1.PlaceR\x05place\"n\n" +
+	"\x05place\x18\x01 \x01(\v2\x14.perspectiv.v1.PlaceR\x05place\"\x91\x01\n" +
 	"\x13ListChildrenRequest\x12\x1b\n" +
 	"\tparent_id\x18\x01 \x01(\tR\bparentId\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"l\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12!\n" +
+	"\fwith_stories\x18\x04 \x01(\bR\vwithStories\"l\n" +
 	"\x14ListChildrenResponse\x12,\n" +
 	"\x06places\x18\x01 \x03(\v2\x14.perspectiv.v1.PlaceR\x06places\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"s\n" +

@@ -78,6 +78,13 @@ func (h *Handler) ListChildren(ctx context.Context, req *connect.Request[perspec
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
+	if req.Msg.GetWithStories() {
+		ps, err := h.svc.StoriedChildren(ctx, parentID, page.Limit)
+		if err != nil {
+			return nil, apiutil.ToConnect(err)
+		}
+		return connect.NewResponse(&perspectivv1.ListChildrenResponse{Places: placesToProto(ps)}), nil
+	}
 	ps, next, err := h.svc.ListChildren(ctx, parentID, page)
 	if err != nil {
 		return nil, apiutil.ToConnect(err)

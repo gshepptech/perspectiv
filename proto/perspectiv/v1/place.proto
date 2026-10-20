@@ -69,6 +69,10 @@ message ListChildrenRequest {
   string parent_id = 1;
   string page_token = 2;
   int32 page_size = 3;
+  // Only the children with a readable story at or below them, most recently
+  // started arc first: the places a reader is likely to want. One page of
+  // page_size, with no next page token.
+  bool with_stories = 4;
 }
 
 message ListChildrenResponse {

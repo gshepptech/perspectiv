@@ -122,7 +122,28 @@ func (s *Service) ListChildren(ctx context.Context, parentID uuid.UUID, page api
 	}
 	ps = ps[:page.Limit]
 	last := ps[len(ps)-1]
-	return ps, mustCursor(childCursor{Name: strings.ToLower(last.Name), ID: last.ID}), nil
+	key := last.sortKey
+	if parentID == uuid.Nil {
+		// The states page by plain lowercased name (ListStates).
+		key = strings.ToLower(last.Name)
+	}
+	return ps, mustCursor(childCursor{Name: key, ID: last.ID}), nil
+}
+
+// StoriedChildren returns up to limit children of parentID (the states when
+// it is uuid.Nil) that have a readable story at or below them, most recently
+// started arc first.
+func (s *Service) StoriedChildren(ctx context.Context, parentID uuid.UUID, limit int32) ([]Place, error) {
+	if parentID != uuid.Nil {
+		if _, err := s.store.Get(ctx, parentID); err != nil {
+			return nil, notFound(err)
+		}
+	}
+	ps, err := s.store.StoriedChildren(ctx, parentID, limit)
+	if err != nil {
+		return nil, apiutil.Internal(err)
+	}
+	return ps, nil
 }
 
 // level is a kind's depth in the hierarchy, STATE = 1 through STORE = 5.

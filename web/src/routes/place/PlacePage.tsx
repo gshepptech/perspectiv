@@ -1,16 +1,19 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Crown, PenLine, Plus } from "lucide-react";
+import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
 import { formatDay, genreLabel, loreStatusLabel, placeKindLabel } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { EpicTab, Genre, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { EpicArc, EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
 import { clients } from "@/lib/connect";
 import { AuthorLink } from "@/components/reader/AuthorLink";
+import { useDebounced } from "@/routes/compose/search";
 
 // The tab and genre live in the address as lower-case words (?tab=tales,
 // ?genre=slice_of_life) so a filtered epic is linkable; the defaults (Ranked,
@@ -165,38 +168,98 @@ function EpicList({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Ge
   );
 }
 
+function PlaceLinks({ places, label }: { places: Place[]; label: string }) {
+  return (
+    <ul aria-label={label} className="mt-2 flex flex-wrap gap-x-4 md:block">
+      {places.map((child) => (
+        <li key={child.id}>
+          <Link
+            to={`/places/${child.id}`}
+            className="inline-flex min-h-11 max-w-full items-center wrap-anywhere text-accent underline underline-offset-4"
+          >
+            {child.name}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The places inside this one. Those with stories come first, since they are
+ * what a reader came for; then a filter, because a city holds thousands of
+ * places; then every place in name order, a page at a time.
+ */
 function Children({ place }: { place: Place }) {
+  // A store is a leaf of the hierarchy.
+  const enabled = place.kind !== PlaceKind.STORE;
+  const [filter, setFilter] = useState("");
+  const query = useDebounced(filter.trim(), 200);
+  const storied = useQuery({
+    queryKey: ["place", "listChildren", { parentId: place.id, withStories: true }],
+    queryFn: ({ signal }) => clients.place.listChildren({ parentId: place.id, withStories: true, pageSize: 20 }, { signal }),
+    enabled,
+  });
   const children = useInfiniteQuery({
     queryKey: ["place", "listChildren", { parentId: place.id }],
     queryFn: ({ pageParam, signal }) =>
       clients.place.listChildren({ parentId: place.id, pageToken: pageParam, pageSize: 100 }, { signal }),
     initialPageParam: "",
     getNextPageParam: (last) => last.nextPageToken || undefined,
-    // A store is a leaf of the hierarchy.
-    enabled: place.kind !== PlaceKind.STORE,
+    enabled: enabled && query === "",
   });
-  const places = children.data?.pages.flatMap((p) => p.places) ?? [];
-  if (places.length === 0) return null;
+  const found = useQuery({
+    queryKey: ["place", "searchPlaces", { query, parentId: place.id }],
+    queryFn: ({ signal }) => clients.place.searchPlaces({ query, parentId: place.id }, { signal }),
+    enabled: enabled && query.length >= 2,
+  });
+  const withStories = storied.data?.places ?? [];
+  const all = children.data?.pages.flatMap((p) => p.places) ?? [];
+  if (!enabled || (withStories.length === 0 && all.length === 0 && query === "")) return null;
+  const filterId = `filter-${place.id}`;
   return (
-    <nav aria-label={`Places in ${place.name}`} className="min-w-0">
-      <h2 className="text-xl wrap-anywhere">Places in {place.name}</h2>
-      <ul className="mt-2 flex flex-wrap gap-x-4 md:block">
-        {places.map((child) => (
-          <li key={child.id}>
-            <Link
-              to={`/places/${child.id}`}
-              className="inline-flex min-h-11 max-w-full items-center wrap-anywhere text-accent underline underline-offset-4"
-            >
-              {child.name}
-            </Link>
-          </li>
-        ))}
-      </ul>
-      {children.hasNextPage && (
-        <Button variant="ghost" size="sm" disabled={children.isFetchingNextPage} onClick={() => void children.fetchNextPage()}>
-          More places
-        </Button>
+    <nav aria-label={`Places in ${place.name}`} className="grid min-w-0 gap-6">
+      {withStories.length > 0 && (
+        <section aria-labelledby={`storied-${place.id}`} className="min-w-0">
+          <h2 id={`storied-${place.id}`} className="text-xl wrap-anywhere">
+            Where people wrote
+          </h2>
+          <PlaceLinks places={withStories} label="Places with stories" />
+        </section>
       )}
+      <section aria-labelledby={`all-${place.id}`} className="min-w-0">
+        <h2 id={`all-${place.id}`} className="text-xl wrap-anywhere">
+          Places in {place.name}
+        </h2>
+        <label htmlFor={filterId} className="sr-only">
+          Find a place in {place.name}
+        </label>
+        <Input
+          id={filterId}
+          type="search"
+          autoComplete="off"
+          placeholder={`Find a place in ${place.name}`}
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="mt-2"
+        />
+        {query.length >= 2 ? (
+          found.isSuccess && found.data.places.length === 0 ? (
+            <p className="mt-2 text-sm text-ink-muted">No place in {place.name} matches “{query}”.</p>
+          ) : (
+            <PlaceLinks places={found.data?.places ?? []} label="Matching places" />
+          )
+        ) : (
+          <>
+            <PlaceLinks places={all} label={`All places in ${place.name}`} />
+            {children.hasNextPage && (
+              <Button variant="ghost" size="sm" disabled={children.isFetchingNextPage} onClick={() => void children.fetchNextPage()}>
+                More places
+              </Button>
+            )}
+          </>
+        )}
+      </section>
     </nav>
   );
 }

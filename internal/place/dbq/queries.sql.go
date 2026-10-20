@@ -13,39 +13,33 @@ import (
 )
 
 const epicArcsNewest = `-- name: EpicArcsNewest :many
-WITH RECURSIVE scope AS (
-    SELECT $5::uuid AS id, 0 AS depth
-    UNION ALL
-    SELECT ch.id, s.depth + 1
-    FROM places ch
-    JOIN scope s ON ch.parent_id = s.id
-    WHERE ch.hidden_at IS NULL AND s.depth < 8
-)
 SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        (SELECT count(*) FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
 FROM arcs a
-JOIN scope s ON s.id = a.place_id
 JOIN places pl ON pl.id = a.place_id
-WHERE EXISTS (
+WHERE a.place_path @> ARRAY[$1::uuid]
+  -- Hiding a place hides every arc below it.
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND EXISTS (
         SELECT 1 FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
-          AND ($1::text IS NULL OR v.genre = $1::text))
-  AND ($2::uuid IS NULL
-       OR (a.created_at, a.id) < ($3::timestamptz, $2::uuid))
+          AND ($2::text IS NULL OR v.genre = $2::text))
+  AND ($3::uuid IS NULL
+       OR (a.created_at, a.id) < ($4::timestamptz, $3::uuid))
 ORDER BY a.created_at DESC, a.id DESC
-LIMIT $4::integer
+LIMIT $5::integer
 `
 
 type EpicArcsNewestParams struct {
+	PlaceID      uuid.UUID
 	Genre        pgtype.Text
 	AfterID      uuid.NullUUID
 	AfterCreated pgtype.Timestamptz
 	Lim          int32
-	PlaceID      uuid.UUID
 }
 
 type EpicArcsNewestRow struct {
@@ -66,11 +60,11 @@ type EpicArcsNewestRow struct {
 // The same arcs as EpicArcsRanked, newest first.
 func (q *Queries) EpicArcsNewest(ctx context.Context, arg EpicArcsNewestParams) ([]EpicArcsNewestRow, error) {
 	rows, err := q.db.Query(ctx, epicArcsNewest,
+		arg.PlaceID,
 		arg.Genre,
 		arg.AfterID,
 		arg.AfterCreated,
 		arg.Lim,
-		arg.PlaceID,
 	)
 	if err != nil {
 		return nil, err
@@ -104,36 +98,31 @@ func (q *Queries) EpicArcsNewest(ctx context.Context, arg EpicArcsNewestParams) 
 }
 
 const epicArcsRanked = `-- name: EpicArcsRanked :many
-WITH RECURSIVE scope AS (
-    SELECT $8::uuid AS id, 0 AS depth
-    UNION ALL
-    SELECT ch.id, s.depth + 1
-    FROM places ch
-    JOIN scope s ON ch.parent_id = s.id
-    WHERE ch.hidden_at IS NULL AND s.depth < 8
-)
 SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        (SELECT count(*) FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
 FROM arcs a
-JOIN scope s ON s.id = a.place_id
 JOIN places pl ON pl.id = a.place_id
-WHERE EXISTS (
+WHERE a.place_path @> ARRAY[$1::uuid]
+  -- Hiding a place hides every arc below it.
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND EXISTS (
         SELECT 1 FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
-          AND ($1::text IS NULL OR v.genre = $1::text))
-  AND ($2::uuid IS NULL
+          AND ($2::text IS NULL OR v.genre = $2::text))
+  AND ($3::uuid IS NULL
        OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
-          < ($3::boolean, $4::double precision,
-             $5::integer, $6::timestamptz, $2::uuid))
+          < ($4::boolean, $5::double precision,
+             $6::integer, $7::timestamptz, $3::uuid))
 ORDER BY (a.canon_lore_id IS NOT NULL) DESC, a.canon_score DESC, a.member_count DESC, a.created_at DESC, a.id DESC
-LIMIT $7::integer
+LIMIT $8::integer
 `
 
 type EpicArcsRankedParams struct {
+	PlaceID       uuid.UUID
 	Genre         pgtype.Text
 	AfterID       uuid.NullUUID
 	AfterHasCanon pgtype.Bool
@@ -141,7 +130,6 @@ type EpicArcsRankedParams struct {
 	AfterMembers  pgtype.Int4
 	AfterCreated  pgtype.Timestamptz
 	Lim           int32
-	PlaceID       uuid.UUID
 }
 
 type EpicArcsRankedRow struct {
@@ -159,12 +147,14 @@ type EpicArcsRankedRow struct {
 	PerspectiveCount int32
 }
 
-// Arcs at the place and every visible descendant (a listing only: each
+// Arcs at the place and every visible descendant, found by arcs.place_path
+// (arcs_place_path_idx) (a listing only: each
 // arc keeps its own stored canon). An arc is listed when it has at least one
 // readable perspective, of the genre when one is given. Order: arcs with a
 // canon first, then the stored canon score, member count, newest, id.
 func (q *Queries) EpicArcsRanked(ctx context.Context, arg EpicArcsRankedParams) ([]EpicArcsRankedRow, error) {
 	rows, err := q.db.Query(ctx, epicArcsRanked,
+		arg.PlaceID,
 		arg.Genre,
 		arg.AfterID,
 		arg.AfterHasCanon,
@@ -172,7 +162,6 @@ func (q *Queries) EpicArcsRanked(ctx context.Context, arg EpicArcsRankedParams) 
 		arg.AfterMembers,
 		arg.AfterCreated,
 		arg.Lim,
-		arg.PlaceID,
 	)
 	if err != nil {
 		return nil, err
@@ -206,39 +195,33 @@ func (q *Queries) EpicArcsRanked(ctx context.Context, arg EpicArcsRankedParams) 
 }
 
 const epicTales = `-- name: EpicTales :many
-WITH RECURSIVE scope AS (
-    SELECT $5::uuid AS id, 0 AS depth
-    UNION ALL
-    SELECT ch.id, s.depth + 1
-    FROM places ch
-    JOIN scope s ON ch.parent_id = s.id
-    WHERE ch.hidden_at IS NULL AND s.depth < 8
-)
 SELECT v.id, v.arc_id, a.title AS arc_title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, v.author_id, u.username, v.genre, v.lore_status, v.published_at,
        coalesce((SELECT left(pp.body, 200) FROM perspective_parts pp
                  WHERE pp.perspective_id = v.id ORDER BY pp.position LIMIT 1), '')::text AS excerpt
 FROM perspectives v
 JOIN arcs a ON a.id = v.arc_id
-JOIN scope s ON s.id = a.place_id
 JOIN places pl ON pl.id = a.place_id
 JOIN users u ON u.id = v.author_id
-WHERE v.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
+WHERE a.place_path @> ARRAY[$1::uuid]
+  -- Hiding a place hides every arc below it.
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND v.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
   AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
-  AND ($1::text IS NULL OR v.genre = $1::text)
-  AND ($2::uuid IS NULL
-       OR (v.published_at, v.id) < ($3::timestamptz, $2::uuid))
+  AND ($2::text IS NULL OR v.genre = $2::text)
+  AND ($3::uuid IS NULL
+       OR (v.published_at, v.id) < ($4::timestamptz, $3::uuid))
 ORDER BY v.published_at DESC, v.id DESC
-LIMIT $4::integer
+LIMIT $5::integer
 `
 
 type EpicTalesParams struct {
+	PlaceID        uuid.UUID
 	Genre          pgtype.Text
 	AfterID        uuid.NullUUID
 	AfterPublished pgtype.Timestamptz
 	Lim            int32
-	PlaceID        uuid.UUID
 }
 
 type EpicTalesRow struct {
@@ -263,11 +246,11 @@ type EpicTalesRow struct {
 // left out. The excerpt is the first 200 characters of the first part.
 func (q *Queries) EpicTales(ctx context.Context, arg EpicTalesParams) ([]EpicTalesRow, error) {
 	rows, err := q.db.Query(ctx, epicTales,
+		arg.PlaceID,
 		arg.Genre,
 		arg.AfterID,
 		arg.AfterPublished,
 		arg.Lim,
-		arg.PlaceID,
 	)
 	if err != nil {
 		return nil, err
@@ -450,12 +433,13 @@ func (q *Queries) ListAncestors(ctx context.Context, ids []uuid.UUID) ([]ListAnc
 }
 
 const listChildren = `-- name: ListChildren :many
-SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+       lower(regexp_replace(p.name, '^[^[:alnum:]]+', ''))::text AS sort_key
 FROM places p
 WHERE p.parent_id = $1::uuid AND p.hidden_at IS NULL
   AND ($2::uuid IS NULL
-       OR (lower(p.name), p.id) > ($3::text, $2::uuid))
-ORDER BY lower(p.name), p.id
+       OR (lower(regexp_replace(p.name, '^[^[:alnum:]]+', '')), p.id) > ($3::text, $2::uuid))
+ORDER BY lower(regexp_replace(p.name, '^[^[:alnum:]]+', '')), p.id
 LIMIT $4::integer
 `
 
@@ -474,8 +458,11 @@ type ListChildrenRow struct {
 	Timezone  string
 	Source    string
 	UserAdded bool
+	SortKey   string
 }
 
+// A parent's visible children in name order, ignoring leading quotes and
+// symbols; served by places_parent_sort_idx. sort_key is the cursor.
 func (q *Queries) ListChildren(ctx context.Context, arg ListChildrenParams) ([]ListChildrenRow, error) {
 	rows, err := q.db.Query(ctx, listChildren,
 		arg.ParentID,
@@ -498,6 +485,7 @@ func (q *Queries) ListChildren(ctx context.Context, arg ListChildrenParams) ([]L
 			&i.Timezone,
 			&i.Source,
 			&i.UserAdded,
+			&i.SortKey,
 		); err != nil {
 			return nil, err
 		}
@@ -544,6 +532,72 @@ func (q *Queries) ListStates(ctx context.Context, arg ListStatesParams) ([]ListS
 	var items []ListStatesRow
 	for rows.Next() {
 		var i ListStatesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.Name,
+			&i.ParentID,
+			&i.Timezone,
+			&i.Source,
+			&i.UserAdded,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listStoriedChildren = `-- name: ListStoriedChildren :many
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+FROM (
+    SELECT CASE WHEN $1::uuid IS NULL THEN a.place_path[1]
+                ELSE a.place_path[array_position(a.place_path, $1::uuid) + 1] END AS child_id,
+           max(a.created_at) AS latest
+    FROM arcs a
+    WHERE ($1::uuid IS NULL OR a.place_path @> ARRAY[$1::uuid])
+      AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+      AND EXISTS (SELECT 1 FROM perspectives v
+                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
+    GROUP BY 1
+) t
+JOIN places p ON p.id = t.child_id
+ORDER BY t.latest DESC, p.id
+LIMIT $2::integer
+`
+
+type ListStoriedChildrenParams struct {
+	ParentID uuid.NullUUID
+	Lim      int32
+}
+
+type ListStoriedChildrenRow struct {
+	ID        uuid.UUID
+	Kind      string
+	Name      string
+	ParentID  uuid.NullUUID
+	Timezone  string
+	Source    string
+	UserAdded bool
+}
+
+// The children of a parent (the states when parent_id is NULL) with at least
+// one readable story at or below them, most recently started arc first.
+// Found from the arcs' place paths, so a state with a million places costs
+// what its arcs cost.
+func (q *Queries) ListStoriedChildren(ctx context.Context, arg ListStoriedChildrenParams) ([]ListStoriedChildrenRow, error) {
+	rows, err := q.db.Query(ctx, listStoriedChildren, arg.ParentID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListStoriedChildrenRow
+	for rows.Next() {
+		var i ListStoriedChildrenRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Kind,

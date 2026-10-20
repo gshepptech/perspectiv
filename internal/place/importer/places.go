@@ -69,6 +69,9 @@ type parsedPlace struct {
 	country  string
 	kind     perspectivv1.PlaceKind
 	lng, lat *float64
+	// listed is false for an office, service or care place left out; see
+	// visitable.go.
+	listed bool
 }
 
 func parsePlace(rec record) (parsedPlace, error) {
@@ -83,6 +86,7 @@ func parsePlace(rec record) (parsedPlace, error) {
 		out.sourceID = p.FsqPlaceID
 		out.name = p.Name
 		out.locality, out.region, out.country = p.Locality, p.Region, p.Country
+		out.listed = fsqListed(p.CategoryLabels)
 		for _, l := range p.CategoryLabels {
 			parts := strings.Split(l, ">")
 			if fsqMallLabels[nameKey(parts[len(parts)-1])] {
@@ -107,6 +111,7 @@ func parsePlace(rec record) (parsedPlace, error) {
 		if overtureIsMall(&p) {
 			out.kind = perspectivv1.PlaceKind_PLACE_KIND_MALL
 		}
+		out.listed = overtureListed(&p)
 	}
 	out.name = cleanName(out.name)
 	switch {
@@ -162,6 +167,8 @@ func (b *builder) addPlaces(r io.Reader, locs localityIndex) error {
 		switch {
 		case strings.ToUpper(p.country) != country:
 			b.plan.Skipped++
+		case !p.listed && p.kind != perspectivv1.PlaceKind_PLACE_KIND_MALL, !hasLetter(p.name):
+			b.plan.Unlisted++
 		case p.kind == perspectivv1.PlaceKind_PLACE_KIND_MALL:
 			malls = append(malls, p)
 		default:

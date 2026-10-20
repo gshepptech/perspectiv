@@ -325,3 +325,99 @@ func TestStoreDescendants(t *testing.T) {
 		t.Fatalf("after hiding the mall = %v, want %v", got, want)
 	}
 }
+
+// The places with stories under a parent are its children with a readable
+// story at or below them, newest first; hidden ones and ones whose only
+// story was deleted are left out. A place moved to another parent takes its
+// arcs' paths with it.
+func TestStoreStoriedChildren(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	s := place.NewStore(h.pool)
+	ctx := context.Background()
+	by := h.user(true)
+	base := time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
+	quiet := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Quiet Shop", h.city)
+	gone := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Gone Shop", h.city)
+	story := func(at uuid.UUID, mins int, deleted bool) {
+		t.Helper()
+		a := h.arc(at, "2026-10-01", "Arc", by, base.Add(time.Duration(mins)*time.Minute))
+		p := h.perspective(a, by, perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_PENDING, base, "words")
+		if deleted {
+			h.exec(`UPDATE perspectives SET deleted_at = now() WHERE id = $1`, p)
+		}
+	}
+	story(h.store, 1, false) // under the mall, so the mall is the city's child with it
+	story(h.town, 2, false)
+	story(gone, 3, true)
+	_ = quiet
+
+	names := func(parent uuid.UUID) []string {
+		t.Helper()
+		ps, err := s.StoriedChildren(ctx, parent, 20)
+		if err != nil {
+			t.Fatalf("StoriedChildren: %v", err)
+		}
+		out := make([]string, len(ps))
+		for i, p := range ps {
+			out[i] = p.Name
+		}
+		return out
+	}
+	// The hierarchy is state > city > town > mall > store.
+	if got := names(h.city); !slices.Equal(got, []string{h.name(h.town)}) {
+		t.Fatalf("storied children of the city = %v, want the town", got)
+	}
+	if got := names(h.town); !slices.Equal(got, []string{h.name(h.mall)}) {
+		t.Fatalf("storied children of the town = %v, want the mall (the town's own arc is not a child)", got)
+	}
+	if got := names(uuid.Nil); !slices.Equal(got, []string{h.name(h.state)}) {
+		t.Fatalf("storied states = %v", got)
+	}
+
+	// Moving the store from the mall to the town moves its arc's path too.
+	h.exec(`UPDATE places SET parent_id = $1 WHERE id = $2`, h.town, h.store)
+	if got := names(h.mall); len(got) != 0 {
+		t.Fatalf("storied children of the mall after the move = %v, want none", got)
+	}
+	if got := names(h.town); !slices.Equal(got, []string{h.name(h.store)}) {
+		t.Fatalf("storied children of the town after the move = %v, want the store", got)
+	}
+
+	h.hide(h.town)
+	if got := names(h.city); len(got) != 0 {
+		t.Fatalf("after hiding the town = %v, want none", got)
+	}
+}
+
+// Children sort by name ignoring leading quotes and symbols.
+func TestStoreChildrenNameOrder(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	s := place.NewStore(h.pool)
+	parent := h.place(perspectivv1.PlaceKind_PLACE_KIND_TOWN, "Order Town", h.city)
+	for _, n := range []string{"#1 Garage Door", "\"Chichi\" Realty", "Apple Market", "Bistro"} {
+		h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, n, parent)
+	}
+	ps, err := s.Children(context.Background(), parent, nil, 50)
+	if err != nil {
+		t.Fatalf("Children: %v", err)
+	}
+	var got []string
+	for _, p := range ps {
+		got = append(got, p.Name)
+	}
+	// "#1 Garage Door" files under "1", before the letters, as digits do.
+	if want := []string{"#1 Garage Door", "Apple Market", "Bistro", "\"Chichi\" Realty"}; !slices.Equal(got, want) {
+		t.Fatalf("children = %v, want %v", got, want)
+	}
+}
+
+func (f fx) name(id uuid.UUID) string {
+	f.t.Helper()
+	var n string
+	if err := f.pool.QueryRow(context.Background(), `SELECT name FROM places WHERE id = $1`, id).Scan(&n); err != nil {
+		f.t.Fatalf("place name: %v", err)
+	}
+	return n
+}

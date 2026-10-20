@@ -24,6 +24,7 @@ type Arc struct {
 	MemberCount int32
 	LoreDirtyAt *time.Time
 	CreatedAt   time.Time
+	PlacePath   []uuid.UUID
 }
 
 type Block struct {
