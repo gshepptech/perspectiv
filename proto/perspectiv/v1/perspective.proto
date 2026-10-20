@@ -28,6 +28,13 @@ service PerspectiveService {
   // (SOLO and REMOVED) included, newest first. Never drafts, deleted or
   // hidden perspectives, or ones at or below a hidden place.
   rpc ListByAuthor(ListByAuthorRequest) returns (ListByAuthorResponse);
+  // The author's share link for one of their published perspectives,
+  // optionally naming one of its characters. The same perspective and
+  // character always give the same link.
+  rpc CreateInvite(CreateInviteRequest) returns (CreateInviteResponse);
+  // Public. What an invite link shows before sign-in: who wrote, where, when,
+  // and the opening of their story. NotFound once the perspective is gone.
+  rpc GetInvite(GetInviteRequest) returns (GetInviteResponse);
 }
 
 // Part is one page of a perspective.
@@ -141,6 +148,9 @@ message PublishRequest {
   Genre genre = 6;
   repeated string parts = 7;
   repeated CharacterInput characters = 8;
+  // The invite link the author followed here, if any. It is recorded and
+  // the inviter is told only when the publish lands in the invite's arc.
+  string invite_code = 9;
 }
 
 message PublishResponse {
@@ -200,4 +210,38 @@ message ListByAuthorRequest {
 message ListByAuthorResponse {
   repeated Perspective perspectives = 1;
   string next_page_token = 2;
+}
+
+message CreateInviteRequest {
+  string perspective_id = 1;
+  // One of the perspective's characters; empty for a plain invite.
+  string character_id = 2;
+}
+
+message CreateInviteResponse {
+  string code = 1;
+}
+
+message GetInviteRequest {
+  string code = 1;
+}
+
+// Invite is the teaser an invite link opens.
+message Invite {
+  string code = 1;
+  UserRef inviter = 2;
+  string arc_id = 3;
+  string arc_title = 4;
+  PlaceRef place = 5;
+  // Place-local day, YYYY-MM-DD.
+  string local_date = 6;
+  optional int32 hour = 7;
+  // The opening of the inviter's first part.
+  string excerpt = 8;
+  // The character the inviter asks about; empty when none.
+  string character_label = 9;
+}
+
+message GetInviteResponse {
+  Invite invite = 1;
 }

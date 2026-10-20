@@ -148,3 +148,10 @@ WITH RECURSIVE up AS (
     WHERE up.depth < 8
 )
 SELECT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::boolean AS hidden;
+
+-- name: InviteAnswer :one
+-- For an invite-answered event: who invited the author of this perspective.
+SELECT i.inviter_id
+FROM perspectives p
+JOIN invites i ON i.code = p.invite_code
+WHERE p.id = $1;

@@ -151,6 +151,44 @@ func (h *Handler) ListByAuthor(ctx context.Context, req *connect.Request[perspec
 	return connect.NewResponse(&perspectivv1.ListByAuthorResponse{Perspectives: ps, NextPageToken: next}), nil
 }
 
+// CreateInvite returns the author's share link for one of their perspectives.
+func (h *Handler) CreateInvite(ctx context.Context, req *connect.Request[perspectivv1.CreateInviteRequest]) (*connect.Response[perspectivv1.CreateInviteResponse], error) {
+	caller, err := signedIn(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	pid, err := parseID("perspective_id", req.Msg.GetPerspectiveId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	var character *uuid.UUID
+	if req.Msg.GetCharacterId() != "" {
+		id, err := parseID("character_id", req.Msg.GetCharacterId())
+		if err != nil {
+			return nil, apiutil.ToConnect(err)
+		}
+		character = &id
+	}
+	code, err := h.svc.CreateInvite(ctx, caller, pid, character)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.CreateInviteResponse{Code: code}), nil
+}
+
+// GetInvite returns what an invite link shows. It is public.
+func (h *Handler) GetInvite(ctx context.Context, req *connect.Request[perspectivv1.GetInviteRequest]) (*connect.Response[perspectivv1.GetInviteResponse], error) {
+	code, err := parseInviteCode(req.Msg.GetCode(), true)
+	if err != nil {
+		return nil, apiutil.ToConnect(errInviteNotFound)
+	}
+	inv, err := h.svc.GetInvite(ctx, code)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.GetInviteResponse{Invite: inv}), nil
+}
+
 func signedIn(ctx context.Context) (uuid.UUID, error) {
 	c, ok := apiutil.CallerFrom(ctx)
 	if !ok {
@@ -225,8 +263,28 @@ func publishInput(m *perspectivv1.PublishRequest) (PublishInput, error) {
 	if err := checkParts(in.Parts, true); err != nil {
 		return in, err
 	}
+	if in.InviteCode, err = parseInviteCode(m.GetInviteCode(), false); err != nil {
+		return in, err
+	}
 	in.Characters, err = checkCharacters(m.GetCharacters())
 	return in, err
+}
+
+// parseInviteCode checks an invite code's shape; an empty code is allowed
+// only when required is false.
+func parseInviteCode(code string, required bool) (string, error) {
+	if code == "" && !required {
+		return "", nil
+	}
+	if len(code) != inviteLen {
+		return "", apiutil.InvalidArg("invite code is not valid")
+	}
+	for _, r := range code {
+		if !strings.ContainsRune(inviteAlphabet, r) {
+			return "", apiutil.InvalidArg("invite code is not valid")
+		}
+	}
+	return code, nil
 }
 
 func updateInput(m *perspectivv1.PerspectiveServiceUpdateRequest) (UpdateInput, error) {

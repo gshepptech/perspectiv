@@ -52,18 +52,19 @@ func TestRoutesCoverEveryProcedure(t *testing.T) {
 func TestRoutePolicies(t *testing.T) {
 	t.Parallel()
 	verified := map[string]string{
-		"/perspectiv.v1.PlaceService/CreatePlace":   "",
-		"/perspectiv.v1.PerspectiveService/Publish": api.LimitPublish,
-		"/perspectiv.v1.PerspectiveService/Update":  "",
-		"/perspectiv.v1.ArcService/RetitleHourArc":  "",
-		"/perspectiv.v1.LoreService/ResolveClaim":   "",
-		"/perspectiv.v1.LoreService/ClaimCharacter": api.LimitClaim,
-		"/perspectiv.v1.VoteService/Vote":           api.LimitVote,
-		"/perspectiv.v1.VoteService/VoteRemove":     api.LimitVote,
-		"/perspectiv.v1.ReactService/React":         api.LimitReact,
-		"/perspectiv.v1.ModerationService/Report":   api.LimitReport,
-		"/perspectiv.v1.UserService/UpdateProfile":  "",
-		"/perspectiv.v1.UserService/ChangeUsername": "",
+		"/perspectiv.v1.PlaceService/CreatePlace":        "",
+		"/perspectiv.v1.PerspectiveService/Publish":      api.LimitPublish,
+		"/perspectiv.v1.PerspectiveService/Update":       "",
+		"/perspectiv.v1.PerspectiveService/CreateInvite": "",
+		"/perspectiv.v1.ArcService/RetitleHourArc":       "",
+		"/perspectiv.v1.LoreService/ResolveClaim":        "",
+		"/perspectiv.v1.LoreService/ClaimCharacter":      api.LimitClaim,
+		"/perspectiv.v1.VoteService/Vote":                api.LimitVote,
+		"/perspectiv.v1.VoteService/VoteRemove":          api.LimitVote,
+		"/perspectiv.v1.ReactService/React":              api.LimitReact,
+		"/perspectiv.v1.ModerationService/Report":        api.LimitReport,
+		"/perspectiv.v1.UserService/UpdateProfile":       "",
+		"/perspectiv.v1.UserService/ChangeUsername":      "",
 	}
 	admin := map[string]bool{
 		"/perspectiv.v1.ModerationService/ListReports": true,

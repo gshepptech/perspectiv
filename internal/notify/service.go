@@ -169,7 +169,7 @@ type Preference struct {
 	Email bool
 }
 
-// Preferences returns all six kinds in enum order. A kind the user never set
+// Preferences returns every kind in enum order. A kind the user never set
 // has both toggles on.
 func (s *Service) Preferences(ctx context.Context, userID uuid.UUID) ([]Preference, error) {
 	return preferences(ctx, dbq.New(s.pool), userID)
@@ -200,7 +200,7 @@ func preferences(ctx context.Context, q *dbq.Queries, userID uuid.UUID) ([]Prefe
 }
 
 // UpdatePreferences stores the toggles of each listed kind and returns all
-// six. Kinds not listed keep their toggles. A kind that is undefined or
+// kinds. Kinds not listed keep their toggles. A kind that is undefined or
 // listed twice is refused before anything is written.
 func (s *Service) UpdatePreferences(ctx context.Context, userID uuid.UUID, prefs []Preference) ([]Preference, error) {
 	seen := make(map[perspectivv1.NotificationKind]bool, len(prefs))

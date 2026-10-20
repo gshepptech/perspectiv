@@ -115,6 +115,8 @@ enum NotificationKind {
   NOTIFICATION_KIND_VOTE_OUT_OPENED = 4;
   NOTIFICATION_KIND_CANON_CHANGE = 5;
   NOTIFICATION_KIND_REPORT_RESOLVED = 6;
+  // Someone followed your invite link and wrote their side.
+  NOTIFICATION_KIND_INVITE_ANSWERED = 7;
 }
 
 // ReportTargetKind is what a report points at.

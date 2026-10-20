@@ -68,6 +68,14 @@ type EmailToken struct {
 	UsedAt    pgtype.Timestamptz
 }
 
+type Invite struct {
+	Code          string
+	PerspectiveID uuid.UUID
+	InviterID     uuid.UUID
+	CharacterID   uuid.NullUUID
+	CreatedAt     pgtype.Timestamptz
+}
+
 type LoginAttempt struct {
 	ID          int64
 	UserID      uuid.UUID
@@ -135,6 +143,7 @@ type Perspective struct {
 	UpdatedAt     pgtype.Timestamptz
 	DeletedAt     pgtype.Timestamptz
 	HiddenAt      pgtype.Timestamptz
+	InviteCode    pgtype.Text
 }
 
 type PerspectivePart struct {

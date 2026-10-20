@@ -77,6 +77,77 @@ func (q *Queries) GetAuthor(ctx context.Context, id uuid.UUID) (GetAuthorRow, er
 	return i, err
 }
 
+const getInviteTeaser = `-- name: GetInviteTeaser :one
+WITH RECURSIVE target AS (
+    SELECT i.code, i.inviter_id, i.character_id, p.id AS perspective_id, p.status, p.deleted_at, p.hidden_at,
+           a.id AS arc_id, a.title AS arc_title, a.place_id, a.local_date, a.hour
+    FROM invites i
+    JOIN perspectives p ON p.id = i.perspective_id
+    JOIN arcs a ON a.id = p.arc_id
+    WHERE i.code = $1::text
+), up AS (
+    SELECT pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM target t
+    JOIN places pl ON pl.id = t.place_id
+    UNION ALL
+    SELECT parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT t.code, t.inviter_id, u.username AS inviter_username, t.arc_id, t.arc_title, t.local_date, t.hour,
+       pl.id AS place_id, pl.kind AS place_kind, pl.name AS place_name,
+       COALESCE((SELECT left(pp.body, 241) FROM perspective_parts pp
+                 WHERE pp.perspective_id = t.perspective_id ORDER BY pp.position LIMIT 1), '')::text AS opening,
+       COALESCE((SELECT c.label FROM characters c WHERE c.id = t.character_id), '')::text AS character_label,
+       (t.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND t.deleted_at IS NULL AND t.hidden_at IS NULL
+        AND u.deleted_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL))::boolean AS readable
+FROM target t
+JOIN users u ON u.id = t.inviter_id
+JOIN places pl ON pl.id = t.place_id
+`
+
+type GetInviteTeaserRow struct {
+	Code            string
+	InviterID       uuid.UUID
+	InviterUsername string
+	ArcID           uuid.UUID
+	ArcTitle        string
+	LocalDate       pgtype.Date
+	Hour            *int16
+	PlaceID         uuid.UUID
+	PlaceKind       string
+	PlaceName       string
+	Opening         string
+	CharacterLabel  string
+	Readable        bool
+}
+
+// What an invite link shows. readable is false once the perspective is
+// deleted, hidden or no longer published, or its arc's place or any
+// ancestor is hidden: hiding a place hides its whole subtree.
+func (q *Queries) GetInviteTeaser(ctx context.Context, code string) (GetInviteTeaserRow, error) {
+	row := q.db.QueryRow(ctx, getInviteTeaser, code)
+	var i GetInviteTeaserRow
+	err := row.Scan(
+		&i.Code,
+		&i.InviterID,
+		&i.InviterUsername,
+		&i.ArcID,
+		&i.ArcTitle,
+		&i.LocalDate,
+		&i.Hour,
+		&i.PlaceID,
+		&i.PlaceKind,
+		&i.PlaceName,
+		&i.Opening,
+		&i.CharacterLabel,
+		&i.Readable,
+	)
+	return i, err
+}
+
 const getPerspectiveRef = `-- name: GetPerspectiveRef :one
 SELECT id, author_id, arc_id, status, deleted_at, hidden_at
 FROM perspectives
@@ -331,6 +402,57 @@ func (q *Queries) InsertPublished(ctx context.Context, arg InsertPublishedParams
 	)
 	var i InsertPublishedRow
 	err := row.Scan(&i.ID, &i.PublishedAt)
+	return i, err
+}
+
+const inviteArc = `-- name: InviteArc :one
+SELECT p.arc_id, i.inviter_id
+FROM invites i
+JOIN perspectives p ON p.id = i.perspective_id
+WHERE i.code = $1
+`
+
+type InviteArcRow struct {
+	ArcID     *uuid.UUID
+	InviterID uuid.UUID
+}
+
+// The arc and inviter of an invite, for recording it on a publish.
+func (q *Queries) InviteArc(ctx context.Context, code string) (InviteArcRow, error) {
+	row := q.db.QueryRow(ctx, inviteArc, code)
+	var i InviteArcRow
+	err := row.Scan(&i.ArcID, &i.InviterID)
+	return i, err
+}
+
+const inviteTarget = `-- name: InviteTarget :one
+SELECT p.author_id,
+       (p.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND p.deleted_at IS NULL AND p.hidden_at IS NULL)::boolean AS readable,
+       ($1::uuid IS NULL OR EXISTS (
+           SELECT 1 FROM characters c
+           WHERE c.id = $1::uuid AND c.perspective_id = p.id))::boolean AS character_ok
+FROM perspectives p
+WHERE p.id = $2::uuid
+`
+
+type InviteTargetParams struct {
+	CharacterID   *uuid.UUID
+	PerspectiveID uuid.UUID
+}
+
+type InviteTargetRow struct {
+	AuthorID    uuid.UUID
+	Readable    bool
+	CharacterOk bool
+}
+
+// The perspective an author wants to share, with the checks CreateInvite
+// makes: its author, whether it is readable, and whether the named
+// character (NULL for none) belongs to it.
+func (q *Queries) InviteTarget(ctx context.Context, arg InviteTargetParams) (InviteTargetRow, error) {
+	row := q.db.QueryRow(ctx, inviteTarget, arg.CharacterID, arg.PerspectiveID)
+	var i InviteTargetRow
+	err := row.Scan(&i.AuthorID, &i.Readable, &i.CharacterOk)
 	return i, err
 }
 
@@ -725,6 +847,20 @@ func (q *Queries) ReactCountsOf(ctx context.Context, arg ReactCountsOfParams) ([
 	return items, nil
 }
 
+const setInviteCode = `-- name: SetInviteCode :exec
+UPDATE perspectives SET invite_code = $1::text WHERE id = $2::uuid
+`
+
+type SetInviteCodeParams struct {
+	Code string
+	ID   uuid.UUID
+}
+
+func (q *Queries) SetInviteCode(ctx context.Context, arg SetInviteCodeParams) error {
+	_, err := q.db.Exec(ctx, setInviteCode, arg.Code, arg.ID)
+	return err
+}
+
 const softDelete = `-- name: SoftDelete :exec
 UPDATE perspectives
 SET deleted_at = now(), updated_at = now()
@@ -799,4 +935,32 @@ type UpdatePublishedParams struct {
 func (q *Queries) UpdatePublished(ctx context.Context, arg UpdatePublishedParams) error {
 	_, err := q.db.Exec(ctx, updatePublished, arg.Genre, arg.ID)
 	return err
+}
+
+const upsertInvite = `-- name: UpsertInvite :one
+INSERT INTO invites (code, perspective_id, inviter_id, character_id)
+VALUES ($1::text, $2::uuid, $3::uuid, $4::uuid)
+ON CONFLICT (perspective_id, character_id) DO UPDATE SET code = invites.code
+RETURNING code
+`
+
+type UpsertInviteParams struct {
+	Code          string
+	PerspectiveID uuid.UUID
+	InviterID     uuid.UUID
+	CharacterID   *uuid.UUID
+}
+
+// One link per perspective and character: a second request returns the
+// first link's code.
+func (q *Queries) UpsertInvite(ctx context.Context, arg UpsertInviteParams) (string, error) {
+	row := q.db.QueryRow(ctx, upsertInvite,
+		arg.Code,
+		arg.PerspectiveID,
+		arg.InviterID,
+		arg.CharacterID,
+	)
+	var code string
+	err := row.Scan(&code)
+	return code, err
 }

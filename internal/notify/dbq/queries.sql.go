@@ -137,6 +137,21 @@ func (q *Queries) InsertNotification(ctx context.Context, arg InsertNotification
 	return err
 }
 
+const inviteAnswer = `-- name: InviteAnswer :one
+SELECT i.inviter_id
+FROM perspectives p
+JOIN invites i ON i.code = p.invite_code
+WHERE p.id = $1
+`
+
+// For an invite-answered event: who invited the author of this perspective.
+func (q *Queries) InviteAnswer(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, inviteAnswer, id)
+	var inviter_id uuid.UUID
+	err := row.Scan(&inviter_id)
+	return inviter_id, err
+}
+
 const listInbox = `-- name: ListInbox :many
 WITH RECURSIVE page AS (
     SELECT n.id, n.kind, n.payload, n.read_at, n.created_at,

@@ -131,6 +131,8 @@ func resolve(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, boo
 		ev, ok, err = resolveCanonChange(ctx, q, a)
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_REPORT_RESOLVED:
 		ev, ok, err = resolveReport(ctx, q, a)
+	case perspectivv1.NotificationKind_NOTIFICATION_KIND_INVITE_ANSWERED:
+		ev, ok, err = resolveInviteAnswered(ctx, q, a)
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_UNSPECIFIED:
 		return event{}, false, nil
 	default:
@@ -275,6 +277,27 @@ func resolveCanonChange(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) 
 		path:       "/arcs/" + arc.String(),
 		payload:    Payload{ArcID: arc, LoreID: ref(a.LoreID)},
 	}, len(authors) > 0, nil
+}
+
+// resolveInviteAnswered tells an inviter that someone who followed their
+// invite published in the arc. The new perspective must still be readable.
+func resolveInviteAnswered(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, bool, error) {
+	p, ok, err := visiblePerspective(ctx, q, a.PerspectiveID)
+	if !ok || err != nil {
+		return event{}, false, err
+	}
+	inviter, err := q.InviteAnswer(ctx, a.PerspectiveID)
+	if err != nil {
+		return event{}, false, unlessMissing(err)
+	}
+	actor := ref(p.AuthorID)
+	return event{
+		actor:      actor,
+		showActor:  true,
+		candidates: []uuid.UUID{inviter},
+		path:       "/perspectives/" + a.PerspectiveID.String(),
+		payload:    Payload{ActorID: actor, ArcID: p.ArcID, PerspectiveID: ref(a.PerspectiveID)},
+	}, true, nil
 }
 
 func resolveReport(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, bool, error) {

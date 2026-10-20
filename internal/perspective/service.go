@@ -84,6 +84,8 @@ type PublishInput struct {
 	Genre      string
 	Parts      []string
 	Characters []characterInput
+	// InviteCode is the invite link the author followed here; "" for none.
+	InviteCode string
 }
 
 // UpdateInput is an edit of a published perspective.
@@ -237,6 +239,9 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, caller uuid.UUID, in
 		ActorID: caller, ArcID: arcID, PerspectiveID: id,
 	}); err != nil {
 		return uuid.Nil, uuid.Nil, apiutil.Internal(err)
+	}
+	if err := s.recordInvite(ctx, tx, caller, id, arcID, in.InviteCode); err != nil {
+		return uuid.Nil, uuid.Nil, err
 	}
 	return id, arcID, nil
 }

@@ -208,6 +208,9 @@ func (w *emailWorker) notificationContent(data map[string]string) (content, erro
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_CANON_CHANGE:
 		subject = "The canon changed in " + arc
 		body = "A different lore is now canon in " + arc + ", or the arc no longer has one."
+	case perspectivv1.NotificationKind_NOTIFICATION_KIND_INVITE_ANSWERED:
+		subject = actor + " wrote their side of " + arc
+		body = actor + " followed your invite and wrote their perspective in " + arc + ". Read it, and claim each other's characters if you recognise yourselves."
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_REPORT_RESOLVED:
 		subject = "Your report was resolved"
 		body = "A moderator reviewed and resolved a report you made. Thank you for flagging it."

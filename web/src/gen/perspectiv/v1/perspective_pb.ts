@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/perspective.proto.
  */
 export const file_perspectiv_v1_perspective: GenFile = /*@__PURE__*/
-  fileDesc("Ch9wZXJzcGVjdGl2L3YxL3BlcnNwZWN0aXZlLnByb3RvEg1wZXJzcGVjdGl2LnYxIiYKBFBhcnQSEAoIcG9zaXRpb24YASABKAUSDAoEYm9keRgCIAEoCSJvCglDaGFyYWN0ZXISCgoCaWQYASABKAkSEAoIcG9zaXRpb24YAiABKAUSDQoFbGFiZWwYAyABKAkSGgoSaGFzX2FjY2VwdGVkX2NsYWltGAQgASgIEhkKEWhhc19wZW5kaW5nX2NsYWltGAUgASgIIisKDkNoYXJhY3RlcklucHV0EgoKAmlkGAEgASgJEg0KBWxhYmVsGAIgASgJIr4FCgtQZXJzcGVjdGl2ZRIKCgJpZBgBIAEoCRIOCgZhcmNfaWQYAiABKAkSEQoJYXJjX3RpdGxlGAMgASgJEiYKBmF1dGhvchgEIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIjCgVnZW5yZRgFIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSMAoGc3RhdHVzGAYgASgOMiAucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVN0YXR1cxIuCgtsb3JlX3N0YXR1cxgHIAEoDjIZLnBlcnNwZWN0aXYudjEuTG9yZVN0YXR1cxIPCgdsb3JlX2lkGAggASgJEiYKBXBsYWNlGAkgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhISCgpsb2NhbF9kYXRlGAogASgJEhEKBGhvdXIYCyABKAVIAIgBARIYChB0aXRsZV9pZl9uZXdfYXJjGAwgASgJEiIKBXBhcnRzGA0gAygLMhMucGVyc3BlY3Rpdi52MS5QYXJ0EiwKCmNoYXJhY3RlcnMYDiADKAsyGC5wZXJzcGVjdGl2LnYxLkNoYXJhY3RlchIPCgd1cHZvdGVzGA8gASgFEg0KBXZvdGVkGBAgASgIEikKBnJlYWN0cxgRIAMoCzIZLnBlcnNwZWN0aXYudjEuUmVhY3RDb3VudBIuCgpjcmVhdGVkX2F0GBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxwdWJsaXNoZWRfYXQYEyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYFCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg8KB2RlbGV0ZWQYFSABKAgSDgoGaGlkZGVuGBYgASgIQgcKBV9ob3VyIscCChJQZXJzcGVjdGl2ZVN1bW1hcnkSCgoCaWQYASABKAkSDgoGYXJjX2lkGAIgASgJEiYKBmF1dGhvchgDIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIjCgVnZW5yZRgEIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSLgoLbG9yZV9zdGF0dXMYBSABKA4yGS5wZXJzcGVjdGl2LnYxLkxvcmVTdGF0dXMSDwoHbG9yZV9pZBgGIAEoCRIPCgdleGNlcnB0GAcgASgJEhIKCnBhcnRfY291bnQYCCABKAUSDwoHdXB2b3RlcxgJIAEoBRIwCgxwdWJsaXNoZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg8KB2RlbGV0ZWQYCyABKAgSDgoGaGlkZGVuGAwgASgIIu0BChBTYXZlRHJhZnRSZXF1ZXN0EhYKDnBlcnNwZWN0aXZlX2lkGAEgASgJEhAKCHBsYWNlX2lkGAIgASgJEhIKCmxvY2FsX2RhdGUYAyABKAkSEQoEaG91chgEIAEoBUgAiAEBEhgKEHRpdGxlX2lmX25ld19hcmMYBSABKAkSIwoFZ2VucmUYBiABKA4yFC5wZXJzcGVjdGl2LnYxLkdlbnJlEg0KBXBhcnRzGAcgAygJEjEKCmNoYXJhY3RlcnMYCCADKAsyHS5wZXJzcGVjdGl2LnYxLkNoYXJhY3RlcklucHV0QgcKBV9ob3VyIkQKEVNhdmVEcmFmdFJlc3BvbnNlEi8KC3BlcnNwZWN0aXZlGAEgASgLMhoucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZSLrAQoOUHVibGlzaFJlcXVlc3QSFgoOcGVyc3BlY3RpdmVfaWQYASABKAkSEAoIcGxhY2VfaWQYAiABKAkSEgoKbG9jYWxfZGF0ZRgDIAEoCRIRCgRob3VyGAQgASgFSACIAQESGAoQdGl0bGVfaWZfbmV3X2FyYxgFIAEoCRIjCgVnZW5yZRgGIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSDQoFcGFydHMYByADKAkSMQoKY2hhcmFjdGVycxgIIAMoCzIdLnBlcnNwZWN0aXYudjEuQ2hhcmFjdGVySW5wdXRCBwoFX2hvdXIiOQoPUHVibGlzaFJlc3BvbnNlEhYKDnBlcnNwZWN0aXZlX2lkGAEgASgJEg4KBmFyY19pZBgCIAEoCSKgAQofUGVyc3BlY3RpdmVTZXJ2aWNlVXBkYXRlUmVxdWVzdBIWCg5wZXJzcGVjdGl2ZV9pZBgBIAEoCRIjCgVnZW5yZRgCIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSDQoFcGFydHMYAyADKAkSMQoKY2hhcmFjdGVycxgEIAMoCzIdLnBlcnNwZWN0aXYudjEuQ2hhcmFjdGVySW5wdXQiUwogUGVyc3BlY3RpdmVTZXJ2aWNlVXBkYXRlUmVzcG9uc2USLwoLcGVyc3BlY3RpdmUYASABKAsyGi5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlIjkKH1BlcnNwZWN0aXZlU2VydmljZURlbGV0ZVJlcXVlc3QSFgoOcGVyc3BlY3RpdmVfaWQYASABKAkiIgogUGVyc3BlY3RpdmVTZXJ2aWNlRGVsZXRlUmVzcG9uc2UiNgocUGVyc3BlY3RpdmVTZXJ2aWNlR2V0UmVxdWVzdBIWCg5wZXJzcGVjdGl2ZV9pZBgBIAEoCSJQCh1QZXJzcGVjdGl2ZVNlcnZpY2VHZXRSZXNwb25zZRIvCgtwZXJzcGVjdGl2ZRgBIAEoCzIaLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmUirAEKD0xpc3RNaW5lUmVxdWVzdBIwCgZzdGF0dXMYASABKA4yIC5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3RhdHVzEhAKCHBsYWNlX2lkGAIgASgJEhIKCmxvY2FsX2RhdGUYAyABKAkSEQoEaG91chgEIAEoBUgAiAEBEhIKCnBhZ2VfdG9rZW4YBSABKAkSEQoJcGFnZV9zaXplGAYgASgFQgcKBV9ob3VyIl0KEExpc3RNaW5lUmVzcG9uc2USMAoMcGVyc3BlY3RpdmVzGAEgAygLMhoucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiTQoTTGlzdEJ5QXV0aG9yUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhIKCnBhZ2VfdG9rZW4YAiABKAkSEQoJcGFnZV9zaXplGAMgASgFImEKFExpc3RCeUF1dGhvclJlc3BvbnNlEjAKDHBlcnNwZWN0aXZlcxgBIAMoCzIaLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmUSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJMowFChJQZXJzcGVjdGl2ZVNlcnZpY2USTgoJU2F2ZURyYWZ0Eh8ucGVyc3BlY3Rpdi52MS5TYXZlRHJhZnRSZXF1ZXN0GiAucGVyc3BlY3Rpdi52MS5TYXZlRHJhZnRSZXNwb25zZRJICgdQdWJsaXNoEh0ucGVyc3BlY3Rpdi52MS5QdWJsaXNoUmVxdWVzdBoeLnBlcnNwZWN0aXYudjEuUHVibGlzaFJlc3BvbnNlEmkKBlVwZGF0ZRIuLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTZXJ2aWNlVXBkYXRlUmVxdWVzdBovLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTZXJ2aWNlVXBkYXRlUmVzcG9uc2USaQoGRGVsZXRlEi4ucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVNlcnZpY2VEZWxldGVSZXF1ZXN0Gi8ucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVNlcnZpY2VEZWxldGVSZXNwb25zZRJgCgNHZXQSKy5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU2VydmljZUdldFJlcXVlc3QaLC5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU2VydmljZUdldFJlc3BvbnNlEksKCExpc3RNaW5lEh4ucGVyc3BlY3Rpdi52MS5MaXN0TWluZVJlcXVlc3QaHy5wZXJzcGVjdGl2LnYxLkxpc3RNaW5lUmVzcG9uc2USVwoMTGlzdEJ5QXV0aG9yEiIucGVyc3BlY3Rpdi52MS5MaXN0QnlBdXRob3JSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5MaXN0QnlBdXRob3JSZXNwb25zZUKlAQoRY29tLnBlcnNwZWN0aXYudjFCEFBlcnNwZWN0aXZlUHJvdG9QAVopcGVyc3BlY3Rpdi9nZW4vcGVyc3BlY3Rpdi92MTtwZXJzcGVjdGl2djGiAgNQWFiqAg1QZXJzcGVjdGl2LlYxygINUGVyc3BlY3RpdlxWMeICGVBlcnNwZWN0aXZcVjFcR1BCTWV0YWRhdGHqAg5QZXJzcGVjdGl2OjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_place, file_perspectiv_v1_react, file_perspectiv_v1_user]);
+  fileDesc("Ch9wZXJzcGVjdGl2L3YxL3BlcnNwZWN0aXZlLnByb3RvEg1wZXJzcGVjdGl2LnYxIiYKBFBhcnQSEAoIcG9zaXRpb24YASABKAUSDAoEYm9keRgCIAEoCSJvCglDaGFyYWN0ZXISCgoCaWQYASABKAkSEAoIcG9zaXRpb24YAiABKAUSDQoFbGFiZWwYAyABKAkSGgoSaGFzX2FjY2VwdGVkX2NsYWltGAQgASgIEhkKEWhhc19wZW5kaW5nX2NsYWltGAUgASgIIisKDkNoYXJhY3RlcklucHV0EgoKAmlkGAEgASgJEg0KBWxhYmVsGAIgASgJIr4FCgtQZXJzcGVjdGl2ZRIKCgJpZBgBIAEoCRIOCgZhcmNfaWQYAiABKAkSEQoJYXJjX3RpdGxlGAMgASgJEiYKBmF1dGhvchgEIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIjCgVnZW5yZRgFIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSMAoGc3RhdHVzGAYgASgOMiAucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVN0YXR1cxIuCgtsb3JlX3N0YXR1cxgHIAEoDjIZLnBlcnNwZWN0aXYudjEuTG9yZVN0YXR1cxIPCgdsb3JlX2lkGAggASgJEiYKBXBsYWNlGAkgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhISCgpsb2NhbF9kYXRlGAogASgJEhEKBGhvdXIYCyABKAVIAIgBARIYChB0aXRsZV9pZl9uZXdfYXJjGAwgASgJEiIKBXBhcnRzGA0gAygLMhMucGVyc3BlY3Rpdi52MS5QYXJ0EiwKCmNoYXJhY3RlcnMYDiADKAsyGC5wZXJzcGVjdGl2LnYxLkNoYXJhY3RlchIPCgd1cHZvdGVzGA8gASgFEg0KBXZvdGVkGBAgASgIEikKBnJlYWN0cxgRIAMoCzIZLnBlcnNwZWN0aXYudjEuUmVhY3RDb3VudBIuCgpjcmVhdGVkX2F0GBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxwdWJsaXNoZWRfYXQYEyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnVwZGF0ZWRfYXQYFCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg8KB2RlbGV0ZWQYFSABKAgSDgoGaGlkZGVuGBYgASgIQgcKBV9ob3VyIscCChJQZXJzcGVjdGl2ZVN1bW1hcnkSCgoCaWQYASABKAkSDgoGYXJjX2lkGAIgASgJEiYKBmF1dGhvchgDIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIjCgVnZW5yZRgEIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSLgoLbG9yZV9zdGF0dXMYBSABKA4yGS5wZXJzcGVjdGl2LnYxLkxvcmVTdGF0dXMSDwoHbG9yZV9pZBgGIAEoCRIPCgdleGNlcnB0GAcgASgJEhIKCnBhcnRfY291bnQYCCABKAUSDwoHdXB2b3RlcxgJIAEoBRIwCgxwdWJsaXNoZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg8KB2RlbGV0ZWQYCyABKAgSDgoGaGlkZGVuGAwgASgIIu0BChBTYXZlRHJhZnRSZXF1ZXN0EhYKDnBlcnNwZWN0aXZlX2lkGAEgASgJEhAKCHBsYWNlX2lkGAIgASgJEhIKCmxvY2FsX2RhdGUYAyABKAkSEQoEaG91chgEIAEoBUgAiAEBEhgKEHRpdGxlX2lmX25ld19hcmMYBSABKAkSIwoFZ2VucmUYBiABKA4yFC5wZXJzcGVjdGl2LnYxLkdlbnJlEg0KBXBhcnRzGAcgAygJEjEKCmNoYXJhY3RlcnMYCCADKAsyHS5wZXJzcGVjdGl2LnYxLkNoYXJhY3RlcklucHV0QgcKBV9ob3VyIkQKEVNhdmVEcmFmdFJlc3BvbnNlEi8KC3BlcnNwZWN0aXZlGAEgASgLMhoucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZSKAAgoOUHVibGlzaFJlcXVlc3QSFgoOcGVyc3BlY3RpdmVfaWQYASABKAkSEAoIcGxhY2VfaWQYAiABKAkSEgoKbG9jYWxfZGF0ZRgDIAEoCRIRCgRob3VyGAQgASgFSACIAQESGAoQdGl0bGVfaWZfbmV3X2FyYxgFIAEoCRIjCgVnZW5yZRgGIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSDQoFcGFydHMYByADKAkSMQoKY2hhcmFjdGVycxgIIAMoCzIdLnBlcnNwZWN0aXYudjEuQ2hhcmFjdGVySW5wdXQSEwoLaW52aXRlX2NvZGUYCSABKAlCBwoFX2hvdXIiOQoPUHVibGlzaFJlc3BvbnNlEhYKDnBlcnNwZWN0aXZlX2lkGAEgASgJEg4KBmFyY19pZBgCIAEoCSKgAQofUGVyc3BlY3RpdmVTZXJ2aWNlVXBkYXRlUmVxdWVzdBIWCg5wZXJzcGVjdGl2ZV9pZBgBIAEoCRIjCgVnZW5yZRgCIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSDQoFcGFydHMYAyADKAkSMQoKY2hhcmFjdGVycxgEIAMoCzIdLnBlcnNwZWN0aXYudjEuQ2hhcmFjdGVySW5wdXQiUwogUGVyc3BlY3RpdmVTZXJ2aWNlVXBkYXRlUmVzcG9uc2USLwoLcGVyc3BlY3RpdmUYASABKAsyGi5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlIjkKH1BlcnNwZWN0aXZlU2VydmljZURlbGV0ZVJlcXVlc3QSFgoOcGVyc3BlY3RpdmVfaWQYASABKAkiIgogUGVyc3BlY3RpdmVTZXJ2aWNlRGVsZXRlUmVzcG9uc2UiNgocUGVyc3BlY3RpdmVTZXJ2aWNlR2V0UmVxdWVzdBIWCg5wZXJzcGVjdGl2ZV9pZBgBIAEoCSJQCh1QZXJzcGVjdGl2ZVNlcnZpY2VHZXRSZXNwb25zZRIvCgtwZXJzcGVjdGl2ZRgBIAEoCzIaLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmUirAEKD0xpc3RNaW5lUmVxdWVzdBIwCgZzdGF0dXMYASABKA4yIC5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3RhdHVzEhAKCHBsYWNlX2lkGAIgASgJEhIKCmxvY2FsX2RhdGUYAyABKAkSEQoEaG91chgEIAEoBUgAiAEBEhIKCnBhZ2VfdG9rZW4YBSABKAkSEQoJcGFnZV9zaXplGAYgASgFQgcKBV9ob3VyIl0KEExpc3RNaW5lUmVzcG9uc2USMAoMcGVyc3BlY3RpdmVzGAEgAygLMhoucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiTQoTTGlzdEJ5QXV0aG9yUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJEhIKCnBhZ2VfdG9rZW4YAiABKAkSEQoJcGFnZV9zaXplGAMgASgFImEKFExpc3RCeUF1dGhvclJlc3BvbnNlEjAKDHBlcnNwZWN0aXZlcxgBIAMoCzIaLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmUSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIkMKE0NyZWF0ZUludml0ZVJlcXVlc3QSFgoOcGVyc3BlY3RpdmVfaWQYASABKAkSFAoMY2hhcmFjdGVyX2lkGAIgASgJIiQKFENyZWF0ZUludml0ZVJlc3BvbnNlEgwKBGNvZGUYASABKAkiIAoQR2V0SW52aXRlUmVxdWVzdBIMCgRjb2RlGAEgASgJIuQBCgZJbnZpdGUSDAoEY29kZRgBIAEoCRInCgdpbnZpdGVyGAIgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmEg4KBmFyY19pZBgDIAEoCRIRCglhcmNfdGl0bGUYBCABKAkSJgoFcGxhY2UYBSABKAsyFy5wZXJzcGVjdGl2LnYxLlBsYWNlUmVmEhIKCmxvY2FsX2RhdGUYBiABKAkSEQoEaG91chgHIAEoBUgAiAEBEg8KB2V4Y2VycHQYCCABKAkSFwoPY2hhcmFjdGVyX2xhYmVsGAkgASgJQgcKBV9ob3VyIjoKEUdldEludml0ZVJlc3BvbnNlEiUKBmludml0ZRgBIAEoCzIVLnBlcnNwZWN0aXYudjEuSW52aXRlMrUGChJQZXJzcGVjdGl2ZVNlcnZpY2USTgoJU2F2ZURyYWZ0Eh8ucGVyc3BlY3Rpdi52MS5TYXZlRHJhZnRSZXF1ZXN0GiAucGVyc3BlY3Rpdi52MS5TYXZlRHJhZnRSZXNwb25zZRJICgdQdWJsaXNoEh0ucGVyc3BlY3Rpdi52MS5QdWJsaXNoUmVxdWVzdBoeLnBlcnNwZWN0aXYudjEuUHVibGlzaFJlc3BvbnNlEmkKBlVwZGF0ZRIuLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTZXJ2aWNlVXBkYXRlUmVxdWVzdBovLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTZXJ2aWNlVXBkYXRlUmVzcG9uc2USaQoGRGVsZXRlEi4ucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVNlcnZpY2VEZWxldGVSZXF1ZXN0Gi8ucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVNlcnZpY2VEZWxldGVSZXNwb25zZRJgCgNHZXQSKy5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU2VydmljZUdldFJlcXVlc3QaLC5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU2VydmljZUdldFJlc3BvbnNlEksKCExpc3RNaW5lEh4ucGVyc3BlY3Rpdi52MS5MaXN0TWluZVJlcXVlc3QaHy5wZXJzcGVjdGl2LnYxLkxpc3RNaW5lUmVzcG9uc2USVwoMTGlzdEJ5QXV0aG9yEiIucGVyc3BlY3Rpdi52MS5MaXN0QnlBdXRob3JSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5MaXN0QnlBdXRob3JSZXNwb25zZRJXCgxDcmVhdGVJbnZpdGUSIi5wZXJzcGVjdGl2LnYxLkNyZWF0ZUludml0ZVJlcXVlc3QaIy5wZXJzcGVjdGl2LnYxLkNyZWF0ZUludml0ZVJlc3BvbnNlEk4KCUdldEludml0ZRIfLnBlcnNwZWN0aXYudjEuR2V0SW52aXRlUmVxdWVzdBogLnBlcnNwZWN0aXYudjEuR2V0SW52aXRlUmVzcG9uc2VCpQEKEWNvbS5wZXJzcGVjdGl2LnYxQhBQZXJzcGVjdGl2ZVByb3RvUAFaKXBlcnNwZWN0aXYvZ2VuL3BlcnNwZWN0aXYvdjE7cGVyc3BlY3RpdnYxogIDUFhYqgINUGVyc3BlY3Rpdi5WMcoCDVBlcnNwZWN0aXZcVjHiAhlQZXJzcGVjdGl2XFYxXEdQQk1ldGFkYXRh6gIOUGVyc3BlY3Rpdjo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_place, file_perspectiv_v1_react, file_perspectiv_v1_user]);
 
 /**
  * Part is one page of a perspective.
@@ -463,6 +463,14 @@ export type PublishRequest = Message<"perspectiv.v1.PublishRequest"> & {
    * @generated from field: repeated perspectiv.v1.CharacterInput characters = 8;
    */
   characters: CharacterInput[];
+
+  /**
+   * The invite link the author followed here, if any. It is recorded and
+   * the inviter is told only when the publish lands in the invite's arc.
+   *
+   * @generated from field: string invite_code = 9;
+   */
+  inviteCode: string;
 };
 
 /**
@@ -728,6 +736,146 @@ export const ListByAuthorResponseSchema: GenMessage<ListByAuthorResponse> = /*@_
   messageDesc(file_perspectiv_v1_perspective, 18);
 
 /**
+ * @generated from message perspectiv.v1.CreateInviteRequest
+ */
+export type CreateInviteRequest = Message<"perspectiv.v1.CreateInviteRequest"> & {
+  /**
+   * @generated from field: string perspective_id = 1;
+   */
+  perspectiveId: string;
+
+  /**
+   * One of the perspective's characters; empty for a plain invite.
+   *
+   * @generated from field: string character_id = 2;
+   */
+  characterId: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.CreateInviteRequest.
+ * Use `create(CreateInviteRequestSchema)` to create a new message.
+ */
+export const CreateInviteRequestSchema: GenMessage<CreateInviteRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_perspective, 19);
+
+/**
+ * @generated from message perspectiv.v1.CreateInviteResponse
+ */
+export type CreateInviteResponse = Message<"perspectiv.v1.CreateInviteResponse"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.CreateInviteResponse.
+ * Use `create(CreateInviteResponseSchema)` to create a new message.
+ */
+export const CreateInviteResponseSchema: GenMessage<CreateInviteResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_perspective, 20);
+
+/**
+ * @generated from message perspectiv.v1.GetInviteRequest
+ */
+export type GetInviteRequest = Message<"perspectiv.v1.GetInviteRequest"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.GetInviteRequest.
+ * Use `create(GetInviteRequestSchema)` to create a new message.
+ */
+export const GetInviteRequestSchema: GenMessage<GetInviteRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_perspective, 21);
+
+/**
+ * Invite is the teaser an invite link opens.
+ *
+ * @generated from message perspectiv.v1.Invite
+ */
+export type Invite = Message<"perspectiv.v1.Invite"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+
+  /**
+   * @generated from field: perspectiv.v1.UserRef inviter = 2;
+   */
+  inviter?: UserRef | undefined;
+
+  /**
+   * @generated from field: string arc_id = 3;
+   */
+  arcId: string;
+
+  /**
+   * @generated from field: string arc_title = 4;
+   */
+  arcTitle: string;
+
+  /**
+   * @generated from field: perspectiv.v1.PlaceRef place = 5;
+   */
+  place?: PlaceRef | undefined;
+
+  /**
+   * Place-local day, YYYY-MM-DD.
+   *
+   * @generated from field: string local_date = 6;
+   */
+  localDate: string;
+
+  /**
+   * @generated from field: optional int32 hour = 7;
+   */
+  hour?: number | undefined;
+
+  /**
+   * The opening of the inviter's first part.
+   *
+   * @generated from field: string excerpt = 8;
+   */
+  excerpt: string;
+
+  /**
+   * The character the inviter asks about; empty when none.
+   *
+   * @generated from field: string character_label = 9;
+   */
+  characterLabel: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.Invite.
+ * Use `create(InviteSchema)` to create a new message.
+ */
+export const InviteSchema: GenMessage<Invite> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_perspective, 22);
+
+/**
+ * @generated from message perspectiv.v1.GetInviteResponse
+ */
+export type GetInviteResponse = Message<"perspectiv.v1.GetInviteResponse"> & {
+  /**
+   * @generated from field: perspectiv.v1.Invite invite = 1;
+   */
+  invite?: Invite | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.GetInviteResponse.
+ * Use `create(GetInviteResponseSchema)` to create a new message.
+ */
+export const GetInviteResponseSchema: GenMessage<GetInviteResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_perspective, 23);
+
+/**
  * PerspectiveService writes and reads perspectives: one user's entry in one
  * arc, at most 10 parts of at most 300 words, at most 10 characters.
  *
@@ -806,6 +954,29 @@ export const PerspectiveService: GenService<{
     methodKind: "unary";
     input: typeof ListByAuthorRequestSchema;
     output: typeof ListByAuthorResponseSchema;
+  },
+  /**
+   * The author's share link for one of their published perspectives,
+   * optionally naming one of its characters. The same perspective and
+   * character always give the same link.
+   *
+   * @generated from rpc perspectiv.v1.PerspectiveService.CreateInvite
+   */
+  createInvite: {
+    methodKind: "unary";
+    input: typeof CreateInviteRequestSchema;
+    output: typeof CreateInviteResponseSchema;
+  },
+  /**
+   * Public. What an invite link shows before sign-in: who wrote, where, when,
+   * and the opening of their story. NotFound once the perspective is gone.
+   *
+   * @generated from rpc perspectiv.v1.PerspectiveService.GetInvite
+   */
+  getInvite: {
+    methodKind: "unary";
+    input: typeof GetInviteRequestSchema;
+    output: typeof GetInviteResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_perspective, 0);

@@ -53,6 +53,12 @@ const (
 	// PerspectiveServiceListByAuthorProcedure is the fully-qualified name of the PerspectiveService's
 	// ListByAuthor RPC.
 	PerspectiveServiceListByAuthorProcedure = "/perspectiv.v1.PerspectiveService/ListByAuthor"
+	// PerspectiveServiceCreateInviteProcedure is the fully-qualified name of the PerspectiveService's
+	// CreateInvite RPC.
+	PerspectiveServiceCreateInviteProcedure = "/perspectiv.v1.PerspectiveService/CreateInvite"
+	// PerspectiveServiceGetInviteProcedure is the fully-qualified name of the PerspectiveService's
+	// GetInvite RPC.
+	PerspectiveServiceGetInviteProcedure = "/perspectiv.v1.PerspectiveService/GetInvite"
 )
 
 // PerspectiveServiceClient is a client for the perspectiv.v1.PerspectiveService service.
@@ -74,6 +80,13 @@ type PerspectiveServiceClient interface {
 	// (SOLO and REMOVED) included, newest first. Never drafts, deleted or
 	// hidden perspectives, or ones at or below a hidden place.
 	ListByAuthor(context.Context, *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error)
+	// The author's share link for one of their published perspectives,
+	// optionally naming one of its characters. The same perspective and
+	// character always give the same link.
+	CreateInvite(context.Context, *connect.Request[v1.CreateInviteRequest]) (*connect.Response[v1.CreateInviteResponse], error)
+	// Public. What an invite link shows before sign-in: who wrote, where, when,
+	// and the opening of their story. NotFound once the perspective is gone.
+	GetInvite(context.Context, *connect.Request[v1.GetInviteRequest]) (*connect.Response[v1.GetInviteResponse], error)
 }
 
 // NewPerspectiveServiceClient constructs a client for the perspectiv.v1.PerspectiveService service.
@@ -129,6 +142,18 @@ func NewPerspectiveServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(perspectiveServiceMethods.ByName("ListByAuthor")),
 			connect.WithClientOptions(opts...),
 		),
+		createInvite: connect.NewClient[v1.CreateInviteRequest, v1.CreateInviteResponse](
+			httpClient,
+			baseURL+PerspectiveServiceCreateInviteProcedure,
+			connect.WithSchema(perspectiveServiceMethods.ByName("CreateInvite")),
+			connect.WithClientOptions(opts...),
+		),
+		getInvite: connect.NewClient[v1.GetInviteRequest, v1.GetInviteResponse](
+			httpClient,
+			baseURL+PerspectiveServiceGetInviteProcedure,
+			connect.WithSchema(perspectiveServiceMethods.ByName("GetInvite")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -141,6 +166,8 @@ type perspectiveServiceClient struct {
 	get          *connect.Client[v1.PerspectiveServiceGetRequest, v1.PerspectiveServiceGetResponse]
 	listMine     *connect.Client[v1.ListMineRequest, v1.ListMineResponse]
 	listByAuthor *connect.Client[v1.ListByAuthorRequest, v1.ListByAuthorResponse]
+	createInvite *connect.Client[v1.CreateInviteRequest, v1.CreateInviteResponse]
+	getInvite    *connect.Client[v1.GetInviteRequest, v1.GetInviteResponse]
 }
 
 // SaveDraft calls perspectiv.v1.PerspectiveService.SaveDraft.
@@ -178,6 +205,16 @@ func (c *perspectiveServiceClient) ListByAuthor(ctx context.Context, req *connec
 	return c.listByAuthor.CallUnary(ctx, req)
 }
 
+// CreateInvite calls perspectiv.v1.PerspectiveService.CreateInvite.
+func (c *perspectiveServiceClient) CreateInvite(ctx context.Context, req *connect.Request[v1.CreateInviteRequest]) (*connect.Response[v1.CreateInviteResponse], error) {
+	return c.createInvite.CallUnary(ctx, req)
+}
+
+// GetInvite calls perspectiv.v1.PerspectiveService.GetInvite.
+func (c *perspectiveServiceClient) GetInvite(ctx context.Context, req *connect.Request[v1.GetInviteRequest]) (*connect.Response[v1.GetInviteResponse], error) {
+	return c.getInvite.CallUnary(ctx, req)
+}
+
 // PerspectiveServiceHandler is an implementation of the perspectiv.v1.PerspectiveService service.
 type PerspectiveServiceHandler interface {
 	// Creates or replaces the caller's draft (autosave).
@@ -197,6 +234,13 @@ type PerspectiveServiceHandler interface {
 	// (SOLO and REMOVED) included, newest first. Never drafts, deleted or
 	// hidden perspectives, or ones at or below a hidden place.
 	ListByAuthor(context.Context, *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error)
+	// The author's share link for one of their published perspectives,
+	// optionally naming one of its characters. The same perspective and
+	// character always give the same link.
+	CreateInvite(context.Context, *connect.Request[v1.CreateInviteRequest]) (*connect.Response[v1.CreateInviteResponse], error)
+	// Public. What an invite link shows before sign-in: who wrote, where, when,
+	// and the opening of their story. NotFound once the perspective is gone.
+	GetInvite(context.Context, *connect.Request[v1.GetInviteRequest]) (*connect.Response[v1.GetInviteResponse], error)
 }
 
 // NewPerspectiveServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -248,6 +292,18 @@ func NewPerspectiveServiceHandler(svc PerspectiveServiceHandler, opts ...connect
 		connect.WithSchema(perspectiveServiceMethods.ByName("ListByAuthor")),
 		connect.WithHandlerOptions(opts...),
 	)
+	perspectiveServiceCreateInviteHandler := connect.NewUnaryHandler(
+		PerspectiveServiceCreateInviteProcedure,
+		svc.CreateInvite,
+		connect.WithSchema(perspectiveServiceMethods.ByName("CreateInvite")),
+		connect.WithHandlerOptions(opts...),
+	)
+	perspectiveServiceGetInviteHandler := connect.NewUnaryHandler(
+		PerspectiveServiceGetInviteProcedure,
+		svc.GetInvite,
+		connect.WithSchema(perspectiveServiceMethods.ByName("GetInvite")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.PerspectiveService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PerspectiveServiceSaveDraftProcedure:
@@ -264,6 +320,10 @@ func NewPerspectiveServiceHandler(svc PerspectiveServiceHandler, opts ...connect
 			perspectiveServiceListMineHandler.ServeHTTP(w, r)
 		case PerspectiveServiceListByAuthorProcedure:
 			perspectiveServiceListByAuthorHandler.ServeHTTP(w, r)
+		case PerspectiveServiceCreateInviteProcedure:
+			perspectiveServiceCreateInviteHandler.ServeHTTP(w, r)
+		case PerspectiveServiceGetInviteProcedure:
+			perspectiveServiceGetInviteHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -299,4 +359,12 @@ func (UnimplementedPerspectiveServiceHandler) ListMine(context.Context, *connect
 
 func (UnimplementedPerspectiveServiceHandler) ListByAuthor(context.Context, *connect.Request[v1.ListByAuthorRequest]) (*connect.Response[v1.ListByAuthorResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PerspectiveService.ListByAuthor is not implemented"))
+}
+
+func (UnimplementedPerspectiveServiceHandler) CreateInvite(context.Context, *connect.Request[v1.CreateInviteRequest]) (*connect.Response[v1.CreateInviteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PerspectiveService.CreateInvite is not implemented"))
+}
+
+func (UnimplementedPerspectiveServiceHandler) GetInvite(context.Context, *connect.Request[v1.GetInviteRequest]) (*connect.Response[v1.GetInviteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PerspectiveService.GetInvite is not implemented"))
 }

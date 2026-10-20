@@ -70,6 +70,14 @@ type EmailToken struct {
 	UsedAt    *time.Time
 }
 
+type Invite struct {
+	Code          string
+	PerspectiveID uuid.UUID
+	InviterID     uuid.UUID
+	CharacterID   *uuid.UUID
+	CreatedAt     time.Time
+}
+
 type LoginAttempt struct {
 	ID          int64
 	UserID      uuid.UUID
@@ -137,6 +145,7 @@ type Perspective struct {
 	UpdatedAt     time.Time
 	DeletedAt     *time.Time
 	HiddenAt      *time.Time
+	InviteCode    *string
 }
 
 type PerspectivePart struct {

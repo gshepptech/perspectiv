@@ -343,3 +343,22 @@ func TestHiddenPlaceSilencesItsArcs(t *testing.T) {
 	s.expect(t, s.ben, "ben", []perspectivv1.NotificationKind{kNewInArc}, 1)
 	s.expect(t, s.dan, "dan", []perspectivv1.NotificationKind{kNewInArc}, 1)
 }
+
+// Someone who followed an invite and wrote in the arc tells the inviter, and
+// only the inviter.
+func TestFanoutInviteAnswered(t *testing.T) {
+	t.Parallel()
+	s := newStory(t)
+	s.exec(`INSERT INTO invites (code, perspective_id, inviter_id) VALUES ('abcdefgh23', $1, $2)`, s.pAnn, s.ann)
+	s.exec(`UPDATE perspectives SET invite_code = 'abcdefgh23' WHERE id = $1`, s.pBen)
+
+	kind := perspectivv1.NotificationKind_NOTIFICATION_KIND_INVITE_ANSWERED
+	s.notifyNow(jobs.NotifyArgs{Kind: kind, ActorID: s.ben, ArcID: s.arc, PerspectiveID: s.pBen})
+
+	rows := s.expect(t, s.ann, "ann", []perspectivv1.NotificationKind{kind}, 1)
+	if rows[0].payload["actor_id"] != s.ben.String() || rows[0].payload["perspective_id"] != s.pBen.String() {
+		t.Fatalf("payload = %v", rows[0].payload)
+	}
+	s.expect(t, s.cat, "cat", nil, 0)
+	s.expect(t, s.ben, "ben", nil, 0)
+}

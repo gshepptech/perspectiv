@@ -82,6 +82,7 @@ func TestEnumValues(t *testing.T) {
 				"NOTIFICATION_KIND_UNSPECIFIED", "NOTIFICATION_KIND_CLAIM_RECEIVED", "NOTIFICATION_KIND_CLAIM_ACCEPTED",
 				"NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "NOTIFICATION_KIND_VOTE_OUT_OPENED",
 				"NOTIFICATION_KIND_CANON_CHANGE", "NOTIFICATION_KIND_REPORT_RESOLVED",
+				"NOTIFICATION_KIND_INVITE_ANSWERED",
 			},
 		},
 		{
@@ -131,13 +132,14 @@ func TestEnumValues(t *testing.T) {
 
 // services lists every service of the API with the RPCs the contract fixes.
 // ListByAuthor serves the profile's perspectives and tales (AC-023), and
-// ListArcSection the arc page's later pages (NFR-008).
+// ListArcSection the arc page's later pages (NFR-008). CreateInvite and
+// GetInvite serve the "I was there too" share link.
 var services = map[string][]string{
 	"AuthService":        {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword"},
 	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount"},
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic"},
 	"ArcService":         {"GetArc", "ListArcSection", "RetitleHourArc"},
-	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor"},
+	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite"},
 	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore"},
 	"VoteService":        {"Vote", "VoteRemove"},
 	"ReactService":       {"React"},

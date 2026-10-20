@@ -231,3 +231,66 @@ FROM mine m
 WHERE NOT EXISTS (SELECT 1 FROM up WHERE up.perspective_id = m.id AND up.hidden_at IS NOT NULL)
 ORDER BY m.published_at DESC, m.id DESC
 LIMIT sqlc.arg(row_limit)::int;
+
+-- name: InviteTarget :one
+-- The perspective an author wants to share, with the checks CreateInvite
+-- makes: its author, whether it is readable, and whether the named
+-- character (NULL for none) belongs to it.
+SELECT p.author_id,
+       (p.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND p.deleted_at IS NULL AND p.hidden_at IS NULL)::boolean AS readable,
+       (sqlc.narg(character_id)::uuid IS NULL OR EXISTS (
+           SELECT 1 FROM characters c
+           WHERE c.id = sqlc.narg(character_id)::uuid AND c.perspective_id = p.id))::boolean AS character_ok
+FROM perspectives p
+WHERE p.id = sqlc.arg(perspective_id)::uuid;
+
+-- name: UpsertInvite :one
+-- One link per perspective and character: a second request returns the
+-- first link's code.
+INSERT INTO invites (code, perspective_id, inviter_id, character_id)
+VALUES (sqlc.arg(code)::text, sqlc.arg(perspective_id)::uuid, sqlc.arg(inviter_id)::uuid, sqlc.narg(character_id)::uuid)
+ON CONFLICT (perspective_id, character_id) DO UPDATE SET code = invites.code
+RETURNING code;
+
+-- name: GetInviteTeaser :one
+-- What an invite link shows. readable is false once the perspective is
+-- deleted, hidden or no longer published, or its arc's place or any
+-- ancestor is hidden: hiding a place hides its whole subtree.
+WITH RECURSIVE target AS (
+    SELECT i.code, i.inviter_id, i.character_id, p.id AS perspective_id, p.status, p.deleted_at, p.hidden_at,
+           a.id AS arc_id, a.title AS arc_title, a.place_id, a.local_date, a.hour
+    FROM invites i
+    JOIN perspectives p ON p.id = i.perspective_id
+    JOIN arcs a ON a.id = p.arc_id
+    WHERE i.code = sqlc.arg(code)::text
+), up AS (
+    SELECT pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM target t
+    JOIN places pl ON pl.id = t.place_id
+    UNION ALL
+    SELECT parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT t.code, t.inviter_id, u.username AS inviter_username, t.arc_id, t.arc_title, t.local_date, t.hour,
+       pl.id AS place_id, pl.kind AS place_kind, pl.name AS place_name,
+       COALESCE((SELECT left(pp.body, 241) FROM perspective_parts pp
+                 WHERE pp.perspective_id = t.perspective_id ORDER BY pp.position LIMIT 1), '')::text AS opening,
+       COALESCE((SELECT c.label FROM characters c WHERE c.id = t.character_id), '')::text AS character_label,
+       (t.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND t.deleted_at IS NULL AND t.hidden_at IS NULL
+        AND u.deleted_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL))::boolean AS readable
+FROM target t
+JOIN users u ON u.id = t.inviter_id
+JOIN places pl ON pl.id = t.place_id;
+
+-- name: InviteArc :one
+-- The arc and inviter of an invite, for recording it on a publish.
+SELECT p.arc_id, i.inviter_id
+FROM invites i
+JOIN perspectives p ON p.id = i.perspective_id
+WHERE i.code = $1;
+
+-- name: SetInviteCode :exec
+UPDATE perspectives SET invite_code = sqlc.arg(code)::text WHERE id = sqlc.arg(id)::uuid;

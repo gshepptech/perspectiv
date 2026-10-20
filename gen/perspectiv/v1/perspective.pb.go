@@ -729,6 +729,9 @@ type PublishRequest struct {
 	Genre         Genre             `protobuf:"varint,6,opt,name=genre,proto3,enum=perspectiv.v1.Genre" json:"genre,omitempty"`
 	Parts         []string          `protobuf:"bytes,7,rep,name=parts,proto3" json:"parts,omitempty"`
 	Characters    []*CharacterInput `protobuf:"bytes,8,rep,name=characters,proto3" json:"characters,omitempty"`
+	// The invite link the author followed here, if any. It is recorded and
+	// the inviter is told only when the publish lands in the invite's arc.
+	InviteCode    string `protobuf:"bytes,9,opt,name=invite_code,json=inviteCode,proto3" json:"invite_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -817,6 +820,13 @@ func (x *PublishRequest) GetCharacters() []*CharacterInput {
 		return x.Characters
 	}
 	return nil
+}
+
+func (x *PublishRequest) GetInviteCode() string {
+	if x != nil {
+		return x.InviteCode
+	}
+	return ""
 }
 
 type PublishResponse struct {
@@ -1403,6 +1413,303 @@ func (x *ListByAuthorResponse) GetNextPageToken() string {
 	return ""
 }
 
+type CreateInviteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PerspectiveId string                 `protobuf:"bytes,1,opt,name=perspective_id,json=perspectiveId,proto3" json:"perspective_id,omitempty"`
+	// One of the perspective's characters; empty for a plain invite.
+	CharacterId   string `protobuf:"bytes,2,opt,name=character_id,json=characterId,proto3" json:"character_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateInviteRequest) Reset() {
+	*x = CreateInviteRequest{}
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateInviteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateInviteRequest) ProtoMessage() {}
+
+func (x *CreateInviteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateInviteRequest.ProtoReflect.Descriptor instead.
+func (*CreateInviteRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_perspective_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *CreateInviteRequest) GetPerspectiveId() string {
+	if x != nil {
+		return x.PerspectiveId
+	}
+	return ""
+}
+
+func (x *CreateInviteRequest) GetCharacterId() string {
+	if x != nil {
+		return x.CharacterId
+	}
+	return ""
+}
+
+type CreateInviteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateInviteResponse) Reset() {
+	*x = CreateInviteResponse{}
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateInviteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateInviteResponse) ProtoMessage() {}
+
+func (x *CreateInviteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateInviteResponse.ProtoReflect.Descriptor instead.
+func (*CreateInviteResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_perspective_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *CreateInviteResponse) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type GetInviteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetInviteRequest) Reset() {
+	*x = GetInviteRequest{}
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetInviteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetInviteRequest) ProtoMessage() {}
+
+func (x *GetInviteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetInviteRequest.ProtoReflect.Descriptor instead.
+func (*GetInviteRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_perspective_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *GetInviteRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+// Invite is the teaser an invite link opens.
+type Invite struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Code     string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Inviter  *UserRef               `protobuf:"bytes,2,opt,name=inviter,proto3" json:"inviter,omitempty"`
+	ArcId    string                 `protobuf:"bytes,3,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	ArcTitle string                 `protobuf:"bytes,4,opt,name=arc_title,json=arcTitle,proto3" json:"arc_title,omitempty"`
+	Place    *PlaceRef              `protobuf:"bytes,5,opt,name=place,proto3" json:"place,omitempty"`
+	// Place-local day, YYYY-MM-DD.
+	LocalDate string `protobuf:"bytes,6,opt,name=local_date,json=localDate,proto3" json:"local_date,omitempty"`
+	Hour      *int32 `protobuf:"varint,7,opt,name=hour,proto3,oneof" json:"hour,omitempty"`
+	// The opening of the inviter's first part.
+	Excerpt string `protobuf:"bytes,8,opt,name=excerpt,proto3" json:"excerpt,omitempty"`
+	// The character the inviter asks about; empty when none.
+	CharacterLabel string `protobuf:"bytes,9,opt,name=character_label,json=characterLabel,proto3" json:"character_label,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Invite) Reset() {
+	*x = Invite{}
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Invite) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Invite) ProtoMessage() {}
+
+func (x *Invite) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Invite.ProtoReflect.Descriptor instead.
+func (*Invite) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_perspective_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *Invite) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *Invite) GetInviter() *UserRef {
+	if x != nil {
+		return x.Inviter
+	}
+	return nil
+}
+
+func (x *Invite) GetArcId() string {
+	if x != nil {
+		return x.ArcId
+	}
+	return ""
+}
+
+func (x *Invite) GetArcTitle() string {
+	if x != nil {
+		return x.ArcTitle
+	}
+	return ""
+}
+
+func (x *Invite) GetPlace() *PlaceRef {
+	if x != nil {
+		return x.Place
+	}
+	return nil
+}
+
+func (x *Invite) GetLocalDate() string {
+	if x != nil {
+		return x.LocalDate
+	}
+	return ""
+}
+
+func (x *Invite) GetHour() int32 {
+	if x != nil && x.Hour != nil {
+		return *x.Hour
+	}
+	return 0
+}
+
+func (x *Invite) GetExcerpt() string {
+	if x != nil {
+		return x.Excerpt
+	}
+	return ""
+}
+
+func (x *Invite) GetCharacterLabel() string {
+	if x != nil {
+		return x.CharacterLabel
+	}
+	return ""
+}
+
+type GetInviteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Invite        *Invite                `protobuf:"bytes,1,opt,name=invite,proto3" json:"invite,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetInviteResponse) Reset() {
+	*x = GetInviteResponse{}
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetInviteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetInviteResponse) ProtoMessage() {}
+
+func (x *GetInviteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetInviteResponse.ProtoReflect.Descriptor instead.
+func (*GetInviteResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_perspective_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *GetInviteResponse) GetInvite() *Invite {
+	if x != nil {
+		return x.Invite
+	}
+	return nil
+}
+
 var File_perspectiv_v1_perspective_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_perspective_proto_rawDesc = "" +
@@ -1481,7 +1788,7 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"charactersB\a\n" +
 	"\x05_hour\"Q\n" +
 	"\x11SaveDraftResponse\x12<\n" +
-	"\vperspective\x18\x01 \x01(\v2\x1a.perspectiv.v1.PerspectiveR\vperspective\"\xbd\x02\n" +
+	"\vperspective\x18\x01 \x01(\v2\x1a.perspectiv.v1.PerspectiveR\vperspective\"\xde\x02\n" +
 	"\x0ePublishRequest\x12%\n" +
 	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12\x19\n" +
 	"\bplace_id\x18\x02 \x01(\tR\aplaceId\x12\x1d\n" +
@@ -1493,7 +1800,9 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\x05parts\x18\a \x03(\tR\x05parts\x12=\n" +
 	"\n" +
 	"characters\x18\b \x03(\v2\x1d.perspectiv.v1.CharacterInputR\n" +
-	"charactersB\a\n" +
+	"characters\x12\x1f\n" +
+	"\vinvite_code\x18\t \x01(\tR\n" +
+	"inviteCodeB\a\n" +
 	"\x05_hour\"O\n" +
 	"\x0fPublishResponse\x12%\n" +
 	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12\x15\n" +
@@ -1534,7 +1843,28 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"~\n" +
 	"\x14ListByAuthorResponse\x12>\n" +
 	"\fperspectives\x18\x01 \x03(\v2\x1a.perspectiv.v1.PerspectiveR\fperspectives\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\x8c\x05\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"_\n" +
+	"\x13CreateInviteRequest\x12%\n" +
+	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12!\n" +
+	"\fcharacter_id\x18\x02 \x01(\tR\vcharacterId\"*\n" +
+	"\x14CreateInviteResponse\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"&\n" +
+	"\x10GetInviteRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"\xb5\x02\n" +
+	"\x06Invite\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x120\n" +
+	"\ainviter\x18\x02 \x01(\v2\x16.perspectiv.v1.UserRefR\ainviter\x12\x15\n" +
+	"\x06arc_id\x18\x03 \x01(\tR\x05arcId\x12\x1b\n" +
+	"\tarc_title\x18\x04 \x01(\tR\barcTitle\x12-\n" +
+	"\x05place\x18\x05 \x01(\v2\x17.perspectiv.v1.PlaceRefR\x05place\x12\x1d\n" +
+	"\n" +
+	"local_date\x18\x06 \x01(\tR\tlocalDate\x12\x17\n" +
+	"\x04hour\x18\a \x01(\x05H\x00R\x04hour\x88\x01\x01\x12\x18\n" +
+	"\aexcerpt\x18\b \x01(\tR\aexcerpt\x12'\n" +
+	"\x0fcharacter_label\x18\t \x01(\tR\x0echaracterLabelB\a\n" +
+	"\x05_hour\"B\n" +
+	"\x11GetInviteResponse\x12-\n" +
+	"\x06invite\x18\x01 \x01(\v2\x15.perspectiv.v1.InviteR\x06invite2\xb5\x06\n" +
 	"\x12PerspectiveService\x12N\n" +
 	"\tSaveDraft\x12\x1f.perspectiv.v1.SaveDraftRequest\x1a .perspectiv.v1.SaveDraftResponse\x12H\n" +
 	"\aPublish\x12\x1d.perspectiv.v1.PublishRequest\x1a\x1e.perspectiv.v1.PublishResponse\x12i\n" +
@@ -1542,7 +1872,9 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\x06Delete\x12..perspectiv.v1.PerspectiveServiceDeleteRequest\x1a/.perspectiv.v1.PerspectiveServiceDeleteResponse\x12`\n" +
 	"\x03Get\x12+.perspectiv.v1.PerspectiveServiceGetRequest\x1a,.perspectiv.v1.PerspectiveServiceGetResponse\x12K\n" +
 	"\bListMine\x12\x1e.perspectiv.v1.ListMineRequest\x1a\x1f.perspectiv.v1.ListMineResponse\x12W\n" +
-	"\fListByAuthor\x12\".perspectiv.v1.ListByAuthorRequest\x1a#.perspectiv.v1.ListByAuthorResponseB\xa5\x01\n" +
+	"\fListByAuthor\x12\".perspectiv.v1.ListByAuthorRequest\x1a#.perspectiv.v1.ListByAuthorResponse\x12W\n" +
+	"\fCreateInvite\x12\".perspectiv.v1.CreateInviteRequest\x1a#.perspectiv.v1.CreateInviteResponse\x12N\n" +
+	"\tGetInvite\x12\x1f.perspectiv.v1.GetInviteRequest\x1a .perspectiv.v1.GetInviteResponseB\xa5\x01\n" +
 	"\x11com.perspectiv.v1B\x10PerspectiveProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -1557,7 +1889,7 @@ func file_perspectiv_v1_perspective_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_perspective_proto_rawDescData
 }
 
-var file_perspectiv_v1_perspective_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_perspectiv_v1_perspective_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_perspectiv_v1_perspective_proto_goTypes = []any{
 	(*Part)(nil),                             // 0: perspectiv.v1.Part
 	(*Character)(nil),                        // 1: perspectiv.v1.Character
@@ -1578,61 +1910,73 @@ var file_perspectiv_v1_perspective_proto_goTypes = []any{
 	(*ListMineResponse)(nil),                 // 16: perspectiv.v1.ListMineResponse
 	(*ListByAuthorRequest)(nil),              // 17: perspectiv.v1.ListByAuthorRequest
 	(*ListByAuthorResponse)(nil),             // 18: perspectiv.v1.ListByAuthorResponse
-	(*UserRef)(nil),                          // 19: perspectiv.v1.UserRef
-	(Genre)(0),                               // 20: perspectiv.v1.Genre
-	(PerspectiveStatus)(0),                   // 21: perspectiv.v1.PerspectiveStatus
-	(LoreStatus)(0),                          // 22: perspectiv.v1.LoreStatus
-	(*PlaceRef)(nil),                         // 23: perspectiv.v1.PlaceRef
-	(*ReactCount)(nil),                       // 24: perspectiv.v1.ReactCount
-	(*timestamppb.Timestamp)(nil),            // 25: google.protobuf.Timestamp
+	(*CreateInviteRequest)(nil),              // 19: perspectiv.v1.CreateInviteRequest
+	(*CreateInviteResponse)(nil),             // 20: perspectiv.v1.CreateInviteResponse
+	(*GetInviteRequest)(nil),                 // 21: perspectiv.v1.GetInviteRequest
+	(*Invite)(nil),                           // 22: perspectiv.v1.Invite
+	(*GetInviteResponse)(nil),                // 23: perspectiv.v1.GetInviteResponse
+	(*UserRef)(nil),                          // 24: perspectiv.v1.UserRef
+	(Genre)(0),                               // 25: perspectiv.v1.Genre
+	(PerspectiveStatus)(0),                   // 26: perspectiv.v1.PerspectiveStatus
+	(LoreStatus)(0),                          // 27: perspectiv.v1.LoreStatus
+	(*PlaceRef)(nil),                         // 28: perspectiv.v1.PlaceRef
+	(*ReactCount)(nil),                       // 29: perspectiv.v1.ReactCount
+	(*timestamppb.Timestamp)(nil),            // 30: google.protobuf.Timestamp
 }
 var file_perspectiv_v1_perspective_proto_depIdxs = []int32{
-	19, // 0: perspectiv.v1.Perspective.author:type_name -> perspectiv.v1.UserRef
-	20, // 1: perspectiv.v1.Perspective.genre:type_name -> perspectiv.v1.Genre
-	21, // 2: perspectiv.v1.Perspective.status:type_name -> perspectiv.v1.PerspectiveStatus
-	22, // 3: perspectiv.v1.Perspective.lore_status:type_name -> perspectiv.v1.LoreStatus
-	23, // 4: perspectiv.v1.Perspective.place:type_name -> perspectiv.v1.PlaceRef
+	24, // 0: perspectiv.v1.Perspective.author:type_name -> perspectiv.v1.UserRef
+	25, // 1: perspectiv.v1.Perspective.genre:type_name -> perspectiv.v1.Genre
+	26, // 2: perspectiv.v1.Perspective.status:type_name -> perspectiv.v1.PerspectiveStatus
+	27, // 3: perspectiv.v1.Perspective.lore_status:type_name -> perspectiv.v1.LoreStatus
+	28, // 4: perspectiv.v1.Perspective.place:type_name -> perspectiv.v1.PlaceRef
 	0,  // 5: perspectiv.v1.Perspective.parts:type_name -> perspectiv.v1.Part
 	1,  // 6: perspectiv.v1.Perspective.characters:type_name -> perspectiv.v1.Character
-	24, // 7: perspectiv.v1.Perspective.reacts:type_name -> perspectiv.v1.ReactCount
-	25, // 8: perspectiv.v1.Perspective.created_at:type_name -> google.protobuf.Timestamp
-	25, // 9: perspectiv.v1.Perspective.published_at:type_name -> google.protobuf.Timestamp
-	25, // 10: perspectiv.v1.Perspective.updated_at:type_name -> google.protobuf.Timestamp
-	19, // 11: perspectiv.v1.PerspectiveSummary.author:type_name -> perspectiv.v1.UserRef
-	20, // 12: perspectiv.v1.PerspectiveSummary.genre:type_name -> perspectiv.v1.Genre
-	22, // 13: perspectiv.v1.PerspectiveSummary.lore_status:type_name -> perspectiv.v1.LoreStatus
-	25, // 14: perspectiv.v1.PerspectiveSummary.published_at:type_name -> google.protobuf.Timestamp
-	20, // 15: perspectiv.v1.SaveDraftRequest.genre:type_name -> perspectiv.v1.Genre
+	29, // 7: perspectiv.v1.Perspective.reacts:type_name -> perspectiv.v1.ReactCount
+	30, // 8: perspectiv.v1.Perspective.created_at:type_name -> google.protobuf.Timestamp
+	30, // 9: perspectiv.v1.Perspective.published_at:type_name -> google.protobuf.Timestamp
+	30, // 10: perspectiv.v1.Perspective.updated_at:type_name -> google.protobuf.Timestamp
+	24, // 11: perspectiv.v1.PerspectiveSummary.author:type_name -> perspectiv.v1.UserRef
+	25, // 12: perspectiv.v1.PerspectiveSummary.genre:type_name -> perspectiv.v1.Genre
+	27, // 13: perspectiv.v1.PerspectiveSummary.lore_status:type_name -> perspectiv.v1.LoreStatus
+	30, // 14: perspectiv.v1.PerspectiveSummary.published_at:type_name -> google.protobuf.Timestamp
+	25, // 15: perspectiv.v1.SaveDraftRequest.genre:type_name -> perspectiv.v1.Genre
 	2,  // 16: perspectiv.v1.SaveDraftRequest.characters:type_name -> perspectiv.v1.CharacterInput
 	3,  // 17: perspectiv.v1.SaveDraftResponse.perspective:type_name -> perspectiv.v1.Perspective
-	20, // 18: perspectiv.v1.PublishRequest.genre:type_name -> perspectiv.v1.Genre
+	25, // 18: perspectiv.v1.PublishRequest.genre:type_name -> perspectiv.v1.Genre
 	2,  // 19: perspectiv.v1.PublishRequest.characters:type_name -> perspectiv.v1.CharacterInput
-	20, // 20: perspectiv.v1.PerspectiveServiceUpdateRequest.genre:type_name -> perspectiv.v1.Genre
+	25, // 20: perspectiv.v1.PerspectiveServiceUpdateRequest.genre:type_name -> perspectiv.v1.Genre
 	2,  // 21: perspectiv.v1.PerspectiveServiceUpdateRequest.characters:type_name -> perspectiv.v1.CharacterInput
 	3,  // 22: perspectiv.v1.PerspectiveServiceUpdateResponse.perspective:type_name -> perspectiv.v1.Perspective
 	3,  // 23: perspectiv.v1.PerspectiveServiceGetResponse.perspective:type_name -> perspectiv.v1.Perspective
-	21, // 24: perspectiv.v1.ListMineRequest.status:type_name -> perspectiv.v1.PerspectiveStatus
+	26, // 24: perspectiv.v1.ListMineRequest.status:type_name -> perspectiv.v1.PerspectiveStatus
 	3,  // 25: perspectiv.v1.ListMineResponse.perspectives:type_name -> perspectiv.v1.Perspective
 	3,  // 26: perspectiv.v1.ListByAuthorResponse.perspectives:type_name -> perspectiv.v1.Perspective
-	5,  // 27: perspectiv.v1.PerspectiveService.SaveDraft:input_type -> perspectiv.v1.SaveDraftRequest
-	7,  // 28: perspectiv.v1.PerspectiveService.Publish:input_type -> perspectiv.v1.PublishRequest
-	9,  // 29: perspectiv.v1.PerspectiveService.Update:input_type -> perspectiv.v1.PerspectiveServiceUpdateRequest
-	11, // 30: perspectiv.v1.PerspectiveService.Delete:input_type -> perspectiv.v1.PerspectiveServiceDeleteRequest
-	13, // 31: perspectiv.v1.PerspectiveService.Get:input_type -> perspectiv.v1.PerspectiveServiceGetRequest
-	15, // 32: perspectiv.v1.PerspectiveService.ListMine:input_type -> perspectiv.v1.ListMineRequest
-	17, // 33: perspectiv.v1.PerspectiveService.ListByAuthor:input_type -> perspectiv.v1.ListByAuthorRequest
-	6,  // 34: perspectiv.v1.PerspectiveService.SaveDraft:output_type -> perspectiv.v1.SaveDraftResponse
-	8,  // 35: perspectiv.v1.PerspectiveService.Publish:output_type -> perspectiv.v1.PublishResponse
-	10, // 36: perspectiv.v1.PerspectiveService.Update:output_type -> perspectiv.v1.PerspectiveServiceUpdateResponse
-	12, // 37: perspectiv.v1.PerspectiveService.Delete:output_type -> perspectiv.v1.PerspectiveServiceDeleteResponse
-	14, // 38: perspectiv.v1.PerspectiveService.Get:output_type -> perspectiv.v1.PerspectiveServiceGetResponse
-	16, // 39: perspectiv.v1.PerspectiveService.ListMine:output_type -> perspectiv.v1.ListMineResponse
-	18, // 40: perspectiv.v1.PerspectiveService.ListByAuthor:output_type -> perspectiv.v1.ListByAuthorResponse
-	34, // [34:41] is the sub-list for method output_type
-	27, // [27:34] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	24, // 27: perspectiv.v1.Invite.inviter:type_name -> perspectiv.v1.UserRef
+	28, // 28: perspectiv.v1.Invite.place:type_name -> perspectiv.v1.PlaceRef
+	22, // 29: perspectiv.v1.GetInviteResponse.invite:type_name -> perspectiv.v1.Invite
+	5,  // 30: perspectiv.v1.PerspectiveService.SaveDraft:input_type -> perspectiv.v1.SaveDraftRequest
+	7,  // 31: perspectiv.v1.PerspectiveService.Publish:input_type -> perspectiv.v1.PublishRequest
+	9,  // 32: perspectiv.v1.PerspectiveService.Update:input_type -> perspectiv.v1.PerspectiveServiceUpdateRequest
+	11, // 33: perspectiv.v1.PerspectiveService.Delete:input_type -> perspectiv.v1.PerspectiveServiceDeleteRequest
+	13, // 34: perspectiv.v1.PerspectiveService.Get:input_type -> perspectiv.v1.PerspectiveServiceGetRequest
+	15, // 35: perspectiv.v1.PerspectiveService.ListMine:input_type -> perspectiv.v1.ListMineRequest
+	17, // 36: perspectiv.v1.PerspectiveService.ListByAuthor:input_type -> perspectiv.v1.ListByAuthorRequest
+	19, // 37: perspectiv.v1.PerspectiveService.CreateInvite:input_type -> perspectiv.v1.CreateInviteRequest
+	21, // 38: perspectiv.v1.PerspectiveService.GetInvite:input_type -> perspectiv.v1.GetInviteRequest
+	6,  // 39: perspectiv.v1.PerspectiveService.SaveDraft:output_type -> perspectiv.v1.SaveDraftResponse
+	8,  // 40: perspectiv.v1.PerspectiveService.Publish:output_type -> perspectiv.v1.PublishResponse
+	10, // 41: perspectiv.v1.PerspectiveService.Update:output_type -> perspectiv.v1.PerspectiveServiceUpdateResponse
+	12, // 42: perspectiv.v1.PerspectiveService.Delete:output_type -> perspectiv.v1.PerspectiveServiceDeleteResponse
+	14, // 43: perspectiv.v1.PerspectiveService.Get:output_type -> perspectiv.v1.PerspectiveServiceGetResponse
+	16, // 44: perspectiv.v1.PerspectiveService.ListMine:output_type -> perspectiv.v1.ListMineResponse
+	18, // 45: perspectiv.v1.PerspectiveService.ListByAuthor:output_type -> perspectiv.v1.ListByAuthorResponse
+	20, // 46: perspectiv.v1.PerspectiveService.CreateInvite:output_type -> perspectiv.v1.CreateInviteResponse
+	23, // 47: perspectiv.v1.PerspectiveService.GetInvite:output_type -> perspectiv.v1.GetInviteResponse
+	39, // [39:48] is the sub-list for method output_type
+	30, // [30:39] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_perspective_proto_init() }
@@ -1648,13 +1992,14 @@ func file_perspectiv_v1_perspective_proto_init() {
 	file_perspectiv_v1_perspective_proto_msgTypes[5].OneofWrappers = []any{}
 	file_perspectiv_v1_perspective_proto_msgTypes[7].OneofWrappers = []any{}
 	file_perspectiv_v1_perspective_proto_msgTypes[15].OneofWrappers = []any{}
+	file_perspectiv_v1_perspective_proto_msgTypes[22].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_perspective_proto_rawDesc), len(file_perspectiv_v1_perspective_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
