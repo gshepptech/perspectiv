@@ -1,0 +1,291 @@
+{
+  "arcs": [
+    {
+      "place": "UCF Stadium",
+      "city": "Orlando",
+      "date": "2026-10-03",
+      "title": "Fourth quarter, sixty thousand people",
+      "perspectives": [
+        {
+          "user": "knightsfan_04",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "Section 212, row K. I've been to every home game since freshman year and I have never heard the student section go that quiet. Down by three, under two minutes left, and the kid two seats over from me, the one in gold body paint who had been screaming since warmups, just sat down and put his face in his hands.",
+            "Then the interception. I don't remember standing up. I remember gold paint all over my sleeve because he grabbed me and would not let go, and a woman a row behind us crying into a hot dog wrapper like it was a handkerchief. Nobody around us knew each other. For about four minutes it didn't matter."
+          ],
+          "characters": ["the kid in gold body paint", "the woman crying into a hot dog wrapper"]
+        },
+        {
+          "user": "paintedknight",
+          "genre": "COMEDY",
+          "parts": [
+            "Yes, I was the kid in the gold paint. It took forty minutes to put on and my roommate did my back with the sponge from our kitchen sink, which I am only now realizing was a mistake.",
+            "I didn't give up when we went down three. I sat down because my legs were shaking. When the pick happened I grabbed the first human I could reach, a guy in a gray hoodie who smelled like sunscreen, and I'm sorry about your sleeve. I'm not sorry about the hug."
+          ],
+          "characters": ["the guy in the gray hoodie I grabbed"]
+        },
+        {
+          "user": "naples_mom_k",
+          "genre": "DRAMA",
+          "parts": [
+            "My son is a freshman and I drove up from Naples for his first home game. He spent the night with his friends, which is exactly right, and texted me 'look at the 30 yard line' and I could not find him in all that noise.",
+            "When they intercepted it, I cried. Into a hot dog wrapper, apparently, which a stranger has now written down for the internet. Fine. I'd do it again. I found him after, hoarse and grinning, and he let me hug him in front of his friends."
+          ],
+          "characters": ["my son, somewhere in the student section"]
+        },
+        {
+          "user": "frosh_tyler",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "My mom drove four hours to watch a game she does not understand, and I spent the first half pretending she wasn't texting me every eight minutes.",
+            "We were down by the 30 when the tuba player turned around and winked at our whole row, like he knew. Two plays later, the pick. I looked for my mom in the stands and obviously couldn't see her, so I just waved at all of them."
+          ],
+          "characters": ["the tuba player who winked at our row"]
+        },
+        {
+          "user": "low_brass_lyd",
+          "genre": "COMEDY",
+          "parts": [
+            "For the record, I wink at the student section every game. It has never once worked before. Our director says the fight song does not cause interceptions. Our director was not in the stands on October 3rd."
+          ],
+          "characters": []
+        }
+      ],
+      "claims": [
+        { "claimant": "paintedknight", "author": "knightsfan_04", "character": "the kid in gold body paint" },
+        { "claimant": "knightsfan_04", "author": "paintedknight", "character": "the guy in the gray hoodie I grabbed" },
+        { "claimant": "naples_mom_k", "author": "knightsfan_04", "character": "the woman crying into a hot dog wrapper" },
+        { "claimant": "frosh_tyler", "author": "naples_mom_k", "character": "my son, somewhere in the student section" },
+        { "claimant": "low_brass_lyd", "author": "frosh_tyler", "character": "the tuba player who winked at our row" }
+      ]
+    },
+    {
+      "place": "Great Circle Coffee Roasters",
+      "city": "Miami",
+      "date": "2026-09-19",
+      "hour": 8,
+      "title": "The morning the street flooded",
+      "perspectives": [
+        {
+          "user": "rae_in_mia",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "We open at seven. By eight the water was over the curb and a man in a full suit came in barefoot, holding his shoes in one hand and his laptop over his head with the other. He ordered a cortado like nothing was happening.",
+            "A girl with a nursing school backpack asked if we had a mop, and then just stayed and used it for an hour. An older guy at the window kept telling everyone this was nothing, 1992 was worse. Nobody left until the street drained."
+          ],
+          "characters": ["the man in the suit holding his shoes", "the girl who stayed to help mop", "the old man who said 1992 was worse"]
+        },
+        {
+          "user": "late_for_the_9am",
+          "genre": "COMEDY",
+          "parts": [
+            "I had a 9 a.m. pitch on Brickell and a car that is not a boat. I walked the last two blocks with my shoes in my hand. The barista with a pencil behind her ear gave me a towel for my feet and wouldn't let me pay for the cortado.",
+            "I did the pitch from the corner table over the cafe wifi. We got the meeting moved, not won, but I'll take moved. I owe that place a lot of cortados."
+          ],
+          "characters": ["the barista with a pencil behind her ear"]
+        },
+        {
+          "user": "cortado_kid",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "My clinical got cancelled because of the rain and I was not going to sit in my apartment. I asked for a mop mostly as a joke. Then it was handed to me.",
+            "There's something about pushing water out of a door with strangers that makes it feel like a party. The man by the window narrated the entire thing like a sports commentator."
+          ],
+          "characters": ["the man by the window narrating everything"]
+        },
+        {
+          "user": "was_worse_in_92",
+          "genre": "DRAMA",
+          "parts": [
+            "I said it and I'll say it again: 1992 was worse. I was a young man in Homestead when Andrew came through. A wet floor and a closed street is a Thursday.",
+            "But I'll admit the kids handled it well. The girl with the mop, the boy in the suit with no shoes. Good kids. I bought the next round of pastelitos."
+          ],
+          "characters": []
+        }
+      ],
+      "claims": [
+        { "claimant": "late_for_the_9am", "author": "rae_in_mia", "character": "the man in the suit holding his shoes" },
+        { "claimant": "rae_in_mia", "author": "late_for_the_9am", "character": "the barista with a pencil behind her ear" },
+        { "claimant": "cortado_kid", "author": "rae_in_mia", "character": "the girl who stayed to help mop" },
+        { "claimant": "was_worse_in_92", "author": "cortado_kid", "character": "the man by the window narrating everything" }
+      ]
+    },
+    {
+      "place": "Blairstone Coin Laundry",
+      "city": "Tallahassee",
+      "date": "2026-10-11",
+      "hour": 23,
+      "title": "Dryer number six",
+      "perspectives": [
+        {
+          "user": "nightshift_rn",
+          "genre": "MYSTERY",
+          "parts": [
+            "Got off a twelve at eleven and I was out of scrubs. Dryer six has been eating quarters since the summer and someone had taped a sign to it that just said KICK HERE, with an arrow.",
+            "A guy was asleep on the folding table with his head on a Seminoles blanket. A woman I'd never seen was folding a load that clearly wasn't hers, very neatly. I kicked where the arrow said. It started. I still don't know who made that sign."
+          ],
+          "characters": ["the guy asleep on the folding table", "the woman folding someone else's laundry", "whoever taped the KICK HERE sign"]
+        },
+        {
+          "user": "fsu_grad_tired",
+          "genre": "COMEDY",
+          "parts": [
+            "I put my clothes in, sat on the table to wait, and woke up forty minutes later with all of it folded into perfect squares. The nurse in navy scrubs told me a stranger did it and left. I have never been so cared for by someone I didn't meet."
+          ],
+          "characters": ["the nurse in navy scrubs"]
+        },
+        {
+          "user": "folds_for_fun",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "I will not apologize. His load had been sitting in that dryer for forty minutes, it was going to wrinkle, and he was clearly asleep for a reason. Folding is calming. I fold at my sister's house too and she also finds it strange."
+          ],
+          "characters": []
+        },
+        {
+          "user": "quarter_hunter",
+          "genre": "MYSTERY",
+          "parts": [
+            "It was me. I made the sign in July. Dryer six has a loose panel on the left side, and a firm kick just below the coin slot reseats it. I've told the owner. Until it's fixed, the sign stays, and I'm glad it worked for someone at midnight."
+          ],
+          "characters": []
+        }
+      ],
+      "claims": [
+        { "claimant": "fsu_grad_tired", "author": "nightshift_rn", "character": "the guy asleep on the folding table" },
+        { "claimant": "nightshift_rn", "author": "fsu_grad_tired", "character": "the nurse in navy scrubs" },
+        { "claimant": "folds_for_fun", "author": "nightshift_rn", "character": "the woman folding someone else's laundry" },
+        { "claimant": "quarter_hunter", "author": "nightshift_rn", "character": "whoever taped the KICK HERE sign" }
+      ]
+    },
+    {
+      "place": "Park Lake Brewing Company",
+      "city": "Orlando",
+      "date": "2026-10-08",
+      "hour": 20,
+      "title": "Trivia night, round five",
+      "perspectives": [
+        {
+          "user": "quizzard_kel",
+          "genre": "COMEDY",
+          "parts": [
+            "Our team is called Dewey Decimal Destroyers and we have lost every Wednesday since March. Round five was ancient history and the table next to us answered Mesopotamia to every single question.",
+            "They were right four times. We came in second by one point. I have never respected and resented a group of strangers more."
+          ],
+          "characters": ["the team that answered Mesopotamia to everything"]
+        },
+        {
+          "user": "mesopotamia_max",
+          "genre": "COMEDY",
+          "parts": [
+            "It was a strategy. If you don't know, say Mesopotamia. The cradle of civilization covers a lot of ground. The Dewey Decimal team kept glaring at us, which only made it more fun."
+          ],
+          "characters": []
+        },
+        {
+          "user": "host_with_mic",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "I write the questions on Tuesdays. Round five was supposed to be the hard one. One table guessed the same word nine times and won the night. I'm rewriting round five."
+          ],
+          "characters": [],
+          "solo": true
+        }
+      ],
+      "claims": [
+        { "claimant": "mesopotamia_max", "author": "quizzard_kel", "character": "the team that answered Mesopotamia to everything" }
+      ]
+    },
+    {
+      "place": "Edward Ball Wakulla Springs State Park",
+      "city": "Tallahassee",
+      "date": "2026-10-17",
+      "title": "Manatees under the dive tower",
+      "perspectives": [
+        {
+          "user": "springs_and_things",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "Cold front came through and the water was so clear you could count the eelgrass. Three manatees were parked under the dive tower like they owned it. A little girl in a pink life jacket narrated their names to everyone on the dock: Biscuit, Tuesday and Mr. Big."
+          ],
+          "characters": ["the girl in the pink life jacket naming the manatees"]
+        },
+        {
+          "user": "ranger_of_the_dock",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "I work the boat tours. Every cold snap the manatees come into the spring, and every cold snap a child names them. This year it was Biscuit, Tuesday and Mr. Big. Honestly, better than last year's names."
+          ],
+          "characters": []
+        }
+      ],
+      "claims": []
+    },
+    {
+      "place": "Sweetwater Wetlands Park",
+      "city": "Gainesville",
+      "date": "2026-09-14",
+      "hour": 7,
+      "title": "The alligator on the boardwalk",
+      "perspectives": [
+        {
+          "user": "birding_before_class",
+          "genre": "HORROR",
+          "parts": [
+            "Six a.m. birding is supposed to be peaceful. I came around the bend on the boardwalk and there was a six foot alligator lying across it, completely still, like a speed bump with teeth. I waited eleven minutes. It did not move. I went the long way and saw a purple gallinule, so I'm calling it even."
+          ],
+          "characters": [],
+          "solo": true
+        },
+        {
+          "user": "gator_patience",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "There's a gator who likes the sunny stretch of boardwalk near the first overlook. Regulars just wait or turn around. I watched a student in a Gators cap stand there forever before going the long way. Smart kid."
+          ],
+          "characters": [],
+          "solo": true
+        }
+      ],
+      "claims": []
+    },
+    {
+      "place": "Bills Diner",
+      "city": "Jacksonville",
+      "date": "2026-10-18",
+      "hour": 2,
+      "title": "After the show",
+      "perspectives": [
+        {
+          "user": "setlist_sam",
+          "genre": "ROMANCE",
+          "parts": [
+            "The show let out at one and half the crowd ended up at Bills. I sat at the counter next to a girl who was still wearing a paper wristband and humming the encore. We split a short stack and argued about whether the second song was a cover.",
+            "It was. I looked it up. I didn't get her number, but I'd know that wristband anywhere."
+          ],
+          "characters": ["the girl humming the encore at the counter"]
+        },
+        {
+          "user": "wristband_wren",
+          "genre": "ROMANCE",
+          "parts": [
+            "I was humming. I hum when I'm happy and also when I'm wrong about covers, apparently. If the guy who split the short stack with me reads this: you were right, and the syrup was yours."
+          ],
+          "characters": ["the guy who split the short stack"]
+        },
+        {
+          "user": "night_cook_dee",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "Concert nights are my favorite and my worst. Fifty pancakes in an hour. Two kids at the counter shared a short stack and talked about music the whole time like they'd known each other for years."
+          ],
+          "characters": []
+        }
+      ],
+      "claims": [
+        { "claimant": "wristband_wren", "author": "setlist_sam", "character": "the girl humming the encore at the counter" },
+        { "claimant": "setlist_sam", "author": "wristband_wren", "character": "the guy who split the short stack" }
+      ]
+    }
+  ]
+}

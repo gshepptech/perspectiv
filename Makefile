@@ -82,7 +82,7 @@ DEV := AIR="$(AIR)" GOOSE="$(GOOSE)" scripts/dev.sh
 
 BIN_TARGETS := $(addprefix bin/,$(BINARIES))
 
-.PHONY: help tools dev dev-up dev-down dev-status dev-logs dev-migrate dev-migrate-down \
+.PHONY: help tools dev dev-up dev-down dev-status dev-logs dev-migrate dev-migrate-down seed \
 	dev-grafana dev-grafana-down build web-deps web-build $(BIN_TARGETS) test test-integration \
 	coverage-floors e2e lint vet fmt fmt-fix generate migrate new-migration check updates clean
 
@@ -219,6 +219,9 @@ generate: $(SQLC) $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_CONNECT_GO) ## Regenerate
 
 migrate: $(WEB_DIST) ## Apply migrations to DATABASE_URL with the production binary path
 	go run ./cmd/perspectiv migrate
+
+seed: ## Write the launch stories (scripts/seed) into the dev database; skips arcs already there
+	@set -a; . ./.env.dev; if [ -f .env.dev.local ]; then . ./.env.dev.local; fi; set +a; go run ./scripts/seed
 
 new-migration: ## Create the next goose migration: make new-migration NAME=snake_case
 	@scripts/new-migration.sh "$(NAME)"
