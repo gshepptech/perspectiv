@@ -4,6 +4,10 @@
 # Build output, pinned tools, Air builds, dev logs, coverage and test reports.
 /bin/
 /tmp/
+# Binaries a bare `go build` drops in the repo root.
+/perspectiv
+/placectl
+/seed
 
 # Web dependencies and the SPA bundle (rebuilt by make web-build).
 /web/node_modules/
