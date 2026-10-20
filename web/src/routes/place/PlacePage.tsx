@@ -194,6 +194,8 @@ function Children({ place }: { place: Place }) {
   // A store is a leaf of the hierarchy.
   const enabled = place.kind !== PlaceKind.STORE;
   const [filter, setFilter] = useState("");
+  // A city holds hundreds of places; the full list waits until asked for.
+  const [browsing, setBrowsing] = useState(false);
   const query = useDebounced(filter.trim(), 200);
   const storied = useQuery({
     queryKey: ["place", "listChildren", { parentId: place.id, withStories: true }],
@@ -206,7 +208,7 @@ function Children({ place }: { place: Place }) {
       clients.place.listChildren({ parentId: place.id, pageToken: pageParam, pageSize: 100 }, { signal }),
     initialPageParam: "",
     getNextPageParam: (last) => last.nextPageToken || undefined,
-    enabled: enabled && query === "",
+    enabled: enabled && query === "" && browsing,
   });
   const found = useQuery({
     queryKey: ["place", "searchPlaces", { query, parentId: place.id }],
@@ -215,7 +217,7 @@ function Children({ place }: { place: Place }) {
   });
   const withStories = storied.data?.places ?? [];
   const all = children.data?.pages.flatMap((p) => p.places) ?? [];
-  if (!enabled || (withStories.length === 0 && all.length === 0 && query === "")) return null;
+  if (!enabled) return null;
   const filterId = `filter-${place.id}`;
   return (
     <nav aria-label={`Places in ${place.name}`} className="grid min-w-0 gap-6">
@@ -250,14 +252,20 @@ function Children({ place }: { place: Place }) {
             <PlaceLinks places={found.data?.places ?? []} label="Matching places" />
           )
         ) : (
-          <>
-            <PlaceLinks places={all} label={`All places in ${place.name}`} />
-            {children.hasNextPage && (
-              <Button variant="ghost" size="sm" disabled={children.isFetchingNextPage} onClick={() => void children.fetchNextPage()}>
-                More places
-              </Button>
-            )}
-          </>
+          browsing ? (
+            <>
+              <PlaceLinks places={all} label={`All places in ${place.name}`} />
+              {children.hasNextPage && (
+                <Button variant="ghost" size="sm" disabled={children.isFetchingNextPage} onClick={() => void children.fetchNextPage()}>
+                  More places
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button variant="ghost" size="sm" className="mt-2" onClick={() => setBrowsing(true)}>
+              Browse all places in {place.name}
+            </Button>
+          )
         )}
       </section>
     </nav>

@@ -187,7 +187,9 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
   });
 
   it("drills down to the places inside it", async () => {
+    const user = userEvent.setup();
     placePage();
+    await user.click(await screen.findByRole("button", { name: "Browse all places in Springfield" }));
     const inside = await screen.findByRole("navigation", { name: "Places in Springfield" });
     expect(within(inside).getByRole("link", { name: "Prairie Books" })).toHaveAttribute("href", "/places/so-bk");
   });
@@ -202,7 +204,9 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     });
     const storied = await screen.findByRole("list", { name: "Places with stories" });
     expect(within(storied).getByRole("link", { name: "Corner Diner" })).toHaveAttribute("href", "/places/so-dn");
-    expect(within(screen.getByRole("list", { name: "All places in Springfield" })).getAllByRole("link")).toHaveLength(2);
+    expect(screen.queryByRole("list", { name: "All places in Springfield" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Browse all places in Springfield" }));
+    expect(within(await screen.findByRole("list", { name: "All places in Springfield" })).getAllByRole("link")).toHaveLength(2);
     await user.type(screen.getByRole("searchbox", { name: "Find a place in Springfield" }), "prairie");
     const matches = await screen.findByRole("list", { name: "Matching places" });
     expect(await within(matches).findByRole("link", { name: "Prairie Books" })).toBeInTheDocument();

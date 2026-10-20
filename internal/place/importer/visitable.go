@@ -50,10 +50,39 @@ var (
 	fsqListedAnyway = map[string]bool{"laundromat": true, "hospital": true, "emergency room": true, "bank": true}
 )
 
+// overtureKeptIn are the only categories kept inside the top-level groups
+// that are otherwise left out whole: in services_and_business only the
+// laundromat and the bank are places people go and talk about, and in
+// health_care only the hospital and the emergency room are public enough.
+var overtureKeptIn = map[string]map[string]bool{
+	"services_and_business": {"laundry_service": true, "laundromat": true, "bank_or_credit_union": true},
+	"health_care": {
+		"hospital": true, "emergency_or_urgent_care_facility": true, "urgent_care_clinic": true,
+		"walk_in_clinic": true,
+	},
+}
+
+// overtureListed applies the top-level group rule first, where the record
+// has a taxonomy, and the per-category list after it. A group rule catches
+// the long tail of sub-categories (junk removal, sign printing) a list of
+// names would miss.
 func overtureListed(p *placeRecord) bool {
 	cat := p.BasicCategory
 	if cat == "" && p.Categories != nil {
 		cat = p.Categories.Primary
+	}
+	if p.Taxonomy != nil && len(p.Taxonomy.Hierarchy) > 0 {
+		if kept, grouped := overtureKeptIn[p.Taxonomy.Hierarchy[0]]; grouped {
+			if kept[cat] {
+				return true
+			}
+			for _, h := range p.Taxonomy.Hierarchy[1:] {
+				if kept[h] {
+					return true
+				}
+			}
+			return false
+		}
 	}
 	return !overtureUnlisted[cat]
 }
