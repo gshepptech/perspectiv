@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ArrowLeft, Clock, PenLine } from "lucide-react";
 import { Fragment, useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useParams } from "react-router";
 
 import type { ViewerRights } from "@/components/actions/PerspectiveActions";
 import { ReportDialog } from "@/components/actions/ReportDialog";
@@ -163,8 +163,16 @@ function ArcView({ res }: { res: GetArcResponse }) {
   if (!arc) return <Missing />;
   const rights = rightsIn(res, session);
   const isHour = arc.hour !== undefined;
+  // Arriving from an invite: the reader has just written their side here.
+  const invited = (useLocation().state as { invited?: boolean } | null)?.invited === true;
   return (
     <article aria-labelledby="arc-title" className="min-w-0">
+      {invited && (
+        <p role="status" className="mb-6 rounded-xl border border-success p-4 text-ink">
+          Your side is published. If you are someone in another story here, open it and use{" "}
+          <strong className="font-medium">Claim a character</strong> so your stories link.
+        </p>
+      )}
       <header className="min-w-0">
         <nav aria-label="Place" className="text-sm text-ink-muted">
           <ol className="flex flex-wrap items-center gap-x-1">

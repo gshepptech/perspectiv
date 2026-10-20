@@ -50,6 +50,7 @@ const contract: [string, string][] = [
   ["/perspectives/x-1", "read/ReadPage"],
   ["/arcs/a-1", "arc/ArcPage"],
   ["/users/wren", "profile/ProfilePage"],
+  ["/i/abcdefgh23", "invite/InvitePage"],
   ["/compose?placeId=p-1&date=2026-10-01&hour=14", "compose/ComposePage"],
   ["/claims", "claims/ClaimsPage"],
   ["/admin/reports", "admin/ReportsPage"],
@@ -79,7 +80,7 @@ describe("route table", () => {
 });
 
 describe("signed-out reading and writing", () => {
-  const publicPaths = ["/", "/places/p-1", "/perspectives/x-1", "/arcs/a-1", "/login", "/signup"];
+  const publicPaths = ["/", "/places/p-1", "/perspectives/x-1", "/arcs/a-1", "/i/abcdefgh23", "/login", "/signup"];
   for (const path of publicPaths) {
     it(`${path} renders for a signed-out reader`, async () => {
       renderAt(path);

@@ -199,7 +199,7 @@ describe("SettingsPage blocks", () => {
 });
 
 describe("SettingsPage notification toggles", () => {
-  it("FR-037: offers an in-app and an email toggle for each of the six kinds", async () => {
+  it("FR-037: offers an in-app and an email toggle for each kind", async () => {
     settings();
     const region = await screen.findByRole("region", { name: "Notifications" });
     const labels = [
@@ -209,12 +209,13 @@ describe("SettingsPage notification toggles", () => {
       "A vote to remove opens",
       "The canon of your arc changes",
       "A report you made is resolved",
+      "Someone you invited writes their side",
     ];
     for (const label of labels) {
       expect(await within(region).findByRole("checkbox", { name: `${label}: in app` })).toBeChecked();
       expect(within(region).getByRole("checkbox", { name: `${label}: email` })).toBeChecked();
     }
-    expect(within(region).getAllByRole("checkbox")).toHaveLength(12);
+    expect(within(region).getAllByRole("checkbox")).toHaveLength(14);
   });
 
   it("turns one toggle off from the keyboard and keeps the server's answer", async () => {

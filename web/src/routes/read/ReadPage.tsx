@@ -2,8 +2,9 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { useCallback, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
+import { InviteDialog } from "@/components/actions/InviteDialog";
 import { perspectiveQuery } from "@/components/actions/queries";
 import { formatDay, genreLabel, loreStatusLabel } from "@/components/reader/format";
 import { Reader } from "@/components/reader/Reader";
@@ -85,7 +86,7 @@ function Missing({ title, detail }: { title: string; detail: string }) {
  * place; deleting a draft returns the author to the landing page, where their
  * remaining drafts are listed.
  */
-function AuthorActions({ p }: { p: Perspective }) {
+function AuthorActions({ p, justPublished = false }: { p: Perspective; justPublished?: boolean }) {
   const isDraft = p.status === PerspectiveStatus.DRAFT;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -101,6 +102,7 @@ function AuthorActions({ p }: { p: Perspective }) {
   const noun = isDraft ? "draft" : "perspective";
   return (
     <div className="flex flex-wrap items-center gap-3">
+      {!isDraft && <InviteDialog p={p} defaultOpen={justPublished} />}
       <Link to={`/compose?perspectiveId=${encodeURIComponent(p.id)}`} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
         {isDraft ? "Edit draft" : "Edit"}
       </Link>
@@ -150,6 +152,9 @@ function AuthorActions({ p }: { p: Perspective }) {
 export function Component() {
   const { perspectiveId = "" } = useParams();
   const session = useSession();
+  // The composer arrives here with justPublished set, which opens the invite
+  // dialog once: right after publishing is when the author knows who was there.
+  const justPublished = (useLocation().state as { justPublished?: boolean } | null)?.justPublished === true;
   const [params, setParams] = useSearchParams();
   // The action bar on the arc page reads the same cache entry, so both must
   // store the same shape; perspectiveQuery owns it.
@@ -217,7 +222,7 @@ export function Component() {
       )}
       {!isDraft && mine && (
         <div className="mx-auto mb-4 max-w-measure text-sm">
-          <AuthorActions p={p} />
+          <AuthorActions p={p} justPublished={justPublished} />
         </div>
       )}
       <Reader

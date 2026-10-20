@@ -28,6 +28,8 @@ export function describeNotification(n: Notification): Described {
       return { text: `A vote to remove a perspective opened in ${arc}.`, to: perspectivePage };
     case NotificationKind.CANON_CHANGE:
       return { text: `The canon of ${arc} changed.`, to: arcPage };
+    case NotificationKind.INVITE_ANSWERED:
+      return { text: `${who} followed your invite and wrote their side of ${arc}.`, to: perspectivePage };
     case NotificationKind.REPORT_RESOLVED:
       return { text: "A report you made was resolved. Thank you for keeping Perspectiv safe.", to: null };
     case NotificationKind.UNSPECIFIED:

@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Info, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch, type Control } from "react-hook-form";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 
 import { Button } from "@/components/ui/Button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
@@ -55,6 +55,11 @@ export type ComposerProps = {
  */
 export function Composer({ place, today, initial, perspective, notice, onDraftNamed }: ComposerProps) {
   const navigate = useNavigate();
+  // An invite link sends its reader here with the inviter's code; publishing
+  // with it tells the inviter, and lands on the arc, where the two stories sit
+  // side by side and characters can be claimed.
+  const [searchParams] = useSearchParams();
+  const inviteCode = searchParams.get("invite") ?? "";
   const published = perspective?.status === PerspectiveStatus.PUBLISHED;
   const form = useForm<ComposeValues>({
     defaultValues: initial,
@@ -130,9 +135,14 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
         genre: v.genre,
         parts: v.parts.map((p) => p.body),
         characters: characterInputs(v),
+        inviteCode,
       });
       autosave.cancel();
-      await navigate(`/perspectives/${encodeURIComponent(res.perspectiveId)}`);
+      if (inviteCode) {
+        await navigate(`/arcs/${encodeURIComponent(res.arcId)}`, { state: { invited: true } });
+      } else {
+        await navigate(`/perspectives/${encodeURIComponent(res.perspectiveId)}`, { state: { justPublished: true } });
+      }
     } catch (err) {
       // One perspective per person per arc: a second publish opens the first
       // one for editing instead of leaving the author on a dead end.

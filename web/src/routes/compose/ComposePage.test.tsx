@@ -536,3 +536,22 @@ describe("choosing a place", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/could not find that place/i);
   });
 });
+
+describe("writing through an invite", () => {
+  it("sends the invite code with the publish and lands on the arc", async () => {
+    const user = userEvent.setup();
+    const api = await openComposer("/compose?placeId=p-ny&date=2026-10-01&invite=abcdefgh23", {
+      "PerspectiveService/SaveDraft": (body) => draftReply("d-1", body),
+      "PerspectiveService/Publish": () => ok({ perspectiveId: "d-1", arcId: "arc-9" }),
+      "ArcService/GetArc": () => ok({}),
+    });
+    await user.type(screen.getByRole("textbox", { name: "Arc title" }), "Open mic night");
+    await pickGenre(user, "Drama");
+    await user.type(screen.getByRole("textbox", { name: "Part 1" }), "I was the one singing.");
+    await user.click(screen.getByRole("button", { name: "Publish" }));
+    await waitFor(() => expect(api.callsTo("PerspectiveService/Publish")).toHaveLength(1));
+    expect(api.callsTo("PerspectiveService/Publish")[0]?.body).toMatchObject({ inviteCode: "abcdefgh23" });
+    await waitFor(() => expect(api.callsTo("ArcService/GetArc").length).toBeGreaterThan(0));
+  });
+});
+

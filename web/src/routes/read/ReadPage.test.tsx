@@ -188,3 +188,31 @@ describe("reader and arc page share one cached perspective", () => {
   });
 });
 
+describe("inviting who was there", () => {
+  it("gives the author a link to send, optionally asking about one of their characters", async () => {
+    polyfillRadix();
+    const user = userEvent.setup();
+    const me = "0b9e0a52-5d0f-4a8e-9a43-1f0f7f3c2a10";
+    const mine = {
+      ...perspective,
+      author: { userId: me, username: "wren" },
+      characters: [{ id: "c-1", position: 1, label: "the man in the red coat" }],
+    };
+    const { calls } = renderApp(
+      "/perspectives/p-1",
+      {
+        "PerspectiveService/Get": () => ({ body: { perspective: mine } }),
+        "PerspectiveService/CreateInvite": () => ({ body: { code: "abcdefgh23" } }),
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    await user.click(await screen.findByRole("button", { name: "Invite who was there" }));
+    const dialog = await screen.findByRole("dialog", { name: "Who else was there?" });
+    await user.click(within(dialog).getByRole("radio", { name: "Were you the man in the red coat?" }));
+    await user.click(within(dialog).getByRole("button", { name: "Make the link" }));
+    expect(await within(dialog).findByText(/\/i\/abcdefgh23/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Were you the man in the red coat\? I wrote about Prairie Books/)).toBeInTheDocument();
+    expect(calls("PerspectiveService/CreateInvite")).toEqual([{ perspectiveId: "p-1", characterId: "c-1" }]);
+  });
+});
+
