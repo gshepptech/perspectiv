@@ -22,6 +22,17 @@ function useDebounced(value: string, ms: number): string {
   return debounced;
 }
 
+/** A section break as a novel sets one: an asterism between hairlines. */
+function Asterism({ className = "" }: { className?: string }) {
+  return (
+    <div aria-hidden className={`flex items-center gap-4 text-ink-muted ${className}`}>
+      <span className="h-px flex-1 bg-rule" />
+      <span className="font-serif text-lg">⁂</span>
+      <span className="h-px flex-1 bg-rule" />
+    </div>
+  );
+}
+
 function SearchResults({ query }: { query: string }) {
   const search = useQuery({
     queryKey: ["place", "searchPlaces", { query }],
@@ -70,11 +81,15 @@ function BrowseStates() {
   if (!states.data || states.data.places.length === 0) return null;
   return (
     <nav aria-label="Browse by state" className="mt-12">
-      <h2 className="text-xl">Or browse by state</h2>
-      <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+      <Asterism className="mb-8" />
+      <h2 className="label-caps">Or browse by state</h2>
+      <ul className="mt-4 gap-x-8 sm:columns-2 md:columns-3">
         {states.data.places.map((state) => (
-          <li key={state.id}>
-            <Link to={`/places/${state.id}`} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
+          <li key={state.id} className="break-inside-avoid">
+            <Link
+              to={`/places/${state.id}`}
+              className="inline-flex min-h-11 items-center font-serif text-lg text-accent underline-offset-4 hover:underline"
+            >
               {state.name}
             </Link>
           </li>
@@ -133,7 +148,8 @@ function YourPerspectives() {
   if (items.length === 0) return null;
   return (
     <section aria-labelledby="landing-mine" className="mt-12">
-      <h2 id="landing-mine" className="text-xl">
+      <Asterism className="mb-8" />
+      <h2 id="landing-mine" className="label-caps">
         Your perspectives
       </h2>
       <ul className="mt-3 divide-y divide-rule border-y border-rule">
@@ -169,17 +185,32 @@ export function Component() {
   }, [query, params, setParams]);
 
   return (
-    <section className="mx-auto max-w-measure min-w-0 pt-6 sm:pt-12" aria-labelledby="landing-title">
-      <h1 id="landing-title" className="text-2xl sm:text-3xl">
+    <section className="mx-auto max-w-measure min-w-0 pt-8 pb-16 sm:pt-16" aria-labelledby="landing-title">
+      <Asterism className="mb-10 sm:mb-14" />
+      <h1 id="landing-title" className="text-3xl sm:text-5xl">
         Where were you?
       </h1>
-      <p className="mt-2 text-ink-muted">Find a place to read what the people who were there wrote about it.</p>
-      <form role="search" className="mt-6" onSubmit={(e) => e.preventDefault()}>
+      <div className="prose-body mt-8">
+        <p className="drop-cap">
+          Everyone who stood in the same place on the same day saw a different afternoon. Here each of them writes it
+          down: one perspective, in their own words, filed under that place and that day. When a writer recognises
+          someone in another’s pages, the woman at the counter or the man who left without paying, the two stories link.
+          Linked stories become a lore, and the lore readers keep returning to becomes the canon of the day.
+        </p>
+        <p className="text-ink-muted">
+          Anyone can read. If you were there, you can write your part.
+        </p>
+      </div>
+      <form role="search" className="mt-12" onSubmit={(e) => e.preventDefault()}>
+        <p className="label-caps" aria-hidden>
+          Begin with a place
+        </p>
         <label htmlFor={inputId} className="sr-only">
           Search places
         </label>
-        <div className="relative">
-          <Search aria-hidden size={20} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-muted" />
+        <div className="relative mt-2">
+          <Search aria-hidden size={20} className="pointer-events-none absolute top-1/2 left-0 -translate-y-1/2 text-ink-muted" />
+          {/* A ruled line rather than a box; the focus ring still draws on :focus-visible. */}
           <Input
             id={inputId}
             type="search"
@@ -187,7 +218,7 @@ export function Component() {
             placeholder="A state, city, town, mall or store"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="pl-10"
+            className="rounded-none border-0 border-b border-control bg-transparent py-3 pr-0 pl-8 font-serif text-prose focus:border-accent"
           />
         </div>
       </form>

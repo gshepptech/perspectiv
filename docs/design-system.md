@@ -148,6 +148,37 @@ ARIA behaviour come from Radix, not from hand-written handlers:
 Icons are `lucide-react`, imported by name, at 16px in interface text and 20px
 in navigation, with `aria-hidden` when a text label sits beside them.
 
+## Landing (the opening page)
+
+The landing page is the first page of a novel, not a product pitch. A
+first-time reader learns what Perspectiv is from one paragraph of prose and is
+asked one question. There is no feed (AC-006), no hero image, no feature grid
+and no call-to-action banner.
+
+- **Chapter mark.** The page opens with an asterism (`⁂`, `aria-hidden`) in
+  `ink-muted`, centred over a short hairline, the way a chapter opens in print.
+- **Title.** "Where were you?" in Literata 600 at `text-3xl`, rising to
+  `text-5xl` from `sm`, left-aligned on the reading measure.
+- **Opening paragraph.** The idea, told as prose at `text-prose` on the
+  measure, with a drop cap: the first letter floats left across three lines at
+  `--drop-cap` size in Literata 600 `ink`. The drop cap is decoration only; the
+  paragraph reads the same without it, and assistive technology hears the
+  plain text.
+- **Second paragraph.** What a reader can do: read anything without an
+  account, and write when they were there. `ink-muted`, no drop cap.
+- **The question.** The place search is introduced by a label line in
+  letter-spaced capitals ("Begin with a place", the `label-caps` utility:
+  Public Sans 500, 13px, `ink-muted`) and drawn as a ruled line, not a box: a transparent field with a
+  `control` bottom border that turns `accent` on focus, Literata at
+  `text-prose`. Results keep their list form.
+- **Section breaks.** "Your perspectives" (signed in) and "Browse by state"
+  follow, each opened by the same asterism break instead of a heavy heading
+  rule. Their headings use `label-caps`. States set as a
+  multi-column list (one column on phones, three from `md`) so fifty names
+  read as a page, not a wall of links.
+- Everything stays on the reading measure and the 16px gutter; nothing on the
+  page animates.
+
 ## Voice
 
 Interface copy is plain and short: "Publish", "Claim character", "Vote to
