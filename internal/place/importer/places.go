@@ -28,7 +28,10 @@ type placeRecord struct {
 	ID            string `json:"id"`
 	Names         names  `json:"names"`
 	BasicCategory string `json:"basic_category"`
-	Taxonomy      *struct {
+	// Confidence is Overture's 0 to 1 confidence that the place exists;
+	// absent in older extracts.
+	Confidence *float64 `json:"confidence"`
+	Taxonomy   *struct {
 		Primary   string   `json:"primary"`
 		Hierarchy []string `json:"hierarchy"`
 	} `json:"taxonomy"`
@@ -167,7 +170,7 @@ func (b *builder) addPlaces(r io.Reader, locs localityIndex) error {
 		switch {
 		case strings.ToUpper(p.country) != country:
 			b.plan.Skipped++
-		case !p.listed && p.kind != perspectivv1.PlaceKind_PLACE_KIND_MALL, !hasLetter(p.name):
+		case !p.listed && p.kind != perspectivv1.PlaceKind_PLACE_KIND_MALL, !recognisable(p.name):
 			b.plan.Unlisted++
 		case p.kind == perspectivv1.PlaceKind_PLACE_KIND_MALL:
 			malls = append(malls, p)

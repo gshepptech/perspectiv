@@ -1,9 +1,19 @@
 package importer
 
 import (
+	"regexp"
 	"strings"
 	"unicode"
 )
+
+// minConfidence is the lowest Overture confidence kept. Below it the
+// listings are mostly unverified (a person's name, a one-person marketing
+// firm); someone who was at a real place there can still add it.
+const minConfidence = 0.5
+
+// addressName matches a name that is only a street address ("4939 tamiami
+// trl e"), which names no place a reader could recognise.
+var addressName = regexp.MustCompile(`(?i)^\d+[a-z]?\s+([nsew]\.?\s+)?[\w .'-]*\b(st|street|rd|road|ave|avenue|blvd|boulevard|dr|drive|ln|lane|way|ct|court|hwy|highway|pkwy|parkway|trl|trail|cir|circle|pl|place|ter|terrace)\.?(\s+[nsew]\.?)?$`)
 
 // A place is worth listing when someone could have been there and have a
 // story about it. The source datasets also carry offices and services that
@@ -71,6 +81,14 @@ func overtureListed(p *placeRecord) bool {
 	if cat == "" && p.Categories != nil {
 		cat = p.Categories.Primary
 	}
+	if p.Confidence != nil && *p.Confidence < minConfidence {
+		return false
+	}
+	// A record with no category at all is a listing nobody classified;
+	// in the US releases that is mostly unverified noise.
+	if cat == "" {
+		return false
+	}
 	if p.Taxonomy != nil && len(p.Taxonomy.Hierarchy) > 0 {
 		if kept, grouped := overtureKeptIn[p.Taxonomy.Hierarchy[0]]; grouped {
 			if kept[cat] {
@@ -96,6 +114,12 @@ func fsqListed(labels []string) bool {
 		}
 	}
 	return true
+}
+
+// recognisable is false for a name of only digits and symbols, or only a
+// street address.
+func recognisable(name string) bool {
+	return hasLetter(name) && !addressName.MatchString(strings.TrimSpace(name))
 }
 
 // hasLetter is false for a name of only digits and symbols ("." or "007"),

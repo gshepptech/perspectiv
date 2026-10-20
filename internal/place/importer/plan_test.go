@@ -293,7 +293,7 @@ func TestPrepareUnfiledPlaces(t *testing.T) {
 		{"null locality", `{"fsq_place_id":"fsq-x1","name":"Roadside Diner","country":"US","region":"TX","locality":null}`, 1},
 		{"empty locality", `{"fsq_place_id":"fsq-x2","name":"Roadside Diner","country":"US","region":"TX","locality":""}`, 1},
 		{"borough locality", `{"fsq_place_id":"fsq-x3","name":"Corner Bodega","country":"US","region":"TX","locality":"Northeast El Paso"}`, 1},
-		{"overture place with no address", `{"id":"ov-x4","names":{"primary":"Trailhead Kiosk"},"addresses":[{"country":"US","region":"US-TX"}]}`, 1},
+		{"overture place with no address", `{"id":"ov-x4","names":{"primary":"Trailhead Kiosk"},"basic_category":"park","addresses":[{"country":"US","region":"US-TX"}]}`, 1},
 		{"region that is not a state", `{"fsq_place_id":"fsq-x5","name":"Shop","country":"US","region":"Atlantis","locality":"El Paso"}`, 1},
 		{
 			"several unfiled places",
@@ -334,8 +334,9 @@ func TestPrepareEmptyFiles(t *testing.T) {
 	}
 }
 
-// Offices, services and care places nobody would write about are left out
-// and counted; places people go, and places with no category, are kept.
+// Offices, services and care places nobody would write about, unclassified
+// or low-confidence listings and bare addresses are left out and counted;
+// places people go are kept.
 func TestPrepareLeavesOutUnlistedCategories(t *testing.T) {
 	t.Parallel()
 	ep := `"addresses":[{"locality":"El Paso","region":"TX","country":"US"}]`
@@ -345,6 +346,9 @@ func TestPrepareLeavesOutUnlistedCategories(t *testing.T) {
 		`{"id":"ov-laundry","names":{"primary":"Suds Laundromat"},"basic_category":"laundry_service",` + ep + `}`,
 		`{"id":"ov-bar","names":{"primary":"Rosa's Cantina"},"basic_category":"bar",` + ep + `}`,
 		`{"id":"ov-none","names":{"primary":"Plaza Bench"},` + ep + `}`,
+		`{"id":"ov-low","names":{"primary":"Jon Watkins"},"basic_category":"bar","confidence":0.12,` + ep + `}`,
+		`{"id":"ov-addr","names":{"primary":"4939 tamiami trl e"},"basic_category":"convenience_store","confidence":0.8,` + ep + `}`,
+		`{"id":"ov-num","names":{"primary":"5 Brothers Key West"},"basic_category":"casual_eatery","confidence":0.97,` + ep + `}`,
 		`{"fsq_place_id":"fsq-cpa","name":"Desert CPA","locality":"El Paso","region":"TX","country":"US","fsq_category_labels":["Business and Professional Services > Accounting and Bookkeeping Service"]}`,
 		`{"id":"ov-dot","names":{"primary":"."},"basic_category":"bar",` + ep + `}`,
 		`{"id":"ov-junk","names":{"primary":"Haul It Away"},"basic_category":"junk_removal",` +
@@ -359,19 +363,19 @@ func TestPrepareLeavesOutUnlistedCategories(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Prepare: %v", err)
 	}
-	if plan.Unlisted != 5 {
-		t.Errorf("Unlisted = %d, want 5 (realtor, dentist, accountant, junk removal, a name with no letters)", plan.Unlisted)
+	if plan.Unlisted != 8 {
+		t.Errorf("Unlisted = %d, want 8 (realtor, dentist, accountant, junk removal, no category, low confidence, an address, a name with no letters)", plan.Unlisted)
 	}
 	have := map[string]bool{}
 	for _, n := range plan.Nodes() {
 		have[n.Name] = true
 	}
-	for _, name := range []string{"Suds Laundromat", "Rosa's Cantina", "Plaza Bench", "Wash World", "Coin Wash", "Thomason ER"} {
+	for _, name := range []string{"Suds Laundromat", "Rosa's Cantina", "Wash World", "Coin Wash", "Thomason ER", "5 Brothers Key West"} {
 		if !have[name] {
 			t.Errorf("%s was left out; want it kept", name)
 		}
 	}
-	for _, name := range []string{"Sunbelt Realty", "Bright Smile Dental", "Desert CPA", "Haul It Away"} {
+	for _, name := range []string{"Sunbelt Realty", "Bright Smile Dental", "Desert CPA", "Haul It Away", "Plaza Bench", "Jon Watkins", "4939 tamiami trl e"} {
 		if have[name] {
 			t.Errorf("%s was imported; want it left out", name)
 		}

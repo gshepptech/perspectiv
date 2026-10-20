@@ -38,7 +38,7 @@
 // The places extract is Overture places,
 //
 //	COPY (
-//	  SELECT id, names, basic_category, taxonomy, addresses,
+//	  SELECT id, names, basic_category, taxonomy, addresses, confidence,
 //	         ST_X(geometry) AS lng, ST_Y(geometry) AS lat
 //	  FROM read_parquet('s3://overturemaps-us-west-2/release/<release>/theme=places/type=place/*')
 //	  WHERE addresses[1].country = 'US'
