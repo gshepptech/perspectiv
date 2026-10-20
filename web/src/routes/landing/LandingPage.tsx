@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
@@ -45,9 +45,15 @@ function SearchResults({ query }: { query: string }) {
   }
   const places = search.data.places;
   if (places.length === 0) {
-    return <p className="mt-4 text-ink-muted">No places match “{query}”.</p>;
+    return (
+      <>
+        <p className="mt-4 text-ink-muted">No places match “{query}”.</p>
+        <AddPlaceLink name={query} />
+      </>
+    );
   }
   return (
+    <>
     <ul aria-label="Matching places" className="mt-4 divide-y divide-rule border-y border-rule">
       {places.map((place) => (
         <li key={place.id}>
@@ -61,6 +67,25 @@ function SearchResults({ query }: { query: string }) {
         </li>
       ))}
     </ul>
+    <AddPlaceLink name={query} />
+    </>
+  );
+}
+
+/**
+ * The way in when the place someone was at is not listed: it opens the
+ * composer's add form with the name they searched for. A signed-out reader
+ * is sent to sign in first and comes back here.
+ */
+function AddPlaceLink({ name }: { name: string }) {
+  return (
+    <Link
+      to={`/compose?add=${encodeURIComponent(name)}`}
+      className="mt-3 inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-dashed border-control px-4 text-sm text-ink hover:border-accent hover:text-accent"
+    >
+      <Plus aria-hidden size={16} className="shrink-0" />
+      <span className="min-w-0 wrap-anywhere">Not here? Add “{name}” as a new place</span>
+    </Link>
   );
 }
 

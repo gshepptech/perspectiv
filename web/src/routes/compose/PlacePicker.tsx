@@ -14,10 +14,20 @@ import { MIN_QUERY, SEARCH_DEBOUNCE_MS, useDebounced } from "./search";
  * The first step of writing: find the place the story happened, or add the
  * mall or store when the search does not know it.
  */
-export function PlacePicker({ onPick }: { onPick: (place: Place) => void }) {
+export function PlacePicker({
+  onPick,
+  addName,
+  addIn = "",
+}: {
+  onPick: (place: Place) => void;
+  /** Opens the add form at once, with this name filled in. */
+  addName?: string;
+  /** Opens the add form at once, with this place chosen as where it is. */
+  addIn?: string;
+}) {
   const inputId = useId();
-  const [text, setText] = useState("");
-  const [adding, setAdding] = useState(false);
+  const [text, setText] = useState(addName ?? "");
+  const [adding, setAdding] = useState(addName !== undefined || addIn !== "");
   const query = useDebounced(text.trim(), SEARCH_DEBOUNCE_MS);
   const search = useQuery({
     queryKey: ["place", "searchPlaces", query],
@@ -40,7 +50,7 @@ export function PlacePicker({ onPick }: { onPick: (place: Place) => void }) {
           type="search"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="A store, mall or town"
+          placeholder="A shop, restaurant, park, town or city"
           autoComplete="off"
         />
       </div>
@@ -76,12 +86,12 @@ export function PlacePicker({ onPick }: { onPick: (place: Place) => void }) {
         </ul>
       )}
       {adding ? (
-        <AddPlace initialName={text.trim()} onAdded={onPick} onCancel={() => setAdding(false)} />
+        <AddPlace initialName={text.trim()} initialParentId={addIn} onAdded={onPick} onCancel={() => setAdding(false)} />
       ) : (
         <div className="grid justify-items-start gap-2">
-          <p className="text-sm text-ink-muted">Not listed? Add the mall or store yourself.</p>
+          <p className="text-sm text-ink-muted">Not listed? Add it yourself.</p>
           <Button type="button" variant="secondary" onClick={() => setAdding(true)}>
-            Add a mall or store
+            Add a place
           </Button>
         </div>
       )}

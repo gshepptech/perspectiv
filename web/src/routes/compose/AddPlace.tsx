@@ -27,8 +27,8 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 const kindChoices = [
-  { value: String(PlaceKind.STORE), label: "A store" },
-  { value: String(PlaceKind.MALL), label: "A mall" },
+  { value: String(PlaceKind.STORE), label: "A place: a shop, restaurant, bar, park or venue" },
+  { value: String(PlaceKind.MALL), label: "A mall or shopping center" },
 ];
 
 // A place can sit only under a place of a higher level: STATE, CITY, TOWN,
@@ -66,21 +66,25 @@ function placeTrail(p: Place): string {
  */
 export function AddPlace({
   initialName,
+  initialParentId = "",
   onAdded,
   onCancel,
 }: {
   initialName: string;
+  /** The place it is in, already chosen: the page the author added it from. */
+  initialParentId?: string;
   onAdded: (place: Place) => void;
   onCancel: () => void;
 }) {
   const titleId = useId();
   const nameId = useId();
   const nameErrorId = useId();
+  const nameHintId = useId();
   const whereId = useId();
   const parentErrorId = useId();
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { name: initialName, kind: String(PlaceKind.STORE), parentId: "" },
+    defaultValues: { name: initialName, kind: String(PlaceKind.STORE), parentId: initialParentId },
   });
   const kind = Number(form.watch("kind")) as PlaceKind;
   const where = form.watch("parentId");
@@ -91,7 +95,15 @@ export function AddPlace({
     queryFn: () => clients.place.searchPlaces({ query }),
     enabled: query.length >= MIN_QUERY,
   });
-  const parents = (search.data?.places ?? []).filter((p) => canHold(p, kind));
+  const preset = useQuery({
+    queryKey: ["place", "getPlace", initialParentId],
+    queryFn: () => clients.place.getPlace({ placeId: initialParentId }),
+    enabled: initialParentId !== "",
+  });
+  // The preset place stays offered (and chosen) until the author searches for another.
+  const presetPlace = preset.data?.place;
+  const found = search.data?.places ?? [];
+  const parents = [...(presetPlace && query === "" ? [presetPlace] : []), ...found].filter((p) => canHold(p, kind));
   const create = useMutation({
     mutationFn: (v: Values) =>
       clients.place.createPlace({ name: v.name.trim(), kind: Number(v.kind) as PlaceKind, parentId: v.parentId }),
@@ -120,9 +132,12 @@ export function AddPlace({
           maxLength={MAX_NAME}
           autoComplete="off"
           aria-invalid={errors.name ? true : undefined}
-          aria-describedby={errors.name ? nameErrorId : undefined}
+          aria-describedby={errors.name ? `${nameErrorId} ${nameHintId}` : nameHintId}
           {...form.register("name")}
         />
+        <p id={nameHintId} className="text-sm text-ink-muted">
+          More than one in town? Add the street, like “Dollar General, Main St”.
+        </p>
         {errors.name && (
           <p id={nameErrorId} className="text-sm font-medium text-error">
             {errors.name.message}

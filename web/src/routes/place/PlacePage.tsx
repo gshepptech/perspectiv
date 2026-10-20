@@ -1,6 +1,6 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Crown, PenLine } from "lucide-react";
+import { Crown, PenLine, Plus } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router";
 
 import { formatDay, genreLabel, loreStatusLabel, placeKindLabel } from "@/components/reader/format";
@@ -246,12 +246,23 @@ export function Component() {
         )}
         <h1 className="text-2xl wrap-anywhere sm:text-3xl">{place.name}</h1>
         <p className="mt-1 text-sm text-ink-muted">{placeKindLabel(place.kind)}</p>
-        <Button asChild variant="secondary" className="mt-4">
-          <Link to={`/compose?placeId=${encodeURIComponent(place.id)}`}>
-            <PenLine aria-hidden size={16} />
-            Write about this place
-          </Link>
-        </Button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button asChild variant="secondary">
+            <Link to={`/compose?placeId=${encodeURIComponent(place.id)}`}>
+              <PenLine aria-hidden size={16} />
+              Write about this place
+            </Link>
+          </Button>
+          {/* A city, town or mall holds smaller places; a store holds none. */}
+          {place.kind !== PlaceKind.STORE && place.kind !== PlaceKind.STATE && (
+            <Button asChild variant="ghost">
+              <Link to={`/compose?in=${encodeURIComponent(place.id)}`}>
+                <Plus aria-hidden size={16} />
+                Add a place here
+              </Link>
+            </Button>
+          )}
+        </div>
       </header>
 
       <div className="mt-8 grid min-w-0 gap-8 md:grid-cols-[minmax(0,1fr)_16rem]">

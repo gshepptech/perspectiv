@@ -108,7 +108,9 @@ function Existing({ perspectiveId, ...shared }: Shared & { perspectiveId: string
  * published perspective; otherwise placeId opens a new perspective there,
  * starting from date (YYYY-MM-DD, default today in the place's time zone) and
  * hour (0 to 23, default the whole day); with neither, the author first picks
- * a place.
+ * a place. add (a name, possibly empty) and in (a place id) open the picker's
+ * add form at once, prefilled: search results and place pages link here when
+ * the place someone was at is not listed.
  */
 export function Component() {
   const [params, setParams] = useSearchParams();
@@ -157,10 +159,14 @@ export function Component() {
   }
   return (
     <PlacePicker
+      addName={params.get("add") ?? (params.has("in") ? "" : undefined)}
+      addIn={params.get("in") ?? ""}
       onPick={(place) =>
         setParams((prev) => {
           const next = new URLSearchParams(prev);
           next.set("placeId", place.id);
+          next.delete("add");
+          next.delete("in");
           return next;
         })
       }

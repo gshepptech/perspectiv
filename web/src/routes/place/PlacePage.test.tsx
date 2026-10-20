@@ -195,6 +195,11 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     expect(await screen.findByRole("link", { name: "Write about this place" })).toHaveAttribute("href", "/compose?placeId=ci-spr");
   });
 
+  it("offers adding a place inside a city, with the city already chosen", async () => {
+    placePage();
+    expect(await screen.findByRole("link", { name: "Add a place here" })).toHaveAttribute("href", "/compose?in=ci-spr");
+  });
+
   it("shows not found for an unknown place", async () => {
     placePage("/places/nope", {
       "PlaceService/GetPlace": () => connectError("not_found"),

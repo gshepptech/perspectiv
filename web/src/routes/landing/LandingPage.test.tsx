@@ -154,4 +154,12 @@ describe("landing page (AC-006, OT-036)", () => {
     expect(within(how).getAllByRole("listitem")).toHaveLength(4);
     expect(screen.getByText("Anyone can read. Sign up to write your side.")).toBeInTheDocument();
   });
+
+  it("offers to add a place that search does not find", async () => {
+    const user = userEvent.setup();
+    landing(() => ({ body: { places: [] } }));
+    await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "Dollar General");
+    const add = await screen.findByRole("link", { name: "Not here? Add “Dollar General” as a new place" });
+    expect(add).toHaveAttribute("href", "/compose?add=Dollar%20General");
+  });
 });
