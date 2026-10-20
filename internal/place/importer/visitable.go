@@ -91,18 +91,24 @@ func overtureListed(p *placeRecord) bool {
 	}
 	if p.Taxonomy != nil && len(p.Taxonomy.Hierarchy) > 0 {
 		if kept, grouped := overtureKeptIn[p.Taxonomy.Hierarchy[0]]; grouped {
-			if kept[cat] {
-				return true
-			}
-			for _, h := range p.Taxonomy.Hierarchy[1:] {
-				if kept[h] {
-					return true
-				}
-			}
-			return false
+			return keptInGroup(kept, cat, p.Taxonomy.Hierarchy[1:])
 		}
 	}
 	return !overtureUnlisted[cat]
+}
+
+// keptInGroup reports whether a place in a left-out group is one of the
+// group's kept categories, by its own category or any level of its taxonomy.
+func keptInGroup(kept map[string]bool, cat string, hierarchy []string) bool {
+	if kept[cat] {
+		return true
+	}
+	for _, h := range hierarchy {
+		if kept[h] {
+			return true
+		}
+	}
+	return false
 }
 
 func fsqListed(labels []string) bool {
