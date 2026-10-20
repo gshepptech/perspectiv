@@ -85,7 +85,36 @@ function TaleItem({ tale }: { tale: EpicTale }) {
   );
 }
 
-function EpicList({ placeId, tab, genre }: { placeId: string; tab: EpicTab; genre: Genre }) {
+/**
+ * What an empty epic says. A place with nothing yet asks the reader whether
+ * they were there and offers the first story; a filter that empties the list
+ * says so, so the place does not look abandoned when it is not.
+ */
+function EmptyEpic({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Genre }) {
+  if (genre !== Genre.UNSPECIFIED) {
+    return <p className="text-ink-muted">No {genreLabel(genre).toLowerCase()} stories here yet.</p>;
+  }
+  if (tab === EpicTab.TALES) {
+    return <p className="text-ink-muted">No tales here yet. A tale is a story no one else has linked to.</p>;
+  }
+  return (
+    <div className="rounded-xl border border-dashed border-control p-6">
+      <p className="font-serif text-xl wrap-anywhere text-ink">No one has written about {place.name} yet.</p>
+      <p className="mt-2 text-ink-muted">
+        Were you here? Write what you saw, and the people who were here with you can add their side.
+      </p>
+      <Button asChild className="mt-4">
+        <Link to={`/compose?placeId=${encodeURIComponent(place.id)}`}>
+          <PenLine aria-hidden size={16} />
+          Write the first story
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+function EpicList({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Genre }) {
+  const placeId = place.id;
   const epic = useInfiniteQuery({
     queryKey: ["place", "getEpic", { placeId, tab, genre }],
     queryFn: ({ pageParam, signal }) => clients.place.getEpic({ placeId, tab, genre, pageToken: pageParam }, { signal }),
@@ -110,7 +139,7 @@ function EpicList({ placeId, tab, genre }: { placeId: string; tab: EpicTab; genr
   const arcs = epic.data.pages.flatMap((p) => p.arcs);
   const tales = epic.data.pages.flatMap((p) => p.tales);
   if ((isTales ? tales.length : arcs.length) === 0) {
-    return <p className="text-ink-muted">{isTales ? "No tales here yet." : "No arcs here yet."}</p>;
+    return <EmptyEpic place={place} tab={tab} genre={genre} />;
   }
   return (
     <>
@@ -292,7 +321,7 @@ export function Component() {
             </div>
             {tabs.map((t) => (
               <TabsContent key={t.slug} value={t.slug}>
-                {t.slug === tab && <EpicList placeId={place.id} tab={epicTab} genre={genre} />}
+                {t.slug === tab && <EpicList place={place} tab={epicTab} genre={genre} />}
               </TabsContent>
             ))}
           </Tabs>

@@ -179,9 +179,10 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     expect(router.state.location.search).toBe("?genre=mystery");
   });
 
-  it("says so when the place has no arcs yet", async () => {
+  it("invites the first story when the place has no arcs yet", async () => {
     placePage("/places/ci-spr", { "PlaceService/GetEpic": () => ({ body: { place: springfield } }) });
-    expect(await screen.findByText("No arcs here yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No one has written about Springfield yet.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Write the first story" })).toHaveAttribute("href", "/compose?placeId=ci-spr");
   });
 
   it("drills down to the places inside it", async () => {
