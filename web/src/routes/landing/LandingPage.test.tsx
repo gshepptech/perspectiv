@@ -25,10 +25,36 @@ const results = {
 
 const states = { places: [{ ...illinois }, { id: "st-oh", kind: "PLACE_KIND_STATE", name: "Ohio" }] };
 
-function landing(search: (body: Record<string, unknown>) => { status?: number; body: unknown } = () => ({ body: results })) {
+const storeRef = (id: string, name: string) => ({ id, kind: "PLACE_KIND_STORE", name });
+const epicArc = (arcId: string, place: ReturnType<typeof storeRef>, title: string, over: Record<string, unknown> = {}) => ({
+  arcId,
+  title,
+  place,
+  localDate: "2026-10-03",
+  canonLoreId: "",
+  memberCount: 0,
+  perspectiveCount: 2,
+  city: "Springfield",
+  excerpt: `Opening of ${title}`,
+  ...over,
+});
+// The most remembered days anywhere, best first; Corner Books appears twice.
+const everywhere = {
+  arcs: [
+    epicArc("a-1", storeRef("pl-books", "Corner Books"), "Rain on the windows", { canonLoreId: "lore-1", perspectiveCount: 5 }),
+    epicArc("a-2", storeRef("pl-books", "Corner Books"), "A quieter day"),
+    epicArc("a-3", storeRef("pl-diner", "Night Owl Diner"), "After the show"),
+  ],
+};
+
+function landing(
+  search: (body: Record<string, unknown>) => { status?: number; body: unknown } = () => ({ body: results }),
+  epic: () => { status?: number; body: unknown } = () => ({ body: { arcs: [] } }),
+) {
   return renderApp("/", {
     "PlaceService/SearchPlaces": search,
     "PlaceService/ListChildren": () => ({ body: states }),
+    "PlaceService/GetEpic": epic,
   });
 }
 
@@ -38,11 +64,27 @@ describe("landing page (AC-006, OT-036)", () => {
     expect(await screen.findByRole("searchbox", { name: "Search places" })).toBeInTheDocument();
     expect(screen.getByRole("search")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in" })).toBeInTheDocument();
-    // No feed: nothing about arcs or perspectives is fetched or shown.
+    // No feed of posts: the only listings are of places.
     await screen.findByRole("link", { name: "Ohio" });
-    const fetched = sent.map((r) => r.procedure);
-    expect(fetched.filter((p) => !p.startsWith("AuthService/"))).toEqual(["PlaceService/ListChildren"]);
+    const fetched = sent.map((r) => r.procedure).filter((p) => !p.startsWith("AuthService/"));
+    expect(fetched.toSorted()).toEqual(["PlaceService/GetEpic", "PlaceService/ListChildren"]);
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
+    // With no stories anywhere, the places section is left out.
+    expect(screen.queryByRole("region", { name: "Where people are writing" })).not.toBeInTheDocument();
+  });
+
+  it("shows where people are writing, one card per place, each opening its place page", async () => {
+    const { sent } = landing(undefined, () => ({ body: everywhere }));
+    const section = await screen.findByRole("region", { name: "Where people are writing" });
+    const cards = within(section).getAllByRole("link");
+    expect(cards.map((c) => c.getAttribute("href"))).toEqual(["/places/pl-books", "/places/pl-diner"]);
+    expect(cards[0]).toHaveTextContent("Corner Books, Springfield");
+    expect(cards[0]).toHaveTextContent("Rain on the windows");
+    expect(cards[0]).toHaveTextContent("“Opening of Rain on the windows”");
+    expect(cards[0]).toHaveTextContent("Canon");
+    expect(cards[0]).toHaveTextContent("5 stories");
+    expect(cards[1]).not.toHaveTextContent("Canon");
+    expect(sent.find((r) => r.procedure === "PlaceService/GetEpic")?.body).toEqual({ tab: "EPIC_TAB_RANKED", pageSize: 30 });
   });
 
   it("lists a signed-in author's drafts and published perspectives with ways to open, read and edit them", async () => {

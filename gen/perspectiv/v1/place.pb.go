@@ -641,11 +641,13 @@ func (x *CreatePlaceResponse) GetPlace() *Place {
 }
 
 type GetEpicRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	PlaceId   string                 `protobuf:"bytes,1,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
-	Tab       EpicTab                `protobuf:"varint,2,opt,name=tab,proto3,enum=perspectiv.v1.EpicTab" json:"tab,omitempty"`
-	PageToken string                 `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	PageSize  int32                  `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty lists RANKED or NEWEST across every visible place: the front page.
+	// TALES needs a place.
+	PlaceId   string  `protobuf:"bytes,1,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
+	Tab       EpicTab `protobuf:"varint,2,opt,name=tab,proto3,enum=perspectiv.v1.EpicTab" json:"tab,omitempty"`
+	PageToken string  `protobuf:"bytes,3,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize  int32   `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	// Reading filter; UNSPECIFIED shows every genre. Applies to TALES, and to
 	// arcs through the genres of their perspectives.
 	Genre         Genre `protobuf:"varint,5,opt,name=genre,proto3,enum=perspectiv.v1.Genre" json:"genre,omitempty"`
@@ -735,8 +737,13 @@ type EpicArc struct {
 	MemberCount      int32                  `protobuf:"varint,8,opt,name=member_count,json=memberCount,proto3" json:"member_count,omitempty"`
 	PerspectiveCount int32                  `protobuf:"varint,9,opt,name=perspective_count,json=perspectiveCount,proto3" json:"perspective_count,omitempty"`
 	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The city the arc is in; empty when the place is not under a city.
+	City string `protobuf:"bytes,11,opt,name=city,proto3" json:"city,omitempty"`
+	// The opening of the canon's first story, or of the first story when the
+	// arc has no canon.
+	Excerpt       string `protobuf:"bytes,12,opt,name=excerpt,proto3" json:"excerpt,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *EpicArc) Reset() {
@@ -837,6 +844,20 @@ func (x *EpicArc) GetCreatedAt() *timestamppb.Timestamp {
 		return x.CreatedAt
 	}
 	return nil
+}
+
+func (x *EpicArc) GetCity() string {
+	if x != nil {
+		return x.City
+	}
+	return ""
+}
+
+func (x *EpicArc) GetExcerpt() string {
+	if x != nil {
+		return x.Excerpt
+	}
+	return ""
 }
 
 // EpicTale is one SOLO or REMOVED perspective in a place's TALES tab.
@@ -1089,7 +1110,7 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12*\n" +
-	"\x05genre\x18\x05 \x01(\x0e2\x14.perspectiv.v1.GenreR\x05genre\"\xf6\x02\n" +
+	"\x05genre\x18\x05 \x01(\x0e2\x14.perspectiv.v1.GenreR\x05genre\"\xa4\x03\n" +
 	"\aEpicArc\x12\x15\n" +
 	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12-\n" +
@@ -1104,7 +1125,9 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"\x11perspective_count\x18\t \x01(\x05R\x10perspectiveCount\x129\n" +
 	"\n" +
 	"created_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\a\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x12\n" +
+	"\x04city\x18\v \x01(\tR\x04city\x12\x18\n" +
+	"\aexcerpt\x18\f \x01(\tR\aexcerptB\a\n" +
 	"\x05_hour\"\xc6\x03\n" +
 	"\bEpicTale\x12%\n" +
 	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12\x15\n" +

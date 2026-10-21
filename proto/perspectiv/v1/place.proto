@@ -17,6 +17,7 @@ service PlaceService {
   // Adds a MALL or STORE under any place not hidden by moderation.
   rpc CreatePlace(CreatePlaceRequest) returns (CreatePlaceResponse);
   // A place page: arcs at the place and all its descendants, or its tales.
+  // Without a place, the arcs of every place: the front page.
   rpc GetEpic(GetEpicRequest) returns (GetEpicResponse);
 }
 
@@ -99,6 +100,8 @@ message CreatePlaceResponse {
 }
 
 message GetEpicRequest {
+  // Empty lists RANKED or NEWEST across every visible place: the front page.
+  // TALES needs a place.
   string place_id = 1;
   EpicTab tab = 2;
   string page_token = 3;
@@ -124,6 +127,11 @@ message EpicArc {
   int32 member_count = 8;
   int32 perspective_count = 9;
   google.protobuf.Timestamp created_at = 10;
+  // The city the arc is in; empty when the place is not under a city.
+  string city = 11;
+  // The opening of the canon's first story, or of the first story when the
+  // arc has no canon.
+  string excerpt = 12;
 }
 
 // EpicTale is one SOLO or REMOVED perspective in a place's TALES tab.

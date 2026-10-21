@@ -17,7 +17,18 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        (SELECT count(*) FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+       -- The city the arc is in, for a listing that spans cities.
+       coalesce((SELECT c.name FROM places c
+                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+       -- The opening of the canon's first story, or of the first story when
+       -- there is no canon: the line a listing quotes.
+       coalesce((SELECT left(pp.body, 200) FROM perspectives v
+                 JOIN perspective_parts pp ON pp.perspective_id = v.id
+                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                 LIMIT 1), '')::text AS excerpt
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[$1::uuid]
@@ -55,6 +66,8 @@ type EpicArcsNewestRow struct {
 	MemberCount      int32
 	CreatedAt        pgtype.Timestamptz
 	PerspectiveCount int32
+	CityName         string
+	Excerpt          string
 }
 
 // The same arcs as EpicArcsRanked, newest first.
@@ -86,6 +99,8 @@ func (q *Queries) EpicArcsNewest(ctx context.Context, arg EpicArcsNewestParams) 
 			&i.MemberCount,
 			&i.CreatedAt,
 			&i.PerspectiveCount,
+			&i.CityName,
+			&i.Excerpt,
 		); err != nil {
 			return nil, err
 		}
@@ -102,7 +117,18 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        (SELECT count(*) FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+       -- The city the arc is in, for a listing that spans cities.
+       coalesce((SELECT c.name FROM places c
+                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+       -- The opening of the canon's first story, or of the first story when
+       -- there is no canon: the line a listing quotes.
+       coalesce((SELECT left(pp.body, 200) FROM perspectives v
+                 JOIN perspective_parts pp ON pp.perspective_id = v.id
+                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                 LIMIT 1), '')::text AS excerpt
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[$1::uuid]
@@ -145,6 +171,8 @@ type EpicArcsRankedRow struct {
 	MemberCount      int32
 	CreatedAt        pgtype.Timestamptz
 	PerspectiveCount int32
+	CityName         string
+	Excerpt          string
 }
 
 // Arcs at the place and every visible descendant, found by arcs.place_path
@@ -183,6 +211,8 @@ func (q *Queries) EpicArcsRanked(ctx context.Context, arg EpicArcsRankedParams) 
 			&i.MemberCount,
 			&i.CreatedAt,
 			&i.PerspectiveCount,
+			&i.CityName,
+			&i.Excerpt,
 		); err != nil {
 			return nil, err
 		}
@@ -273,6 +303,208 @@ func (q *Queries) EpicTales(ctx context.Context, arg EpicTalesParams) ([]EpicTal
 			&i.Genre,
 			&i.LoreStatus,
 			&i.PublishedAt,
+			&i.Excerpt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const everywhereArcsNewest = `-- name: EverywhereArcsNewest :many
+SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+       a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+       -- The city the arc is in, for a listing that spans cities.
+       coalesce((SELECT c.name FROM places c
+                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+       -- The opening of the canon's first story, or of the first story when
+       -- there is no canon: the line a listing quotes.
+       coalesce((SELECT left(pp.body, 200) FROM perspectives v
+                 JOIN perspective_parts pp ON pp.perspective_id = v.id
+                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                 LIMIT 1), '')::text AS excerpt
+FROM arcs a
+JOIN places pl ON pl.id = a.place_id
+WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND EXISTS (
+        SELECT 1 FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+          AND ($1::text IS NULL OR v.genre = $1::text))
+  AND ($2::uuid IS NULL
+       OR (a.created_at, a.id) < ($3::timestamptz, $2::uuid))
+ORDER BY a.created_at DESC, a.id DESC
+LIMIT $4::integer
+`
+
+type EverywhereArcsNewestParams struct {
+	Genre        pgtype.Text
+	AfterID      uuid.NullUUID
+	AfterCreated pgtype.Timestamptz
+	Lim          int32
+}
+
+type EverywhereArcsNewestRow struct {
+	ID               uuid.UUID
+	Title            string
+	PlaceID          uuid.UUID
+	PlaceKind        string
+	PlaceName        string
+	LocalDate        pgtype.Date
+	Hour             pgtype.Int2
+	CanonLoreID      uuid.NullUUID
+	CanonScore       float64
+	MemberCount      int32
+	CreatedAt        pgtype.Timestamptz
+	PerspectiveCount int32
+	CityName         string
+	Excerpt          string
+}
+
+// EverywhereArcsRanked, newest first.
+func (q *Queries) EverywhereArcsNewest(ctx context.Context, arg EverywhereArcsNewestParams) ([]EverywhereArcsNewestRow, error) {
+	rows, err := q.db.Query(ctx, everywhereArcsNewest,
+		arg.Genre,
+		arg.AfterID,
+		arg.AfterCreated,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EverywhereArcsNewestRow
+	for rows.Next() {
+		var i EverywhereArcsNewestRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.PlaceID,
+			&i.PlaceKind,
+			&i.PlaceName,
+			&i.LocalDate,
+			&i.Hour,
+			&i.CanonLoreID,
+			&i.CanonScore,
+			&i.MemberCount,
+			&i.CreatedAt,
+			&i.PerspectiveCount,
+			&i.CityName,
+			&i.Excerpt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const everywhereArcsRanked = `-- name: EverywhereArcsRanked :many
+SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+       a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+       -- The city the arc is in, for a listing that spans cities.
+       coalesce((SELECT c.name FROM places c
+                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+       -- The opening of the canon's first story, or of the first story when
+       -- there is no canon: the line a listing quotes.
+       coalesce((SELECT left(pp.body, 200) FROM perspectives v
+                 JOIN perspective_parts pp ON pp.perspective_id = v.id
+                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                 LIMIT 1), '')::text AS excerpt
+FROM arcs a
+JOIN places pl ON pl.id = a.place_id
+WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND EXISTS (
+        SELECT 1 FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+          AND ($1::text IS NULL OR v.genre = $1::text))
+  AND ($2::uuid IS NULL
+       OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
+          < ($3::boolean, $4::double precision,
+             $5::integer, $6::timestamptz, $2::uuid))
+ORDER BY (a.canon_lore_id IS NOT NULL) DESC, a.canon_score DESC, a.member_count DESC, a.created_at DESC, a.id DESC
+LIMIT $7::integer
+`
+
+type EverywhereArcsRankedParams struct {
+	Genre         pgtype.Text
+	AfterID       uuid.NullUUID
+	AfterHasCanon pgtype.Bool
+	AfterScore    pgtype.Float8
+	AfterMembers  pgtype.Int4
+	AfterCreated  pgtype.Timestamptz
+	Lim           int32
+}
+
+type EverywhereArcsRankedRow struct {
+	ID               uuid.UUID
+	Title            string
+	PlaceID          uuid.UUID
+	PlaceKind        string
+	PlaceName        string
+	LocalDate        pgtype.Date
+	Hour             pgtype.Int2
+	CanonLoreID      uuid.NullUUID
+	CanonScore       float64
+	MemberCount      int32
+	CreatedAt        pgtype.Timestamptz
+	PerspectiveCount int32
+	CityName         string
+	Excerpt          string
+}
+
+// EpicArcsRanked across every visible place: the front page. A separate
+// query rather than an optional place filter, so the place listings keep
+// their plan on arcs_place_path_idx.
+func (q *Queries) EverywhereArcsRanked(ctx context.Context, arg EverywhereArcsRankedParams) ([]EverywhereArcsRankedRow, error) {
+	rows, err := q.db.Query(ctx, everywhereArcsRanked,
+		arg.Genre,
+		arg.AfterID,
+		arg.AfterHasCanon,
+		arg.AfterScore,
+		arg.AfterMembers,
+		arg.AfterCreated,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EverywhereArcsRankedRow
+	for rows.Next() {
+		var i EverywhereArcsRankedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.PlaceID,
+			&i.PlaceKind,
+			&i.PlaceName,
+			&i.LocalDate,
+			&i.Hour,
+			&i.CanonLoreID,
+			&i.CanonScore,
+			&i.MemberCount,
+			&i.CreatedAt,
+			&i.PerspectiveCount,
+			&i.CityName,
 			&i.Excerpt,
 		); err != nil {
 			return nil, err

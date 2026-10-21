@@ -58,6 +58,7 @@ type PlaceServiceClient interface {
 	// Adds a MALL or STORE under any place not hidden by moderation.
 	CreatePlace(context.Context, *connect.Request[v1.CreatePlaceRequest]) (*connect.Response[v1.CreatePlaceResponse], error)
 	// A place page: arcs at the place and all its descendants, or its tales.
+	// Without a place, the arcs of every place: the front page.
 	GetEpic(context.Context, *connect.Request[v1.GetEpicRequest]) (*connect.Response[v1.GetEpicResponse], error)
 }
 
@@ -149,6 +150,7 @@ type PlaceServiceHandler interface {
 	// Adds a MALL or STORE under any place not hidden by moderation.
 	CreatePlace(context.Context, *connect.Request[v1.CreatePlaceRequest]) (*connect.Response[v1.CreatePlaceResponse], error)
 	// A place page: arcs at the place and all its descendants, or its tales.
+	// Without a place, the arcs of every place: the front page.
 	GetEpic(context.Context, *connect.Request[v1.GetEpicRequest]) (*connect.Response[v1.GetEpicResponse], error)
 }
 

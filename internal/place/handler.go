@@ -112,9 +112,13 @@ func (h *Handler) CreatePlace(ctx context.Context, req *connect.Request[perspect
 
 // GetEpic lists one page of a place's epic.
 func (h *Handler) GetEpic(ctx context.Context, req *connect.Request[perspectivv1.GetEpicRequest]) (*connect.Response[perspectivv1.GetEpicResponse], error) {
-	id, err := parseID(req.Msg.GetPlaceId(), "place_id")
-	if err != nil {
-		return nil, apiutil.ToConnect(err)
+	// No place is the front page: every visible place.
+	var id uuid.UUID
+	if req.Msg.GetPlaceId() != "" {
+		var err error
+		if id, err = parseID(req.Msg.GetPlaceId(), "place_id"); err != nil {
+			return nil, apiutil.ToConnect(err)
+		}
 	}
 	page, err := apiutil.ParsePageToken(req.Msg.GetPageToken(), req.Msg.GetPageSize())
 	if err != nil {
@@ -124,7 +128,10 @@ func (h *Handler) GetEpic(ctx context.Context, req *connect.Request[perspectivv1
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	res := &perspectivv1.GetEpicResponse{Place: placeToProto(epic.Place), NextPageToken: epic.Next}
+	res := &perspectivv1.GetEpicResponse{NextPageToken: epic.Next}
+	if epic.Place.ID != uuid.Nil {
+		res.Place = placeToProto(epic.Place)
+	}
 	for _, a := range epic.Arcs {
 		res.Arcs = append(res.Arcs, arcToProto(a))
 	}
@@ -173,7 +180,7 @@ func arcToProto(a EpicArc) *perspectivv1.EpicArc {
 		LocalDate: a.LocalDate.Format(dateLayout), Hour: a.Hour,
 		CanonLoreId: idString(a.CanonLoreID), CanonScore: a.CanonScore,
 		MemberCount: a.MemberCount, PerspectiveCount: a.PerspectiveCount,
-		CreatedAt: timestamppb.New(a.CreatedAt),
+		CreatedAt: timestamppb.New(a.CreatedAt), City: a.City, Excerpt: a.Excerpt,
 	}
 }
 

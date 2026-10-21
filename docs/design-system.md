@@ -186,8 +186,9 @@ lore page.
 The landing page is the one surface that has to sell the idea to someone who
 has never seen it, so it is the one page where Folio's quiet gives way to a
 modern front door. Reading pages stay bookish; the front door does not have
-to be. There is still no feed (AC-006): the page shows one illustrated
-example, never other people's posts.
+to be. There is still no feed of posts (AC-006, A-049): the way in is a
+place. The page shows one illustrated example and the places where people
+are writing, each of which opens its place page.
 
 - **Exceptions to Folio, here only.** Cards MAY use `rounded-xl` and a soft
   shadow (`shadow-sm` and an offset "stacked page" layer) to read as objects
@@ -214,6 +215,12 @@ example, never other people's posts.
   numbers: pinned to a place and a day; everyone writes their own side; claim
   the character who was you; linked stories become lore, and the favourite
   becomes canon.
+- **Where people are writing.** Under the hero, up to six place cards from
+  the most remembered days anywhere, one card per place: the place name and
+  its city, the day's title, a two-line quote of its opening in Literata, and
+  "Canon" or the story count. A card links to the place page, never straight
+  to a story, so the way in stays place first. Two columns from `sm`, three
+  from `lg`. The section is left out when no place has a story.
 - "Your perspectives" (signed in) and "Browse by state" follow as before.
 - Nothing animates, and everything keeps the 16px gutter with no sideways
   scroll at 375px.

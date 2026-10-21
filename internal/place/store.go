@@ -346,6 +346,10 @@ type EpicArc struct {
 	MemberCount      int32
 	PerspectiveCount int32
 	CreatedAt        time.Time
+	// City is the name of the city the arc is in, "" when there is none.
+	City string
+	// Excerpt opens the canon's first story, or the first story without a canon.
+	Excerpt string
 }
 
 // Cursor returns the keyset that resumes a listing after a.
@@ -371,8 +375,9 @@ func hourOf(h pgtype.Int2) *int32 {
 	return &v
 }
 
-// EpicArcs lists arcs at the place and its visible descendants. Each arc's
-// canon is its own; ancestors only aggregate the listing.
+// EpicArcs lists arcs at the place and its visible descendants, or at every
+// visible place when PlaceID is uuid.Nil. Each arc's canon is its own;
+// ancestors only aggregate the listing.
 func (s *Store) EpicArcs(ctx context.Context, q EpicArcsQuery) ([]EpicArc, error) {
 	if q.Order == OrderNewest {
 		return s.epicArcsNewest(ctx, q)
@@ -385,20 +390,24 @@ func (s *Store) EpicArcs(ctx context.Context, q EpicArcsQuery) ([]EpicArc, error
 		p.AfterMembers = pgtype.Int4{Int32: c.Members, Valid: true}
 		p.AfterCreated = pgtype.Timestamptz{Time: c.CreatedAt, Valid: true}
 	}
-	rows, err := s.q.EpicArcsRanked(ctx, p)
+	var rows []dbq.EpicArcsRankedRow
+	var err error
+	if q.PlaceID == uuid.Nil {
+		var all []dbq.EverywhereArcsRankedRow
+		all, err = s.q.EverywhereArcsRanked(ctx, dbq.EverywhereArcsRankedParams{
+			Genre: p.Genre, AfterID: p.AfterID, AfterHasCanon: p.AfterHasCanon, AfterScore: p.AfterScore,
+			AfterMembers: p.AfterMembers, AfterCreated: p.AfterCreated, Lim: p.Lim,
+		})
+		for _, r := range all {
+			rows = append(rows, dbq.EpicArcsRankedRow(r))
+		}
+	} else {
+		rows, err = s.q.EpicArcsRanked(ctx, p)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("epic ranked: %w", err)
 	}
-	out := make([]EpicArc, len(rows))
-	for i, r := range rows {
-		out[i] = EpicArc{
-			ID: r.ID, Title: r.Title, Place: Ref{ID: r.PlaceID, Kind: kindOf(r.PlaceKind), Name: r.PlaceName},
-			LocalDate: r.LocalDate.Time, Hour: hourOf(r.Hour), CanonLoreID: r.CanonLoreID.UUID,
-			CanonScore: r.CanonScore, MemberCount: r.MemberCount, PerspectiveCount: r.PerspectiveCount,
-			CreatedAt: r.CreatedAt.Time,
-		}
-	}
-	return out, nil
+	return epicArcsFrom(rows), nil
 }
 
 func (s *Store) epicArcsNewest(ctx context.Context, q EpicArcsQuery) ([]EpicArc, error) {
@@ -407,20 +416,42 @@ func (s *Store) epicArcsNewest(ctx context.Context, q EpicArcsQuery) ([]EpicArc,
 		p.AfterID = uuid.NullUUID{UUID: c.ID, Valid: true}
 		p.AfterCreated = pgtype.Timestamptz{Time: c.CreatedAt, Valid: true}
 	}
-	rows, err := s.q.EpicArcsNewest(ctx, p)
+	var rows []dbq.EpicArcsRankedRow
+	if q.PlaceID == uuid.Nil {
+		all, err := s.q.EverywhereArcsNewest(ctx, dbq.EverywhereArcsNewestParams{
+			Genre: p.Genre, AfterID: p.AfterID, AfterCreated: p.AfterCreated, Lim: p.Lim,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("everywhere newest: %w", err)
+		}
+		for _, r := range all {
+			rows = append(rows, dbq.EpicArcsRankedRow(r))
+		}
+		return epicArcsFrom(rows), nil
+	}
+	here, err := s.q.EpicArcsNewest(ctx, p)
 	if err != nil {
 		return nil, fmt.Errorf("epic newest: %w", err)
 	}
+	for _, r := range here {
+		rows = append(rows, dbq.EpicArcsRankedRow(r))
+	}
+	return epicArcsFrom(rows), nil
+}
+
+// epicArcsFrom maps listing rows; the four arc listings select the same
+// columns, so their rows convert to one type.
+func epicArcsFrom(rows []dbq.EpicArcsRankedRow) []EpicArc {
 	out := make([]EpicArc, len(rows))
 	for i, r := range rows {
 		out[i] = EpicArc{
 			ID: r.ID, Title: r.Title, Place: Ref{ID: r.PlaceID, Kind: kindOf(r.PlaceKind), Name: r.PlaceName},
 			LocalDate: r.LocalDate.Time, Hour: hourOf(r.Hour), CanonLoreID: r.CanonLoreID.UUID,
 			CanonScore: r.CanonScore, MemberCount: r.MemberCount, PerspectiveCount: r.PerspectiveCount,
-			CreatedAt: r.CreatedAt.Time,
+			CreatedAt: r.CreatedAt.Time, City: r.CityName, Excerpt: r.Excerpt,
 		}
 	}
-	return out, nil
+	return out
 }
 
 // TaleCursor is the keyset of the last tale on a TALES page.

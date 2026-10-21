@@ -159,7 +159,18 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        (SELECT count(*) FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+       -- The city the arc is in, for a listing that spans cities.
+       coalesce((SELECT c.name FROM places c
+                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+       -- The opening of the canon's first story, or of the first story when
+       -- there is no canon: the line a listing quotes.
+       coalesce((SELECT left(pp.body, 200) FROM perspectives v
+                 JOIN perspective_parts pp ON pp.perspective_id = v.id
+                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                 LIMIT 1), '')::text AS excerpt
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[@place_id::uuid]
@@ -183,12 +194,89 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        (SELECT count(*) FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+       -- The city the arc is in, for a listing that spans cities.
+       coalesce((SELECT c.name FROM places c
+                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+       -- The opening of the canon's first story, or of the first story when
+       -- there is no canon: the line a listing quotes.
+       coalesce((SELECT left(pp.body, 200) FROM perspectives v
+                 JOIN perspective_parts pp ON pp.perspective_id = v.id
+                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                 LIMIT 1), '')::text AS excerpt
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[@place_id::uuid]
   -- Hiding a place hides every arc below it.
   AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND EXISTS (
+        SELECT 1 FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+          AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+  AND (sqlc.narg(after_id)::uuid IS NULL
+       OR (a.created_at, a.id) < (sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY a.created_at DESC, a.id DESC
+LIMIT @lim::integer;
+
+-- name: EverywhereArcsRanked :many
+-- EpicArcsRanked across every visible place: the front page. A separate
+-- query rather than an optional place filter, so the place listings keep
+-- their plan on arcs_place_path_idx.
+SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+       a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+       -- The city the arc is in, for a listing that spans cities.
+       coalesce((SELECT c.name FROM places c
+                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+       -- The opening of the canon's first story, or of the first story when
+       -- there is no canon: the line a listing quotes.
+       coalesce((SELECT left(pp.body, 200) FROM perspectives v
+                 JOIN perspective_parts pp ON pp.perspective_id = v.id
+                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                 LIMIT 1), '')::text AS excerpt
+FROM arcs a
+JOIN places pl ON pl.id = a.place_id
+WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND EXISTS (
+        SELECT 1 FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+          AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+  AND (sqlc.narg(after_id)::uuid IS NULL
+       OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
+          < (sqlc.narg(after_has_canon)::boolean, sqlc.narg(after_score)::double precision,
+             sqlc.narg(after_members)::integer, sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY (a.canon_lore_id IS NOT NULL) DESC, a.canon_score DESC, a.member_count DESC, a.created_at DESC, a.id DESC
+LIMIT @lim::integer;
+
+-- name: EverywhereArcsNewest :many
+-- EverywhereArcsRanked, newest first.
+SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+       a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+       -- The city the arc is in, for a listing that spans cities.
+       coalesce((SELECT c.name FROM places c
+                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+       -- The opening of the canon's first story, or of the first story when
+       -- there is no canon: the line a listing quotes.
+       coalesce((SELECT left(pp.body, 200) FROM perspectives v
+                 JOIN perspective_parts pp ON pp.perspective_id = v.id
+                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                 LIMIT 1), '')::text AS excerpt
+FROM arcs a
+JOIN places pl ON pl.id = a.place_id
+WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
   AND EXISTS (
         SELECT 1 FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'

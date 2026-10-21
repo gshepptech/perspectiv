@@ -258,7 +258,8 @@ func parseEpicCursor(after string, tab perspectivv1.EpicTab) (*epicCursor, error
 // Epic lists one page of a visible place's epic. RANKED and NEWEST list the
 // arcs at the place and every visible descendant that have a readable
 // perspective; TALES lists their SOLO and REMOVED perspectives. A missing or
-// hidden place is NotFound.
+// hidden place is NotFound. With no place, RANKED and NEWEST list the arcs
+// of every visible place (the front page) and TALES is InvalidArgument.
 func (s *Service) Epic(ctx context.Context, req EpicRequest) (Epic, error) {
 	var order ArcOrder
 	switch req.Tab {
@@ -276,14 +277,20 @@ func (s *Service) Epic(ctx context.Context, req EpicRequest) (Epic, error) {
 	if err != nil {
 		return Epic{}, err
 	}
-	p, err := s.store.Get(ctx, req.PlaceID)
-	if err != nil {
-		return Epic{}, notFound(err)
+	// No place lists the arcs of every visible place: the front page.
+	var p Place
+	if req.PlaceID != uuid.Nil {
+		if p, err = s.store.Get(ctx, req.PlaceID); err != nil {
+			return Epic{}, notFound(err)
+		}
 	}
 	if req.Tab == perspectivv1.EpicTab_EPIC_TAB_TALES {
+		if req.PlaceID == uuid.Nil {
+			return Epic{}, apiutil.InvalidArg("tales need a place")
+		}
 		return s.tales(ctx, p, req, cur)
 	}
-	q := EpicArcsQuery{PlaceID: p.ID, Order: order, Genre: req.Genre, Limit: req.Page.Limit + 1}
+	q := EpicArcsQuery{PlaceID: req.PlaceID, Order: order, Genre: req.Genre, Limit: req.Page.Limit + 1}
 	if cur != nil {
 		q.After = &ArcCursor{HasCanon: cur.HasCanon, Score: cur.Score, Members: cur.Members, CreatedAt: cur.At, ID: cur.ID}
 	}

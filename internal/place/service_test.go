@@ -520,6 +520,65 @@ func TestGetEpicRanked(t *testing.T) {
 	})
 }
 
+// TestGetEpicEverywhere covers the front page: GetEpic without a place lists
+// the arcs of every visible place, quotes the opening of the canon's first
+// story (or the first story without a canon), and names the city.
+func TestGetEpicEverywhere(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	c := client(t, h.pool)
+	by := h.user(true)
+	t0 := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+
+	storeArc := h.arc(h.store, "2026-10-01", "Bookshop canon", by, t0)
+	h.perspective(storeArc, h.user(true), perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_SOLO, t0, "A tale told first")
+	inCanon := h.perspective(storeArc, by, perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_IN_LORE, t0.Add(time.Hour), "The canon opens here")
+	lore := h.canon(storeArc, 3.0, 4)
+	h.exec(`UPDATE perspectives SET lore_id = $2 WHERE id = $1`, inCanon, lore)
+	otherArc := h.arc(h.otherCity, "2026-10-02", "Chicago no canon", by, t0.Add(time.Hour))
+	h.perspective(otherArc, by, perspectivv1.Genre_GENRE_COMEDY, perspectivv1.LoreStatus_LORE_STATUS_PENDING, t0, "First in Chicago")
+	// A place in another state, then hidden: its arcs leave the front page.
+	other := h.place(perspectivv1.PlaceKind_PLACE_KIND_STATE, "Ohio", uuid.Nil)
+	hiddenArc := h.arc(other, "2026-10-03", "Under a hidden state", by, t0.Add(2*time.Hour))
+	h.perspective(hiddenArc, by, perspectivv1.Genre_GENRE_COMEDY, perspectivv1.LoreStatus_LORE_STATUS_PENDING, t0, "x")
+	h.hide(other)
+
+	tests := []struct {
+		name string
+		tab  perspectivv1.EpicTab
+		want []string
+	}{
+		{name: "ranked puts canon first", tab: perspectivv1.EpicTab_EPIC_TAB_RANKED, want: []string{"Bookshop canon", "Chicago no canon"}},
+		{name: "newest", tab: perspectivv1.EpicTab_EPIC_TAB_NEWEST, want: []string{"Chicago no canon", "Bookshop canon"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := epicPages(t, c, &perspectivv1.GetEpicRequest{Tab: tc.tab, PageSize: 1}); !slices.Equal(got, tc.want) {
+				t.Fatalf("front page = %q, want %q", got, tc.want)
+			}
+		})
+	}
+
+	res := epic(t, c, &perspectivv1.GetEpicRequest{Tab: perspectivv1.EpicTab_EPIC_TAB_RANKED})
+	if res.GetPlace() != nil {
+		t.Fatalf("front page place = %v, want none", res.GetPlace())
+	}
+	bookshop, chicago := res.GetArcs()[0], res.GetArcs()[1]
+	if bookshop.GetExcerpt() != "The canon opens here" || bookshop.GetCity() != "Springfield" || bookshop.GetPlace().GetName() != "Corner Books" {
+		t.Fatalf("bookshop = excerpt %q, city %q, place %q", bookshop.GetExcerpt(), bookshop.GetCity(), bookshop.GetPlace().GetName())
+	}
+	if chicago.GetExcerpt() != "First in Chicago" || chicago.GetCity() != "Chicago" {
+		t.Fatalf("chicago = excerpt %q, city %q", chicago.GetExcerpt(), chicago.GetCity())
+	}
+
+	t.Run("tales need a place", func(t *testing.T) {
+		t.Parallel()
+		_, err := c.GetEpic(context.Background(), as(uuid.Nil, &perspectivv1.GetEpicRequest{Tab: perspectivv1.EpicTab_EPIC_TAB_TALES}))
+		wantCode(t, err, connect.CodeInvalidArgument)
+	})
+}
+
 // TestGetEpicTales covers the TALES tab: SOLO and REMOVED perspectives at
 // the place and its descendants, newest first, without deleted or hidden
 // ones.
