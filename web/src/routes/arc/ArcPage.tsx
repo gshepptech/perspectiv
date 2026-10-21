@@ -176,9 +176,10 @@ function LoreBlock({ l, canon, rank, rights }: { l: ArcLore; canon: boolean; ran
         )}
       </p>
       <h3 id={titleId} className="mt-1 text-xl break-words">
-        {loreTitle(lore, l.perspectives)}
+        {lore.name || loreTitle(lore, l.perspectives)}
       </h3>
       <p className="text-sm text-ink-muted">
+        {lore.name && <>{loreTitle(lore, l.perspectives)} · </>}
         {plural(lore.memberCount, "story", "stories")} · {plural(lore.upvotes, "upvote", "upvotes")}
       </p>
       <Rows items={l.perspectives} rights={rights} level={4} showStanding={false} />

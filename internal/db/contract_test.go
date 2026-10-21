@@ -133,15 +133,15 @@ func TestEnumValues(t *testing.T) {
 // services lists every service of the API with the RPCs the contract fixes.
 // ListByAuthor serves the profile's perspectives and tales (AC-023), and
 // ListArcSection the arc page's later pages (NFR-008). CreateInvite and
-// GetInvite serve the "I was there too" share link, and ListLorePosts and
-// AddLorePost a lore's thread.
+// GetInvite serve the "I was there too" share link, ListLorePosts and
+// AddLorePost a lore's thread, and NameLore a lore's name.
 var services = map[string][]string{
 	"AuthService":        {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword"},
 	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount"},
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic"},
 	"ArcService":         {"GetArc", "ListArcSection", "RetitleHourArc"},
 	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite"},
-	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost"},
+	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore"},
 	"VoteService":        {"Vote", "VoteRemove"},
 	"ReactService":       {"React"},
 	"NotifyService":      {"ListInbox", "MarkRead", "GetPreferences", "UpdatePreferences"},

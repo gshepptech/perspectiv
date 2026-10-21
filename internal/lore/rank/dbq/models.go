@@ -93,6 +93,8 @@ type Lore struct {
 	RankScore   float64
 	ComputedAt  pgtype.Timestamptz
 	CreatedAt   pgtype.Timestamptz
+	Name        pgtype.Text
+	NamedBy     uuid.NullUUID
 }
 
 type LoreMember struct {

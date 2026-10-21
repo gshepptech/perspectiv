@@ -48,6 +48,8 @@ const (
 	LoreServiceListLorePostsProcedure = "/perspectiv.v1.LoreService/ListLorePosts"
 	// LoreServiceAddLorePostProcedure is the fully-qualified name of the LoreService's AddLorePost RPC.
 	LoreServiceAddLorePostProcedure = "/perspectiv.v1.LoreService/AddLorePost"
+	// LoreServiceNameLoreProcedure is the fully-qualified name of the LoreService's NameLore RPC.
+	LoreServiceNameLoreProcedure = "/perspectiv.v1.LoreService/NameLore"
 )
 
 // LoreServiceClient is a client for the perspectiv.v1.LoreService service.
@@ -65,6 +67,9 @@ type LoreServiceClient interface {
 	// Posts to a lore's thread: a lore member, or anyone with a perspective in
 	// the lore's arc. Plain text, 1 to 1,000 characters.
 	AddLorePost(context.Context, *connect.Request[v1.AddLorePostRequest]) (*connect.Response[v1.AddLorePostResponse], error)
+	// Names a lore: any member of it, 1 to 60 characters after trimming. The
+	// latest name wins.
+	NameLore(context.Context, *connect.Request[v1.NameLoreRequest]) (*connect.Response[v1.NameLoreResponse], error)
 }
 
 // NewLoreServiceClient constructs a client for the perspectiv.v1.LoreService service. By default,
@@ -114,6 +119,12 @@ func NewLoreServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(loreServiceMethods.ByName("AddLorePost")),
 			connect.WithClientOptions(opts...),
 		),
+		nameLore: connect.NewClient[v1.NameLoreRequest, v1.NameLoreResponse](
+			httpClient,
+			baseURL+LoreServiceNameLoreProcedure,
+			connect.WithSchema(loreServiceMethods.ByName("NameLore")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -125,6 +136,7 @@ type loreServiceClient struct {
 	getLore        *connect.Client[v1.GetLoreRequest, v1.GetLoreResponse]
 	listLorePosts  *connect.Client[v1.ListLorePostsRequest, v1.ListLorePostsResponse]
 	addLorePost    *connect.Client[v1.AddLorePostRequest, v1.AddLorePostResponse]
+	nameLore       *connect.Client[v1.NameLoreRequest, v1.NameLoreResponse]
 }
 
 // ClaimCharacter calls perspectiv.v1.LoreService.ClaimCharacter.
@@ -157,6 +169,11 @@ func (c *loreServiceClient) AddLorePost(ctx context.Context, req *connect.Reques
 	return c.addLorePost.CallUnary(ctx, req)
 }
 
+// NameLore calls perspectiv.v1.LoreService.NameLore.
+func (c *loreServiceClient) NameLore(ctx context.Context, req *connect.Request[v1.NameLoreRequest]) (*connect.Response[v1.NameLoreResponse], error) {
+	return c.nameLore.CallUnary(ctx, req)
+}
+
 // LoreServiceHandler is an implementation of the perspectiv.v1.LoreService service.
 type LoreServiceHandler interface {
 	// Claims a character in another perspective in the same arc: "that was me".
@@ -172,6 +189,9 @@ type LoreServiceHandler interface {
 	// Posts to a lore's thread: a lore member, or anyone with a perspective in
 	// the lore's arc. Plain text, 1 to 1,000 characters.
 	AddLorePost(context.Context, *connect.Request[v1.AddLorePostRequest]) (*connect.Response[v1.AddLorePostResponse], error)
+	// Names a lore: any member of it, 1 to 60 characters after trimming. The
+	// latest name wins.
+	NameLore(context.Context, *connect.Request[v1.NameLoreRequest]) (*connect.Response[v1.NameLoreResponse], error)
 }
 
 // NewLoreServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -217,6 +237,12 @@ func NewLoreServiceHandler(svc LoreServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(loreServiceMethods.ByName("AddLorePost")),
 		connect.WithHandlerOptions(opts...),
 	)
+	loreServiceNameLoreHandler := connect.NewUnaryHandler(
+		LoreServiceNameLoreProcedure,
+		svc.NameLore,
+		connect.WithSchema(loreServiceMethods.ByName("NameLore")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.LoreService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LoreServiceClaimCharacterProcedure:
@@ -231,6 +257,8 @@ func NewLoreServiceHandler(svc LoreServiceHandler, opts ...connect.HandlerOption
 			loreServiceListLorePostsHandler.ServeHTTP(w, r)
 		case LoreServiceAddLorePostProcedure:
 			loreServiceAddLorePostHandler.ServeHTTP(w, r)
+		case LoreServiceNameLoreProcedure:
+			loreServiceNameLoreHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -262,4 +290,8 @@ func (UnimplementedLoreServiceHandler) ListLorePosts(context.Context, *connect.R
 
 func (UnimplementedLoreServiceHandler) AddLorePost(context.Context, *connect.Request[v1.AddLorePostRequest]) (*connect.Response[v1.AddLorePostResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.LoreService.AddLorePost is not implemented"))
+}
+
+func (UnimplementedLoreServiceHandler) NameLore(context.Context, *connect.Request[v1.NameLoreRequest]) (*connect.Response[v1.NameLoreResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.LoreService.NameLore is not implemented"))
 }

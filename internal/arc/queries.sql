@@ -173,17 +173,21 @@ WHERE lm.lore_id = ANY(sqlc.arg(lore_ids)::uuid[])
 ORDER BY pe.published_at, pe.id;
 
 -- name: GetArcLore :one
-SELECT id, status, member_count, upvotes, rank_score, computed_at
-FROM lores
-WHERE id = $1;
+SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
+       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
+FROM lores l
+LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
+WHERE l.id = $1;
 
 -- name: ListArcSublores :many
 -- Every lore in the arc but the canon that has a member, highest rank
 -- first, keyset-paginated on (rank_score DESC, id); served by
 -- lores_arc_rank_idx. A lore whose group dissolved has nothing to read and
 -- is not listed.
-SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at
+SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
+       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
 FROM lores l
+LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
 WHERE l.arc_id = sqlc.arg(arc_id)::uuid
   AND l.id IS DISTINCT FROM sqlc.narg(canon_id)::uuid
   AND EXISTS (SELECT 1 FROM lore_members lm WHERE lm.lore_id = l.id)

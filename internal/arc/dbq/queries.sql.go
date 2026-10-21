@@ -28,18 +28,23 @@ func (q *Queries) CountVisiblePerspectives(ctx context.Context, arcID uuid.NullU
 }
 
 const getArcLore = `-- name: GetArcLore :one
-SELECT id, status, member_count, upvotes, rank_score, computed_at
-FROM lores
-WHERE id = $1
+SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
+       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
+FROM lores l
+LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
+WHERE l.id = $1
 `
 
 type GetArcLoreRow struct {
-	ID          uuid.UUID
-	Status      string
-	MemberCount int32
-	Upvotes     int32
-	RankScore   float64
-	ComputedAt  pgtype.Timestamptz
+	ID              uuid.UUID
+	Status          string
+	MemberCount     int32
+	Upvotes         int32
+	RankScore       float64
+	ComputedAt      pgtype.Timestamptz
+	Name            string
+	NamedBy         uuid.NullUUID
+	NamedByUsername string
 }
 
 func (q *Queries) GetArcLore(ctx context.Context, id uuid.UUID) (GetArcLoreRow, error) {
@@ -52,6 +57,9 @@ func (q *Queries) GetArcLore(ctx context.Context, id uuid.UUID) (GetArcLoreRow, 
 		&i.Upvotes,
 		&i.RankScore,
 		&i.ComputedAt,
+		&i.Name,
+		&i.NamedBy,
+		&i.NamedByUsername,
 	)
 	return i, err
 }
@@ -231,8 +239,10 @@ func (q *Queries) InsertArc(ctx context.Context, arg InsertArcParams) (uuid.UUID
 }
 
 const listArcSublores = `-- name: ListArcSublores :many
-SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at
+SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
+       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
 FROM lores l
+LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
 WHERE l.arc_id = $1::uuid
   AND l.id IS DISTINCT FROM $2::uuid
   AND EXISTS (SELECT 1 FROM lore_members lm WHERE lm.lore_id = l.id)
@@ -252,12 +262,15 @@ type ListArcSubloresParams struct {
 }
 
 type ListArcSubloresRow struct {
-	ID          uuid.UUID
-	Status      string
-	MemberCount int32
-	Upvotes     int32
-	RankScore   float64
-	ComputedAt  pgtype.Timestamptz
+	ID              uuid.UUID
+	Status          string
+	MemberCount     int32
+	Upvotes         int32
+	RankScore       float64
+	ComputedAt      pgtype.Timestamptz
+	Name            string
+	NamedBy         uuid.NullUUID
+	NamedByUsername string
 }
 
 // Every lore in the arc but the canon that has a member, highest rank
@@ -286,6 +299,9 @@ func (q *Queries) ListArcSublores(ctx context.Context, arg ListArcSubloresParams
 			&i.Upvotes,
 			&i.RankScore,
 			&i.ComputedAt,
+			&i.Name,
+			&i.NamedBy,
+			&i.NamedByUsername,
 		); err != nil {
 			return nil, err
 		}

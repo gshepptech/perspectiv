@@ -21,6 +21,9 @@ service LoreService {
   // Posts to a lore's thread: a lore member, or anyone with a perspective in
   // the lore's arc. Plain text, 1 to 1,000 characters.
   rpc AddLorePost(AddLorePostRequest) returns (AddLorePostResponse);
+  // Names a lore: any member of it, 1 to 60 characters after trimming. The
+  // latest name wins.
+  rpc NameLore(NameLoreRequest) returns (NameLoreResponse);
 }
 
 // Claim is one author saying a character in another author's perspective was
@@ -68,6 +71,10 @@ message Lore {
   google.protobuf.Timestamp computed_at = 7;
   repeated LoreMember members = 8;
   repeated Encounter encounters = 9;
+  // Empty until a member names the lore; readers then see it as its title.
+  string name = 10;
+  // Who set the current name; unset when there is none.
+  UserRef named_by = 11;
 }
 
 message ClaimCharacterRequest {
@@ -138,4 +145,14 @@ message AddLorePostRequest {
 
 message AddLorePostResponse {
   LorePost post = 1;
+}
+
+message NameLoreRequest {
+  string lore_id = 1;
+  string name = 2;
+}
+
+message NameLoreResponse {
+  // The name as stored, trimmed.
+  string name = 1;
 }

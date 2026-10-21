@@ -59,6 +59,14 @@ describe("arc page reading order", () => {
     expect(within(alone).getByRole("link", { name: "Read solo_teller's perspective" })).toHaveAttribute("href", "/perspectives/p-solo");
   });
 
+  it("titles a named lore by its name, with its people under it", async () => {
+    const res = dayArcResponse();
+    res.sublores[0]!.lore = { ...res.sublores[0]!.lore, name: "The old regulars" } as typeof res.sublores[0]["lore"];
+    await open("/arcs/arc-day", () => ({ body: res }));
+    const named = await screen.findByRole("region", { name: "The old regulars" });
+    expect(named).toHaveTextContent("moth, finch and 1 other · 3 stories");
+  });
+
   it("shows the place chain, the date and the arc's places as links", async () => {
     await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
     const crumbs = await screen.findByRole("navigation", { name: "Place" });

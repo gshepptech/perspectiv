@@ -96,6 +96,58 @@ describe("lore page", () => {
     await waitFor(() => expect(calls("LoreService/AddLorePost")).toEqual([{ loreId: "lore-1", body: "I was at the bar." }]));
   });
 
+  it("lets a member name the lore, and shows the name as its title", async () => {
+    polyfillRadix();
+    const user = userEvent.setup();
+    let named = "";
+    const { calls } = renderApp(
+      "/lores/lore-1",
+      {
+        ...handlers(),
+        "LoreService/GetLore": () => ({
+          body: { lore: named ? { ...lore, name: named, namedBy: { userId: ME, username: "wren" } } : lore },
+        }),
+        "ArcService/GetArc": () => ({
+          body: { arc: { id: "arc-1", title: "Open mic night" }, viewer: { perspectiveId: "p-wren", loreId: "lore-1" } },
+        }),
+        "LoreService/NameLore": (body: Record<string, unknown>) => {
+          named = String(body.name).trim().replace(/\s+/g, " ");
+          return { body: { name: named } };
+        },
+      },
+      { refresh: () => sessionReply({ token: "tok" }) },
+    );
+    await user.click(await screen.findByRole("button", { name: "Name this lore" }));
+    const dialog = await screen.findByRole("dialog", { name: "Name this lore" });
+    const field = within(dialog).getByRole("textbox", { name: "Name" });
+    await user.click(within(dialog).getByRole("button", { name: "Save name" }));
+    expect(await within(dialog).findByText("Give the lore a name.")).toBeInTheDocument();
+    await user.type(field, "The  open mic   crew");
+    await user.click(within(dialog).getByRole("button", { name: "Save name" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "The open mic crew" })).toBeInTheDocument();
+    expect(calls("LoreService/NameLore")).toEqual([{ loreId: "lore-1", name: "The  open mic   crew" }]);
+    expect(screen.getByText(/Named by/)).toHaveTextContent("Named by wren");
+    expect(screen.getByText(/Open mic night · Moonbean Coffee/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rename this lore" })).toBeInTheDocument();
+  });
+
+  it("offers naming only to the lore's members", async () => {
+    polyfillRadix();
+    renderApp(
+      "/lores/lore-1",
+      {
+        ...handlers(),
+        "ArcService/GetArc": () => ({
+          body: { arc: { id: "arc-1", title: "Open mic night" }, viewer: { perspectiveId: "p-mine", loreId: "lore-other" } },
+        }),
+      },
+      { refresh: () => sessionReply({ token: "tok" }) },
+    );
+    await screen.findByRole("textbox", { name: "Add to the thread" });
+    expect(screen.queryByRole("button", { name: /Name this lore/ })).not.toBeInTheDocument();
+  });
+
   it("says when the lore is gone", async () => {
     renderApp("/lores/nope", { "LoreService/GetLore": () => connectError("not_found") });
     expect(await screen.findByRole("heading", { name: "Lore not found" })).toBeInTheDocument();

@@ -95,6 +95,8 @@ type Lore struct {
 	RankScore   float64
 	ComputedAt  *time.Time
 	CreatedAt   time.Time
+	Name        *string
+	NamedBy     *uuid.UUID
 }
 
 type LoreMember struct {

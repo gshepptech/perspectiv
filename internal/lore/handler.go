@@ -138,6 +138,25 @@ func (h *Handler) AddLorePost(
 	return connect.NewResponse(&perspectivv1.AddLorePostResponse{Post: post}), nil
 }
 
+// NameLore names a lore; the caller must be one of its members.
+func (h *Handler) NameLore(
+	ctx context.Context, req *connect.Request[perspectivv1.NameLoreRequest],
+) (*connect.Response[perspectivv1.NameLoreResponse], error) {
+	caller, ok := apiutil.CallerFrom(ctx)
+	if !ok {
+		return nil, apiutil.ToConnect(apiutil.Unauthenticated("sign in to name a lore"))
+	}
+	id, err := parseID("lore_id", req.Msg.GetLoreId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	name, err := h.svc.NameLore(ctx, caller.UserID, id, req.Msg.GetName())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.NameLoreResponse{Name: name}), nil
+}
+
 func parseID(field, s string) (uuid.UUID, error) {
 	if s == "" {
 		return uuid.Nil, apiutil.InvalidArg(field + " is required")

@@ -34,6 +34,7 @@ the code implements them, and where the two disagree the code is the bug.
 | Accept or reject a claim | The author of the character's perspective |
 | Vote to remove from a lore | A member of the same lore, once the lore has four or more members |
 | Post in a lore's thread | A member of the lore, or anyone with a perspective in the arc |
+| Name a lore | A member of the lore; the latest name wins and shows who set it |
 | Report | A verified account |
 
 Claiming is never required. A story that links to nobody is still
@@ -96,6 +97,9 @@ first writer's story to belong to the day.
 
 `/lores/:loreId`. One lore, in full:
 
+- its name, if a member gave it one ("The Lot 7 tailgate"), otherwise the
+  day's title; a named lore is titled by its name on the arc page too, with
+  its people under it;
 - its standing (canon or contender), members, upvotes and rank;
 - the **cast**: every encounter, character by character, in the words of
   the story that named them;
@@ -104,6 +108,13 @@ first writer's story to belong to the day.
   Lore members and anyone with a perspective in the arc can post. Posts are
   plain text up to 1,000 characters, oldest first, and can be reported like
   anything else.
+
+## The front page
+
+The way in is a place (A-049): a search box, then a place page, then its
+days. There is no feed of posts. Under the search the front page shows
+**where people are writing**: up to six places, each with the day people
+there remember most, and each card opens its place page.
 
 ## Places
 

@@ -242,9 +242,26 @@ ORDER BY c.created_at DESC, c.id DESC
 LIMIT sqlc.arg(row_limit)::int;
 
 -- name: GetLore :one
-SELECT id, arc_id, status, member_count, upvotes, rank_score, computed_at
-FROM lores
-WHERE id = $1;
+SELECT l.id, l.arc_id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
+       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
+FROM lores l
+LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
+WHERE l.id = $1;
+
+-- name: IsLoreMember :one
+-- Whether the user wrote a readable perspective that is a member of the lore.
+SELECT EXISTS (
+    SELECT 1 FROM lore_members lm
+    JOIN perspectives p ON p.id = lm.perspective_id
+    WHERE lm.lore_id = sqlc.arg(lore_id)::uuid
+      AND p.author_id = sqlc.arg(user_id)::uuid
+      AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+)::boolean AS is_member;
+
+-- name: SetLoreName :exec
+UPDATE lores SET name = sqlc.arg(name)::text, named_by = sqlc.arg(named_by)::uuid
+WHERE id = sqlc.arg(id)::uuid;
 
 -- name: ListLoreEncounters :many
 -- Accepted claims linking two members of the lore.

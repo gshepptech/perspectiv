@@ -411,6 +411,10 @@ func arcLore(arcID uuid.UUID, l loreRow, members []*perspectivv1.PerspectiveSumm
 		Upvotes:     l.Upvotes,
 		RankScore:   l.RankScore,
 		ComputedAt:  timestampFromDB(l.ComputedAt),
+		Name:        l.Name,
+	}
+	if l.NamedBy.Valid && l.NamedByUsername != "" {
+		lore.NamedBy = &perspectivv1.UserRef{UserId: l.NamedBy.UUID.String(), Username: l.NamedByUsername}
 	}
 	for _, m := range members {
 		lore.Members = append(lore.Members, &perspectivv1.LoreMember{PerspectiveId: m.GetId(), User: m.GetAuthor()})

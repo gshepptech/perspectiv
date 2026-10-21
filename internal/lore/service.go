@@ -465,6 +465,10 @@ func (s *Service) GetLore(ctx context.Context, loreID uuid.UUID) (*perspectivv1.
 		Upvotes:     row.Upvotes,
 		RankScore:   row.RankScore,
 		ComputedAt:  timestampFromDB(row.ComputedAt),
+		Name:        row.Name,
+	}
+	if row.NamedBy.Valid && row.NamedByUsername != "" {
+		out.NamedBy = &perspectivv1.UserRef{UserId: row.NamedBy.UUID.String(), Username: row.NamedByUsername}
 	}
 	for _, m := range members {
 		out.Members = append(out.Members, &perspectivv1.LoreMember{

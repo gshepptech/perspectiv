@@ -15,6 +15,7 @@ import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
 
 import { LoreThread } from "./LoreThread";
+import { NameLore } from "./NameLore";
 
 /** Members a lore needs before it can be canon (CANON_MIN_MEMBERS). */
 const CANON_MIN_MEMBERS = 4;
@@ -161,7 +162,9 @@ export function Component() {
     loreVoter: !!session && viewer?.loreId === lore.id && lore.memberCount >= CANON_MIN_MEMBERS,
   };
   const memberIds = new Set(lore.members.map((m) => m.user?.userId ?? ""));
-  const title = arc.data?.arc?.title || first?.arcTitle || "A lore";
+  const dayTitle = arc.data?.arc?.title || first?.arcTitle || "";
+  const title = lore.name || dayTitle || "A lore";
+  const member = !!session && viewer?.loreId === lore.id;
 
   return (
     <article aria-labelledby="lore-title" className="mx-auto min-w-0 max-w-3xl">
@@ -177,12 +180,22 @@ export function Component() {
           {title}
         </h1>
         <p className="mt-2 text-ink-muted">
-          {[first?.place?.name, first ? formatDay(first.localDate, first.hour) : ""].filter(Boolean).join(" · ")}
+          {[lore.name ? dayTitle : "", first?.place?.name, first ? formatDay(first.localDate, first.hour) : ""].filter(Boolean).join(" · ")}
         </p>
+        {lore.name && lore.namedBy && (
+          <p className="mt-1 text-sm text-ink-muted">
+            Named by <AuthorLink username={lore.namedBy.username} />
+          </p>
+        )}
         <p className="mt-1 text-sm text-ink-muted">
           {lore.memberCount} {lore.memberCount === 1 ? "member" : "members"} · {lore.upvotes}{" "}
           {lore.upvotes === 1 ? "upvote" : "upvotes"}
         </p>
+        {member && (
+          <div className="mt-3">
+            <NameLore loreId={lore.id} current={lore.name} />
+          </div>
+        )}
       </header>
 
       <Cast stories={loaded} memberIds={memberIds} />

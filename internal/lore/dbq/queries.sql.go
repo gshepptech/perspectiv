@@ -286,19 +286,24 @@ func (q *Queries) GetClaimByClaimant(ctx context.Context, arg GetClaimByClaimant
 }
 
 const getLore = `-- name: GetLore :one
-SELECT id, arc_id, status, member_count, upvotes, rank_score, computed_at
-FROM lores
-WHERE id = $1
+SELECT l.id, l.arc_id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
+       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
+FROM lores l
+LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
+WHERE l.id = $1
 `
 
 type GetLoreRow struct {
-	ID          uuid.UUID
-	ArcID       uuid.UUID
-	Status      string
-	MemberCount int32
-	Upvotes     int32
-	RankScore   float64
-	ComputedAt  pgtype.Timestamptz
+	ID              uuid.UUID
+	ArcID           uuid.UUID
+	Status          string
+	MemberCount     int32
+	Upvotes         int32
+	RankScore       float64
+	ComputedAt      pgtype.Timestamptz
+	Name            string
+	NamedBy         uuid.NullUUID
+	NamedByUsername string
 }
 
 func (q *Queries) GetLore(ctx context.Context, id uuid.UUID) (GetLoreRow, error) {
@@ -312,6 +317,9 @@ func (q *Queries) GetLore(ctx context.Context, id uuid.UUID) (GetLoreRow, error)
 		&i.Upvotes,
 		&i.RankScore,
 		&i.ComputedAt,
+		&i.Name,
+		&i.NamedBy,
+		&i.NamedByUsername,
 	)
 	return i, err
 }
@@ -517,6 +525,30 @@ func (q *Queries) IsBlocked(ctx context.Context, arg IsBlockedParams) (bool, err
 	var blocked bool
 	err := row.Scan(&blocked)
 	return blocked, err
+}
+
+const isLoreMember = `-- name: IsLoreMember :one
+SELECT EXISTS (
+    SELECT 1 FROM lore_members lm
+    JOIN perspectives p ON p.id = lm.perspective_id
+    WHERE lm.lore_id = $1::uuid
+      AND p.author_id = $2::uuid
+      AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+)::boolean AS is_member
+`
+
+type IsLoreMemberParams struct {
+	LoreID uuid.UUID
+	UserID uuid.UUID
+}
+
+// Whether the user wrote a readable perspective that is a member of the lore.
+func (q *Queries) IsLoreMember(ctx context.Context, arg IsLoreMemberParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isLoreMember, arg.LoreID, arg.UserID)
+	var is_member bool
+	err := row.Scan(&is_member)
+	return is_member, err
 }
 
 const listIncomingClaims = `-- name: ListIncomingClaims :many
@@ -1046,6 +1078,22 @@ type SetClaimStatusParams struct {
 
 func (q *Queries) SetClaimStatus(ctx context.Context, arg SetClaimStatusParams) error {
 	_, err := q.db.Exec(ctx, setClaimStatus, arg.Status, arg.ID)
+	return err
+}
+
+const setLoreName = `-- name: SetLoreName :exec
+UPDATE lores SET name = $1::text, named_by = $2::uuid
+WHERE id = $3::uuid
+`
+
+type SetLoreNameParams struct {
+	Name    string
+	NamedBy uuid.UUID
+	ID      uuid.UUID
+}
+
+func (q *Queries) SetLoreName(ctx context.Context, arg SetLoreNameParams) error {
+	_, err := q.db.Exec(ctx, setLoreName, arg.Name, arg.NamedBy, arg.ID)
 	return err
 }
 

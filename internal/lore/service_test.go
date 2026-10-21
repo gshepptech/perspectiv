@@ -1357,3 +1357,59 @@ func TestLoreThread(t *testing.T) {
 	_, err = w.client.ListLorePosts(ctx, asUser(uuid.Nil, &perspectivv1.ListLorePostsRequest{LoreId: loreID}))
 	wantCode(t, err, connect.CodeNotFound)
 }
+
+// TestNameLore covers naming a lore: only its members may, whitespace runs
+// collapse, the latest name wins, and GetLore shows the name and who set it.
+func TestNameLore(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t)
+	ctx := context.Background()
+	a, b, c := w.author("ana"), w.author("ben"), w.author("cal")
+	w.link(a, b)
+	loreID := w.loreOf(a.perspective).String()
+	name := func(user uuid.UUID, n string) (string, error) {
+		res, err := w.client.NameLore(ctx, asUser(user, &perspectivv1.NameLoreRequest{LoreId: loreID, Name: n}))
+		if err != nil {
+			return "", err
+		}
+		return res.Msg.GetName(), nil
+	}
+
+	tests := []struct {
+		name string
+		user uuid.UUID
+		in   string
+		want string
+		code connect.Code
+	}{
+		{name: "a member names it, whitespace collapsed", user: a.user, in: "  The   Lot 7  tailgate ", want: "The Lot 7 tailgate"},
+		{name: "a writer in the arc outside the lore may not", user: c.user, in: "Mine now", code: connect.CodePermissionDenied},
+		{name: "a stranger may not", user: w.user("stranger"), in: "Mine now", code: connect.CodePermissionDenied},
+		{name: "blank", user: a.user, in: "   ", code: connect.CodeInvalidArgument},
+		{name: "too long", user: a.user, in: strings.Repeat("x", 61), code: connect.CodeInvalidArgument},
+		{name: "another member renames it", user: b.user, in: "Jumper cables and burgers", want: "Jumper cables and burgers"},
+	}
+	// Sequential: each case builds on the name the one before left.
+	for _, tc := range tests {
+		got, err := name(tc.user, tc.in)
+		if tc.code != 0 {
+			wantCode(t, err, tc.code)
+			continue
+		}
+		if err != nil || got != tc.want {
+			t.Fatalf("%s: name = %q, %v; want %q", tc.name, got, err, tc.want)
+		}
+	}
+
+	res, err := w.client.GetLore(ctx, asUser(uuid.Nil, &perspectivv1.GetLoreRequest{LoreId: loreID}))
+	if err != nil {
+		t.Fatalf("GetLore: %v", err)
+	}
+	if l := res.Msg.GetLore(); l.GetName() != "Jumper cables and burgers" || l.GetNamedBy().GetUserId() != b.user.String() {
+		t.Fatalf("lore name = %q by %v", l.GetName(), l.GetNamedBy())
+	}
+
+	w.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, w.place)
+	_, err = name(a.user, "After hiding")
+	wantCode(t, err, connect.CodeNotFound)
+}

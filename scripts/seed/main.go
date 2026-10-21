@@ -65,6 +65,14 @@ type seedArc struct {
 	Perspectives []seedPerspective `json:"perspectives"`
 	Claims       []seedClaim       `json:"claims"`
 	Posts        []seedPost        `json:"posts"`
+	Names        []seedName        `json:"names"`
+}
+
+// seedName names the lore that InLoreOf's perspective belongs to, as User.
+type seedName struct {
+	InLoreOf string `json:"in_lore_of"`
+	User     string `json:"user"`
+	Name     string `json:"name"`
 }
 
 type seedPerspective struct {
@@ -169,8 +177,13 @@ func (a *app) seedArc(ctx context.Context, sa seedArc) (int, error) {
 		return 0, fmt.Errorf("date: %w", err)
 	}
 	ids, arcID, added, err := a.publishAll(ctx, sa, placeID, day)
-	if err != nil || added == 0 {
+	if err != nil {
 		return 0, err
+	}
+	if added == 0 {
+		// Nothing new to link; names are still set, since they can be added
+		// to content seeded before.
+		return 0, a.name(ctx, sa, ids)
 	}
 	if err := a.link(ctx, sa, ids); err != nil {
 		return 0, err
@@ -182,6 +195,9 @@ func (a *app) seedArc(ctx context.Context, sa seedArc) (int, error) {
 		return 0, err
 	}
 	if err := a.post(ctx, sa, ids, day); err != nil {
+		return 0, err
+	}
+	if err := a.name(ctx, sa, ids); err != nil {
 		return 0, err
 	}
 	// Let the next rank pass see the arc, whatever the claims changed.
@@ -235,6 +251,26 @@ func (a *app) publishAll(ctx context.Context, sa seedArc, placeID uuid.UUID, day
 		}
 	}
 	return ids, arcID, added, nil
+}
+
+// name sets each lore name the content gives, through the service, unless
+// the lore already has it.
+func (a *app) name(ctx context.Context, sa seedArc, ids map[string]string) error {
+	for _, sn := range sa.Names {
+		var loreID uuid.UUID
+		var current string
+		if err := a.pool.QueryRow(ctx, `SELECT l.id, coalesce(l.name, '') FROM perspectives p JOIN lores l ON l.id = p.lore_id
+			WHERE p.id = $1`, ids[sn.InLoreOf]).Scan(&loreID, &current); err != nil {
+			return fmt.Errorf("lore of %s: %w", sn.InLoreOf, err)
+		}
+		if current == sn.Name {
+			continue
+		}
+		if _, err := a.lore.NameLore(a.as(ctx, sn.User), connect.NewRequest(&perspectivv1.NameLoreRequest{LoreId: loreID.String(), Name: sn.Name})); err != nil {
+			return fmt.Errorf("%s names %s's lore: %w", sn.User, sn.InLoreOf, err)
+		}
+	}
+	return nil
 }
 
 // post writes the thread messages, each once, dated the day after the arc so
