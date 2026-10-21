@@ -51,6 +51,7 @@ const contract: [string, string][] = [
   ["/arcs/a-1", "arc/ArcPage"],
   ["/users/wren", "profile/ProfilePage"],
   ["/i/abcdefgh23", "invite/InvitePage"],
+  ["/lores/l-1", "lore/LorePage"],
   ["/compose?placeId=p-1&date=2026-10-01&hour=14", "compose/ComposePage"],
   ["/claims", "claims/ClaimsPage"],
   ["/admin/reports", "admin/ReportsPage"],

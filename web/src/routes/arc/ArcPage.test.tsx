@@ -29,21 +29,26 @@ function open(path: string, getArc: FakeHandler, opts: { signedIn?: boolean; rou
 const before = (a: Element, b: Element) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
 describe("arc page reading order", () => {
-  it("AC-030 FR-030 OT-032: renders canon, then sublores, then tales, with a demoted lore still readable", async () => {
+  it("AC-030 FR-030 OT-032: renders canon, then contenders, then tales, with a demoted lore still listed", async () => {
     await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Closing night at Moonbean" })).toBeInTheDocument();
     const canon = screen.getByRole("region", { name: "Canon" });
-    const sublores = screen.getByRole("region", { name: "Sublores" });
+    const sublores = screen.getByRole("region", { name: "Contenders" });
     const tales = screen.getByRole("region", { name: "Tales" });
     expect(before(canon, sublores)).toBe(true);
     expect(before(sublores, tales)).toBe(true);
 
     expect(within(canon).getByText("Canon text by otter")).toBeInTheDocument();
     // The former canon, now a 3-member sublore, keeps every perspective readable.
+    // The former canon, now a 3-member contender: its people are listed, and
+    // its stories open on its lore page.
     for (const name of ["moth", "finch", "vole"]) {
-      expect(within(sublores).getByText(`Demoted text by ${name}`)).toBeInTheDocument();
+      expect(within(sublores).getByRole("link", { name })).toHaveAttribute("href", `/users/${name}`);
     }
+    expect(within(sublores).getByText("3 of 4 members to be eligible for canon")).toBeInTheDocument();
+    expect(within(sublores).getByRole("link", { name: /Read this lore/ })).toHaveAttribute("href", "/lores/lore-former");
+    expect(within(canon).getByRole("link", { name: /Open the canon/ })).toHaveAttribute("href", "/lores/lore-canon");
     expect(within(tales).getByText("A tale nobody claimed")).toBeInTheDocument();
     expect(within(tales).getByText("A story the lore voted out")).toBeInTheDocument();
     expect(within(tales).getByText("Removed from lore")).toBeInTheDocument();
@@ -61,14 +66,15 @@ describe("arc page reading order", () => {
     expect(screen.getByText("October 1, 2026")).toBeInTheDocument();
   });
 
-  it("says when the arc has no canon and still renders its sublores", async () => {
+  it("says when the arc has no canon and how close the leading contender is", async () => {
     const res = dayArcResponse();
     await open("/arcs/arc-day", () => ({
       body: { ...res, arc: arc({ canonLoreId: "" }), canon: undefined, hours: [] },
     }));
     const canon = await screen.findByRole("region", { name: "Canon" });
     expect(canon).toHaveTextContent("No canon yet");
-    expect(screen.getByRole("region", { name: "Sublores" })).toHaveTextContent("Demoted text by moth");
+    expect(canon).toHaveTextContent("The leading contender has 3 of 4 members");
+    expect(screen.getByRole("region", { name: "Contenders" })).toHaveTextContent("moth");
   });
 
   it("shows a placeholder for a deleted or hidden perspective without its actions", async () => {
@@ -106,7 +112,7 @@ describe("hour timeline", () => {
     await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
     const hours = await screen.findByRole("region", { name: "Hours" });
     const canon = screen.getByRole("region", { name: "Canon" });
-    const sublores = screen.getByRole("region", { name: "Sublores" });
+    const sublores = screen.getByRole("region", { name: "Contenders" });
     expect(before(canon, hours)).toBe(true);
     expect(before(hours, sublores)).toBe(true);
 

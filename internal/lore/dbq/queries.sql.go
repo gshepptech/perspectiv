@@ -131,6 +131,31 @@ func (q *Queries) ArcPlaceHidden(ctx context.Context, arcID uuid.UUID) (bool, er
 	return hidden, err
 }
 
+const canPostToLore = `-- name: CanPostToLore :one
+SELECT EXISTS (
+    SELECT 1 FROM lores l
+    JOIN perspectives p ON p.arc_id = l.arc_id
+    WHERE l.id = $1::uuid
+      AND p.author_id = $2::uuid
+      AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+)::boolean AS can_post
+`
+
+type CanPostToLoreParams struct {
+	LoreID uuid.UUID
+	UserID uuid.UUID
+}
+
+// Whether the user may post to the lore's thread: a readable published
+// perspective in the lore's arc (members have one by definition).
+func (q *Queries) CanPostToLore(ctx context.Context, arg CanPostToLoreParams) (bool, error) {
+	row := q.db.QueryRow(ctx, canPostToLore, arg.LoreID, arg.UserID)
+	var can_post bool
+	err := row.Scan(&can_post)
+	return can_post, err
+}
+
 const deleteArcMembers = `-- name: DeleteArcMembers :exec
 DELETE FROM lore_members m
 USING lores l
@@ -291,6 +316,38 @@ func (q *Queries) GetLore(ctx context.Context, id uuid.UUID) (GetLoreRow, error)
 	return i, err
 }
 
+const getLorePost = `-- name: GetLorePost :one
+SELECT lp.id, lp.author_id, u.username, lp.body, lp.created_at,
+       EXISTS (SELECT 1 FROM lore_members m JOIN perspectives p ON p.id = m.perspective_id
+               WHERE m.lore_id = lp.lore_id AND p.author_id = lp.author_id)::boolean AS by_member
+FROM lore_posts lp
+JOIN users u ON u.id = lp.author_id
+WHERE lp.id = $1
+`
+
+type GetLorePostRow struct {
+	ID        uuid.UUID
+	AuthorID  uuid.UUID
+	Username  string
+	Body      string
+	CreatedAt pgtype.Timestamptz
+	ByMember  bool
+}
+
+func (q *Queries) GetLorePost(ctx context.Context, id uuid.UUID) (GetLorePostRow, error) {
+	row := q.db.QueryRow(ctx, getLorePost, id)
+	var i GetLorePostRow
+	err := row.Scan(
+		&i.ID,
+		&i.AuthorID,
+		&i.Username,
+		&i.Body,
+		&i.CreatedAt,
+		&i.ByMember,
+	)
+	return i, err
+}
+
 const getPerspectiveArc = `-- name: GetPerspectiveArc :one
 SELECT arc_id FROM perspectives WHERE id = $1
 `
@@ -401,6 +458,30 @@ func (q *Queries) InsertLore(ctx context.Context, arcID uuid.UUID) (uuid.UUID, e
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const insertLorePost = `-- name: InsertLorePost :one
+INSERT INTO lore_posts (lore_id, author_id, body)
+VALUES ($1::uuid, $2::uuid, $3::text)
+RETURNING id, created_at
+`
+
+type InsertLorePostParams struct {
+	LoreID   uuid.UUID
+	AuthorID uuid.UUID
+	Body     string
+}
+
+type InsertLorePostRow struct {
+	ID        uuid.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
+func (q *Queries) InsertLorePost(ctx context.Context, arg InsertLorePostParams) (InsertLorePostRow, error) {
+	row := q.db.QueryRow(ctx, insertLorePost, arg.LoreID, arg.AuthorID, arg.Body)
+	var i InsertLorePostRow
+	err := row.Scan(&i.ID, &i.CreatedAt)
+	return i, err
 }
 
 const insertMembers = `-- name: InsertMembers :exec
@@ -573,7 +654,7 @@ FROM lore_members m
 JOIN perspectives p ON p.id = m.perspective_id
 JOIN users u ON u.id = p.author_id
 WHERE m.lore_id = $1
-ORDER BY m.perspective_id
+ORDER BY p.published_at, m.perspective_id
 `
 
 type ListLoreMembersRow struct {
@@ -592,6 +673,71 @@ func (q *Queries) ListLoreMembers(ctx context.Context, loreID uuid.UUID) ([]List
 	for rows.Next() {
 		var i ListLoreMembersRow
 		if err := rows.Scan(&i.PerspectiveID, &i.AuthorID, &i.Username); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLorePosts = `-- name: ListLorePosts :many
+SELECT lp.id, lp.author_id, u.username, lp.body, lp.created_at,
+       EXISTS (SELECT 1 FROM lore_members m JOIN perspectives p ON p.id = m.perspective_id
+               WHERE m.lore_id = lp.lore_id AND p.author_id = lp.author_id)::boolean AS by_member
+FROM lore_posts lp
+JOIN users u ON u.id = lp.author_id
+WHERE lp.lore_id = $1::uuid
+  AND lp.deleted_at IS NULL AND lp.hidden_at IS NULL AND u.deleted_at IS NULL
+  AND ($2::timestamptz IS NULL
+       OR (lp.created_at, lp.id) > ($2::timestamptz, $3::uuid))
+ORDER BY lp.created_at, lp.id
+LIMIT $4::int
+`
+
+type ListLorePostsParams struct {
+	LoreID   uuid.UUID
+	AfterAt  pgtype.Timestamptz
+	AfterID  uuid.NullUUID
+	RowLimit int32
+}
+
+type ListLorePostsRow struct {
+	ID        uuid.UUID
+	AuthorID  uuid.UUID
+	Username  string
+	Body      string
+	CreatedAt pgtype.Timestamptz
+	ByMember  bool
+}
+
+// A lore's readable posts, oldest first, keyset-paginated on (created_at, id)
+// and served by lore_posts_lore_created_idx. by_member says whether the
+// author has a perspective in the lore.
+func (q *Queries) ListLorePosts(ctx context.Context, arg ListLorePostsParams) ([]ListLorePostsRow, error) {
+	rows, err := q.db.Query(ctx, listLorePosts,
+		arg.LoreID,
+		arg.AfterAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLorePostsRow
+	for rows.Next() {
+		var i ListLorePostsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.AuthorID,
+			&i.Username,
+			&i.Body,
+			&i.CreatedAt,
+			&i.ByMember,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

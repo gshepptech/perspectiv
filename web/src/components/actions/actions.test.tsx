@@ -131,9 +131,9 @@ describe("claim", () => {
   ];
 
   it("a participant claims a character in another perspective from its character list", async () => {
-    const store: Store = { "p-moth": perspective("p-moth", { characters }).perspective };
+    const store: Store = { "p-heron": perspective("p-heron", { characters }).perspective };
     const app = await openSignedIn({ "LoreService/ClaimCharacter": () => ({ body: { claimId: "cl-1", status: "CLAIM_STATUS_PENDING" } }) }, store);
-    const moth = await card("Sublores", "moth");
+    const moth = await card("Canon", "heron");
     await userEvent.click(await within(moth).findByRole("button", { name: "Claim a character" }));
     const dialog = await screen.findByRole("dialog", { name: "Claim a character" });
 
@@ -152,12 +152,12 @@ describe("claim", () => {
   });
 
   it("shows the server's reason when a claim is refused", async () => {
-    const store: Store = { "p-moth": perspective("p-moth", { characters }).perspective };
+    const store: Store = { "p-heron": perspective("p-heron", { characters }).perspective };
     await openSignedIn(
       { "LoreService/ClaimCharacter": () => connectError("failed_precondition", "write your perspective in this arc first") },
       store,
     );
-    const moth = await card("Sublores", "moth");
+    const moth = await card("Canon", "heron");
     await userEvent.click(await within(moth).findByRole("button", { name: "Claim a character" }));
     const dialog = await screen.findByRole("dialog");
     await userEvent.click(within(dialog).getByRole("button", { name: "That was me" }));
@@ -166,7 +166,7 @@ describe("claim", () => {
 
   it("offers no claim on a perspective that names no characters", async () => {
     await openSignedIn({});
-    const moth = await card("Sublores", "moth");
+    const moth = await card("Canon", "heron");
     await within(moth).findByRole("button", { name: /^Heart/ });
     expect(within(moth).queryByRole("button", { name: "Claim a character" })).toBeNull();
   });
@@ -176,16 +176,16 @@ describe("claim", () => {
       { id: "c-1", position: 1, label: "The barista in the green apron", myClaim: "CLAIM_STATUS_PENDING", hasPendingClaim: true },
       { id: "c-2", position: 2, label: "Someone by the window" },
     ];
-    await openSignedIn({}, { "p-moth": perspective("p-moth", { characters: mine }).perspective });
-    const moth = await card("Sublores", "moth");
-    expect(await within(moth).findByText(/waiting for moth to accept/)).toBeInTheDocument();
+    await openSignedIn({}, { "p-heron": perspective("p-heron", { characters: mine }).perspective });
+    const moth = await card("Canon", "heron");
+    expect(await within(moth).findByText(/waiting for heron to accept/)).toBeInTheDocument();
     expect(within(moth).queryByRole("button", { name: "Claim a character" })).toBeNull();
   });
 
   it("tags a character with who it turned out to be", async () => {
     const tagged = [{ id: "c-1", position: 1, label: "A man with a red umbrella", hasAcceptedClaim: true, claimedBy: { userId: "u-otter", username: "otter" } }];
-    await openSignedIn({}, { "p-moth": perspective("p-moth", { characters: tagged }).perspective });
-    const moth = await card("Sublores", "moth");
+    await openSignedIn({}, { "p-heron": perspective("p-heron", { characters: tagged }).perspective });
+    const moth = await card("Canon", "heron");
     const cast = await within(moth).findByRole("list", { name: "Cast" });
     expect(within(cast).getByRole("link", { name: "otter" })).toHaveAttribute("href", "/users/otter");
   });
@@ -221,10 +221,9 @@ describe("remove vote", () => {
 
   it("is offered only inside the viewer's own lore of 4 or more members", async () => {
     await openSignedIn({});
-    // Another lore in the same arc.
-    const moth = await card("Sublores", "moth");
-    await within(moth).findByRole("button", { name: /^Heart/ });
-    expect(within(moth).queryByRole("button", { name: "Vote to remove" })).toBeNull();
+    // Another lore in the same arc is a contender card, with no actions on the arc page.
+    const contenders = await screen.findByRole("region", { name: "Contenders" });
+    expect(within(contenders).queryByRole("button", { name: "Vote to remove" })).toBeNull();
     // The viewer's own perspective.
     const mine = await card("Canon", "wren");
     expect(within(mine).queryByRole("button", { name: "Vote to remove" })).toBeNull();

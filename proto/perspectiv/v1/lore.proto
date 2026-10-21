@@ -16,6 +16,11 @@ service LoreService {
   rpc ListClaims(ListClaimsRequest) returns (ListClaimsResponse);
   // Public. One lore with its members and encounters.
   rpc GetLore(GetLoreRequest) returns (GetLoreResponse);
+  // Public. A lore's thread, oldest first.
+  rpc ListLorePosts(ListLorePostsRequest) returns (ListLorePostsResponse);
+  // Posts to a lore's thread: a lore member, or anyone with a perspective in
+  // the lore's arc. Plain text, 1 to 1,000 characters.
+  rpc AddLorePost(AddLorePostRequest) returns (AddLorePostResponse);
 }
 
 // Claim is one author saying a character in another author's perspective was
@@ -102,4 +107,35 @@ message GetLoreRequest {
 
 message GetLoreResponse {
   Lore lore = 1;
+}
+
+// LorePost is one message in a lore's thread.
+message LorePost {
+  string id = 1;
+  UserRef author = 2;
+  string body = 3;
+  google.protobuf.Timestamp created_at = 4;
+  // True when the author is a member of the lore, as opposed to another
+  // writer in the arc.
+  bool by_member = 5;
+}
+
+message ListLorePostsRequest {
+  string lore_id = 1;
+  string page_token = 2;
+  int32 page_size = 3;
+}
+
+message ListLorePostsResponse {
+  repeated LorePost posts = 1;
+  string next_page_token = 2;
+}
+
+message AddLorePostRequest {
+  string lore_id = 1;
+  string body = 2;
+}
+
+message AddLorePostResponse {
+  LorePost post = 1;
 }

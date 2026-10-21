@@ -441,6 +441,10 @@ func (s *Service) GetLore(ctx context.Context, loreID uuid.UUID) (*perspectivv1.
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("read lore: %w", err))
 	}
+	// A lore in an arc at or below a hidden place is as gone as the arc.
+	if err := refuseHiddenArc(ctx, q, row.ArcID, apiutil.NotFound("lore not found")); err != nil {
+		return nil, err
+	}
 	standing, err := loreStandingFromDB(row.Status)
 	if err != nil {
 		return nil, apiutil.Internal(err)

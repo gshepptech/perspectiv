@@ -104,6 +104,40 @@ func (h *Handler) GetLore(
 	return connect.NewResponse(&perspectivv1.GetLoreResponse{Lore: l}), nil
 }
 
+// ListLorePosts returns a lore's thread, oldest first. It is public.
+func (h *Handler) ListLorePosts(
+	ctx context.Context, req *connect.Request[perspectivv1.ListLorePostsRequest],
+) (*connect.Response[perspectivv1.ListLorePostsResponse], error) {
+	id, err := parseID("lore_id", req.Msg.GetLoreId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	posts, next, err := h.svc.LorePosts(ctx, id, req.Msg.GetPageToken(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ListLorePostsResponse{Posts: posts, NextPageToken: next}), nil
+}
+
+// AddLorePost posts to a lore's thread.
+func (h *Handler) AddLorePost(
+	ctx context.Context, req *connect.Request[perspectivv1.AddLorePostRequest],
+) (*connect.Response[perspectivv1.AddLorePostResponse], error) {
+	caller, ok := apiutil.CallerFrom(ctx)
+	if !ok {
+		return nil, apiutil.ToConnect(apiutil.Unauthenticated("sign in to post"))
+	}
+	id, err := parseID("lore_id", req.Msg.GetLoreId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	post, err := h.svc.AddLorePost(ctx, caller.UserID, id, req.Msg.GetBody())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.AddLorePostResponse{Post: post}), nil
+}
+
 func parseID(field, s string) (uuid.UUID, error) {
 	if s == "" {
 		return uuid.Nil, apiutil.InvalidArg(field + " is required")

@@ -181,7 +181,7 @@ FROM lore_members m
 JOIN perspectives p ON p.id = m.perspective_id
 JOIN users u ON u.id = p.author_id
 WHERE m.lore_id = $1
-ORDER BY m.perspective_id;
+ORDER BY p.published_at, m.perspective_id;
 
 -- name: RejectClaimsOfPerspective :exec
 -- Rejects every open or accepted claim on the perspective's characters, and
@@ -288,3 +288,44 @@ SELECT EXISTS (
       AND c.claimant_user_id = sqlc.arg(claimant_user_id)::uuid
       AND c.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED')
 )::boolean AS active;
+
+-- name: ListLorePosts :many
+-- A lore's readable posts, oldest first, keyset-paginated on (created_at, id)
+-- and served by lore_posts_lore_created_idx. by_member says whether the
+-- author has a perspective in the lore.
+SELECT lp.id, lp.author_id, u.username, lp.body, lp.created_at,
+       EXISTS (SELECT 1 FROM lore_members m JOIN perspectives p ON p.id = m.perspective_id
+               WHERE m.lore_id = lp.lore_id AND p.author_id = lp.author_id)::boolean AS by_member
+FROM lore_posts lp
+JOIN users u ON u.id = lp.author_id
+WHERE lp.lore_id = sqlc.arg(lore_id)::uuid
+  AND lp.deleted_at IS NULL AND lp.hidden_at IS NULL AND u.deleted_at IS NULL
+  AND (sqlc.narg(after_at)::timestamptz IS NULL
+       OR (lp.created_at, lp.id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY lp.created_at, lp.id
+LIMIT sqlc.arg(row_limit)::int;
+
+-- name: CanPostToLore :one
+-- Whether the user may post to the lore's thread: a readable published
+-- perspective in the lore's arc (members have one by definition).
+SELECT EXISTS (
+    SELECT 1 FROM lores l
+    JOIN perspectives p ON p.arc_id = l.arc_id
+    WHERE l.id = sqlc.arg(lore_id)::uuid
+      AND p.author_id = sqlc.arg(user_id)::uuid
+      AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+)::boolean AS can_post;
+
+-- name: InsertLorePost :one
+INSERT INTO lore_posts (lore_id, author_id, body)
+VALUES (sqlc.arg(lore_id)::uuid, sqlc.arg(author_id)::uuid, sqlc.arg(body)::text)
+RETURNING id, created_at;
+
+-- name: GetLorePost :one
+SELECT lp.id, lp.author_id, u.username, lp.body, lp.created_at,
+       EXISTS (SELECT 1 FROM lore_members m JOIN perspectives p ON p.id = m.perspective_id
+               WHERE m.lore_id = lp.lore_id AND p.author_id = lp.author_id)::boolean AS by_member
+FROM lore_posts lp
+JOIN users u ON u.id = lp.author_id
+WHERE lp.id = $1;

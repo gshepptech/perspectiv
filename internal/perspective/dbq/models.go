@@ -102,6 +102,16 @@ type LoreMember struct {
 	PerspectiveID uuid.UUID
 }
 
+type LorePost struct {
+	ID        uuid.UUID
+	LoreID    uuid.UUID
+	AuthorID  uuid.UUID
+	Body      string
+	CreatedAt time.Time
+	DeletedAt *time.Time
+	HiddenAt  *time.Time
+}
+
 type ModerationAudit struct {
 	ID         int64
 	ActorID    *uuid.UUID

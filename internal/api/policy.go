@@ -95,6 +95,8 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.LoreService/ResolveClaim":   {Access: User, Verified: true},
 	"/perspectiv.v1.LoreService/ListClaims":     {Access: User},
 	"/perspectiv.v1.LoreService/GetLore":        {Access: Public},
+	"/perspectiv.v1.LoreService/ListLorePosts":  {Access: Public},
+	"/perspectiv.v1.LoreService/AddLorePost":    {Access: User, Verified: true},
 
 	"/perspectiv.v1.VoteService/Vote":       {Access: User, Verified: true, RateLimit: LimitVote},
 	"/perspectiv.v1.VoteService/VoteRemove": {Access: User, Verified: true, RateLimit: LimitVote},

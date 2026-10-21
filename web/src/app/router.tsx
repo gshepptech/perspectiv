@@ -31,6 +31,7 @@ export const pages: readonly Page[] = [
   { path: "/places/:placeId", module: "place/PlacePage" },
   { path: "/perspectives/:perspectiveId", module: "read/ReadPage" },
   { path: "/arcs/:arcId", module: "arc/ArcPage" },
+  { path: "/lores/:loreId", module: "lore/LorePage" },
   { path: "/users/:username", module: "profile/ProfilePage" },
   { path: "/i/:code", module: "invite/InvitePage" },
   { path: "/compose", module: "compose/ComposePage", signedIn: true },

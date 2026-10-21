@@ -1301,3 +1301,59 @@ func TestHiddenPlaceRefusesClaims(t *testing.T) {
 		t.Fatalf("reject under a hidden place = %v, %v; want REJECTED", got, err)
 	}
 }
+
+// A lore in an arc at or below a hidden place is not found, like the arc.
+func TestGetLoreUnderHiddenPlace(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t)
+	a, b := w.author("ana"), w.author("ben")
+	w.link(a, b)
+	loreID := w.loreOf(a.perspective)
+	get := func() error {
+		_, err := w.client.GetLore(context.Background(), asUser(uuid.Nil, &perspectivv1.GetLoreRequest{LoreId: loreID.String()}))
+		return err
+	}
+	if err := get(); err != nil {
+		t.Fatalf("GetLore before the hide: %v", err)
+	}
+	w.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, w.place)
+	wantCode(t, get(), connect.CodeNotFound)
+}
+
+// A lore's thread: anyone reads it, members and other writers in the arc post
+// to it, an outsider or an empty or overlong post is refused, and a hidden
+// place takes the thread with it.
+func TestLoreThread(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t)
+	ctx := context.Background()
+	a, b, c := w.author("ana"), w.author("ben"), w.author("cal")
+	w.link(a, b)
+	loreID := w.loreOf(a.perspective).String()
+	post := func(user uuid.UUID, body string) error {
+		_, err := w.client.AddLorePost(ctx, asUser(user, &perspectivv1.AddLorePostRequest{LoreId: loreID, Body: body}))
+		return err
+	}
+	if err := post(a.user, "  I can't believe you were the one singing.  "); err != nil {
+		t.Fatalf("member post: %v", err)
+	}
+	if err := post(c.user, "I was there too, by the door."); err != nil {
+		t.Fatalf("arc writer post: %v", err)
+	}
+	wantCode(t, post(w.user("stranger"), "hello"), connect.CodePermissionDenied)
+	wantCode(t, post(a.user, "   "), connect.CodeInvalidArgument)
+	wantCode(t, post(a.user, strings.Repeat("x", 1001)), connect.CodeInvalidArgument)
+
+	res, err := w.client.ListLorePosts(ctx, asUser(uuid.Nil, &perspectivv1.ListLorePostsRequest{LoreId: loreID}))
+	if err != nil {
+		t.Fatalf("ListLorePosts signed out: %v", err)
+	}
+	got := res.Msg.GetPosts()
+	if len(got) != 2 || got[0].GetBody() != "I can't believe you were the one singing." || !got[0].GetByMember() || got[1].GetByMember() {
+		t.Fatalf("posts = %v", got)
+	}
+
+	w.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, w.place)
+	_, err = w.client.ListLorePosts(ctx, asUser(uuid.Nil, &perspectivv1.ListLorePostsRequest{LoreId: loreID}))
+	wantCode(t, err, connect.CodeNotFound)
+}
