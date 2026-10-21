@@ -238,8 +238,9 @@ func TestMarkReadValidation(t *testing.T) {
 
 func prefMap(t *testing.T, ps []*perspectivv1.Preference) map[perspectivv1.NotificationKind][2]bool {
 	t.Helper()
-	if len(ps) != 6 {
-		t.Fatalf("preferences = %d entries, want 6", len(ps))
+	// One preference per notification kind; UNSPECIFIED is not a kind.
+	if want := len(perspectivv1.NotificationKind_name) - 1; len(ps) != want {
+		t.Fatalf("preferences = %d entries, want %d", len(ps), want)
 	}
 	out := map[perspectivv1.NotificationKind][2]bool{}
 	for i, p := range ps {
@@ -251,7 +252,7 @@ func prefMap(t *testing.T, ps []*perspectivv1.Preference) map[perspectivv1.Notif
 	return out
 }
 
-// Both toggles default on for all six kinds; an update changes only the
+// Both toggles default on for every kind; an update changes only the
 // kinds it lists (AC-041, CT-014).
 func TestPreferences(t *testing.T) {
 	t.Parallel()
