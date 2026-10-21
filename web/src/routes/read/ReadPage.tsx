@@ -87,7 +87,7 @@ function Missing({ title, detail }: { title: string; detail: string }) {
  * place; deleting a draft returns the author to the landing page, where their
  * remaining drafts are listed.
  */
-function AuthorActions({ p, justPublished = false }: { p: Perspective; justPublished?: boolean }) {
+function AuthorActions({ p }: { p: Perspective }) {
   const isDraft = p.status === PerspectiveStatus.DRAFT;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -103,7 +103,7 @@ function AuthorActions({ p, justPublished = false }: { p: Perspective; justPubli
   const noun = isDraft ? "draft" : "perspective";
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {!isDraft && <InviteDialog p={p} defaultOpen={justPublished} />}
+      {!isDraft && <InviteDialog p={p} />}
       <Link to={`/compose?perspectiveId=${encodeURIComponent(p.id)}`} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
         {isDraft ? "Edit draft" : "Edit"}
       </Link>
@@ -153,8 +153,10 @@ function AuthorActions({ p, justPublished = false }: { p: Perspective; justPubli
 export function Component() {
   const { perspectiveId = "" } = useParams();
   const session = useSession();
-  // The composer arrives here with justPublished set, which opens the invite
-  // dialog once: right after publishing is when the author knows who was there.
+  // The composer arrives here with justPublished set, which shows the
+  // post-publish prompt once: right after publishing is when the author knows
+  // who was there. It points at the arc and at the invite button, and opens
+  // nothing over the story.
   const justPublished = (useLocation().state as { justPublished?: boolean } | null)?.justPublished === true;
   const [params, setParams] = useSearchParams();
   // The action bar on the arc page reads the same cache entry, so both must
@@ -227,12 +229,12 @@ export function Component() {
           <Link to={`/arcs/${p.arcId}`} className="font-medium text-accent underline underline-offset-4">
             Open the day
           </Link>{" "}
-          and find yourself in their stories: claim the character that was you, and your stories link.
+          and find yourself in their stories: claim the character that was you, and your stories link. Or invite who was there with the button below.
         </p>
       )}
       {!isDraft && mine && (
         <div className="mx-auto mb-4 max-w-measure text-sm">
-          <AuthorActions p={p} justPublished={justPublished} />
+          <AuthorActions p={p} />
         </div>
       )}
       <Reader

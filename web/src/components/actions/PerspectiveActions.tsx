@@ -44,8 +44,7 @@ export function PerspectiveActions({ summary, rights }: { summary: PerspectiveSu
   const canVote = !own && (signedOut || rights.participant);
   const mine = p ? myCharacter(p.characters) : undefined;
   // Offered only when the story has someone the viewer could still be.
-  const canClaim =
-    !own && summary.loreStatus !== LoreStatus.REMOVED && (signedOut || rights.participant) && !!p && hasOpenCharacter(p.characters);
+  const canClaim = !own && summary.loreStatus !== LoreStatus.REMOVED && (signedOut || rights.participant) && !!p;
   const canVoteOut = !!session && !own && summary.loreStatus === LoreStatus.IN_LORE && rights.loreVoter;
 
   return (
@@ -56,7 +55,7 @@ export function PerspectiveActions({ summary, rights }: { summary: PerspectiveSu
         {p && <ReactBar perspectiveId={summary.id} counts={p.reacts} />}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {canClaim && <ClaimDialog perspectiveId={summary.id} authorName={authorName} characters={p?.characters} />}
+        {canClaim && <ClaimDialog perspectiveId={summary.id} authorName={authorName} characters={p.characters} offer={hasOpenCharacter(p.characters)} />}
         {mine && (
           <p className="text-sm text-ink">
             You are <span className="font-serif">{mine.label}</span>

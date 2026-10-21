@@ -18,6 +18,12 @@ type Props = {
   authorName: string;
   /** Undefined while the perspective is still loading. */
   characters: readonly Character[] | undefined;
+  /**
+   * Whether the trigger is shown: the story still has someone the viewer
+   * could be. The dialog itself stays mounted, so a claim that closes the
+   * offer still shows its "Claim sent." confirmation.
+   */
+  offer: boolean;
 };
 
 /**
@@ -26,7 +32,7 @@ type Props = {
  * only offered while the viewer has no claim in it; a character someone else
  * holds shows who, and one the viewer was turned down for says so.
  */
-export function ClaimDialog({ perspectiveId, authorName, characters }: Props) {
+export function ClaimDialog({ perspectiveId, authorName, characters, offer }: Props) {
   const { gate } = useWriteGate();
   const [open, setOpen] = useState(false);
   const invalidate = useInvalidateAfterWrite();
@@ -44,12 +50,14 @@ export function ClaimDialog({ perspectiveId, authorName, characters }: Props) {
         setOpen(next);
       }}
     >
-      <DialogTrigger asChild>
-        <Button variant="secondary" size="sm">
-          <UserCheck aria-hidden size={16} />
-          Claim a character
-        </Button>
-      </DialogTrigger>
+      {offer && (
+        <DialogTrigger asChild>
+          <Button variant="secondary" size="sm">
+            <UserCheck aria-hidden size={16} />
+            Claim a character
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogTitle>Claim a character</DialogTitle>
         <DialogDescription>

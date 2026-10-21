@@ -132,7 +132,19 @@ describe("claim", () => {
 
   it("a participant claims a character in another perspective from its character list", async () => {
     const store: Store = { "p-heron": perspective("p-heron", { characters }).perspective };
-    const app = await openSignedIn({ "LoreService/ClaimCharacter": () => ({ body: { claimId: "cl-1", status: "CLAIM_STATUS_PENDING" } }) }, store);
+    // Like the server, the claim makes the viewer that character, so the
+    // refetched story offers nothing more to claim.
+    const app = await openSignedIn(
+      {
+        "LoreService/ClaimCharacter": () => {
+          store["p-heron"] = perspective("p-heron", {
+            characters: characters.map((c) => (c.id === "c-1" ? { ...c, hasPendingClaim: true, myClaim: "CLAIM_STATUS_PENDING" } : c)),
+          }).perspective;
+          return { body: { claimId: "cl-1", status: "CLAIM_STATUS_PENDING" } };
+        },
+      },
+      store,
+    );
     const moth = await card("Canon", "heron");
     await userEvent.click(await within(moth).findByRole("button", { name: "Claim a character" }));
     const dialog = await screen.findByRole("dialog", { name: "Claim a character" });
@@ -146,6 +158,11 @@ describe("claim", () => {
     await userEvent.click(within(open).getByRole("button", { name: "That was me" }));
     expect(await within(dialog).findByRole("status")).toHaveTextContent("Claim sent");
     expect(bodiesFor(app.api, "LoreService/ClaimCharacter")).toEqual([{ characterId: "c-1" }]);
+    // The refetched story no longer offers a claim; the confirmation stays up
+    // until the reader closes it.
+    expect(await within(moth).findByText(/waiting for heron to accept/)).toBeInTheDocument();
+    expect(within(moth).queryByRole("button", { name: "Claim a character", hidden: true })).toBeNull();
+    expect(within(screen.getByRole("dialog", { name: "Claim a character" })).getByRole("status")).toHaveTextContent("Claim sent");
 
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());

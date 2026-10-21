@@ -20,6 +20,11 @@ const UMBRELLA = "the woman shaking out a yellow umbrella";
 async function claim(w: Writer, arc: string, author: string, label: string) {
   // A fresh load: the arc page decides who may claim from who has written here.
   await visit(w.page, w.account, arc);
+  // A story already in a contender lore is read, and claimed from, on its lore page.
+  if ((await card(w.page, author).count()) === 0) {
+    const contender = w.page.getByRole("region", { name: "Contenders" }).getByRole("article").filter({ hasText: author });
+    await contender.getByRole("link", { name: /Read this lore/ }).click();
+  }
   await card(w.page, author).getByRole("button", { name: "Claim a character" }).click();
   const dialog = w.page.getByRole("dialog", { name: "Claim a character" });
   await dialog.getByRole("listitem").filter({ hasText: label }).getByRole("button", { name: "That was me" }).click();
@@ -104,7 +109,15 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
 
   // The rank job promotes the 4-member lore to canon on its next pass.
   const canon = anon.getByRole("region", { name: "Canon" });
-  await reloadUntil(anon, arc, async () => expect(canon).toContainText("4 members", { timeout: 2_000 }), canonWaitMs());
+  // Before promotion the canon region already says "4 of 4 members"; the
+  // link to the canon's lore page appears only once there is a canon.
+  await reloadUntil(
+    anon,
+    arc,
+    async () => expect(canon.getByRole("link", { name: /Open the canon/ })).toBeVisible({ timeout: 2_000 }),
+    canonWaitMs(),
+  );
+  await expect(canon).toContainText("4 members");
   expect(Date.now() - acceptedAt).toBeLessThan(60_000);
   await expect(canon).toContainText("1 upvote");
   for (const u of [anaAcct, benAcct, calAcct, deeAcct]) {
@@ -134,14 +147,15 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
     arc,
     async () => {
       await expect(canon).toContainText("No canon yet.", { timeout: 2_000 });
-      await expect(anon.getByRole("region", { name: "Sublores" })).toContainText("3 members", { timeout: 2_000 });
+      await expect(anon.getByRole("region", { name: "Contenders" })).toContainText("3 members", { timeout: 2_000 });
     },
     canonWaitMs(),
   );
   const tales = anon.getByRole("region", { name: "Tales" });
   await expect(card(tales, deeAcct.username)).toContainText("Removed from lore");
-  const sublores = anon.getByRole("region", { name: "Sublores" });
+  // The demoted lore is a contender: its people are listed on its card.
+  const contenders = anon.getByRole("region", { name: "Contenders" });
   for (const u of [anaAcct, benAcct, calAcct]) {
-    await expect(card(sublores, u.username)).toContainText("In lore");
+    await expect(contenders.getByRole("link", { name: u.username })).toBeVisible();
   }
 });
