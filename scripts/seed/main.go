@@ -12,8 +12,9 @@
 // Seed accounts get a random password nobody knows and every email toggle
 // off, so seeding never sends mail to an address that does not exist.
 //
-// Run it with make seed (DATABASE_URL from .env.dev). Running it twice skips
-// arcs it already wrote.
+// Run it with make seed (DATABASE_URL from .env.dev). Running it again adds
+// only what is missing: perspectives, claims and thread posts already there
+// are kept, so new content for an arc lands in the arc seeded before.
 package main
 
 import (
@@ -63,6 +64,7 @@ type seedArc struct {
 	Title        string            `json:"title"`
 	Perspectives []seedPerspective `json:"perspectives"`
 	Claims       []seedClaim       `json:"claims"`
+	Posts        []seedPost        `json:"posts"`
 }
 
 type seedPerspective struct {
@@ -72,6 +74,14 @@ type seedPerspective struct {
 	Characters []string `json:"characters"`
 	// Solo marks a tale nobody linked to; its expiry window has long passed.
 	Solo bool `json:"solo"`
+}
+
+// seedPost is one message in the thread of the lore that InLoreOf's
+// perspective belongs to.
+type seedPost struct {
+	InLoreOf string `json:"in_lore_of"`
+	User     string `json:"user"`
+	Body     string `json:"body"`
 }
 
 type seedClaim struct {
@@ -132,8 +142,8 @@ func run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("arc %q: %w", sa.Title, err)
 		}
-		if wrote {
-			fmt.Printf("seeded  %s, %s: %q (%d perspectives)\n", sa.Place, sa.City, sa.Title, len(sa.Perspectives))
+		if wrote > 0 {
+			fmt.Printf("seeded  %s, %s: %q (%d new perspectives)\n", sa.Place, sa.City, sa.Title, wrote)
 		} else {
 			fmt.Printf("skipped %s, %s: %q is already there\n", sa.Place, sa.City, sa.Title)
 		}
@@ -147,45 +157,62 @@ func (a *app) as(ctx context.Context, user string) context.Context {
 	return apiutil.WithCaller(ctx, apiutil.Caller{UserID: a.users[user], Role: perspectivv1.Role_ROLE_USER, SessionID: uuid.New()})
 }
 
-func (a *app) seedArc(ctx context.Context, sa seedArc) (bool, error) {
+func (a *app) seedArc(ctx context.Context, sa seedArc) (int, error) {
 	var placeID uuid.UUID
 	err := a.pool.QueryRow(ctx, `SELECT p.id FROM places p JOIN places c ON c.id = p.parent_id
 		WHERE p.name = $1 AND c.name = $2 AND p.hidden_at IS NULL`, sa.Place, sa.City).Scan(&placeID)
 	if err != nil {
-		return false, fmt.Errorf("find place %s, %s (import the place data first): %w", sa.Place, sa.City, err)
+		return 0, fmt.Errorf("find place %s, %s (import the place data first): %w", sa.Place, sa.City, err)
 	}
 	day, err := time.Parse(time.DateOnly, sa.Date)
 	if err != nil {
-		return false, fmt.Errorf("date: %w", err)
+		return 0, fmt.Errorf("date: %w", err)
 	}
-	ids, arcID, err := a.publishAll(ctx, sa, placeID, day)
-	if err != nil || ids == nil {
-		return false, err
+	ids, arcID, added, err := a.publishAll(ctx, sa, placeID, day)
+	if err != nil || added == 0 {
+		return 0, err
 	}
 	if err := a.link(ctx, sa, ids); err != nil {
-		return false, err
+		return 0, err
 	}
 	if err := a.voteAndReact(ctx, sa, ids); err != nil {
-		return false, err
+		return 0, err
 	}
 	if err := a.markTales(ctx, sa, ids); err != nil {
-		return false, err
+		return 0, err
+	}
+	if err := a.post(ctx, sa, ids, day); err != nil {
+		return 0, err
 	}
 	// Let the next rank pass see the arc, whatever the claims changed.
 	if _, err := a.pool.Exec(ctx, `UPDATE arcs SET lore_dirty_at = now() WHERE id = $1`, arcID); err != nil {
-		return false, fmt.Errorf("mark arc for ranking: %w", err)
+		return 0, fmt.Errorf("mark arc for ranking: %w", err)
 	}
-	return true, nil
+	return added, nil
 }
 
 // publishAll publishes the arc's perspectives in order, the first creating
-// the arc. It returns nil ids when the arc was already seeded.
-func (a *app) publishAll(ctx context.Context, sa seedArc, placeID uuid.UUID, day time.Time) (map[string]string, string, error) {
+// the arc, and returns every perspective's id by writer. A writer who already
+// has a perspective in the arc keeps it, so content added to an arc that was
+// seeded before lands in the same arc; added counts the new ones.
+func (a *app) publishAll(ctx context.Context, sa seedArc, placeID uuid.UUID, day time.Time) (map[string]string, string, int, error) {
 	ids := map[string]string{}
 	var arcID string
+	added := 0
 	for i, sp := range sa.Perspectives {
 		if err := a.ensureUser(ctx, sp.User); err != nil {
-			return nil, "", err
+			return nil, "", 0, err
+		}
+		var existing, existingArc uuid.UUID
+		err := a.pool.QueryRow(ctx, `SELECT x.id, x.arc_id FROM perspectives x JOIN arcs a ON a.id = x.arc_id
+			WHERE a.place_id = $1 AND a.local_date = $2 AND a.hour IS NOT DISTINCT FROM $3
+			AND x.author_id = $4 AND x.deleted_at IS NULL`, placeID, sa.Date, sa.Hour, a.users[sp.User]).Scan(&existing, &existingArc)
+		if err == nil {
+			ids[sp.User], arcID = existing.String(), existingArc.String()
+			continue
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, "", 0, fmt.Errorf("find %s's perspective: %w", sp.User, err)
 		}
 		req := &perspectivv1.PublishRequest{
 			PlaceId: placeID.String(), LocalDate: sa.Date, Hour: sa.Hour,
@@ -198,18 +225,44 @@ func (a *app) publishAll(ctx context.Context, sa seedArc, placeID uuid.UUID, day
 			req.Characters = append(req.Characters, &perspectivv1.CharacterInput{Label: label})
 		}
 		res, err := a.perspective.Publish(a.as(ctx, sp.User), connect.NewRequest(req))
-		if connect.CodeOf(err) == connect.CodeAlreadyExists && i == 0 {
-			return nil, "", nil
-		}
 		if err != nil {
-			return nil, "", fmt.Errorf("publish as %s: %w", sp.User, err)
+			return nil, "", 0, fmt.Errorf("publish as %s: %w", sp.User, err)
 		}
 		ids[sp.User], arcID = res.Msg.GetPerspectiveId(), res.Msg.GetArcId()
+		added++
 		if err := a.backdate(ctx, res.Msg.GetPerspectiveId(), day, sa.Hour, i); err != nil {
-			return nil, "", err
+			return nil, "", 0, err
 		}
 	}
-	return ids, arcID, nil
+	return ids, arcID, added, nil
+}
+
+// post writes the thread messages, each once, dated the day after the arc so
+// the thread reads as people finding each other afterwards.
+func (a *app) post(ctx context.Context, sa seedArc, ids map[string]string, day time.Time) error {
+	for i, sp := range sa.Posts {
+		var loreID uuid.UUID
+		if err := a.pool.QueryRow(ctx, `SELECT lore_id FROM perspectives WHERE id = $1 AND lore_id IS NOT NULL`, ids[sp.InLoreOf]).Scan(&loreID); err != nil {
+			return fmt.Errorf("lore of %s: %w", sp.InLoreOf, err)
+		}
+		var exists bool
+		if err := a.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM lore_posts WHERE lore_id = $1 AND author_id = $2 AND body = $3)`,
+			loreID, a.users[sp.User], sp.Body).Scan(&exists); err != nil {
+			return fmt.Errorf("find post: %w", err)
+		}
+		if exists {
+			continue
+		}
+		res, err := a.lore.AddLorePost(a.as(ctx, sp.User), connect.NewRequest(&perspectivv1.AddLorePostRequest{LoreId: loreID.String(), Body: sp.Body}))
+		if err != nil {
+			return fmt.Errorf("%s posts in %s's lore: %w", sp.User, sp.InLoreOf, err)
+		}
+		at := day.Add(24*time.Hour + time.Duration(9+i)*time.Hour + time.Duration(7*i)*time.Minute)
+		if _, err := a.pool.Exec(ctx, `UPDATE lore_posts SET created_at = $2 WHERE id = $1`, res.Msg.GetPost().GetId(), at); err != nil {
+			return fmt.Errorf("backdate post: %w", err)
+		}
+	}
+	return nil
 }
 
 // markTales makes the perspectives the content marks solo into tales, as the
@@ -290,6 +343,14 @@ func (a *app) link(ctx context.Context, sa seedArc, ids map[string]string) error
 		characterID, err := a.characterID(ctx, ids[cl.Author], cl.Character)
 		if err != nil {
 			return err
+		}
+		var claimed bool
+		if err := a.pool.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM claims WHERE character_id = $1 AND claimant_user_id = $2)`,
+			characterID, a.users[cl.Claimant]).Scan(&claimed); err != nil {
+			return fmt.Errorf("find claim: %w", err)
+		}
+		if claimed {
+			continue
 		}
 		res, err := a.lore.ClaimCharacter(a.as(ctx, cl.Claimant), connect.NewRequest(&perspectivv1.ClaimCharacterRequest{CharacterId: characterID}))
 		if err != nil {

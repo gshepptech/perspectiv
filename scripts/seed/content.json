@@ -49,6 +49,71 @@
             "For the record, I wink at the student section every game. It has never once worked before. Our director says the fight song does not cause interceptions. Our director was not in the stands on October 3rd."
           ],
           "characters": []
+        },
+        {
+          "user": "grill_dad_ray",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "Lot 7, same spot for eleven seasons. Burgers on at noon, kickoff at seven, and somewhere in between a couple in a dented silver Civic two rows over could not get it to turn over. I had cables. I always have cables.",
+            "Their battery was older than the kid in the passenger seat. While we waited for it to take a charge, a grown man in a full suit of plastic knight armor walked up, said nothing, and ate three of my burgers standing in the sun. I never caught his name. He saluted when he left."
+          ],
+          "characters": ["the couple with the dead Civic", "the guy in the full knight costume"]
+        },
+        {
+          "user": "civic_jess",
+          "genre": "COMEDY",
+          "parts": [
+            "Our car died in Lot 7 forty minutes before kickoff, which is a sentence I would like to never type again. Dan wanted to call a tow truck. I wanted to cry. A man at a grill two rows over had jumper cables out before either of us finished.",
+            "We missed the first quarter and I do not care. We made it to our seats in time to see the interception, and I spent the drive home trying to figure out how you thank a stranger who fixed your night and also fed you."
+          ],
+          "characters": ["the man at the grill with the jumper cables"]
+        },
+        {
+          "user": "sir_knightly",
+          "genre": "COMEDY",
+          "parts": [
+            "The armor is vacuum-formed plastic and it is ninety degrees in October. By the time I reached Lot 7 I was mostly sweat and regret. A man with a grill handed me a burger without a word, and then another one, and then I stopped counting.",
+            "I wore the helmet the whole game. Section 104, row C. When the pick happened I raised my sword and a little kid behind me raised a churro, and I think that is the most knightly thing I have ever done."
+          ],
+          "characters": ["the grill guy who fed me three burgers"]
+        },
+        {
+          "user": "stand14_marco",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "Concession stand 14, nachos and pretzels. We sold out of cheese at halftime, which has happened twice in my life. The line went back past the restrooms.",
+            "Right before the fourth quarter a dad came up holding a mason jar of quarters with his little girl on his shoulders. She had saved them all summer. I counted every one with forty people behind them and nobody complained. Twenty-two dollars exactly."
+          ],
+          "characters": ["the dad holding a jar of quarters"]
+        },
+        {
+          "user": "dad_of_three_fl",
+          "genre": "DRAMA",
+          "parts": [
+            "My daughter saved quarters from May to October for 'stadium nachos', which she had seen on TV and decided were the point of football. I was sure we would hold up the line and get yelled at.",
+            "The guy at stand 14 counted every quarter out loud with her, slowly, like it was the most important transaction of his night. She ate the nachos during the interception and missed it entirely. She says it was the best game she has ever been to."
+          ],
+          "characters": ["the nacho guy at stand 14"]
+        },
+        {
+          "user": "usher_dee_ucf",
+          "genre": "SLICE_OF_LIFE",
+          "solo": true,
+          "parts": [
+            "I work section 230. My job is to face the crowd, so I have never really seen a game. I see the games on people's faces instead.",
+            "Down by three with two minutes left, my whole section looked like a waiting room. Then I heard the roar from the other side of the stadium half a second before my section understood, and I watched four hundred faces change at once. That is my favorite part of the job, and nobody ever asks about it."
+          ],
+          "characters": []
+        },
+        {
+          "user": "row_zz_rachel",
+          "genre": "MYSTERY",
+          "solo": true,
+          "parts": [
+            "Top row, binoculars, because I like to watch the whole stadium instead of the ball. In the third quarter someone on the far side kept flashing a phone light in a pattern, three short and one long, every few minutes.",
+            "Right after the interception it stopped and never started again. I asked around on the way out. Nobody else had seen it. If that was you, I would really like to know what it meant."
+          ],
+          "characters": ["whoever was flashing the phone light"]
         }
       ],
       "claims": [
@@ -56,7 +121,22 @@
         { "claimant": "knightsfan_04", "author": "paintedknight", "character": "the guy in the gray hoodie I grabbed" },
         { "claimant": "naples_mom_k", "author": "knightsfan_04", "character": "the woman crying into a hot dog wrapper" },
         { "claimant": "frosh_tyler", "author": "naples_mom_k", "character": "my son, somewhere in the student section" },
-        { "claimant": "low_brass_lyd", "author": "frosh_tyler", "character": "the tuba player who winked at our row" }
+        { "claimant": "low_brass_lyd", "author": "frosh_tyler", "character": "the tuba player who winked at our row" },
+        { "claimant": "civic_jess", "author": "grill_dad_ray", "character": "the couple with the dead Civic" },
+        { "claimant": "grill_dad_ray", "author": "civic_jess", "character": "the man at the grill with the jumper cables" },
+        { "claimant": "sir_knightly", "author": "grill_dad_ray", "character": "the guy in the full knight costume" },
+        { "claimant": "dad_of_three_fl", "author": "stand14_marco", "character": "the dad holding a jar of quarters" },
+        { "claimant": "stand14_marco", "author": "dad_of_three_fl", "character": "the nacho guy at stand 14" }
+      ],
+      "posts": [
+        { "in_lore_of": "knightsfan_04", "user": "paintedknight", "body": "Still finding gold paint in my ears. Worth it." },
+        { "in_lore_of": "knightsfan_04", "user": "naples_mom_k", "body": "I read all five of these out loud to my husband. He says he is coming to the next one." },
+        { "in_lore_of": "knightsfan_04", "user": "knightsfan_04", "body": "Same seats for the next home game. Gray hoodie optional, gold paint encouraged." },
+        { "in_lore_of": "knightsfan_04", "user": "low_brass_lyd", "body": "Band vote is in: the wink stays." },
+        { "in_lore_of": "grill_dad_ray", "user": "civic_jess", "body": "Ray, I owe you a battery and at least one burger." },
+        { "in_lore_of": "grill_dad_ray", "user": "grill_dad_ray", "body": "Lot 7, same spot, next home game. Bring the knight." },
+        { "in_lore_of": "grill_dad_ray", "user": "sir_knightly", "body": "The knight will be there. The knight is bringing his own burgers this time." },
+        { "in_lore_of": "stand14_marco", "user": "dad_of_three_fl", "body": "She wants to know if you take nickels." }
       ]
     },
     {
