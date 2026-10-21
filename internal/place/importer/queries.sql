@@ -12,7 +12,8 @@ WITH by_source AS (
         parent_id = sqlc.narg('parent_id')::uuid,
         timezone  = @timezone::text,
         lat       = sqlc.narg('lat')::float8,
-        lng       = sqlc.narg('lng')::float8
+        lng       = sqlc.narg('lng')::float8,
+        category  = sqlc.narg('category')::text
     WHERE u.source = @source::text AND u.source_id = @source_id::text
     RETURNING u.id
 ), by_name AS (
@@ -23,9 +24,10 @@ WITH by_source AS (
       AND lower(regexp_replace(btrim(p.name), '\s+', ' ', 'g'))
           = lower(regexp_replace(btrim(@name::text), '\s+', ' ', 'g'))
 ), inserted AS (
-    INSERT INTO places (kind, name, parent_id, timezone, lat, lng, source, source_id)
+    INSERT INTO places (kind, name, parent_id, timezone, lat, lng, source, source_id, category)
     SELECT @kind::text, @name::text, sqlc.narg('parent_id')::uuid, @timezone::text,
-           sqlc.narg('lat')::float8, sqlc.narg('lng')::float8, @source::text, @source_id::text
+           sqlc.narg('lat')::float8, sqlc.narg('lng')::float8, @source::text, @source_id::text,
+           sqlc.narg('category')::text
     WHERE NOT EXISTS (SELECT 1 FROM by_source)
       AND NOT EXISTS (SELECT 1 FROM by_name)
     RETURNING id

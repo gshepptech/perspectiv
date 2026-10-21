@@ -26,8 +26,9 @@ WITH by_source AS (
         parent_id = $3::uuid,
         timezone  = $4::text,
         lat       = $5::float8,
-        lng       = $6::float8
-    WHERE u.source = $7::text AND u.source_id = $8::text
+        lng       = $6::float8,
+        category  = $7::text
+    WHERE u.source = $8::text AND u.source_id = $9::text
     RETURNING u.id
 ), by_name AS (
     SELECT p.id
@@ -37,9 +38,10 @@ WITH by_source AS (
       AND lower(regexp_replace(btrim(p.name), '\s+', ' ', 'g'))
           = lower(regexp_replace(btrim($2::text), '\s+', ' ', 'g'))
 ), inserted AS (
-    INSERT INTO places (kind, name, parent_id, timezone, lat, lng, source, source_id)
+    INSERT INTO places (kind, name, parent_id, timezone, lat, lng, source, source_id, category)
     SELECT $1::text, $2::text, $3::uuid, $4::text,
-           $5::float8, $6::float8, $7::text, $8::text
+           $5::float8, $6::float8, $8::text, $9::text,
+           $7::text
     WHERE NOT EXISTS (SELECT 1 FROM by_source)
       AND NOT EXISTS (SELECT 1 FROM by_name)
     RETURNING id
@@ -64,6 +66,7 @@ type UpsertImportedParams struct {
 	Timezone string
 	Lat      pgtype.Float8
 	Lng      pgtype.Float8
+	Category pgtype.Text
 	Source   string
 	SourceID string
 }
@@ -89,6 +92,7 @@ func (q *Queries) UpsertImported(ctx context.Context, arg []UpsertImportedParams
 			a.Timezone,
 			a.Lat,
 			a.Lng,
+			a.Category,
 			a.Source,
 			a.SourceID,
 		}

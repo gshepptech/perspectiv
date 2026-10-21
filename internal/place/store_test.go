@@ -399,7 +399,7 @@ func TestStoreChildrenNameOrder(t *testing.T) {
 	for _, n := range []string{"#1 Garage Door", "\"Chichi\" Realty", "Apple Market", "Bistro"} {
 		h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, n, parent)
 	}
-	ps, err := s.Children(context.Background(), parent, nil, 50)
+	ps, err := s.Children(context.Background(), parent, perspectivv1.PlaceCategory_PLACE_CATEGORY_UNSPECIFIED, nil, 50)
 	if err != nil {
 		t.Fatalf("Children: %v", err)
 	}
@@ -420,4 +420,30 @@ func (f fx) name(id uuid.UUID) string {
 		f.t.Fatalf("place name: %v", err)
 	}
 	return n
+}
+
+// A category narrows a place's children to that kind of place and carries
+// each child's category.
+func TestStoreChildrenByCategory(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	s := place.NewStore(h.pool)
+	parent := h.place(perspectivv1.PlaceKind_PLACE_KIND_TOWN, "Category Town", h.city)
+	bar := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Night Owl", parent)
+	cafe := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Morning Cup", parent)
+	h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Unsorted", parent)
+	h.exec(`UPDATE places SET category = 'PLACE_CATEGORY_NIGHTLIFE' WHERE id = $1`, bar)
+	h.exec(`UPDATE places SET category = 'PLACE_CATEGORY_FOOD_AND_DRINK' WHERE id = $1`, cafe)
+
+	ps, err := s.Children(context.Background(), parent, perspectivv1.PlaceCategory_PLACE_CATEGORY_NIGHTLIFE, nil, 50)
+	if err != nil {
+		t.Fatalf("Children: %v", err)
+	}
+	if len(ps) != 1 || ps[0].Name != "Night Owl" || ps[0].Category != perspectivv1.PlaceCategory_PLACE_CATEGORY_NIGHTLIFE {
+		t.Fatalf("nightlife children = %+v", ps)
+	}
+	all, err := s.Children(context.Background(), parent, perspectivv1.PlaceCategory_PLACE_CATEGORY_UNSPECIFIED, nil, 50)
+	if err != nil || len(all) != 3 {
+		t.Fatalf("all children = %v, %v; want 3", all, err)
+	}
 }

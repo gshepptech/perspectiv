@@ -179,3 +179,24 @@ enum ArcSection {
   // A day arc's hour children, in hour order.
   ARC_SECTION_HOURS = 4;
 }
+
+// PlaceCategory is the kind of place a store or mall is, from the place data:
+// what a reader filters a city's places by.
+enum PlaceCategory {
+  PLACE_CATEGORY_UNSPECIFIED = 0;
+  PLACE_CATEGORY_FOOD_AND_DRINK = 1;
+  // Bars, pubs, clubs and breweries.
+  PLACE_CATEGORY_NIGHTLIFE = 2;
+  PLACE_CATEGORY_SHOPPING = 3;
+  // Parks, beaches, springs, trails.
+  PLACE_CATEGORY_OUTDOORS = 4;
+  PLACE_CATEGORY_ARTS_AND_ENTERTAINMENT = 5;
+  PLACE_CATEGORY_SPORTS_AND_RECREATION = 6;
+  PLACE_CATEGORY_CULTURE_AND_HISTORY = 7;
+  PLACE_CATEGORY_EDUCATION = 8;
+  PLACE_CATEGORY_COMMUNITY = 9;
+  PLACE_CATEGORY_TRAVEL = 10;
+  PLACE_CATEGORY_LODGING = 11;
+  PLACE_CATEGORY_SERVICES = 12;
+  PLACE_CATEGORY_HEALTH = 13;
+}

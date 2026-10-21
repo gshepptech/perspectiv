@@ -99,7 +99,7 @@ type childCursor struct {
 // ListChildren returns one page of a parent's visible children by name, or
 // of the states when parentID is uuid.Nil, and the page token for the next
 // page ("" on the last page).
-func (s *Service) ListChildren(ctx context.Context, parentID uuid.UUID, page apiutil.PageToken) ([]Place, string, error) {
+func (s *Service) ListChildren(ctx context.Context, parentID uuid.UUID, category perspectivv1.PlaceCategory, page apiutil.PageToken) ([]Place, string, error) {
 	var after *ChildCursor
 	if page.After != "" {
 		var c childCursor
@@ -113,7 +113,7 @@ func (s *Service) ListChildren(ctx context.Context, parentID uuid.UUID, page api
 			return nil, "", notFound(err)
 		}
 	}
-	ps, err := s.store.Children(ctx, parentID, after, page.Limit+1)
+	ps, err := s.store.Children(ctx, parentID, category, after, page.Limit+1)
 	if err != nil {
 		return nil, "", apiutil.Internal(err)
 	}

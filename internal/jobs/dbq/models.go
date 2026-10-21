@@ -177,6 +177,7 @@ type Place struct {
 	HiddenAt  pgtype.Timestamptz
 	CreatedBy *uuid.UUID
 	CreatedAt pgtype.Timestamptz
+	Category  pgtype.Text
 }
 
 type RateLimitCounter struct {

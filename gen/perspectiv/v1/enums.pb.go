@@ -993,6 +993,92 @@ func (ArcSection) EnumDescriptor() ([]byte, []int) {
 	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{16}
 }
 
+// PlaceCategory is the kind of place a store or mall is, from the place data:
+// what a reader filters a city's places by.
+type PlaceCategory int32
+
+const (
+	PlaceCategory_PLACE_CATEGORY_UNSPECIFIED    PlaceCategory = 0
+	PlaceCategory_PLACE_CATEGORY_FOOD_AND_DRINK PlaceCategory = 1
+	// Bars, pubs, clubs and breweries.
+	PlaceCategory_PLACE_CATEGORY_NIGHTLIFE PlaceCategory = 2
+	PlaceCategory_PLACE_CATEGORY_SHOPPING  PlaceCategory = 3
+	// Parks, beaches, springs, trails.
+	PlaceCategory_PLACE_CATEGORY_OUTDOORS               PlaceCategory = 4
+	PlaceCategory_PLACE_CATEGORY_ARTS_AND_ENTERTAINMENT PlaceCategory = 5
+	PlaceCategory_PLACE_CATEGORY_SPORTS_AND_RECREATION  PlaceCategory = 6
+	PlaceCategory_PLACE_CATEGORY_CULTURE_AND_HISTORY    PlaceCategory = 7
+	PlaceCategory_PLACE_CATEGORY_EDUCATION              PlaceCategory = 8
+	PlaceCategory_PLACE_CATEGORY_COMMUNITY              PlaceCategory = 9
+	PlaceCategory_PLACE_CATEGORY_TRAVEL                 PlaceCategory = 10
+	PlaceCategory_PLACE_CATEGORY_LODGING                PlaceCategory = 11
+	PlaceCategory_PLACE_CATEGORY_SERVICES               PlaceCategory = 12
+	PlaceCategory_PLACE_CATEGORY_HEALTH                 PlaceCategory = 13
+)
+
+// Enum value maps for PlaceCategory.
+var (
+	PlaceCategory_name = map[int32]string{
+		0:  "PLACE_CATEGORY_UNSPECIFIED",
+		1:  "PLACE_CATEGORY_FOOD_AND_DRINK",
+		2:  "PLACE_CATEGORY_NIGHTLIFE",
+		3:  "PLACE_CATEGORY_SHOPPING",
+		4:  "PLACE_CATEGORY_OUTDOORS",
+		5:  "PLACE_CATEGORY_ARTS_AND_ENTERTAINMENT",
+		6:  "PLACE_CATEGORY_SPORTS_AND_RECREATION",
+		7:  "PLACE_CATEGORY_CULTURE_AND_HISTORY",
+		8:  "PLACE_CATEGORY_EDUCATION",
+		9:  "PLACE_CATEGORY_COMMUNITY",
+		10: "PLACE_CATEGORY_TRAVEL",
+		11: "PLACE_CATEGORY_LODGING",
+		12: "PLACE_CATEGORY_SERVICES",
+		13: "PLACE_CATEGORY_HEALTH",
+	}
+	PlaceCategory_value = map[string]int32{
+		"PLACE_CATEGORY_UNSPECIFIED":            0,
+		"PLACE_CATEGORY_FOOD_AND_DRINK":         1,
+		"PLACE_CATEGORY_NIGHTLIFE":              2,
+		"PLACE_CATEGORY_SHOPPING":               3,
+		"PLACE_CATEGORY_OUTDOORS":               4,
+		"PLACE_CATEGORY_ARTS_AND_ENTERTAINMENT": 5,
+		"PLACE_CATEGORY_SPORTS_AND_RECREATION":  6,
+		"PLACE_CATEGORY_CULTURE_AND_HISTORY":    7,
+		"PLACE_CATEGORY_EDUCATION":              8,
+		"PLACE_CATEGORY_COMMUNITY":              9,
+		"PLACE_CATEGORY_TRAVEL":                 10,
+		"PLACE_CATEGORY_LODGING":                11,
+		"PLACE_CATEGORY_SERVICES":               12,
+		"PLACE_CATEGORY_HEALTH":                 13,
+	}
+)
+
+func (x PlaceCategory) Enum() *PlaceCategory {
+	p := new(PlaceCategory)
+	*p = x
+	return p
+}
+
+func (x PlaceCategory) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PlaceCategory) Descriptor() protoreflect.EnumDescriptor {
+	return file_perspectiv_v1_enums_proto_enumTypes[17].Descriptor()
+}
+
+func (PlaceCategory) Type() protoreflect.EnumType {
+	return &file_perspectiv_v1_enums_proto_enumTypes[17]
+}
+
+func (x PlaceCategory) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PlaceCategory.Descriptor instead.
+func (PlaceCategory) EnumDescriptor() ([]byte, []int) {
+	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{17}
+}
+
 var File_perspectiv_v1_enums_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_enums_proto_rawDesc = "" +
@@ -1101,7 +1187,23 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\x14ARC_SECTION_SUBLORES\x10\x01\x12\x15\n" +
 	"\x11ARC_SECTION_TALES\x10\x02\x12\x18\n" +
 	"\x14ARC_SECTION_UNLINKED\x10\x03\x12\x15\n" +
-	"\x11ARC_SECTION_HOURS\x10\x04B\x9f\x01\n" +
+	"\x11ARC_SECTION_HOURS\x10\x04*\xd2\x03\n" +
+	"\rPlaceCategory\x12\x1e\n" +
+	"\x1aPLACE_CATEGORY_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dPLACE_CATEGORY_FOOD_AND_DRINK\x10\x01\x12\x1c\n" +
+	"\x18PLACE_CATEGORY_NIGHTLIFE\x10\x02\x12\x1b\n" +
+	"\x17PLACE_CATEGORY_SHOPPING\x10\x03\x12\x1b\n" +
+	"\x17PLACE_CATEGORY_OUTDOORS\x10\x04\x12)\n" +
+	"%PLACE_CATEGORY_ARTS_AND_ENTERTAINMENT\x10\x05\x12(\n" +
+	"$PLACE_CATEGORY_SPORTS_AND_RECREATION\x10\x06\x12&\n" +
+	"\"PLACE_CATEGORY_CULTURE_AND_HISTORY\x10\a\x12\x1c\n" +
+	"\x18PLACE_CATEGORY_EDUCATION\x10\b\x12\x1c\n" +
+	"\x18PLACE_CATEGORY_COMMUNITY\x10\t\x12\x19\n" +
+	"\x15PLACE_CATEGORY_TRAVEL\x10\n" +
+	"\x12\x1a\n" +
+	"\x16PLACE_CATEGORY_LODGING\x10\v\x12\x1b\n" +
+	"\x17PLACE_CATEGORY_SERVICES\x10\f\x12\x19\n" +
+	"\x15PLACE_CATEGORY_HEALTH\x10\rB\x9f\x01\n" +
 	"\x11com.perspectiv.v1B\n" +
 	"EnumsProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
@@ -1117,7 +1219,7 @@ func file_perspectiv_v1_enums_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_enums_proto_rawDescData
 }
 
-var file_perspectiv_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 17)
+var file_perspectiv_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 18)
 var file_perspectiv_v1_enums_proto_goTypes = []any{
 	(PlaceKind)(0),         // 0: perspectiv.v1.PlaceKind
 	(PlaceSource)(0),       // 1: perspectiv.v1.PlaceSource
@@ -1136,6 +1238,7 @@ var file_perspectiv_v1_enums_proto_goTypes = []any{
 	(ModerationAction)(0),  // 14: perspectiv.v1.ModerationAction
 	(EpicTab)(0),           // 15: perspectiv.v1.EpicTab
 	(ArcSection)(0),        // 16: perspectiv.v1.ArcSection
+	(PlaceCategory)(0),     // 17: perspectiv.v1.PlaceCategory
 }
 var file_perspectiv_v1_enums_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1155,7 +1258,7 @@ func file_perspectiv_v1_enums_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_enums_proto_rawDesc), len(file_perspectiv_v1_enums_proto_rawDesc)),
-			NumEnums:      17,
+			NumEnums:      18,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

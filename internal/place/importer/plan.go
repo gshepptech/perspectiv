@@ -45,6 +45,8 @@ type Node struct {
 	ParentKey string
 	Timezone  string
 	Lng, Lat  *float64
+	// Category is what kind of place a store or mall is; UNSPECIFIED above.
+	Category perspectivv1.PlaceCategory
 }
 
 // Plan is a fully parsed and resolved import: every node has its parent

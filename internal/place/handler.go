@@ -85,7 +85,7 @@ func (h *Handler) ListChildren(ctx context.Context, req *connect.Request[perspec
 		}
 		return connect.NewResponse(&perspectivv1.ListChildrenResponse{Places: placesToProto(ps)}), nil
 	}
-	ps, next, err := h.svc.ListChildren(ctx, parentID, page)
+	ps, next, err := h.svc.ListChildren(ctx, parentID, req.Msg.GetCategory(), page)
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
@@ -148,7 +148,7 @@ func refToProto(r Ref) *perspectivv1.PlaceRef {
 func placeToProto(p Place) *perspectivv1.Place {
 	out := &perspectivv1.Place{
 		Id: p.ID.String(), Kind: p.Kind, Name: p.Name, ParentId: idString(p.ParentID),
-		Timezone: p.Timezone, Source: p.Source, UserAdded: p.UserAdded,
+		Timezone: p.Timezone, Source: p.Source, UserAdded: p.UserAdded, Category: p.Category,
 		Ancestors: make([]*perspectivv1.PlaceRef, len(p.Ancestors)),
 	}
 	for i, a := range p.Ancestors {

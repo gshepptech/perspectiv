@@ -434,17 +434,20 @@ func (q *Queries) ListAncestors(ctx context.Context, ids []uuid.UUID) ([]ListAnc
 
 const listChildren = `-- name: ListChildren :many
 SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
-       lower(regexp_replace(p.name, '^[^[:alnum:]]+', ''))::text AS sort_key
+       lower(regexp_replace(p.name, '^[^[:alnum:]]+', ''))::text AS sort_key,
+       coalesce(p.category, '')::text AS category
 FROM places p
 WHERE p.parent_id = $1::uuid AND p.hidden_at IS NULL
-  AND ($2::uuid IS NULL
-       OR (lower(regexp_replace(p.name, '^[^[:alnum:]]+', '')), p.id) > ($3::text, $2::uuid))
+  AND ($2::text IS NULL OR p.category = $2::text)
+  AND ($3::uuid IS NULL
+       OR (lower(regexp_replace(p.name, '^[^[:alnum:]]+', '')), p.id) > ($4::text, $3::uuid))
 ORDER BY lower(regexp_replace(p.name, '^[^[:alnum:]]+', '')), p.id
-LIMIT $4::integer
+LIMIT $5::integer
 `
 
 type ListChildrenParams struct {
 	ParentID  uuid.UUID
+	Category  pgtype.Text
 	AfterID   uuid.NullUUID
 	AfterName pgtype.Text
 	Lim       int32
@@ -459,6 +462,7 @@ type ListChildrenRow struct {
 	Source    string
 	UserAdded bool
 	SortKey   string
+	Category  string
 }
 
 // A parent's visible children in name order, ignoring leading quotes and
@@ -466,6 +470,7 @@ type ListChildrenRow struct {
 func (q *Queries) ListChildren(ctx context.Context, arg ListChildrenParams) ([]ListChildrenRow, error) {
 	rows, err := q.db.Query(ctx, listChildren,
 		arg.ParentID,
+		arg.Category,
 		arg.AfterID,
 		arg.AfterName,
 		arg.Lim,
@@ -486,6 +491,7 @@ func (q *Queries) ListChildren(ctx context.Context, arg ListChildrenParams) ([]L
 			&i.Source,
 			&i.UserAdded,
 			&i.SortKey,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}
@@ -552,7 +558,8 @@ func (q *Queries) ListStates(ctx context.Context, arg ListStatesParams) ([]ListS
 }
 
 const listStoriedChildren = `-- name: ListStoriedChildren :many
-SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+       coalesce(p.category, '')::text AS category
 FROM (
     SELECT CASE WHEN $1::uuid IS NULL THEN a.place_path[1]
                 ELSE a.place_path[array_position(a.place_path, $1::uuid) + 1] END AS child_id,
@@ -583,8 +590,10 @@ type ListStoriedChildrenRow struct {
 	Timezone  string
 	Source    string
 	UserAdded bool
+	Category  string
 }
 
+// category is ” for a place with none.
 // The children of a parent (the states when parent_id is NULL) with at least
 // one readable story at or below them, most recently started arc first.
 // Found from the arcs' place paths, so a state with a million places costs
@@ -606,6 +615,7 @@ func (q *Queries) ListStoriedChildren(ctx context.Context, arg ListStoriedChildr
 			&i.Timezone,
 			&i.Source,
 			&i.UserAdded,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}

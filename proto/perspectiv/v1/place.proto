@@ -41,6 +41,9 @@ message Place {
   bool user_added = 7;
   // Ancestors from the STATE down to the parent; empty for a STATE.
   repeated PlaceRef ancestors = 8;
+  // What kind of place a store or mall is; UNSPECIFIED for the hierarchy
+  // above them and for places added by users.
+  PlaceCategory category = 9;
 }
 
 message SearchPlacesRequest {
@@ -73,6 +76,8 @@ message ListChildrenRequest {
   // started arc first: the places a reader is likely to want. One page of
   // page_size, with no next page token.
   bool with_stories = 4;
+  // Only children of this category; UNSPECIFIED lists every child.
+  PlaceCategory category = 5;
 }
 
 message ListChildrenResponse {

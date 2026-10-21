@@ -214,6 +214,17 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     expect(calls("PlaceService/ListChildren")).toContainEqual({ parentId: "ci-spr", withStories: true, pageSize: 20 });
   });
 
+  it("narrows the places inside to one kind with a chip", async () => {
+    const user = userEvent.setup();
+    const { calls } = placePage();
+    const kinds = await screen.findByRole("group", { name: "Kinds of place" });
+    await user.click(within(kinds).getByRole("button", { name: "Nightlife" }));
+    expect(within(kinds).getByRole("button", { name: "Nightlife" })).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() =>
+      expect(calls("PlaceService/ListChildren")).toContainEqual({ parentId: "ci-spr", category: "PLACE_CATEGORY_NIGHTLIFE", pageSize: 100 }),
+    );
+  });
+
   it("offers writing here, which the shell sends a signed-out reader to sign in for", async () => {
     placePage();
     expect(await screen.findByRole("link", { name: "Write about this place" })).toHaveAttribute("href", "/compose?placeId=ci-spr");

@@ -48,6 +48,7 @@ type Place struct {
 	Timezone  string
 	Source    perspectivv1.PlaceSource
 	UserAdded bool
+	Category  perspectivv1.PlaceCategory
 	Ancestors []Ref
 	// sortKey is the name the children list orders and pages by; set by
 	// Children only.
@@ -191,7 +192,7 @@ type ChildCursor struct {
 // or the states when parent is uuid.Nil, after the cursor when one is given.
 // The parent's own visibility is the caller's check. Children carry no
 // ancestors.
-func (s *Store) Children(ctx context.Context, parent uuid.UUID, after *ChildCursor, limit int32) ([]Place, error) {
+func (s *Store) Children(ctx context.Context, parent uuid.UUID, category perspectivv1.PlaceCategory, after *ChildCursor, limit int32) ([]Place, error) {
 	var afterID uuid.NullUUID
 	var afterName pgtype.Text
 	if after != nil {
@@ -209,13 +210,18 @@ func (s *Store) Children(ctx context.Context, parent uuid.UUID, after *ChildCurs
 		}
 		return ps, nil
 	}
-	rows, err := s.q.ListChildren(ctx, dbq.ListChildrenParams{ParentID: parent, AfterID: afterID, AfterName: afterName, Lim: limit})
+	var cat pgtype.Text
+	if category != perspectivv1.PlaceCategory_PLACE_CATEGORY_UNSPECIFIED {
+		cat = pgtype.Text{String: category.String(), Valid: true}
+	}
+	rows, err := s.q.ListChildren(ctx, dbq.ListChildrenParams{ParentID: parent, Category: cat, AfterID: afterID, AfterName: afterName, Lim: limit})
 	if err != nil {
 		return nil, fmt.Errorf("list children: %w", err)
 	}
 	for _, r := range rows {
 		p := placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded)
 		p.sortKey = r.SortKey
+		p.Category = categoryOf(r.Category)
 		ps = append(ps, p)
 	}
 	return ps, nil
@@ -235,9 +241,17 @@ func (s *Store) StoriedChildren(ctx context.Context, parent uuid.UUID, limit int
 	}
 	ps := make([]Place, 0, len(rows))
 	for _, r := range rows {
-		ps = append(ps, placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded))
+		p := placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded)
+		p.Category = categoryOf(r.Category)
+		ps = append(ps, p)
 	}
 	return ps, nil
+}
+
+// categoryOf reads a stored category; "" or an unknown name is UNSPECIFIED,
+// which the places_category_check constraint keeps from happening.
+func categoryOf(s string) perspectivv1.PlaceCategory {
+	return perspectivv1.PlaceCategory(perspectivv1.PlaceCategory_value[s])
 }
 
 // NewPlace is a user-added place. The parent's kind and the place's kind

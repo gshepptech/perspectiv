@@ -120,6 +120,7 @@ func writeBatch(ctx context.Context, tx pgx.Tx, nodes []Node, ids map[string]uui
 			Lng:      float8(n.Lng),
 			Source:   sourceDB(n.Source),
 			SourceID: n.SourceID,
+			Category: categoryDB(n.Category),
 		}
 		if n.ParentKey != "" {
 			parent, ok := ids[n.ParentKey]

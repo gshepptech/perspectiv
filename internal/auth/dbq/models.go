@@ -179,6 +179,7 @@ type Place struct {
 	HiddenAt  *time.Time
 	CreatedBy *uuid.UUID
 	CreatedAt time.Time
+	Category  *string
 }
 
 type RateLimitCounter struct {

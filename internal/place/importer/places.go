@@ -74,7 +74,8 @@ type parsedPlace struct {
 	lng, lat *float64
 	// listed is false for an office, service or care place left out; see
 	// visitable.go.
-	listed bool
+	listed   bool
+	category perspectivv1.PlaceCategory
 }
 
 func parsePlace(rec record) (parsedPlace, error) {
@@ -90,6 +91,7 @@ func parsePlace(rec record) (parsedPlace, error) {
 		out.name = p.Name
 		out.locality, out.region, out.country = p.Locality, p.Region, p.Country
 		out.listed = fsqListed(p.CategoryLabels)
+		out.category = fsqCategory(p.CategoryLabels)
 		for _, l := range p.CategoryLabels {
 			parts := strings.Split(l, ">")
 			if fsqMallLabels[nameKey(parts[len(parts)-1])] {
@@ -115,6 +117,7 @@ func parsePlace(rec record) (parsedPlace, error) {
 			out.kind = perspectivv1.PlaceKind_PLACE_KIND_MALL
 		}
 		out.listed = overtureListed(&p)
+		out.category = overtureCategory(&p)
 	}
 	out.name = cleanName(out.name)
 	switch {
@@ -199,6 +202,7 @@ func (b *builder) addPlaces(r io.Reader, locs localityIndex) error {
 			Timezone:  parent.Timezone,
 			Lng:       p.lng,
 			Lat:       p.lat,
+			Category:  p.category,
 		}, state)
 	}
 	return nil

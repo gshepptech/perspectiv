@@ -103,20 +103,24 @@ LIMIT @lim::integer;
 -- A parent's visible children in name order, ignoring leading quotes and
 -- symbols; served by places_parent_sort_idx. sort_key is the cursor.
 SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
-       lower(regexp_replace(p.name, '^[^[:alnum:]]+', ''))::text AS sort_key
+       lower(regexp_replace(p.name, '^[^[:alnum:]]+', ''))::text AS sort_key,
+       coalesce(p.category, '')::text AS category
 FROM places p
 WHERE p.parent_id = @parent_id::uuid AND p.hidden_at IS NULL
+  AND (sqlc.narg(category)::text IS NULL OR p.category = sqlc.narg(category)::text)
   AND (sqlc.narg(after_id)::uuid IS NULL
        OR (lower(regexp_replace(p.name, '^[^[:alnum:]]+', '')), p.id) > (sqlc.narg(after_name)::text, sqlc.narg(after_id)::uuid))
 ORDER BY lower(regexp_replace(p.name, '^[^[:alnum:]]+', '')), p.id
 LIMIT @lim::integer;
 
 -- name: ListStoriedChildren :many
+-- category is '' for a place with none.
 -- The children of a parent (the states when parent_id is NULL) with at least
 -- one readable story at or below them, most recently started arc first.
 -- Found from the arcs' place paths, so a state with a million places costs
 -- what its arcs cost.
-SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+       coalesce(p.category, '')::text AS category
 FROM (
     SELECT CASE WHEN sqlc.narg(parent_id)::uuid IS NULL THEN a.place_path[1]
                 ELSE a.place_path[array_position(a.place_path, sqlc.narg(parent_id)::uuid) + 1] END AS child_id,

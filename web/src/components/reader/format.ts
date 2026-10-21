@@ -1,4 +1,4 @@
-import { Genre, LoreStatus, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
+import { Genre, LoreStatus, PlaceCategory, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { PlaceRef } from "@/gen/perspectiv/v1/place_pb";
 
 /** The reader-facing word for a place kind. */
@@ -73,4 +73,58 @@ export function formatDay(localDate: string, hour?: number): string {
     ? new Date(`${localDate}T00:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC", dateStyle: "long" })
     : localDate;
   return hour === undefined ? day : `${day}, ${String(hour).padStart(2, "0")}:00`;
+}
+
+/** The filter chips a city's places can be narrowed by, in the order shown. */
+export const placeCategories: readonly PlaceCategory[] = [
+  PlaceCategory.FOOD_AND_DRINK,
+  PlaceCategory.NIGHTLIFE,
+  PlaceCategory.SHOPPING,
+  PlaceCategory.OUTDOORS,
+  PlaceCategory.ARTS_AND_ENTERTAINMENT,
+  PlaceCategory.SPORTS_AND_RECREATION,
+  PlaceCategory.CULTURE_AND_HISTORY,
+  PlaceCategory.EDUCATION,
+  PlaceCategory.COMMUNITY,
+  PlaceCategory.LODGING,
+  PlaceCategory.TRAVEL,
+  PlaceCategory.SERVICES,
+  PlaceCategory.HEALTH,
+];
+
+export function placeCategoryLabel(c: PlaceCategory): string {
+  switch (c) {
+    case PlaceCategory.FOOD_AND_DRINK:
+      return "Food & drink";
+    case PlaceCategory.NIGHTLIFE:
+      return "Nightlife";
+    case PlaceCategory.SHOPPING:
+      return "Shopping";
+    case PlaceCategory.OUTDOORS:
+      return "Outdoors";
+    case PlaceCategory.ARTS_AND_ENTERTAINMENT:
+      return "Arts & entertainment";
+    case PlaceCategory.SPORTS_AND_RECREATION:
+      return "Sports";
+    case PlaceCategory.CULTURE_AND_HISTORY:
+      return "Culture & history";
+    case PlaceCategory.EDUCATION:
+      return "Campus & schools";
+    case PlaceCategory.COMMUNITY:
+      return "Community";
+    case PlaceCategory.LODGING:
+      return "Hotels";
+    case PlaceCategory.TRAVEL:
+      return "Travel";
+    case PlaceCategory.SERVICES:
+      return "Services";
+    case PlaceCategory.HEALTH:
+      return "Hospitals";
+    case PlaceCategory.UNSPECIFIED:
+      return "";
+    default: {
+      const unhandled: never = c;
+      return unhandled;
+    }
+  }
 }

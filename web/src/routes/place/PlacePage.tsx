@@ -4,13 +4,14 @@ import { Crown, PenLine, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
-import { formatDay, genreLabel, loreStatusLabel, placeKindLabel } from "@/components/reader/format";
+import { formatDay, genreLabel, loreStatusLabel, placeCategories, placeCategoryLabel, placeKindLabel } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { EpicTab, Genre, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
+import { EpicTab, Genre, PlaceCategory, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { EpicArc, EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
+import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { useDebounced } from "@/routes/compose/search";
@@ -196,6 +197,7 @@ function Children({ place }: { place: Place }) {
   const [filter, setFilter] = useState("");
   // A city holds hundreds of places; the full list waits until asked for.
   const [browsing, setBrowsing] = useState(false);
+  const [category, setCategory] = useState<PlaceCategory>(PlaceCategory.UNSPECIFIED);
   const query = useDebounced(filter.trim(), 200);
   const storied = useQuery({
     queryKey: ["place", "listChildren", { parentId: place.id, withStories: true }],
@@ -203,9 +205,9 @@ function Children({ place }: { place: Place }) {
     enabled,
   });
   const children = useInfiniteQuery({
-    queryKey: ["place", "listChildren", { parentId: place.id }],
+    queryKey: ["place", "listChildren", { parentId: place.id, category }],
     queryFn: ({ pageParam, signal }) =>
-      clients.place.listChildren({ parentId: place.id, pageToken: pageParam, pageSize: 100 }, { signal }),
+      clients.place.listChildren({ parentId: place.id, category, pageToken: pageParam, pageSize: 100 }, { signal }),
     initialPageParam: "",
     getNextPageParam: (last) => last.nextPageToken || undefined,
     enabled: enabled && query === "" && browsing,
@@ -245,6 +247,27 @@ function Children({ place }: { place: Place }) {
           onChange={(e) => setFilter(e.target.value)}
           className="mt-2"
         />
+        {place.kind !== PlaceKind.STATE && query === "" && (
+          <div role="group" aria-label="Kinds of place" className="mt-3 flex flex-wrap gap-1.5">
+            {[PlaceCategory.UNSPECIFIED, ...placeCategories].map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-pressed={browsing && category === c}
+                onClick={() => {
+                  setCategory(c);
+                  setBrowsing(true);
+                }}
+                className={cn(
+                  "min-h-9 rounded-full border px-3 text-sm",
+                  browsing && category === c ? "border-accent bg-accent/10 text-accent" : "border-rule text-ink hover:border-accent",
+                )}
+              >
+                {c === PlaceCategory.UNSPECIFIED ? "All" : placeCategoryLabel(c)}
+              </button>
+            ))}
+          </div>
+        )}
         {query.length >= 2 ? (
           found.isSuccess && found.data.places.length === 0 ? (
             <p className="mt-2 text-sm text-ink-muted">No place in {place.name} matches “{query}”.</p>
@@ -254,6 +277,9 @@ function Children({ place }: { place: Place }) {
         ) : (
           browsing ? (
             <>
+              {all.length === 0 && children.isSuccess && (
+                <p className="mt-2 text-sm text-ink-muted">No {placeCategoryLabel(category).toLowerCase()} places here yet.</p>
+              )}
               <PlaceLinks places={all} label={`All places in ${place.name}`} />
               {children.hasNextPage && (
                 <Button variant="ghost" size="sm" disabled={children.isFetchingNextPage} onClick={() => void children.fetchNextPage()}>
