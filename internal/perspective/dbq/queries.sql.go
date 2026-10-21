@@ -567,23 +567,40 @@ SELECT ch.id, ch.perspective_id, ch.position, ch.label,
        EXISTS (SELECT 1 FROM claims c WHERE c.character_id = ch.id
                AND c.status = 'CLAIM_STATUS_ACCEPTED')::boolean AS has_accepted,
        EXISTS (SELECT 1 FROM claims c WHERE c.character_id = ch.id
-               AND c.status = 'CLAIM_STATUS_PENDING')::boolean AS has_pending
+               AND c.status = 'CLAIM_STATUS_PENDING')::boolean AS has_pending,
+       acc_u.id AS claimed_by_id,
+       acc_u.username AS claimed_by_username,
+       COALESCE((SELECT c.status FROM claims c
+                 WHERE c.character_id = ch.id AND c.claimant_user_id = $1::uuid
+                 ORDER BY c.created_at DESC LIMIT 1), '')::text AS my_claim
 FROM characters ch
-WHERE ch.perspective_id = ANY($1::uuid[])
+LEFT JOIN claims acc ON acc.character_id = ch.id AND acc.status = 'CLAIM_STATUS_ACCEPTED'
+LEFT JOIN users acc_u ON acc_u.id = acc.claimant_user_id AND acc_u.deleted_at IS NULL
+WHERE ch.perspective_id = ANY($2::uuid[])
 ORDER BY ch.perspective_id, ch.position
 `
 
-type ListCharactersOfRow struct {
-	ID            uuid.UUID
-	PerspectiveID uuid.UUID
-	Position      int16
-	Label         string
-	HasAccepted   bool
-	HasPending    bool
+type ListCharactersOfParams struct {
+	Viewer *uuid.UUID
+	Ids    []uuid.UUID
 }
 
-func (q *Queries) ListCharactersOf(ctx context.Context, ids []uuid.UUID) ([]ListCharactersOfRow, error) {
-	rows, err := q.db.Query(ctx, listCharactersOf, ids)
+type ListCharactersOfRow struct {
+	ID                uuid.UUID
+	PerspectiveID     uuid.UUID
+	Position          int16
+	Label             string
+	HasAccepted       bool
+	HasPending        bool
+	ClaimedByID       *uuid.UUID
+	ClaimedByUsername *string
+	MyClaim           string
+}
+
+// Each character with its claim state: who it turned out to be (the accepted
+// claimant, unless that account is deleted) and the viewer's own claim.
+func (q *Queries) ListCharactersOf(ctx context.Context, arg ListCharactersOfParams) ([]ListCharactersOfRow, error) {
+	rows, err := q.db.Query(ctx, listCharactersOf, arg.Viewer, arg.Ids)
 	if err != nil {
 		return nil, err
 	}
@@ -598,6 +615,9 @@ func (q *Queries) ListCharactersOf(ctx context.Context, ids []uuid.UUID) ([]List
 			&i.Label,
 			&i.HasAccepted,
 			&i.HasPending,
+			&i.ClaimedByID,
+			&i.ClaimedByUsername,
+			&i.MyClaim,
 		); err != nil {
 			return nil, err
 		}

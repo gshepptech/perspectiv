@@ -56,6 +56,12 @@ message Character {
   bool has_accepted_claim = 4;
   // True when a claim on this character is PENDING.
   bool has_pending_claim = 5;
+  // Who this character turned out to be: the claimant of the ACCEPTED claim.
+  // Unset when nobody has, or when that account is deleted.
+  UserRef claimed_by = 6;
+  // The viewer's own claim on this character, if any: PENDING, ACCEPTED or
+  // REJECTED. UNSPECIFIED when the viewer has none or is signed out.
+  ClaimStatus my_claim = 7;
 }
 
 // CharacterInput declares a character when saving or publishing.

@@ -168,12 +168,36 @@ func (s *Service) checkClaimable(ctx context.Context, q *dbq.Queries, author, ca
 	case !errors.Is(err, pgx.ErrNoRows):
 		return apiutil.Internal(fmt.Errorf("read prior claim: %w", err))
 	}
+	if err := oneCharacterPerStory(ctx, q, caller, characterID); err != nil {
+		return err
+	}
 	active, err := q.HasActiveClaim(ctx, dbq.HasActiveClaimParams{CharacterID: characterID, ActiveStatuses: activeClaims})
 	if err != nil {
 		return apiutil.Internal(fmt.Errorf("read active claims: %w", err))
 	}
 	if active {
 		return apiutil.AlreadyExists("this character has already been claimed")
+	}
+	return nil
+}
+
+// oneCharacterPerStory refuses a claim when the caller already has a PENDING
+// or ACCEPTED claim on any character in the same perspective: a person can
+// only be one of the people in someone else's story. A rejected claim does
+// not count, so a writer who guessed wrong can claim someone else there.
+func oneCharacterPerStory(ctx context.Context, q *dbq.Queries, caller, characterID uuid.UUID) error {
+	ch, err := q.GetCharacter(ctx, characterID)
+	if err != nil {
+		return apiutil.Internal(fmt.Errorf("read character: %w", err))
+	}
+	active, err := q.HasActiveClaimInPerspective(ctx, dbq.HasActiveClaimInPerspectiveParams{
+		PerspectiveID: ch.PerspectiveID, ClaimantUserID: caller,
+	})
+	if err != nil {
+		return apiutil.Internal(fmt.Errorf("read claims in perspective: %w", err))
+	}
+	if active {
+		return apiutil.FailedPrecondition("you are already someone in this story; one character per story")
 	}
 	return nil
 }

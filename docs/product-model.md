@@ -1,0 +1,106 @@
+# Product model
+
+How people take part in Perspectiv: who can do what, how stories link, and
+how an arc, its lores and its canon are shown. This file records decisions;
+the code implements them, and where the two disagree the code is the bug.
+`docs/design-system.md` owns how things look.
+
+## Words
+
+- **Arc**: one place on one day (or one hour of it). Everyone who was there
+  writes into the same arc.
+- **Perspective**: one person's story in an arc. One per person per arc.
+- **Character**: someone a writer describes in their story ("the guy in the
+  yellow raincoat"). Up to 10 per perspective.
+- **Claim**: "that was me". A writer in the same arc says they are a
+  character in someone else's perspective. The character's author accepts
+  or rejects it.
+- **Lore**: perspectives linked by accepted claims. Two stories that see
+  each other are a lore.
+- **Canon**: the lore readers favour most, once it has at least four
+  members. One per arc. Every other lore is a **contender**.
+- **Tale**: a perspective nobody linked to within seven days, or one voted
+  out of its lore. It stays readable; it just stands alone.
+
+## Who can do what
+
+| Action | Who |
+|---|---|
+| Read anything public | Anyone, signed in or not |
+| React with an emoji | Anyone signed in |
+| Write a perspective | A verified account, once per arc |
+| Upvote a perspective | Someone with a perspective in the same arc |
+| Claim a character | Someone with a perspective in the same arc, not in their own story, at most **one character per perspective**, and never one they were rejected for |
+| Accept or reject a claim | The author of the character's perspective |
+| Vote to remove from a lore | A member of the same lore, once the lore has four or more members |
+| Post in a lore's thread | A member of the lore, or anyone with a perspective in the arc |
+| Report | A verified account |
+
+Claiming is never required. A story that links to nobody is still
+published and read; it becomes a tale after seven days. Claiming is how a
+writer joins a lore, so the app asks for it at the moment it is most
+natural: right after publishing into an arc that already has stories, and
+on any story in the arc that names characters the reader has not claimed.
+
+**One character per perspective.** A person can only be one of the people
+in someone else's story. Once your claim on a character in a perspective
+is pending or accepted, that perspective offers you nothing more to claim.
+If your claim is rejected, you can claim a different character there, but
+never the same one again.
+
+## What the reader sees
+
+**Character tags.** Once a claim is accepted, the character carries the
+claimant's name everywhere it is shown: "the guy in the yellow raincoat ·
+otter". The tag links to their profile. A pending claim shows as "claim
+pending" to the two people involved and to nobody else.
+
+**Claim states on a story.** Each character shows one of: open (you can
+claim it), yours (pending or accepted), someone else's (tagged), or closed
+to you (you already are someone in this story). The "Claim a character"
+action appears only when at least one character is open to you.
+
+**Badges.** On a perspective card: "In lore" or "Canon". On a profile: how
+many canons and lores the person is part of.
+
+## The arc page
+
+The arc page is the day as the people who were there remember it.
+
+1. **Canon, centre stage.** The canon lore's perspectives read in order of
+   publishing, as one connected story, with a **cast strip** above them: each
+   claimed character and who turned out to be them. If there is no canon
+   yet, this space says how a lore becomes canon and how close the leading
+   contender is.
+2. **Contenders.** Every other lore that still has members, highest ranked
+   first, each as a card: its members, its upvotes, and its progress toward
+   canon ("3 of 4 members"). A contender is promoted by the rank job when it
+   outranks the canon; the old canon becomes a contender, never deleted.
+3. **Not yet linked.** Perspectives published in the last seven days that
+   nobody has linked yet, with a prompt to claim.
+4. **Tales.** Perspectives that stand alone.
+
+Clicking the canon or a contender opens its **lore page**.
+
+## The lore page
+
+`/lores/:loreId`. One lore, in full:
+
+- its standing (canon or contender), members, upvotes and rank;
+- the **cast**: every encounter, character by character, in the words of
+  the story that named them;
+- its perspectives in publishing order, each readable in full;
+- the **thread**: a discussion among the people in it. Anyone can read it.
+  Lore members and anyone with a perspective in the arc can post. Posts are
+  plain text up to 1,000 characters, oldest first, and can be reported like
+  anything else.
+
+## Places
+
+A place carries the **category group** the place data gave it (Food and
+drink, Nightlife, Shopping, Outdoors and parks, Arts and venues, Sports,
+Travel, Education, Community, Lodging, Services). City and town pages offer
+these as filter chips over the places inside them. Places with stories come
+first everywhere a list of places is shown. Offices, services and care
+places nobody would write about are left out at import
+(`internal/place/importer/visitable.go`).

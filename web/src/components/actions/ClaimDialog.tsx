@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
+import { isOpen } from "@/components/reader/claims";
+import { ClaimStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Character } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 
@@ -20,8 +22,9 @@ type Props = {
 
 /**
  * "That was me": lists the characters another author described and lets the
- * viewer claim one. A character already holding an accepted or pending claim
- * cannot take another, so it is listed without a button.
+ * viewer claim one. A person is one character per story, so the dialog is
+ * only offered while the viewer has no claim in it; a character someone else
+ * holds shows who, and one the viewer was turned down for says so.
  */
 export function ClaimDialog({ perspectiveId, authorName, characters }: Props) {
   const { gate } = useWriteGate();
@@ -63,10 +66,14 @@ export function ClaimDialog({ perspectiveId, authorName, characters }: Props) {
             {sorted.map((c) => (
               <li key={c.id} aria-label={c.label} className="flex flex-wrap items-center justify-between gap-2 py-3">
                 <span className="min-w-0 font-serif break-words">{c.label}</span>
-                {c.hasAcceptedClaim ? (
+                {c.claimedBy ? (
+                  <span className="text-sm text-ink-muted">Turned out to be {c.claimedBy.username}</span>
+                ) : c.hasAcceptedClaim ? (
                   <span className="text-sm text-ink-muted">Already claimed</span>
                 ) : c.hasPendingClaim ? (
-                  <span className="text-sm text-warning">Claim pending</span>
+                  <span className="text-sm text-ink-muted">Someone has claimed this</span>
+                ) : c.myClaim === ClaimStatus.REJECTED || !isOpen(c) ? (
+                  <span className="text-sm text-ink-muted">{authorName} said this was not you</span>
                 ) : (
                   <Button size="sm" disabled={claim.isPending || claim.isSuccess} onClick={() => claim.mutate(c.id)}>
                     That was me

@@ -123,3 +123,15 @@ func timestampFromDB(t *time.Time) *timestamppb.Timestamp {
 	}
 	return timestamppb.New(*t)
 }
+
+// claimStatusFromDB reads a claims.status name; "" (no claim) is UNSPECIFIED.
+func claimStatusFromDB(s string) (perspectivv1.ClaimStatus, error) {
+	if s == "" {
+		return perspectivv1.ClaimStatus_CLAIM_STATUS_UNSPECIFIED, nil
+	}
+	v, ok := perspectivv1.ClaimStatus_value[s]
+	if !ok || v == 0 {
+		return 0, fmt.Errorf("unknown claim status %q", s)
+	}
+	return perspectivv1.ClaimStatus(v), nil
+}

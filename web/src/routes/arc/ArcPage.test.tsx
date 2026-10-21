@@ -20,7 +20,7 @@ function open(path: string, getArc: FakeHandler, opts: { signedIn?: boolean; rou
     signedIn: opts.signedIn,
     routes: {
       "ArcService/GetArc": getArc,
-      "PerspectiveService/Get": () => ({ body: perspective("any") }),
+      "PerspectiveService/Get": () => ({ body: perspective("any", { characters: [{ id: "c-any", position: 1, label: "a stranger" }] }) }),
       ...opts.routes,
     },
   });

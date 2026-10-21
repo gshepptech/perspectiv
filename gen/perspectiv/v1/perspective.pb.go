@@ -89,8 +89,14 @@ type Character struct {
 	HasAcceptedClaim bool `protobuf:"varint,4,opt,name=has_accepted_claim,json=hasAcceptedClaim,proto3" json:"has_accepted_claim,omitempty"`
 	// True when a claim on this character is PENDING.
 	HasPendingClaim bool `protobuf:"varint,5,opt,name=has_pending_claim,json=hasPendingClaim,proto3" json:"has_pending_claim,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Who this character turned out to be: the claimant of the ACCEPTED claim.
+	// Unset when nobody has, or when that account is deleted.
+	ClaimedBy *UserRef `protobuf:"bytes,6,opt,name=claimed_by,json=claimedBy,proto3" json:"claimed_by,omitempty"`
+	// The viewer's own claim on this character, if any: PENDING, ACCEPTED or
+	// REJECTED. UNSPECIFIED when the viewer has none or is signed out.
+	MyClaim       ClaimStatus `protobuf:"varint,7,opt,name=my_claim,json=myClaim,proto3,enum=perspectiv.v1.ClaimStatus" json:"my_claim,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Character) Reset() {
@@ -156,6 +162,20 @@ func (x *Character) GetHasPendingClaim() bool {
 		return x.HasPendingClaim
 	}
 	return false
+}
+
+func (x *Character) GetClaimedBy() *UserRef {
+	if x != nil {
+		return x.ClaimedBy
+	}
+	return nil
+}
+
+func (x *Character) GetMyClaim() ClaimStatus {
+	if x != nil {
+		return x.MyClaim
+	}
+	return ClaimStatus_CLAIM_STATUS_UNSPECIFIED
 }
 
 // CharacterInput declares a character when saving or publishing.
@@ -1717,13 +1737,16 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\x1fperspectiv/v1/perspective.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x19perspectiv/v1/place.proto\x1a\x19perspectiv/v1/react.proto\x1a\x18perspectiv/v1/user.proto\"6\n" +
 	"\x04Part\x12\x1a\n" +
 	"\bposition\x18\x01 \x01(\x05R\bposition\x12\x12\n" +
-	"\x04body\x18\x02 \x01(\tR\x04body\"\xa7\x01\n" +
+	"\x04body\x18\x02 \x01(\tR\x04body\"\x95\x02\n" +
 	"\tCharacter\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bposition\x18\x02 \x01(\x05R\bposition\x12\x14\n" +
 	"\x05label\x18\x03 \x01(\tR\x05label\x12,\n" +
 	"\x12has_accepted_claim\x18\x04 \x01(\bR\x10hasAcceptedClaim\x12*\n" +
-	"\x11has_pending_claim\x18\x05 \x01(\bR\x0fhasPendingClaim\"6\n" +
+	"\x11has_pending_claim\x18\x05 \x01(\bR\x0fhasPendingClaim\x125\n" +
+	"\n" +
+	"claimed_by\x18\x06 \x01(\v2\x16.perspectiv.v1.UserRefR\tclaimedBy\x125\n" +
+	"\bmy_claim\x18\a \x01(\x0e2\x1a.perspectiv.v1.ClaimStatusR\amyClaim\"6\n" +
 	"\x0eCharacterInput\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\"\x84\a\n" +
@@ -1916,67 +1939,70 @@ var file_perspectiv_v1_perspective_proto_goTypes = []any{
 	(*Invite)(nil),                           // 22: perspectiv.v1.Invite
 	(*GetInviteResponse)(nil),                // 23: perspectiv.v1.GetInviteResponse
 	(*UserRef)(nil),                          // 24: perspectiv.v1.UserRef
-	(Genre)(0),                               // 25: perspectiv.v1.Genre
-	(PerspectiveStatus)(0),                   // 26: perspectiv.v1.PerspectiveStatus
-	(LoreStatus)(0),                          // 27: perspectiv.v1.LoreStatus
-	(*PlaceRef)(nil),                         // 28: perspectiv.v1.PlaceRef
-	(*ReactCount)(nil),                       // 29: perspectiv.v1.ReactCount
-	(*timestamppb.Timestamp)(nil),            // 30: google.protobuf.Timestamp
+	(ClaimStatus)(0),                         // 25: perspectiv.v1.ClaimStatus
+	(Genre)(0),                               // 26: perspectiv.v1.Genre
+	(PerspectiveStatus)(0),                   // 27: perspectiv.v1.PerspectiveStatus
+	(LoreStatus)(0),                          // 28: perspectiv.v1.LoreStatus
+	(*PlaceRef)(nil),                         // 29: perspectiv.v1.PlaceRef
+	(*ReactCount)(nil),                       // 30: perspectiv.v1.ReactCount
+	(*timestamppb.Timestamp)(nil),            // 31: google.protobuf.Timestamp
 }
 var file_perspectiv_v1_perspective_proto_depIdxs = []int32{
-	24, // 0: perspectiv.v1.Perspective.author:type_name -> perspectiv.v1.UserRef
-	25, // 1: perspectiv.v1.Perspective.genre:type_name -> perspectiv.v1.Genre
-	26, // 2: perspectiv.v1.Perspective.status:type_name -> perspectiv.v1.PerspectiveStatus
-	27, // 3: perspectiv.v1.Perspective.lore_status:type_name -> perspectiv.v1.LoreStatus
-	28, // 4: perspectiv.v1.Perspective.place:type_name -> perspectiv.v1.PlaceRef
-	0,  // 5: perspectiv.v1.Perspective.parts:type_name -> perspectiv.v1.Part
-	1,  // 6: perspectiv.v1.Perspective.characters:type_name -> perspectiv.v1.Character
-	29, // 7: perspectiv.v1.Perspective.reacts:type_name -> perspectiv.v1.ReactCount
-	30, // 8: perspectiv.v1.Perspective.created_at:type_name -> google.protobuf.Timestamp
-	30, // 9: perspectiv.v1.Perspective.published_at:type_name -> google.protobuf.Timestamp
-	30, // 10: perspectiv.v1.Perspective.updated_at:type_name -> google.protobuf.Timestamp
-	24, // 11: perspectiv.v1.PerspectiveSummary.author:type_name -> perspectiv.v1.UserRef
-	25, // 12: perspectiv.v1.PerspectiveSummary.genre:type_name -> perspectiv.v1.Genre
-	27, // 13: perspectiv.v1.PerspectiveSummary.lore_status:type_name -> perspectiv.v1.LoreStatus
-	30, // 14: perspectiv.v1.PerspectiveSummary.published_at:type_name -> google.protobuf.Timestamp
-	25, // 15: perspectiv.v1.SaveDraftRequest.genre:type_name -> perspectiv.v1.Genre
-	2,  // 16: perspectiv.v1.SaveDraftRequest.characters:type_name -> perspectiv.v1.CharacterInput
-	3,  // 17: perspectiv.v1.SaveDraftResponse.perspective:type_name -> perspectiv.v1.Perspective
-	25, // 18: perspectiv.v1.PublishRequest.genre:type_name -> perspectiv.v1.Genre
-	2,  // 19: perspectiv.v1.PublishRequest.characters:type_name -> perspectiv.v1.CharacterInput
-	25, // 20: perspectiv.v1.PerspectiveServiceUpdateRequest.genre:type_name -> perspectiv.v1.Genre
-	2,  // 21: perspectiv.v1.PerspectiveServiceUpdateRequest.characters:type_name -> perspectiv.v1.CharacterInput
-	3,  // 22: perspectiv.v1.PerspectiveServiceUpdateResponse.perspective:type_name -> perspectiv.v1.Perspective
-	3,  // 23: perspectiv.v1.PerspectiveServiceGetResponse.perspective:type_name -> perspectiv.v1.Perspective
-	26, // 24: perspectiv.v1.ListMineRequest.status:type_name -> perspectiv.v1.PerspectiveStatus
-	3,  // 25: perspectiv.v1.ListMineResponse.perspectives:type_name -> perspectiv.v1.Perspective
-	3,  // 26: perspectiv.v1.ListByAuthorResponse.perspectives:type_name -> perspectiv.v1.Perspective
-	24, // 27: perspectiv.v1.Invite.inviter:type_name -> perspectiv.v1.UserRef
-	28, // 28: perspectiv.v1.Invite.place:type_name -> perspectiv.v1.PlaceRef
-	22, // 29: perspectiv.v1.GetInviteResponse.invite:type_name -> perspectiv.v1.Invite
-	5,  // 30: perspectiv.v1.PerspectiveService.SaveDraft:input_type -> perspectiv.v1.SaveDraftRequest
-	7,  // 31: perspectiv.v1.PerspectiveService.Publish:input_type -> perspectiv.v1.PublishRequest
-	9,  // 32: perspectiv.v1.PerspectiveService.Update:input_type -> perspectiv.v1.PerspectiveServiceUpdateRequest
-	11, // 33: perspectiv.v1.PerspectiveService.Delete:input_type -> perspectiv.v1.PerspectiveServiceDeleteRequest
-	13, // 34: perspectiv.v1.PerspectiveService.Get:input_type -> perspectiv.v1.PerspectiveServiceGetRequest
-	15, // 35: perspectiv.v1.PerspectiveService.ListMine:input_type -> perspectiv.v1.ListMineRequest
-	17, // 36: perspectiv.v1.PerspectiveService.ListByAuthor:input_type -> perspectiv.v1.ListByAuthorRequest
-	19, // 37: perspectiv.v1.PerspectiveService.CreateInvite:input_type -> perspectiv.v1.CreateInviteRequest
-	21, // 38: perspectiv.v1.PerspectiveService.GetInvite:input_type -> perspectiv.v1.GetInviteRequest
-	6,  // 39: perspectiv.v1.PerspectiveService.SaveDraft:output_type -> perspectiv.v1.SaveDraftResponse
-	8,  // 40: perspectiv.v1.PerspectiveService.Publish:output_type -> perspectiv.v1.PublishResponse
-	10, // 41: perspectiv.v1.PerspectiveService.Update:output_type -> perspectiv.v1.PerspectiveServiceUpdateResponse
-	12, // 42: perspectiv.v1.PerspectiveService.Delete:output_type -> perspectiv.v1.PerspectiveServiceDeleteResponse
-	14, // 43: perspectiv.v1.PerspectiveService.Get:output_type -> perspectiv.v1.PerspectiveServiceGetResponse
-	16, // 44: perspectiv.v1.PerspectiveService.ListMine:output_type -> perspectiv.v1.ListMineResponse
-	18, // 45: perspectiv.v1.PerspectiveService.ListByAuthor:output_type -> perspectiv.v1.ListByAuthorResponse
-	20, // 46: perspectiv.v1.PerspectiveService.CreateInvite:output_type -> perspectiv.v1.CreateInviteResponse
-	23, // 47: perspectiv.v1.PerspectiveService.GetInvite:output_type -> perspectiv.v1.GetInviteResponse
-	39, // [39:48] is the sub-list for method output_type
-	30, // [30:39] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	24, // 0: perspectiv.v1.Character.claimed_by:type_name -> perspectiv.v1.UserRef
+	25, // 1: perspectiv.v1.Character.my_claim:type_name -> perspectiv.v1.ClaimStatus
+	24, // 2: perspectiv.v1.Perspective.author:type_name -> perspectiv.v1.UserRef
+	26, // 3: perspectiv.v1.Perspective.genre:type_name -> perspectiv.v1.Genre
+	27, // 4: perspectiv.v1.Perspective.status:type_name -> perspectiv.v1.PerspectiveStatus
+	28, // 5: perspectiv.v1.Perspective.lore_status:type_name -> perspectiv.v1.LoreStatus
+	29, // 6: perspectiv.v1.Perspective.place:type_name -> perspectiv.v1.PlaceRef
+	0,  // 7: perspectiv.v1.Perspective.parts:type_name -> perspectiv.v1.Part
+	1,  // 8: perspectiv.v1.Perspective.characters:type_name -> perspectiv.v1.Character
+	30, // 9: perspectiv.v1.Perspective.reacts:type_name -> perspectiv.v1.ReactCount
+	31, // 10: perspectiv.v1.Perspective.created_at:type_name -> google.protobuf.Timestamp
+	31, // 11: perspectiv.v1.Perspective.published_at:type_name -> google.protobuf.Timestamp
+	31, // 12: perspectiv.v1.Perspective.updated_at:type_name -> google.protobuf.Timestamp
+	24, // 13: perspectiv.v1.PerspectiveSummary.author:type_name -> perspectiv.v1.UserRef
+	26, // 14: perspectiv.v1.PerspectiveSummary.genre:type_name -> perspectiv.v1.Genre
+	28, // 15: perspectiv.v1.PerspectiveSummary.lore_status:type_name -> perspectiv.v1.LoreStatus
+	31, // 16: perspectiv.v1.PerspectiveSummary.published_at:type_name -> google.protobuf.Timestamp
+	26, // 17: perspectiv.v1.SaveDraftRequest.genre:type_name -> perspectiv.v1.Genre
+	2,  // 18: perspectiv.v1.SaveDraftRequest.characters:type_name -> perspectiv.v1.CharacterInput
+	3,  // 19: perspectiv.v1.SaveDraftResponse.perspective:type_name -> perspectiv.v1.Perspective
+	26, // 20: perspectiv.v1.PublishRequest.genre:type_name -> perspectiv.v1.Genre
+	2,  // 21: perspectiv.v1.PublishRequest.characters:type_name -> perspectiv.v1.CharacterInput
+	26, // 22: perspectiv.v1.PerspectiveServiceUpdateRequest.genre:type_name -> perspectiv.v1.Genre
+	2,  // 23: perspectiv.v1.PerspectiveServiceUpdateRequest.characters:type_name -> perspectiv.v1.CharacterInput
+	3,  // 24: perspectiv.v1.PerspectiveServiceUpdateResponse.perspective:type_name -> perspectiv.v1.Perspective
+	3,  // 25: perspectiv.v1.PerspectiveServiceGetResponse.perspective:type_name -> perspectiv.v1.Perspective
+	27, // 26: perspectiv.v1.ListMineRequest.status:type_name -> perspectiv.v1.PerspectiveStatus
+	3,  // 27: perspectiv.v1.ListMineResponse.perspectives:type_name -> perspectiv.v1.Perspective
+	3,  // 28: perspectiv.v1.ListByAuthorResponse.perspectives:type_name -> perspectiv.v1.Perspective
+	24, // 29: perspectiv.v1.Invite.inviter:type_name -> perspectiv.v1.UserRef
+	29, // 30: perspectiv.v1.Invite.place:type_name -> perspectiv.v1.PlaceRef
+	22, // 31: perspectiv.v1.GetInviteResponse.invite:type_name -> perspectiv.v1.Invite
+	5,  // 32: perspectiv.v1.PerspectiveService.SaveDraft:input_type -> perspectiv.v1.SaveDraftRequest
+	7,  // 33: perspectiv.v1.PerspectiveService.Publish:input_type -> perspectiv.v1.PublishRequest
+	9,  // 34: perspectiv.v1.PerspectiveService.Update:input_type -> perspectiv.v1.PerspectiveServiceUpdateRequest
+	11, // 35: perspectiv.v1.PerspectiveService.Delete:input_type -> perspectiv.v1.PerspectiveServiceDeleteRequest
+	13, // 36: perspectiv.v1.PerspectiveService.Get:input_type -> perspectiv.v1.PerspectiveServiceGetRequest
+	15, // 37: perspectiv.v1.PerspectiveService.ListMine:input_type -> perspectiv.v1.ListMineRequest
+	17, // 38: perspectiv.v1.PerspectiveService.ListByAuthor:input_type -> perspectiv.v1.ListByAuthorRequest
+	19, // 39: perspectiv.v1.PerspectiveService.CreateInvite:input_type -> perspectiv.v1.CreateInviteRequest
+	21, // 40: perspectiv.v1.PerspectiveService.GetInvite:input_type -> perspectiv.v1.GetInviteRequest
+	6,  // 41: perspectiv.v1.PerspectiveService.SaveDraft:output_type -> perspectiv.v1.SaveDraftResponse
+	8,  // 42: perspectiv.v1.PerspectiveService.Publish:output_type -> perspectiv.v1.PublishResponse
+	10, // 43: perspectiv.v1.PerspectiveService.Update:output_type -> perspectiv.v1.PerspectiveServiceUpdateResponse
+	12, // 44: perspectiv.v1.PerspectiveService.Delete:output_type -> perspectiv.v1.PerspectiveServiceDeleteResponse
+	14, // 45: perspectiv.v1.PerspectiveService.Get:output_type -> perspectiv.v1.PerspectiveServiceGetResponse
+	16, // 46: perspectiv.v1.PerspectiveService.ListMine:output_type -> perspectiv.v1.ListMineResponse
+	18, // 47: perspectiv.v1.PerspectiveService.ListByAuthor:output_type -> perspectiv.v1.ListByAuthorResponse
+	20, // 48: perspectiv.v1.PerspectiveService.CreateInvite:output_type -> perspectiv.v1.CreateInviteResponse
+	23, // 49: perspectiv.v1.PerspectiveService.GetInvite:output_type -> perspectiv.v1.GetInviteResponse
+	41, // [41:50] is the sub-list for method output_type
+	32, // [32:41] is the sub-list for method input_type
+	32, // [32:32] is the sub-list for extension type_name
+	32, // [32:32] is the sub-list for extension extendee
+	0,  // [0:32] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_perspective_proto_init() }

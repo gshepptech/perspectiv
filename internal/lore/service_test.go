@@ -298,6 +298,7 @@ func wantDomainCode(t *testing.T, err error, code connect.Code) {
 }
 
 // FR-019, FR-021, AC-018, AC-020, OT-019, OT-021, CT-006, ST-012, FR-053, FR-065.
+// A case with code 0 is one the rules allow.
 func TestClaimCharacterRefusals(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -398,6 +399,25 @@ func TestClaimCharacterRefusals(t *testing.T) {
 			code: connect.CodeAlreadyExists,
 		},
 		{
+			name: "a second character in the same story is refused: one character per story",
+			setup: func(w *world, a, b author) (uuid.UUID, uuid.UUID) {
+				w.mustClaim(b.user, a.character)
+				return b.user, w.character(a.perspective, "the second stranger")
+			},
+			code: connect.CodeFailedPrecondition,
+		},
+		{
+			name: "after a rejection, another character in the same story is open",
+			setup: func(w *world, a, b author) (uuid.UUID, uuid.UUID) {
+				id := w.mustClaim(b.user, a.character)
+				if _, err := w.resolve(a.user, id, false); err != nil {
+					w.t.Fatalf("reject: %v", err)
+				}
+				return b.user, w.character(a.perspective, "the other stranger")
+			},
+			code: 0,
+		},
+		{
 			name: "claimant blocked by the character's author is denied",
 			setup: func(w *world, a, b author) (uuid.UUID, uuid.UUID) {
 				w.exec(`INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2)`, a.user, b.user)
@@ -443,6 +463,12 @@ func TestClaimCharacterRefusals(t *testing.T) {
 			a, b := w.author("alice"), w.author("bob")
 			caller, character := tc.setup(w, a, b)
 			_, err := w.claim(caller, character)
+			if tc.code == 0 {
+				if err != nil {
+					t.Fatalf("claim = %v, want it allowed", err)
+				}
+				return
+			}
 			wantCode(t, err, tc.code)
 		})
 	}

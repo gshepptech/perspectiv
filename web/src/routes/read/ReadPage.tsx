@@ -7,6 +7,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from "reac
 import { InviteDialog } from "@/components/actions/InviteDialog";
 import { perspectiveQuery } from "@/components/actions/queries";
 import { formatDay, genreLabel, loreStatusLabel } from "@/components/reader/format";
+import { Cast } from "@/components/reader/Cast";
 import { Reader } from "@/components/reader/Reader";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
@@ -227,7 +228,12 @@ export function Component() {
       )}
       <Reader
         title={title}
-        byline={<Byline p={p} />}
+        byline={
+          <>
+            <Byline p={p} />
+            <Cast characters={p.characters} className="mt-3" />
+          </>
+        }
         parts={bodies}
         part={partFrom(params.get("part"), bodies.length)}
         onPartChange={onPartChange}

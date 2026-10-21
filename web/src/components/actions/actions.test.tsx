@@ -140,7 +140,7 @@ describe("claim", () => {
     const taken = within(dialog).getByRole("listitem", { name: "A man with a red umbrella" });
     expect(within(taken).getByText("Already claimed")).toBeInTheDocument();
     expect(within(taken).queryByRole("button")).toBeNull();
-    expect(within(within(dialog).getByRole("listitem", { name: "Someone by the window" })).getByText("Claim pending")).toBeInTheDocument();
+    expect(within(within(dialog).getByRole("listitem", { name: "Someone by the window" })).getByText("Someone has claimed this")).toBeInTheDocument();
 
     const open = within(dialog).getByRole("listitem", { name: "The barista in the green apron" });
     await userEvent.click(within(open).getByRole("button", { name: "That was me" }));
@@ -164,11 +164,30 @@ describe("claim", () => {
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("write your perspective in this arc first");
   });
 
-  it("says so when a perspective names no characters", async () => {
+  it("offers no claim on a perspective that names no characters", async () => {
     await openSignedIn({});
     const moth = await card("Sublores", "moth");
-    await userEvent.click(await within(moth).findByRole("button", { name: "Claim a character" }));
-    expect(await screen.findByRole("dialog")).toHaveTextContent("names no characters");
+    await within(moth).findByRole("button", { name: /^Heart/ });
+    expect(within(moth).queryByRole("button", { name: "Claim a character" })).toBeNull();
+  });
+
+  it("says who the viewer is in a story instead of offering a second claim", async () => {
+    const mine = [
+      { id: "c-1", position: 1, label: "The barista in the green apron", myClaim: "CLAIM_STATUS_PENDING", hasPendingClaim: true },
+      { id: "c-2", position: 2, label: "Someone by the window" },
+    ];
+    await openSignedIn({}, { "p-moth": perspective("p-moth", { characters: mine }).perspective });
+    const moth = await card("Sublores", "moth");
+    expect(await within(moth).findByText(/waiting for moth to accept/)).toBeInTheDocument();
+    expect(within(moth).queryByRole("button", { name: "Claim a character" })).toBeNull();
+  });
+
+  it("tags a character with who it turned out to be", async () => {
+    const tagged = [{ id: "c-1", position: 1, label: "A man with a red umbrella", hasAcceptedClaim: true, claimedBy: { userId: "u-otter", username: "otter" } }];
+    await openSignedIn({}, { "p-moth": perspective("p-moth", { characters: tagged }).perspective });
+    const moth = await card("Sublores", "moth");
+    const cast = await within(moth).findByRole("list", { name: "Cast" });
+    expect(within(cast).getByRole("link", { name: "otter" })).toHaveAttribute("href", "/users/otter");
   });
 
   it("is not offered on a REMOVED perspective", async () => {

@@ -342,6 +342,30 @@ func (q *Queries) HasActiveClaim(ctx context.Context, arg HasActiveClaimParams) 
 	return active, err
 }
 
+const hasActiveClaimInPerspective = `-- name: HasActiveClaimInPerspective :one
+SELECT EXISTS (
+    SELECT 1 FROM claims c
+    JOIN characters ch ON ch.id = c.character_id
+    WHERE ch.perspective_id = $1::uuid
+      AND c.claimant_user_id = $2::uuid
+      AND c.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED')
+)::boolean AS active
+`
+
+type HasActiveClaimInPerspectiveParams struct {
+	PerspectiveID  uuid.UUID
+	ClaimantUserID uuid.UUID
+}
+
+// Whether the claimant already has a PENDING or ACCEPTED claim on any
+// character in the perspective: a person is one character per story.
+func (q *Queries) HasActiveClaimInPerspective(ctx context.Context, arg HasActiveClaimInPerspectiveParams) (bool, error) {
+	row := q.db.QueryRow(ctx, hasActiveClaimInPerspective, arg.PerspectiveID, arg.ClaimantUserID)
+	var active bool
+	err := row.Scan(&active)
+	return active, err
+}
+
 const insertClaim = `-- name: InsertClaim :one
 INSERT INTO claims (character_id, claimant_user_id, claimant_perspective_id, status)
 VALUES ($1::uuid, $2::uuid,

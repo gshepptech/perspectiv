@@ -231,15 +231,23 @@ func loadContent(ctx context.Context, q *dbq.Queries, viewer *uuid.UUID, ids []u
 	for _, p := range parts {
 		c.parts[p.PerspectiveID] = append(c.parts[p.PerspectiveID], &perspectivv1.Part{Position: int32(p.Position), Body: p.Body})
 	}
-	chars, err := q.ListCharactersOf(ctx, ids)
+	chars, err := q.ListCharactersOf(ctx, dbq.ListCharactersOfParams{Viewer: viewer, Ids: ids})
 	if err != nil {
 		return c, apiutil.Internal(fmt.Errorf("read characters: %w", err))
 	}
 	for _, ch := range chars {
-		c.characters[ch.PerspectiveID] = append(c.characters[ch.PerspectiveID], &perspectivv1.Character{
+		mine, err := claimStatusFromDB(ch.MyClaim)
+		if err != nil {
+			return c, apiutil.Internal(err)
+		}
+		out := &perspectivv1.Character{
 			Id: ch.ID.String(), Position: int32(ch.Position), Label: ch.Label,
-			HasAcceptedClaim: ch.HasAccepted, HasPendingClaim: ch.HasPending,
-		})
+			HasAcceptedClaim: ch.HasAccepted, HasPendingClaim: ch.HasPending, MyClaim: mine,
+		}
+		if ch.ClaimedByID != nil && ch.ClaimedByUsername != nil {
+			out.ClaimedBy = &perspectivv1.UserRef{UserId: ch.ClaimedByID.String(), Username: *ch.ClaimedByUsername}
+		}
+		c.characters[ch.PerspectiveID] = append(c.characters[ch.PerspectiveID], out)
 	}
 	reacts, err := q.ReactCountsOf(ctx, dbq.ReactCountsOfParams{Viewer: viewer, Ids: ids})
 	if err != nil {

@@ -164,12 +164,21 @@ WHERE perspective_id = ANY(sqlc.arg(ids)::uuid[])
 ORDER BY perspective_id, position;
 
 -- name: ListCharactersOf :many
+-- Each character with its claim state: who it turned out to be (the accepted
+-- claimant, unless that account is deleted) and the viewer's own claim.
 SELECT ch.id, ch.perspective_id, ch.position, ch.label,
        EXISTS (SELECT 1 FROM claims c WHERE c.character_id = ch.id
                AND c.status = 'CLAIM_STATUS_ACCEPTED')::boolean AS has_accepted,
        EXISTS (SELECT 1 FROM claims c WHERE c.character_id = ch.id
-               AND c.status = 'CLAIM_STATUS_PENDING')::boolean AS has_pending
+               AND c.status = 'CLAIM_STATUS_PENDING')::boolean AS has_pending,
+       acc_u.id AS claimed_by_id,
+       acc_u.username AS claimed_by_username,
+       COALESCE((SELECT c.status FROM claims c
+                 WHERE c.character_id = ch.id AND c.claimant_user_id = sqlc.narg(viewer)::uuid
+                 ORDER BY c.created_at DESC LIMIT 1), '')::text AS my_claim
 FROM characters ch
+LEFT JOIN claims acc ON acc.character_id = ch.id AND acc.status = 'CLAIM_STATUS_ACCEPTED'
+LEFT JOIN users acc_u ON acc_u.id = acc.claimant_user_id AND acc_u.deleted_at IS NULL
 WHERE ch.perspective_id = ANY(sqlc.arg(ids)::uuid[])
 ORDER BY ch.perspective_id, ch.position;
 

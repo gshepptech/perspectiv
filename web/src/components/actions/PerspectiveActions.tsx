@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { LoreStatus, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
+import { Cast } from "@/components/reader/Cast";
+import { hasOpenCharacter, myCharacter } from "@/components/reader/claims";
+import { ClaimStatus, LoreStatus, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { PerspectiveSummary } from "@/gen/perspectiv/v1/perspective_pb";
 import { useSession } from "@/lib/session";
 
@@ -40,17 +42,31 @@ export function PerspectiveActions({ summary, rights }: { summary: PerspectiveSu
   const own = !!session && session.userId === summary.author?.userId;
   const signedOut = !session;
   const canVote = !own && (signedOut || rights.participant);
-  const canClaim = !own && summary.loreStatus !== LoreStatus.REMOVED && (signedOut || rights.participant);
+  const mine = p ? myCharacter(p.characters) : undefined;
+  // Offered only when the story has someone the viewer could still be.
+  const canClaim =
+    !own && summary.loreStatus !== LoreStatus.REMOVED && (signedOut || rights.participant) && !!p && hasOpenCharacter(p.characters);
   const canVoteOut = !!session && !own && summary.loreStatus === LoreStatus.IN_LORE && rights.loreVoter;
 
   return (
     <div className="mt-3 flex flex-col gap-3 border-t border-rule pt-3">
+      {p && <Cast characters={p.characters} />}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <VoteButton perspectiveId={summary.id} upvotes={p?.upvotes ?? summary.upvotes} voted={p?.voted ?? false} canVote={canVote} />
         {p && <ReactBar perspectiveId={summary.id} counts={p.reacts} />}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {canClaim && <ClaimDialog perspectiveId={summary.id} authorName={authorName} characters={p?.characters} />}
+        {mine && (
+          <p className="text-sm text-ink">
+            You are <span className="font-serif">{mine.label}</span>
+            {mine.myClaim === ClaimStatus.PENDING ? (
+              <span className="text-warning"> · waiting for {authorName} to accept</span>
+            ) : (
+              <span className="text-success"> · accepted</span>
+            )}
+          </p>
+        )}
         {canVoteOut && <RemoveVoteButton perspectiveId={summary.id} authorName={authorName} />}
         {!own && (
           <ReportDialog

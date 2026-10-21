@@ -277,3 +277,14 @@ WITH RECURSIVE up AS (
     WHERE up.depth < 8
 )
 SELECT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::boolean AS hidden;
+
+-- name: HasActiveClaimInPerspective :one
+-- Whether the claimant already has a PENDING or ACCEPTED claim on any
+-- character in the perspective: a person is one character per story.
+SELECT EXISTS (
+    SELECT 1 FROM claims c
+    JOIN characters ch ON ch.id = c.character_id
+    WHERE ch.perspective_id = sqlc.arg(perspective_id)::uuid
+      AND c.claimant_user_id = sqlc.arg(claimant_user_id)::uuid
+      AND c.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED')
+)::boolean AS active;
