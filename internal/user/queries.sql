@@ -105,3 +105,15 @@ UPDATE refresh_tokens rt
 SET revoked_at = now()
 FROM sessions s
 WHERE rt.session_id = s.id AND s.user_id = $1 AND rt.revoked_at IS NULL;
+
+-- name: LoreCounts :one
+-- The lores a user's readable perspectives are members of, and how many of
+-- them are canon: the profile's badges.
+SELECT count(*) FILTER (WHERE l.status = 'LORE_STANDING_CANON')::int AS canon_count,
+       count(*)::int AS lore_count
+FROM lore_members m
+JOIN perspectives p ON p.id = m.perspective_id
+JOIN lores l ON l.id = m.lore_id
+WHERE p.author_id = $1
+  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL AND p.hidden_at IS NULL;

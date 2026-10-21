@@ -398,3 +398,34 @@ func TestChangeUsernameConcurrent(t *testing.T) {
 		t.Fatalf("ok=%d refused=%d, want 1 and 1", ok, refused)
 	}
 }
+
+// A profile carries its badges: the canons and lores the user's readable
+// perspectives belong to. A hidden perspective does not count.
+func TestGetProfileLoreBadges(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	ctx := context.Background()
+	writer := e.user("badged")
+	store := e.store()
+	arc1, arc2, arc3 := e.dayArc(store, writer), e.id(`INSERT INTO arcs (place_id, local_date, title, created_by)
+		VALUES ($1, '2026-10-02', 'Second day', $2) RETURNING id`, store, writer), e.id(`INSERT INTO arcs (place_id, local_date, title, created_by)
+		VALUES ($1, '2026-10-03', 'Third day', $2) RETURNING id`, store, writer)
+	member := func(arc uuid.UUID, standing string) uuid.UUID {
+		p := e.published(arc, writer)
+		l := e.id(`INSERT INTO lores (arc_id, status, member_count) VALUES ($1, $2, 2) RETURNING id`, arc, standing)
+		e.exec(`INSERT INTO lore_members (lore_id, perspective_id) VALUES ($1, $2)`, l, p)
+		return p
+	}
+	member(arc1, "LORE_STANDING_CANON")
+	member(arc2, "LORE_STANDING_SUBLORE")
+	hidden := member(arc3, "LORE_STANDING_CANON")
+	e.exec(`UPDATE perspectives SET hidden_at = now() WHERE id = $1`, hidden)
+
+	res, err := e.client(uuid.Nil).GetProfile(ctx, connect.NewRequest(&perspectivv1.GetProfileRequest{Username: "badged"}))
+	if err != nil {
+		t.Fatalf("GetProfile: %v", err)
+	}
+	if p := res.Msg.GetProfile(); p.GetCanonCount() != 1 || p.GetLoreCount() != 2 {
+		t.Fatalf("badges = %d canons, %d lores; want 1 and 2", p.GetCanonCount(), p.GetLoreCount())
+	}
+}

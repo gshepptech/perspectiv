@@ -88,7 +88,11 @@ type Profile struct {
 	// True when the account is suspended by an admin.
 	Suspended bool `protobuf:"varint,6,opt,name=suspended,proto3" json:"suspended,omitempty"`
 	// True when the account was deleted; the other fields are then blank.
-	Deleted       bool `protobuf:"varint,7,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	Deleted bool `protobuf:"varint,7,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	// How many canons and how many lores (canon included) the user's readable
+	// perspectives are members of: their badges.
+	CanonCount    int32 `protobuf:"varint,8,opt,name=canon_count,json=canonCount,proto3" json:"canon_count,omitempty"`
+	LoreCount     int32 `protobuf:"varint,9,opt,name=lore_count,json=loreCount,proto3" json:"lore_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -170,6 +174,20 @@ func (x *Profile) GetDeleted() bool {
 		return x.Deleted
 	}
 	return false
+}
+
+func (x *Profile) GetCanonCount() int32 {
+	if x != nil {
+		return x.CanonCount
+	}
+	return 0
+}
+
+func (x *Profile) GetLoreCount() int32 {
+	if x != nil {
+		return x.LoreCount
+	}
+	return 0
 }
 
 // Account is the caller's own private account state. It is the only message
@@ -828,7 +846,7 @@ const file_perspectiv_v1_user_proto_rawDesc = "" +
 	"\x18perspectiv/v1/user.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\">\n" +
 	"\aUserRef\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\"\xe0\x01\n" +
+	"\busername\x18\x02 \x01(\tR\busername\"\xa0\x02\n" +
 	"\aProfile\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x10\n" +
@@ -837,7 +855,11 @@ const file_perspectiv_v1_user_proto_rawDesc = "" +
 	"avatar_url\x18\x04 \x01(\tR\tavatarUrl\x127\n" +
 	"\tjoined_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\bjoinedAt\x12\x1c\n" +
 	"\tsuspended\x18\x06 \x01(\bR\tsuspended\x12\x18\n" +
-	"\adeleted\x18\a \x01(\bR\adeleted\"\xc0\x02\n" +
+	"\adeleted\x18\a \x01(\bR\adeleted\x12\x1f\n" +
+	"\vcanon_count\x18\b \x01(\x05R\n" +
+	"canonCount\x12\x1d\n" +
+	"\n" +
+	"lore_count\x18\t \x01(\x05R\tloreCount\"\xc0\x02\n" +
 	"\aAccount\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12%\n" +
 	"\x0eemail_verified\x18\x02 \x01(\bR\remailVerified\x12'\n" +

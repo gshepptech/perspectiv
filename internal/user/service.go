@@ -76,6 +76,10 @@ type Profile struct {
 	JoinedAt  time.Time
 	Suspended bool
 	Deleted   bool
+	// CanonCount and LoreCount are the user's badges: the canons and lores
+	// (canon included) their readable perspectives belong to.
+	CanonCount int32
+	LoreCount  int32
 }
 
 // Account is the owner's private account state.
@@ -131,6 +135,13 @@ func (s *Service) GetProfile(ctx context.Context, caller *uuid.UUID, q ProfileQu
 		return Profile{}, nil, errAccountGone
 	}
 	p := profileOf(u)
+	if !p.Deleted {
+		counts, err := s.q.LoreCounts(ctx, u.ID)
+		if err != nil {
+			return Profile{}, nil, apiutil.Internal(fmt.Errorf("count lores: %w", err))
+		}
+		p.CanonCount, p.LoreCount = counts.CanonCount, counts.LoreCount
+	}
 	if !own {
 		return p, nil, nil
 	}

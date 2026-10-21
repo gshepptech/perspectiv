@@ -243,6 +243,31 @@ func (q *Queries) LockUser(ctx context.Context, id uuid.UUID) (LockUserRow, erro
 	return i, err
 }
 
+const loreCounts = `-- name: LoreCounts :one
+SELECT count(*) FILTER (WHERE l.status = 'LORE_STANDING_CANON')::int AS canon_count,
+       count(*)::int AS lore_count
+FROM lore_members m
+JOIN perspectives p ON p.id = m.perspective_id
+JOIN lores l ON l.id = m.lore_id
+WHERE p.author_id = $1
+  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+`
+
+type LoreCountsRow struct {
+	CanonCount int32
+	LoreCount  int32
+}
+
+// The lores a user's readable perspectives are members of, and how many of
+// them are canon: the profile's badges.
+func (q *Queries) LoreCounts(ctx context.Context, authorID uuid.UUID) (LoreCountsRow, error) {
+	row := q.db.QueryRow(ctx, loreCounts, authorID)
+	var i LoreCountsRow
+	err := row.Scan(&i.CanonCount, &i.LoreCount)
+	return i, err
+}
+
 const markArcsLoreDirty = `-- name: MarkArcsLoreDirty :exec
 UPDATE arcs SET lore_dirty_at = now() WHERE id = ANY($1::uuid[])
 `

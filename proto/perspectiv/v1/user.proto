@@ -39,6 +39,10 @@ message Profile {
   bool suspended = 6;
   // True when the account was deleted; the other fields are then blank.
   bool deleted = 7;
+  // How many canons and how many lores (canon included) the user's readable
+  // perspectives are members of: their badges.
+  int32 canon_count = 8;
+  int32 lore_count = 9;
 }
 
 // Account is the caller's own private account state. It is the only message

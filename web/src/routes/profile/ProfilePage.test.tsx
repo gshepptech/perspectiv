@@ -80,4 +80,13 @@ describe("public profile page", () => {
     });
     expect(await screen.findByText("wren has not published a perspective yet.")).toBeInTheDocument();
   });
+
+  it("shows the user's canon and lore badges", async () => {
+    renderApp("/users/wren", {
+      "UserService/GetProfile": () => ({ body: { profile: { ...profile, canonCount: 2, loreCount: 3 } } }),
+      "PerspectiveService/ListByAuthor": () => ({ body: {} }),
+    });
+    expect(await screen.findByText("In 2 canons")).toBeInTheDocument();
+    expect(screen.getByText("In 3 lores")).toBeInTheDocument();
+  });
 });

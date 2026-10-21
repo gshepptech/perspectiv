@@ -153,12 +153,14 @@ func (h *Handler) DeleteAccount(ctx context.Context, req *connect.Request[perspe
 
 func profileToProto(p Profile) *perspectivv1.Profile {
 	out := &perspectivv1.Profile{
-		UserId:    p.UserID.String(),
-		Username:  p.Username,
-		Bio:       p.Bio,
-		AvatarUrl: p.AvatarURL,
-		Suspended: p.Suspended,
-		Deleted:   p.Deleted,
+		UserId:     p.UserID.String(),
+		Username:   p.Username,
+		Bio:        p.Bio,
+		AvatarUrl:  p.AvatarURL,
+		Suspended:  p.Suspended,
+		CanonCount: p.CanonCount,
+		LoreCount:  p.LoreCount,
+		Deleted:    p.Deleted,
 	}
 	if !p.JoinedAt.IsZero() {
 		out.JoinedAt = timestamppb.New(p.JoinedAt)

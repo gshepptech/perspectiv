@@ -1,6 +1,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { Crown } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 import { formatDay, loreStatusLabel } from "@/components/reader/format";
@@ -41,6 +42,19 @@ function Header({ profile }: { profile: Profile }) {
         <h1 className="text-2xl wrap-anywhere sm:text-3xl">{profile.username}</h1>
         {profile.joinedAt && (
           <p className="mt-1 text-sm text-ink-muted">Joined {joinedFormat.format(timestampDate(profile.joinedAt))}</p>
+        )}
+        {(profile.canonCount > 0 || profile.loreCount > 0) && (
+          <p className="mt-2 flex flex-wrap gap-2 text-sm">
+            {profile.canonCount > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-0.5 font-medium text-accent">
+                <Crown aria-hidden size={14} />
+                In {profile.canonCount} {profile.canonCount === 1 ? "canon" : "canons"}
+              </span>
+            )}
+            <span className="inline-flex items-center rounded-full border border-rule px-3 py-0.5 text-ink-muted">
+              In {profile.loreCount} {profile.loreCount === 1 ? "lore" : "lores"}
+            </span>
+          </p>
         )}
         {profile.suspended && <p className="mt-1 text-sm text-warning">This account is suspended.</p>}
       </div>

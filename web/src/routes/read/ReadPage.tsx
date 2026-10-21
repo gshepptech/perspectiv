@@ -221,6 +221,15 @@ export function Component() {
           <AuthorActions p={p} />
         </div>
       )}
+      {justPublished && mine && !isDraft && p.arcId && (
+        <p role="status" className="mx-auto mb-4 max-w-measure rounded-xl border border-success p-4 text-ink">
+          Published. Others were there too?{" "}
+          <Link to={`/arcs/${p.arcId}`} className="font-medium text-accent underline underline-offset-4">
+            Open the day
+          </Link>{" "}
+          and find yourself in their stories: claim the character that was you, and your stories link.
+        </p>
+      )}
       {!isDraft && mine && (
         <div className="mx-auto mb-4 max-w-measure text-sm">
           <AuthorActions p={p} justPublished={justPublished} />
