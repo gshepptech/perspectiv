@@ -221,6 +221,10 @@ are writing, each of which opens its place page.
   "Canon" or the story count. A card links to the place page, never straight
   to a story, so the way in stays place first. Two columns from `sm`, three
   from `lg`. The section is left out when no place has a story.
+- **Places you follow** (signed in, when there are any) sits above "Where
+  people are writing": one pill per place with a bell icon, linking to it.
+  A place page carries a "Follow" toggle beside "Write about this place",
+  `aria-pressed`, reading "Following" with a filled style when on.
 - "Your perspectives" (signed in) and "Browse by state" follow as before.
 - Nothing animates, and everything keeps the 16px gutter with no sideways
   scroll at 375px.

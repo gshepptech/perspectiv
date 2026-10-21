@@ -671,3 +671,67 @@ func TestGetEpicErrors(t *testing.T) {
 		})
 	}
 }
+
+// TestFollowPlace covers following: GetPlace tells a signed-in reader whether
+// they follow it, ListFollowing lists the visible places followed (newest
+// first), unfollowing removes one, and a hidden place cannot be followed and
+// drops out of the list.
+func TestFollowPlace(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	c := client(t, h.pool)
+	ctx := context.Background()
+	me := h.user(true)
+	follow := func(place uuid.UUID, on bool) error {
+		res, err := c.FollowPlace(ctx, as(me, &perspectivv1.FollowPlaceRequest{PlaceId: place.String(), On: on}))
+		if err == nil && res.Msg.GetFollowing() != on {
+			t.Fatalf("following = %v, want %v", res.Msg.GetFollowing(), on)
+		}
+		return err
+	}
+	following := func(user, place uuid.UUID) bool {
+		t.Helper()
+		res, err := c.GetPlace(ctx, as(user, &perspectivv1.GetPlaceRequest{PlaceId: place.String()}))
+		if err != nil {
+			t.Fatalf("GetPlace: %v", err)
+		}
+		return res.Msg.GetPlace().GetFollowing()
+	}
+	list := func() []string {
+		t.Helper()
+		res, err := c.ListFollowing(ctx, as(me, &perspectivv1.ListFollowingRequest{}))
+		if err != nil {
+			t.Fatalf("ListFollowing: %v", err)
+		}
+		return names(res.Msg.GetPlaces())
+	}
+
+	for _, p := range []uuid.UUID{h.city, h.store, h.store} { // following twice is a no-op
+		if err := follow(p, true); err != nil {
+			t.Fatalf("follow: %v", err)
+		}
+	}
+	if !following(me, h.store) || following(uuid.Nil, h.store) || following(h.user(true), h.store) {
+		t.Fatal("GetPlace following: want true for the follower only")
+	}
+	if got := list(); !slices.Equal(got, []string{"Corner Books", "Springfield"}) {
+		t.Fatalf("following = %q", got)
+	}
+	if err := follow(h.city, false); err != nil {
+		t.Fatalf("unfollow: %v", err)
+	}
+	if got := list(); !slices.Equal(got, []string{"Corner Books"}) {
+		t.Fatalf("after unfollow = %q", got)
+	}
+
+	// Hiding the mall above the store hides it from the list, and it cannot
+	// be followed again.
+	h.hide(h.mall)
+	if got := list(); len(got) != 0 {
+		t.Fatalf("after hiding = %q", got)
+	}
+	wantCode(t, follow(h.store, true), connect.CodeNotFound)
+	wantCode(t, follow(uuid.New(), true), connect.CodeNotFound)
+	_, err := c.FollowPlace(ctx, as(uuid.Nil, &perspectivv1.FollowPlaceRequest{PlaceId: h.city.String(), On: true}))
+	wantCode(t, err, connect.CodeUnauthenticated)
+}

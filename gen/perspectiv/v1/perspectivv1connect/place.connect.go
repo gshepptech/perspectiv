@@ -46,6 +46,12 @@ const (
 	PlaceServiceCreatePlaceProcedure = "/perspectiv.v1.PlaceService/CreatePlace"
 	// PlaceServiceGetEpicProcedure is the fully-qualified name of the PlaceService's GetEpic RPC.
 	PlaceServiceGetEpicProcedure = "/perspectiv.v1.PlaceService/GetEpic"
+	// PlaceServiceFollowPlaceProcedure is the fully-qualified name of the PlaceService's FollowPlace
+	// RPC.
+	PlaceServiceFollowPlaceProcedure = "/perspectiv.v1.PlaceService/FollowPlace"
+	// PlaceServiceListFollowingProcedure is the fully-qualified name of the PlaceService's
+	// ListFollowing RPC.
+	PlaceServiceListFollowingProcedure = "/perspectiv.v1.PlaceService/ListFollowing"
 )
 
 // PlaceServiceClient is a client for the perspectiv.v1.PlaceService service.
@@ -60,6 +66,11 @@ type PlaceServiceClient interface {
 	// A place page: arcs at the place and all its descendants, or its tales.
 	// Without a place, the arcs of every place: the front page.
 	GetEpic(context.Context, *connect.Request[v1.GetEpicRequest]) (*connect.Response[v1.GetEpicResponse], error)
+	// Follows or unfollows a place: a new story at it or anywhere under it
+	// notifies the follower.
+	FollowPlace(context.Context, *connect.Request[v1.FollowPlaceRequest]) (*connect.Response[v1.FollowPlaceResponse], error)
+	// The places the caller follows, most recently followed first.
+	ListFollowing(context.Context, *connect.Request[v1.ListFollowingRequest]) (*connect.Response[v1.ListFollowingResponse], error)
 }
 
 // NewPlaceServiceClient constructs a client for the perspectiv.v1.PlaceService service. By default,
@@ -103,16 +114,30 @@ func NewPlaceServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(placeServiceMethods.ByName("GetEpic")),
 			connect.WithClientOptions(opts...),
 		),
+		followPlace: connect.NewClient[v1.FollowPlaceRequest, v1.FollowPlaceResponse](
+			httpClient,
+			baseURL+PlaceServiceFollowPlaceProcedure,
+			connect.WithSchema(placeServiceMethods.ByName("FollowPlace")),
+			connect.WithClientOptions(opts...),
+		),
+		listFollowing: connect.NewClient[v1.ListFollowingRequest, v1.ListFollowingResponse](
+			httpClient,
+			baseURL+PlaceServiceListFollowingProcedure,
+			connect.WithSchema(placeServiceMethods.ByName("ListFollowing")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // placeServiceClient implements PlaceServiceClient.
 type placeServiceClient struct {
-	searchPlaces *connect.Client[v1.SearchPlacesRequest, v1.SearchPlacesResponse]
-	getPlace     *connect.Client[v1.GetPlaceRequest, v1.GetPlaceResponse]
-	listChildren *connect.Client[v1.ListChildrenRequest, v1.ListChildrenResponse]
-	createPlace  *connect.Client[v1.CreatePlaceRequest, v1.CreatePlaceResponse]
-	getEpic      *connect.Client[v1.GetEpicRequest, v1.GetEpicResponse]
+	searchPlaces  *connect.Client[v1.SearchPlacesRequest, v1.SearchPlacesResponse]
+	getPlace      *connect.Client[v1.GetPlaceRequest, v1.GetPlaceResponse]
+	listChildren  *connect.Client[v1.ListChildrenRequest, v1.ListChildrenResponse]
+	createPlace   *connect.Client[v1.CreatePlaceRequest, v1.CreatePlaceResponse]
+	getEpic       *connect.Client[v1.GetEpicRequest, v1.GetEpicResponse]
+	followPlace   *connect.Client[v1.FollowPlaceRequest, v1.FollowPlaceResponse]
+	listFollowing *connect.Client[v1.ListFollowingRequest, v1.ListFollowingResponse]
 }
 
 // SearchPlaces calls perspectiv.v1.PlaceService.SearchPlaces.
@@ -140,6 +165,16 @@ func (c *placeServiceClient) GetEpic(ctx context.Context, req *connect.Request[v
 	return c.getEpic.CallUnary(ctx, req)
 }
 
+// FollowPlace calls perspectiv.v1.PlaceService.FollowPlace.
+func (c *placeServiceClient) FollowPlace(ctx context.Context, req *connect.Request[v1.FollowPlaceRequest]) (*connect.Response[v1.FollowPlaceResponse], error) {
+	return c.followPlace.CallUnary(ctx, req)
+}
+
+// ListFollowing calls perspectiv.v1.PlaceService.ListFollowing.
+func (c *placeServiceClient) ListFollowing(ctx context.Context, req *connect.Request[v1.ListFollowingRequest]) (*connect.Response[v1.ListFollowingResponse], error) {
+	return c.listFollowing.CallUnary(ctx, req)
+}
+
 // PlaceServiceHandler is an implementation of the perspectiv.v1.PlaceService service.
 type PlaceServiceHandler interface {
 	// Typeahead over place names.
@@ -152,6 +187,11 @@ type PlaceServiceHandler interface {
 	// A place page: arcs at the place and all its descendants, or its tales.
 	// Without a place, the arcs of every place: the front page.
 	GetEpic(context.Context, *connect.Request[v1.GetEpicRequest]) (*connect.Response[v1.GetEpicResponse], error)
+	// Follows or unfollows a place: a new story at it or anywhere under it
+	// notifies the follower.
+	FollowPlace(context.Context, *connect.Request[v1.FollowPlaceRequest]) (*connect.Response[v1.FollowPlaceResponse], error)
+	// The places the caller follows, most recently followed first.
+	ListFollowing(context.Context, *connect.Request[v1.ListFollowingRequest]) (*connect.Response[v1.ListFollowingResponse], error)
 }
 
 // NewPlaceServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -191,6 +231,18 @@ func NewPlaceServiceHandler(svc PlaceServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(placeServiceMethods.ByName("GetEpic")),
 		connect.WithHandlerOptions(opts...),
 	)
+	placeServiceFollowPlaceHandler := connect.NewUnaryHandler(
+		PlaceServiceFollowPlaceProcedure,
+		svc.FollowPlace,
+		connect.WithSchema(placeServiceMethods.ByName("FollowPlace")),
+		connect.WithHandlerOptions(opts...),
+	)
+	placeServiceListFollowingHandler := connect.NewUnaryHandler(
+		PlaceServiceListFollowingProcedure,
+		svc.ListFollowing,
+		connect.WithSchema(placeServiceMethods.ByName("ListFollowing")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.PlaceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PlaceServiceSearchPlacesProcedure:
@@ -203,6 +255,10 @@ func NewPlaceServiceHandler(svc PlaceServiceHandler, opts ...connect.HandlerOpti
 			placeServiceCreatePlaceHandler.ServeHTTP(w, r)
 		case PlaceServiceGetEpicProcedure:
 			placeServiceGetEpicHandler.ServeHTTP(w, r)
+		case PlaceServiceFollowPlaceProcedure:
+			placeServiceFollowPlaceHandler.ServeHTTP(w, r)
+		case PlaceServiceListFollowingProcedure:
+			placeServiceListFollowingHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -230,4 +286,12 @@ func (UnimplementedPlaceServiceHandler) CreatePlace(context.Context, *connect.Re
 
 func (UnimplementedPlaceServiceHandler) GetEpic(context.Context, *connect.Request[v1.GetEpicRequest]) (*connect.Response[v1.GetEpicResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PlaceService.GetEpic is not implemented"))
+}
+
+func (UnimplementedPlaceServiceHandler) FollowPlace(context.Context, *connect.Request[v1.FollowPlaceRequest]) (*connect.Response[v1.FollowPlaceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PlaceService.FollowPlace is not implemented"))
+}
+
+func (UnimplementedPlaceServiceHandler) ListFollowing(context.Context, *connect.Request[v1.ListFollowingRequest]) (*connect.Response[v1.ListFollowingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PlaceService.ListFollowing is not implemented"))
 }

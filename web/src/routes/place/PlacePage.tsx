@@ -16,6 +16,8 @@ import { clients } from "@/lib/connect";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { useDebounced } from "@/routes/compose/search";
 
+import { FollowButton } from "./FollowButton";
+
 // The tab and genre live in the address as lower-case words (?tab=tales,
 // ?genre=slice_of_life) so a filtered epic is linkable; the defaults (Ranked,
 // every genre) are the bare address.
@@ -379,6 +381,7 @@ export function Component() {
               Write about this place
             </Link>
           </Button>
+          <FollowButton placeId={place.id} following={place.following} />
           {/* A city, town or mall holds smaller places; a store holds none. */}
           {place.kind !== PlaceKind.STORE && place.kind !== PlaceKind.STATE && (
             <Button asChild variant="ghost">

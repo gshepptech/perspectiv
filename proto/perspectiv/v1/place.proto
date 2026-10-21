@@ -19,6 +19,11 @@ service PlaceService {
   // A place page: arcs at the place and all its descendants, or its tales.
   // Without a place, the arcs of every place: the front page.
   rpc GetEpic(GetEpicRequest) returns (GetEpicResponse);
+  // Follows or unfollows a place: a new story at it or anywhere under it
+  // notifies the follower.
+  rpc FollowPlace(FollowPlaceRequest) returns (FollowPlaceResponse);
+  // The places the caller follows, most recently followed first.
+  rpc ListFollowing(ListFollowingRequest) returns (ListFollowingResponse);
 }
 
 // PlaceRef is a place as a link: id, kind and name.
@@ -45,6 +50,8 @@ message Place {
   // What kind of place a store or mall is; UNSPECIFIED for the hierarchy
   // above them and for places added by users.
   PlaceCategory category = 9;
+  // Whether the signed-in caller follows the place. Set by GetPlace only.
+  bool following = 10;
 }
 
 message SearchPlacesRequest {
@@ -158,4 +165,21 @@ message GetEpicResponse {
   // Set for TALES.
   repeated EpicTale tales = 3;
   string next_page_token = 4;
+}
+
+message FollowPlaceRequest {
+  string place_id = 1;
+  // True follows, false unfollows. Either is a no-op when already so.
+  bool on = 2;
+}
+
+message FollowPlaceResponse {
+  bool following = 1;
+}
+
+message ListFollowingRequest {}
+
+message ListFollowingResponse {
+  // At most 100 places.
+  repeated Place places = 1;
 }

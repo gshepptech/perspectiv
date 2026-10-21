@@ -12,6 +12,7 @@ import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
 
 import { ExampleArc, HowItWorks } from "./ExampleArc";
+import { Following } from "./Following";
 import { Storied } from "./Storied";
 
 const DEBOUNCE_MS = 200;
@@ -241,6 +242,7 @@ export function Component() {
           <HowItWorks />
         </div>
       </div>
+      {session && <Following />}
       <Storied />
       {session && <YourPerspectives />}
       <BrowseStates />

@@ -35,6 +35,7 @@ the code implements them, and where the two disagree the code is the bug.
 | Vote to remove from a lore | A member of the same lore, once the lore has four or more members |
 | Post in a lore's thread | A member of the lore, or anyone with a perspective in the arc |
 | Name a lore | A member of the lore; the latest name wins and shows who set it |
+| Follow a place | Anyone signed in; a new story at the place or anywhere under it lands in their inbox (and email, if they keep it on) |
 | Report | A verified account |
 
 Claiming is never required. A story that links to nobody is still
@@ -117,6 +118,13 @@ days. There is no feed of posts. Under the search the front page shows
 there remember most, and each card opens its place page.
 
 ## Places
+
+**Following.** Anyone signed in can follow a place, at any level: a store,
+a mall, a town, a city or a state. A new story at the followed place, or
+anywhere under it, notifies the follower once, however many of its
+ancestors they follow. People who already wrote in that day's arc hear of it
+as a new perspective in their arc instead. The front page lists the places
+a reader follows.
 
 A place carries the **category group** the place data gave it (Food and
 drink, Nightlife, Shopping, Outdoors and parks, Arts and venues, Sports,

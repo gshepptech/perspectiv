@@ -310,3 +310,19 @@ WHERE a.place_path @> ARRAY[@place_id::uuid]
        OR (v.published_at, v.id) < (sqlc.narg(after_published)::timestamptz, sqlc.narg(after_id)::uuid))
 ORDER BY v.published_at DESC, v.id DESC
 LIMIT @lim::integer;
+
+-- name: FollowPlace :exec
+INSERT INTO place_follows (user_id, place_id) VALUES (@user_id::uuid, @place_id::uuid)
+ON CONFLICT (user_id, place_id) DO NOTHING;
+
+-- name: UnfollowPlace :exec
+DELETE FROM place_follows WHERE user_id = @user_id::uuid AND place_id = @place_id::uuid;
+
+-- name: IsFollowing :one
+SELECT EXISTS (SELECT 1 FROM place_follows WHERE user_id = @user_id::uuid AND place_id = @place_id::uuid)::boolean AS following;
+
+-- name: FollowedPlaceIDs :many
+-- The places a user follows, most recently followed first.
+SELECT place_id FROM place_follows WHERE user_id = @user_id::uuid
+ORDER BY created_at DESC, place_id
+LIMIT @lim::integer;

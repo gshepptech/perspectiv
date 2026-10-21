@@ -71,11 +71,13 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.UserService/UnblockUser":    {Access: User},
 	"/perspectiv.v1.UserService/DeleteAccount":  {Access: User},
 
-	"/perspectiv.v1.PlaceService/SearchPlaces": {Access: Public},
-	"/perspectiv.v1.PlaceService/GetPlace":     {Access: Public},
-	"/perspectiv.v1.PlaceService/ListChildren": {Access: Public},
-	"/perspectiv.v1.PlaceService/CreatePlace":  {Access: User, Verified: true},
-	"/perspectiv.v1.PlaceService/GetEpic":      {Access: Public},
+	"/perspectiv.v1.PlaceService/SearchPlaces":  {Access: Public},
+	"/perspectiv.v1.PlaceService/GetPlace":      {Access: Public},
+	"/perspectiv.v1.PlaceService/ListChildren":  {Access: Public},
+	"/perspectiv.v1.PlaceService/CreatePlace":   {Access: User, Verified: true},
+	"/perspectiv.v1.PlaceService/GetEpic":       {Access: Public},
+	"/perspectiv.v1.PlaceService/FollowPlace":   {Access: User},
+	"/perspectiv.v1.PlaceService/ListFollowing": {Access: User},
 
 	"/perspectiv.v1.ArcService/GetArc":         {Access: Public},
 	"/perspectiv.v1.ArcService/ListArcSection": {Access: Public},

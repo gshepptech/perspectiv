@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { connectError } from "@/lib/fakeApi.testutil";
+import { connectError, sessionReply } from "@/lib/fakeApi.testutil";
 import { renderApp, type BodyHandler } from "@/routes/read/renderApp.testutil";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -83,15 +83,52 @@ const epic: BodyHandler = (body) => {
   return { body: { place: springfield, arcs: rankedArcs } };
 };
 
-function placePage(path = "/places/ci-spr", handlers: Record<string, BodyHandler> = {}) {
-  return renderApp(path, {
-    "PlaceService/GetPlace": () => ({ body: { place: springfield } }),
-    "PlaceService/GetEpic": epic,
-    "PlaceService/ListChildren": (body) =>
-      body.withStories ? { body: { places: [] } } : { body: { places: [{ ...store, parentId: "ci-spr" }] } },
-    ...handlers,
-  });
+function placePage(path = "/places/ci-spr", handlers: Record<string, BodyHandler> = {}, opts: Parameters<typeof renderApp>[2] = {}) {
+  return renderApp(
+    path,
+    {
+      "PlaceService/GetPlace": () => ({ body: { place: springfield } }),
+      "PlaceService/GetEpic": epic,
+      "PlaceService/ListChildren": (body) =>
+        body.withStories ? { body: { places: [] } } : { body: { places: [{ ...store, parentId: "ci-spr" }] } },
+      ...handlers,
+    },
+    opts,
+  );
 }
+
+describe("following a place", () => {
+  it("a signed-in reader follows and unfollows, and the place says so", async () => {
+    const user = userEvent.setup();
+    let following = false;
+    const { calls } = placePage(
+      "/places/ci-spr",
+      {
+        "PlaceService/GetPlace": () => ({ body: { place: { ...springfield, following } } }),
+        "PlaceService/FollowPlace": (body) => {
+          following = body.on === true;
+          return { body: { following } };
+        },
+      },
+      { refresh: () => sessionReply({ token: "tok" }) },
+    );
+    const follow = await screen.findByRole("button", { name: "Follow" });
+    expect(follow).toHaveAttribute("aria-pressed", "false");
+    await user.click(follow);
+    expect(await screen.findByRole("button", { name: "Following" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "Following" }));
+    expect(await screen.findByRole("button", { name: "Follow" })).toHaveAttribute("aria-pressed", "false");
+    expect(calls("PlaceService/FollowPlace")).toEqual([{ placeId: "ci-spr", on: true }, { placeId: "ci-spr" }]);
+  });
+
+  it("sends a signed-out reader to sign in without calling the server", async () => {
+    const user = userEvent.setup();
+    const { router, calls } = placePage();
+    await user.click(await screen.findByRole("button", { name: "Follow" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+    expect(calls("PlaceService/FollowPlace")).toEqual([]);
+  });
+});
 
 describe("place page (AC-008, FR-066, FR-032)", () => {
   it("shows the place with its parent chain and Ranked, Newest and Tales tabs, Ranked first", async () => {

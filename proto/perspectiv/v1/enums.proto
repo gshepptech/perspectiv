@@ -106,7 +106,7 @@ enum Emoji {
   EMOJI_CLAP = 6;
 }
 
-// NotificationKind is the six events that reach a user's inbox and email.
+// NotificationKind is the events that reach a user's inbox and email.
 enum NotificationKind {
   NOTIFICATION_KIND_UNSPECIFIED = 0;
   NOTIFICATION_KIND_CLAIM_RECEIVED = 1;
@@ -117,6 +117,8 @@ enum NotificationKind {
   NOTIFICATION_KIND_REPORT_RESOLVED = 6;
   // Someone followed your invite link and wrote their side.
   NOTIFICATION_KIND_INVITE_ANSWERED = 7;
+  // Someone wrote a story at a place you follow, or anywhere under it.
+  NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE = 8;
 }
 
 // ReportTargetKind is what a report points at.

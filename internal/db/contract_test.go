@@ -76,13 +76,13 @@ func TestEnumValues(t *testing.T) {
 			want: []string{"EMOJI_UNSPECIFIED", "EMOJI_HEART", "EMOJI_LAUGH", "EMOJI_WOW", "EMOJI_SAD", "EMOJI_FIRE", "EMOJI_CLAP"},
 		},
 		{
-			name: "notification kind is the six events",
+			name: "notification kind is the inbox events",
 			enum: perspectivv1.NotificationKind(0).Descriptor(),
 			want: []string{
 				"NOTIFICATION_KIND_UNSPECIFIED", "NOTIFICATION_KIND_CLAIM_RECEIVED", "NOTIFICATION_KIND_CLAIM_ACCEPTED",
 				"NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "NOTIFICATION_KIND_VOTE_OUT_OPENED",
 				"NOTIFICATION_KIND_CANON_CHANGE", "NOTIFICATION_KIND_REPORT_RESOLVED",
-				"NOTIFICATION_KIND_INVITE_ANSWERED",
+				"NOTIFICATION_KIND_INVITE_ANSWERED", "NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE",
 			},
 		},
 		{
@@ -134,11 +134,12 @@ func TestEnumValues(t *testing.T) {
 // ListByAuthor serves the profile's perspectives and tales (AC-023), and
 // ListArcSection the arc page's later pages (NFR-008). CreateInvite and
 // GetInvite serve the "I was there too" share link, ListLorePosts and
-// AddLorePost a lore's thread, and NameLore a lore's name.
+// AddLorePost a lore's thread, NameLore a lore's name, and FollowPlace and
+// ListFollowing the places a user follows.
 var services = map[string][]string{
 	"AuthService":        {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword"},
 	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount"},
-	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic"},
+	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing"},
 	"ArcService":         {"GetArc", "ListArcSection", "RetitleHourArc"},
 	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite"},
 	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore"},

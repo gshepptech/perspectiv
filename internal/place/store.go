@@ -509,3 +509,36 @@ func (s *Store) EpicTales(ctx context.Context, q TalesQuery) ([]EpicTale, error)
 	}
 	return out, nil
 }
+
+// SetFollowing follows or unfollows a place for a user; either is a no-op
+// when already so.
+func (s *Store) SetFollowing(ctx context.Context, userID, placeID uuid.UUID, on bool) error {
+	if on {
+		if err := s.q.FollowPlace(ctx, dbq.FollowPlaceParams{UserID: userID, PlaceID: placeID}); err != nil {
+			return fmt.Errorf("follow place: %w", err)
+		}
+		return nil
+	}
+	if err := s.q.UnfollowPlace(ctx, dbq.UnfollowPlaceParams{UserID: userID, PlaceID: placeID}); err != nil {
+		return fmt.Errorf("unfollow place: %w", err)
+	}
+	return nil
+}
+
+// IsFollowing reports whether the user follows the place.
+func (s *Store) IsFollowing(ctx context.Context, userID, placeID uuid.UUID) (bool, error) {
+	ok, err := s.q.IsFollowing(ctx, dbq.IsFollowingParams{UserID: userID, PlaceID: placeID})
+	if err != nil {
+		return false, fmt.Errorf("is following: %w", err)
+	}
+	return ok, nil
+}
+
+// FollowedPlaceIDs lists up to limit places the user follows, newest first.
+func (s *Store) FollowedPlaceIDs(ctx context.Context, userID uuid.UUID, limit int32) ([]uuid.UUID, error) {
+	ids, err := s.q.FollowedPlaceIDs(ctx, dbq.FollowedPlaceIDsParams{UserID: userID, Lim: limit})
+	if err != nil {
+		return nil, fmt.Errorf("followed places: %w", err)
+	}
+	return ids, nil
+}

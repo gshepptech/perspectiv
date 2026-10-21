@@ -182,6 +182,12 @@ type Place struct {
 	Category  pgtype.Text
 }
 
+type PlaceFollow struct {
+	UserID    uuid.UUID
+	PlaceID   uuid.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
 type RateLimitCounter struct {
 	Action      string
 	Subject     string

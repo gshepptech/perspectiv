@@ -184,6 +184,12 @@ type Place struct {
 	Category  *string
 }
 
+type PlaceFollow struct {
+	UserID    uuid.UUID
+	PlaceID   uuid.UUID
+	CreatedAt time.Time
+}
+
 type RateLimitCounter struct {
 	Action      string
 	Subject     string

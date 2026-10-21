@@ -234,11 +234,13 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, caller uuid.UUID, in
 	if err := s.enq.ExpiryTx(ctx, tx, id, publishedAt.Add(s.expiryWindow)); err != nil {
 		return uuid.Nil, uuid.Nil, apiutil.Internal(err)
 	}
-	if err := s.enq.NotifyTx(ctx, tx, jobs.NotifyArgs{
-		Kind:    perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC,
-		ActorID: caller, ArcID: arcID, PerspectiveID: id,
-	}); err != nil {
-		return uuid.Nil, uuid.Nil, apiutil.Internal(err)
+	for _, kind := range []perspectivv1.NotificationKind{
+		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC,
+		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE,
+	} {
+		if err := s.enq.NotifyTx(ctx, tx, jobs.NotifyArgs{Kind: kind, ActorID: caller, ArcID: arcID, PerspectiveID: id}); err != nil {
+			return uuid.Nil, uuid.Nil, apiutil.Internal(err)
+		}
 	}
 	if err := s.recordInvite(ctx, tx, caller, id, arcID, in.InviteCode); err != nil {
 		return uuid.Nil, uuid.Nil, err

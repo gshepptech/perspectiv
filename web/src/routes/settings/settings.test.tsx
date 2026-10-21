@@ -15,6 +15,8 @@ const KINDS = [
   "NOTIFICATION_KIND_VOTE_OUT_OPENED",
   "NOTIFICATION_KIND_CANON_CHANGE",
   "NOTIFICATION_KIND_REPORT_RESOLVED",
+  "NOTIFICATION_KIND_INVITE_ANSWERED",
+  "NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE",
 ];
 
 type Blocked = { userId: string; username: string };
@@ -210,12 +212,13 @@ describe("SettingsPage notification toggles", () => {
       "The canon of your arc changes",
       "A report you made is resolved",
       "Someone you invited writes their side",
+      "A new story at a place you follow",
     ];
     for (const label of labels) {
       expect(await within(region).findByRole("checkbox", { name: `${label}: in app` })).toBeChecked();
       expect(within(region).getByRole("checkbox", { name: `${label}: email` })).toBeChecked();
     }
-    expect(within(region).getAllByRole("checkbox")).toHaveLength(14);
+    expect(within(region).getAllByRole("checkbox")).toHaveLength(labels.length * 2);
   });
 
   it("turns one toggle off from the keyboard and keeps the server's answer", async () => {

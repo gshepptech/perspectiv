@@ -326,3 +326,49 @@ func (s *Service) tales(ctx context.Context, p Place, req EpicRequest, cur *epic
 	}
 	return out, nil
 }
+
+// maxFollowing caps ListFollowing.
+const maxFollowing = 100
+
+// Follow follows or unfollows a visible place for the caller and returns
+// whether they now follow it. A missing or hidden place is NotFound, even
+// to unfollow: hiding a place ends what can be done with it.
+func (s *Service) Follow(ctx context.Context, caller, placeID uuid.UUID, on bool) (bool, error) {
+	if _, err := s.store.Get(ctx, placeID); err != nil {
+		return false, notFound(err)
+	}
+	if err := s.store.SetFollowing(ctx, caller, placeID, on); err != nil {
+		return false, apiutil.Internal(err)
+	}
+	return on, nil
+}
+
+// Following reports whether the caller follows the place.
+func (s *Service) Following(ctx context.Context, caller, placeID uuid.UUID) (bool, error) {
+	ok, err := s.store.IsFollowing(ctx, caller, placeID)
+	if err != nil {
+		return false, apiutil.Internal(err)
+	}
+	return ok, nil
+}
+
+// ListFollowing returns the visible places the caller follows, most
+// recently followed first. A place hidden since it was followed is left out.
+func (s *Service) ListFollowing(ctx context.Context, caller uuid.UUID) ([]Place, error) {
+	ids, err := s.store.FollowedPlaceIDs(ctx, caller, maxFollowing)
+	if err != nil {
+		return nil, apiutil.Internal(err)
+	}
+	out := make([]Place, 0, len(ids))
+	for _, id := range ids {
+		p, err := s.store.Get(ctx, id)
+		if errors.Is(err, ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, apiutil.Internal(err)
+		}
+		out = append(out, p)
+	}
+	return out, nil
+}

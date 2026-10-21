@@ -133,6 +133,8 @@ func resolve(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, boo
 		ev, ok, err = resolveReport(ctx, q, a)
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_INVITE_ANSWERED:
 		ev, ok, err = resolveInviteAnswered(ctx, q, a)
+	case perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE:
+		ev, ok, err = resolveFollowedPlaceStory(ctx, q, a)
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_UNSPECIFIED:
 		return event{}, false, nil
 	default:
@@ -295,6 +297,28 @@ func resolveInviteAnswered(ctx context.Context, q *dbq.Queries, a jobs.NotifyArg
 		actor:      actor,
 		showActor:  true,
 		candidates: []uuid.UUID{inviter},
+		path:       "/perspectives/" + a.PerspectiveID.String(),
+		payload:    Payload{ActorID: actor, ArcID: p.ArcID, PerspectiveID: ref(a.PerspectiveID)},
+	}, true, nil
+}
+
+// resolveFollowedPlaceStory tells the followers of the arc's place, or of
+// any place above it, that someone wrote there.
+func resolveFollowedPlaceStory(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, bool, error) {
+	p, ok, err := visiblePerspective(ctx, q, a.PerspectiveID)
+	if !ok || err != nil {
+		return event{}, false, err
+	}
+	// visiblePerspective only returns a perspective that is in an arc.
+	followers, err := q.FollowersOfArcPlaces(ctx, *p.ArcID)
+	if err != nil {
+		return event{}, false, fmt.Errorf("followers of arc places: %w", err)
+	}
+	actor := ref(p.AuthorID)
+	return event{
+		actor:      actor,
+		showActor:  true,
+		candidates: followers,
 		path:       "/perspectives/" + a.PerspectiveID.String(),
 		payload:    Payload{ActorID: actor, ArcID: p.ArcID, PerspectiveID: ref(a.PerspectiveID)},
 	}, true, nil

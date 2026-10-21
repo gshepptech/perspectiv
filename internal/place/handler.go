@@ -65,7 +65,44 @@ func (h *Handler) GetPlace(ctx context.Context, req *connect.Request[perspectivv
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	return connect.NewResponse(&perspectivv1.GetPlaceResponse{Place: placeToProto(p)}), nil
+	out := placeToProto(p)
+	// Reading is public; a signed-in reader also learns whether they follow it.
+	if caller, ok := apiutil.CallerFrom(ctx); ok {
+		if out.Following, err = h.svc.Following(ctx, caller.UserID, id); err != nil {
+			return nil, apiutil.ToConnect(err)
+		}
+	}
+	return connect.NewResponse(&perspectivv1.GetPlaceResponse{Place: out}), nil
+}
+
+// FollowPlace follows or unfollows a place for the caller.
+func (h *Handler) FollowPlace(ctx context.Context, req *connect.Request[perspectivv1.FollowPlaceRequest]) (*connect.Response[perspectivv1.FollowPlaceResponse], error) {
+	caller, ok := apiutil.CallerFrom(ctx)
+	if !ok {
+		return nil, apiutil.ToConnect(apiutil.Unauthenticated("sign in to follow a place"))
+	}
+	id, err := parseID(req.Msg.GetPlaceId(), "place_id")
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	following, err := h.svc.Follow(ctx, caller.UserID, id, req.Msg.GetOn())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.FollowPlaceResponse{Following: following}), nil
+}
+
+// ListFollowing lists the places the caller follows.
+func (h *Handler) ListFollowing(ctx context.Context, _ *connect.Request[perspectivv1.ListFollowingRequest]) (*connect.Response[perspectivv1.ListFollowingResponse], error) {
+	caller, ok := apiutil.CallerFrom(ctx)
+	if !ok {
+		return nil, apiutil.ToConnect(apiutil.Unauthenticated("sign in to see the places you follow"))
+	}
+	ps, err := h.svc.ListFollowing(ctx, caller.UserID)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ListFollowingResponse{Places: placesToProto(ps)}), nil
 }
 
 // ListChildren is the drill-down: a parent's children, or the states.

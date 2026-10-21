@@ -121,6 +121,40 @@ func (q *Queries) CountUnread(ctx context.Context, userID uuid.UUID) (int32, err
 	return unread, err
 }
 
+const followersOfArcPlaces = `-- name: FollowersOfArcPlaces :many
+SELECT DISTINCT f.user_id
+FROM arcs a
+JOIN place_follows f ON f.place_id = ANY(a.place_path)
+WHERE a.id = $1
+  AND f.user_id NOT IN (
+        SELECT p.author_id FROM perspectives p
+        WHERE p.arc_id = a.id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND p.deleted_at IS NULL AND p.hidden_at IS NULL)
+`
+
+// People who follow the arc's place or any place above it, except those
+// who wrote in the arc: they hear of a new story there already
+// (NEW_PERSPECTIVE_IN_ARC).
+func (q *Queries) FollowersOfArcPlaces(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, followersOfArcPlaces, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var user_id uuid.UUID
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertNotification = `-- name: InsertNotification :exec
 INSERT INTO notifications (user_id, kind, payload)
 VALUES ($1::uuid, $2::text, $3::jsonb)

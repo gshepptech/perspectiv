@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/place.proto.
  */
 export const file_perspectiv_v1_place: GenFile = /*@__PURE__*/
-  fileDesc("ChlwZXJzcGVjdGl2L3YxL3BsYWNlLnByb3RvEg1wZXJzcGVjdGl2LnYxIkwKCFBsYWNlUmVmEgoKAmlkGAEgASgJEiYKBGtpbmQYAiABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZBIMCgRuYW1lGAMgASgJIooCCgVQbGFjZRIKCgJpZBgBIAEoCRImCgRraW5kGAIgASgOMhgucGVyc3BlY3Rpdi52MS5QbGFjZUtpbmQSDAoEbmFtZRgDIAEoCRIRCglwYXJlbnRfaWQYBCABKAkSEAoIdGltZXpvbmUYBSABKAkSKgoGc291cmNlGAYgASgOMhoucGVyc3BlY3Rpdi52MS5QbGFjZVNvdXJjZRISCgp1c2VyX2FkZGVkGAcgASgIEioKCWFuY2VzdG9ycxgIIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSLgoIY2F0ZWdvcnkYCSABKA4yHC5wZXJzcGVjdGl2LnYxLlBsYWNlQ2F0ZWdvcnkiXwoTU2VhcmNoUGxhY2VzUmVxdWVzdBINCgVxdWVyeRgBIAEoCRIRCglwYXJlbnRfaWQYAiABKAkSJgoEa2luZBgDIAEoDjIYLnBlcnNwZWN0aXYudjEuUGxhY2VLaW5kIjwKFFNlYXJjaFBsYWNlc1Jlc3BvbnNlEiQKBnBsYWNlcxgBIAMoCzIULnBlcnNwZWN0aXYudjEuUGxhY2UiIwoPR2V0UGxhY2VSZXF1ZXN0EhAKCHBsYWNlX2lkGAEgASgJIjcKEEdldFBsYWNlUmVzcG9uc2USIwoFcGxhY2UYASABKAsyFC5wZXJzcGVjdGl2LnYxLlBsYWNlIpUBChNMaXN0Q2hpbGRyZW5SZXF1ZXN0EhEKCXBhcmVudF9pZBgBIAEoCRISCgpwYWdlX3Rva2VuGAIgASgJEhEKCXBhZ2Vfc2l6ZRgDIAEoBRIUCgx3aXRoX3N0b3JpZXMYBCABKAgSLgoIY2F0ZWdvcnkYBSABKA4yHC5wZXJzcGVjdGl2LnYxLlBsYWNlQ2F0ZWdvcnkiVQoUTGlzdENoaWxkcmVuUmVzcG9uc2USJAoGcGxhY2VzGAEgAygLMhQucGVyc3BlY3Rpdi52MS5QbGFjZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiXQoSQ3JlYXRlUGxhY2VSZXF1ZXN0EgwKBG5hbWUYASABKAkSJgoEa2luZBgCIAEoDjIYLnBlcnNwZWN0aXYudjEuUGxhY2VLaW5kEhEKCXBhcmVudF9pZBgDIAEoCSJMChNDcmVhdGVQbGFjZVJlc3BvbnNlEhAKCHBsYWNlX2lkGAEgASgJEiMKBXBsYWNlGAIgASgLMhQucGVyc3BlY3Rpdi52MS5QbGFjZSKTAQoOR2V0RXBpY1JlcXVlc3QSEAoIcGxhY2VfaWQYASABKAkSIwoDdGFiGAIgASgOMhYucGVyc3BlY3Rpdi52MS5FcGljVGFiEhIKCnBhZ2VfdG9rZW4YAyABKAkSEQoJcGFnZV9zaXplGAQgASgFEiMKBWdlbnJlGAUgASgOMhQucGVyc3BlY3Rpdi52MS5HZW5yZSKsAgoHRXBpY0FyYxIOCgZhcmNfaWQYASABKAkSDQoFdGl0bGUYAiABKAkSJgoFcGxhY2UYAyABKAsyFy5wZXJzcGVjdGl2LnYxLlBsYWNlUmVmEhIKCmxvY2FsX2RhdGUYBCABKAkSEQoEaG91chgFIAEoBUgAiAEBEhUKDWNhbm9uX2xvcmVfaWQYBiABKAkSEwoLY2Fub25fc2NvcmUYByABKAESFAoMbWVtYmVyX2NvdW50GAggASgFEhkKEXBlcnNwZWN0aXZlX2NvdW50GAkgASgFEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgwKBGNpdHkYCyABKAkSDwoHZXhjZXJwdBgMIAEoCUIHCgVfaG91ciLdAgoIRXBpY1RhbGUSFgoOcGVyc3BlY3RpdmVfaWQYASABKAkSDgoGYXJjX2lkGAIgASgJEhEKCWFyY190aXRsZRgDIAEoCRImCgVwbGFjZRgEIAEoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSEgoKbG9jYWxfZGF0ZRgFIAEoCRIRCgRob3VyGAYgASgFSACIAQESJgoGYXV0aG9yGAcgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmEiMKBWdlbnJlGAggASgOMhQucGVyc3BlY3Rpdi52MS5HZW5yZRIuCgtsb3JlX3N0YXR1cxgJIAEoDjIZLnBlcnNwZWN0aXYudjEuTG9yZVN0YXR1cxIwCgxwdWJsaXNoZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg8KB2V4Y2VycHQYCyABKAlCBwoFX2hvdXIinQEKD0dldEVwaWNSZXNwb25zZRIjCgVwbGFjZRgBIAEoCzIULnBlcnNwZWN0aXYudjEuUGxhY2USJAoEYXJjcxgCIAMoCzIWLnBlcnNwZWN0aXYudjEuRXBpY0FyYxImCgV0YWxlcxgDIAMoCzIXLnBlcnNwZWN0aXYudjEuRXBpY1RhbGUSFwoPbmV4dF9wYWdlX3Rva2VuGAQgASgJMq0DCgxQbGFjZVNlcnZpY2USVwoMU2VhcmNoUGxhY2VzEiIucGVyc3BlY3Rpdi52MS5TZWFyY2hQbGFjZXNSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5TZWFyY2hQbGFjZXNSZXNwb25zZRJLCghHZXRQbGFjZRIeLnBlcnNwZWN0aXYudjEuR2V0UGxhY2VSZXF1ZXN0Gh8ucGVyc3BlY3Rpdi52MS5HZXRQbGFjZVJlc3BvbnNlElcKDExpc3RDaGlsZHJlbhIiLnBlcnNwZWN0aXYudjEuTGlzdENoaWxkcmVuUmVxdWVzdBojLnBlcnNwZWN0aXYudjEuTGlzdENoaWxkcmVuUmVzcG9uc2USVAoLQ3JlYXRlUGxhY2USIS5wZXJzcGVjdGl2LnYxLkNyZWF0ZVBsYWNlUmVxdWVzdBoiLnBlcnNwZWN0aXYudjEuQ3JlYXRlUGxhY2VSZXNwb25zZRJICgdHZXRFcGljEh0ucGVyc3BlY3Rpdi52MS5HZXRFcGljUmVxdWVzdBoeLnBlcnNwZWN0aXYudjEuR2V0RXBpY1Jlc3BvbnNlQp8BChFjb20ucGVyc3BlY3Rpdi52MUIKUGxhY2VQcm90b1ABWilwZXJzcGVjdGl2L2dlbi9wZXJzcGVjdGl2L3YxO3BlcnNwZWN0aXZ2MaICA1BYWKoCDVBlcnNwZWN0aXYuVjHKAg1QZXJzcGVjdGl2XFYx4gIZUGVyc3BlY3RpdlxWMVxHUEJNZXRhZGF0YeoCDlBlcnNwZWN0aXY6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
+  fileDesc("ChlwZXJzcGVjdGl2L3YxL3BsYWNlLnByb3RvEg1wZXJzcGVjdGl2LnYxIkwKCFBsYWNlUmVmEgoKAmlkGAEgASgJEiYKBGtpbmQYAiABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZBIMCgRuYW1lGAMgASgJIp0CCgVQbGFjZRIKCgJpZBgBIAEoCRImCgRraW5kGAIgASgOMhgucGVyc3BlY3Rpdi52MS5QbGFjZUtpbmQSDAoEbmFtZRgDIAEoCRIRCglwYXJlbnRfaWQYBCABKAkSEAoIdGltZXpvbmUYBSABKAkSKgoGc291cmNlGAYgASgOMhoucGVyc3BlY3Rpdi52MS5QbGFjZVNvdXJjZRISCgp1c2VyX2FkZGVkGAcgASgIEioKCWFuY2VzdG9ycxgIIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSLgoIY2F0ZWdvcnkYCSABKA4yHC5wZXJzcGVjdGl2LnYxLlBsYWNlQ2F0ZWdvcnkSEQoJZm9sbG93aW5nGAogASgIIl8KE1NlYXJjaFBsYWNlc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSEQoJcGFyZW50X2lkGAIgASgJEiYKBGtpbmQYAyABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZCI8ChRTZWFyY2hQbGFjZXNSZXNwb25zZRIkCgZwbGFjZXMYASADKAsyFC5wZXJzcGVjdGl2LnYxLlBsYWNlIiMKD0dldFBsYWNlUmVxdWVzdBIQCghwbGFjZV9pZBgBIAEoCSI3ChBHZXRQbGFjZVJlc3BvbnNlEiMKBXBsYWNlGAEgASgLMhQucGVyc3BlY3Rpdi52MS5QbGFjZSKVAQoTTGlzdENoaWxkcmVuUmVxdWVzdBIRCglwYXJlbnRfaWQYASABKAkSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSFAoMd2l0aF9zdG9yaWVzGAQgASgIEi4KCGNhdGVnb3J5GAUgASgOMhwucGVyc3BlY3Rpdi52MS5QbGFjZUNhdGVnb3J5IlUKFExpc3RDaGlsZHJlblJlc3BvbnNlEiQKBnBsYWNlcxgBIAMoCzIULnBlcnNwZWN0aXYudjEuUGxhY2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIl0KEkNyZWF0ZVBsYWNlUmVxdWVzdBIMCgRuYW1lGAEgASgJEiYKBGtpbmQYAiABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZBIRCglwYXJlbnRfaWQYAyABKAkiTAoTQ3JlYXRlUGxhY2VSZXNwb25zZRIQCghwbGFjZV9pZBgBIAEoCRIjCgVwbGFjZRgCIAEoCzIULnBlcnNwZWN0aXYudjEuUGxhY2UikwEKDkdldEVwaWNSZXF1ZXN0EhAKCHBsYWNlX2lkGAEgASgJEiMKA3RhYhgCIAEoDjIWLnBlcnNwZWN0aXYudjEuRXBpY1RhYhISCgpwYWdlX3Rva2VuGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBRIjCgVnZW5yZRgFIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUirAIKB0VwaWNBcmMSDgoGYXJjX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEiYKBXBsYWNlGAMgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhISCgpsb2NhbF9kYXRlGAQgASgJEhEKBGhvdXIYBSABKAVIAIgBARIVCg1jYW5vbl9sb3JlX2lkGAYgASgJEhMKC2Nhbm9uX3Njb3JlGAcgASgBEhQKDG1lbWJlcl9jb3VudBgIIAEoBRIZChFwZXJzcGVjdGl2ZV9jb3VudBgJIAEoBRIuCgpjcmVhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRjaXR5GAsgASgJEg8KB2V4Y2VycHQYDCABKAlCBwoFX2hvdXIi3QIKCEVwaWNUYWxlEhYKDnBlcnNwZWN0aXZlX2lkGAEgASgJEg4KBmFyY19pZBgCIAEoCRIRCglhcmNfdGl0bGUYAyABKAkSJgoFcGxhY2UYBCABKAsyFy5wZXJzcGVjdGl2LnYxLlBsYWNlUmVmEhIKCmxvY2FsX2RhdGUYBSABKAkSEQoEaG91chgGIAEoBUgAiAEBEiYKBmF1dGhvchgHIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIjCgVnZW5yZRgIIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSLgoLbG9yZV9zdGF0dXMYCSABKA4yGS5wZXJzcGVjdGl2LnYxLkxvcmVTdGF0dXMSMAoMcHVibGlzaGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIPCgdleGNlcnB0GAsgASgJQgcKBV9ob3VyIp0BCg9HZXRFcGljUmVzcG9uc2USIwoFcGxhY2UYASABKAsyFC5wZXJzcGVjdGl2LnYxLlBsYWNlEiQKBGFyY3MYAiADKAsyFi5wZXJzcGVjdGl2LnYxLkVwaWNBcmMSJgoFdGFsZXMYAyADKAsyFy5wZXJzcGVjdGl2LnYxLkVwaWNUYWxlEhcKD25leHRfcGFnZV90b2tlbhgEIAEoCSIyChJGb2xsb3dQbGFjZVJlcXVlc3QSEAoIcGxhY2VfaWQYASABKAkSCgoCb24YAiABKAgiKAoTRm9sbG93UGxhY2VSZXNwb25zZRIRCglmb2xsb3dpbmcYASABKAgiFgoUTGlzdEZvbGxvd2luZ1JlcXVlc3QiPQoVTGlzdEZvbGxvd2luZ1Jlc3BvbnNlEiQKBnBsYWNlcxgBIAMoCzIULnBlcnNwZWN0aXYudjEuUGxhY2Uy3wQKDFBsYWNlU2VydmljZRJXCgxTZWFyY2hQbGFjZXMSIi5wZXJzcGVjdGl2LnYxLlNlYXJjaFBsYWNlc1JlcXVlc3QaIy5wZXJzcGVjdGl2LnYxLlNlYXJjaFBsYWNlc1Jlc3BvbnNlEksKCEdldFBsYWNlEh4ucGVyc3BlY3Rpdi52MS5HZXRQbGFjZVJlcXVlc3QaHy5wZXJzcGVjdGl2LnYxLkdldFBsYWNlUmVzcG9uc2USVwoMTGlzdENoaWxkcmVuEiIucGVyc3BlY3Rpdi52MS5MaXN0Q2hpbGRyZW5SZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5MaXN0Q2hpbGRyZW5SZXNwb25zZRJUCgtDcmVhdGVQbGFjZRIhLnBlcnNwZWN0aXYudjEuQ3JlYXRlUGxhY2VSZXF1ZXN0GiIucGVyc3BlY3Rpdi52MS5DcmVhdGVQbGFjZVJlc3BvbnNlEkgKB0dldEVwaWMSHS5wZXJzcGVjdGl2LnYxLkdldEVwaWNSZXF1ZXN0Gh4ucGVyc3BlY3Rpdi52MS5HZXRFcGljUmVzcG9uc2USVAoLRm9sbG93UGxhY2USIS5wZXJzcGVjdGl2LnYxLkZvbGxvd1BsYWNlUmVxdWVzdBoiLnBlcnNwZWN0aXYudjEuRm9sbG93UGxhY2VSZXNwb25zZRJaCg1MaXN0Rm9sbG93aW5nEiMucGVyc3BlY3Rpdi52MS5MaXN0Rm9sbG93aW5nUmVxdWVzdBokLnBlcnNwZWN0aXYudjEuTGlzdEZvbGxvd2luZ1Jlc3BvbnNlQp8BChFjb20ucGVyc3BlY3Rpdi52MUIKUGxhY2VQcm90b1ABWilwZXJzcGVjdGl2L2dlbi9wZXJzcGVjdGl2L3YxO3BlcnNwZWN0aXZ2MaICA1BYWKoCDVBlcnNwZWN0aXYuVjHKAg1QZXJzcGVjdGl2XFYx4gIZUGVyc3BlY3RpdlxWMVxHUEJNZXRhZGF0YeoCDlBlcnNwZWN0aXY6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
 
 /**
  * PlaceRef is a place as a link: id, kind and name.
@@ -107,6 +107,13 @@ export type Place = Message<"perspectiv.v1.Place"> & {
    * @generated from field: perspectiv.v1.PlaceCategory category = 9;
    */
   category: PlaceCategory;
+
+  /**
+   * Whether the signed-in caller follows the place. Set by GetPlace only.
+   *
+   * @generated from field: bool following = 10;
+   */
+  following: boolean;
 };
 
 /**
@@ -560,6 +567,79 @@ export const GetEpicResponseSchema: GenMessage<GetEpicResponse> = /*@__PURE__*/
   messageDesc(file_perspectiv_v1_place, 13);
 
 /**
+ * @generated from message perspectiv.v1.FollowPlaceRequest
+ */
+export type FollowPlaceRequest = Message<"perspectiv.v1.FollowPlaceRequest"> & {
+  /**
+   * @generated from field: string place_id = 1;
+   */
+  placeId: string;
+
+  /**
+   * True follows, false unfollows. Either is a no-op when already so.
+   *
+   * @generated from field: bool on = 2;
+   */
+  on: boolean;
+};
+
+/**
+ * Describes the message perspectiv.v1.FollowPlaceRequest.
+ * Use `create(FollowPlaceRequestSchema)` to create a new message.
+ */
+export const FollowPlaceRequestSchema: GenMessage<FollowPlaceRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_place, 14);
+
+/**
+ * @generated from message perspectiv.v1.FollowPlaceResponse
+ */
+export type FollowPlaceResponse = Message<"perspectiv.v1.FollowPlaceResponse"> & {
+  /**
+   * @generated from field: bool following = 1;
+   */
+  following: boolean;
+};
+
+/**
+ * Describes the message perspectiv.v1.FollowPlaceResponse.
+ * Use `create(FollowPlaceResponseSchema)` to create a new message.
+ */
+export const FollowPlaceResponseSchema: GenMessage<FollowPlaceResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_place, 15);
+
+/**
+ * @generated from message perspectiv.v1.ListFollowingRequest
+ */
+export type ListFollowingRequest = Message<"perspectiv.v1.ListFollowingRequest"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.ListFollowingRequest.
+ * Use `create(ListFollowingRequestSchema)` to create a new message.
+ */
+export const ListFollowingRequestSchema: GenMessage<ListFollowingRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_place, 16);
+
+/**
+ * @generated from message perspectiv.v1.ListFollowingResponse
+ */
+export type ListFollowingResponse = Message<"perspectiv.v1.ListFollowingResponse"> & {
+  /**
+   * At most 100 places.
+   *
+   * @generated from field: repeated perspectiv.v1.Place places = 1;
+   */
+  places: Place[];
+};
+
+/**
+ * Describes the message perspectiv.v1.ListFollowingResponse.
+ * Use `create(ListFollowingResponseSchema)` to create a new message.
+ */
+export const ListFollowingResponseSchema: GenMessage<ListFollowingResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_place, 17);
+
+/**
  * PlaceService reads the place hierarchy, adds user places and lists a
  * place's epic. Reads are public.
  *
@@ -614,6 +694,27 @@ export const PlaceService: GenService<{
     methodKind: "unary";
     input: typeof GetEpicRequestSchema;
     output: typeof GetEpicResponseSchema;
+  },
+  /**
+   * Follows or unfollows a place: a new story at it or anywhere under it
+   * notifies the follower.
+   *
+   * @generated from rpc perspectiv.v1.PlaceService.FollowPlace
+   */
+  followPlace: {
+    methodKind: "unary";
+    input: typeof FollowPlaceRequestSchema;
+    output: typeof FollowPlaceResponseSchema;
+  },
+  /**
+   * The places the caller follows, most recently followed first.
+   *
+   * @generated from rpc perspectiv.v1.PlaceService.ListFollowing
+   */
+  listFollowing: {
+    methodKind: "unary";
+    input: typeof ListFollowingRequestSchema;
+    output: typeof ListFollowingResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_place, 0);

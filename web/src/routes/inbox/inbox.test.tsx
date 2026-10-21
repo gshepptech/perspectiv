@@ -1,8 +1,13 @@
+import { create } from "@bufbuild/protobuf";
 import { screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { NotificationKind } from "@/gen/perspectiv/v1/enums_pb";
+import { NotificationSchema } from "@/gen/perspectiv/v1/notify_pb";
 import { resetSessionForTests } from "@/lib/session";
 import { expectFitsPhone, ok, fail, preloadAccountRoutes, renderRoute, type Handlers } from "@/routes/auth/harness.testutil";
+
+import { describeNotification } from "./describe";
 
 preloadAccountRoutes();
 beforeEach(() => resetSessionForTests());
@@ -155,5 +160,18 @@ describe("InboxPage", () => {
     await screen.findByRole("list", { name: "Notifications" });
     expectFitsPhone(view.container);
     expect(within(items()[0]!).getByRole("link").className).toMatch(/break-words/);
+  });
+});
+
+describe("a new story at a followed place", () => {
+  it("names the writer and the arc, and opens the story", () => {
+    const n = create(NotificationSchema, {
+      kind: NotificationKind.NEW_STORY_AT_FOLLOWED_PLACE,
+      actor: { userId: "u-1", username: "otter" },
+      arcTitle: "Fourth quarter",
+      arcId: "arc-1",
+      perspectiveId: "p-1",
+    });
+    expect(describeNotification(n)).toEqual({ text: "otter wrote a new story in Fourth quarter, at a place you follow.", to: "/perspectives/p-1" });
   });
 });

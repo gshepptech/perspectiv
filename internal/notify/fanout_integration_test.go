@@ -362,3 +362,44 @@ func TestFanoutInviteAnswered(t *testing.T) {
 	s.expect(t, s.cat, "cat", nil, 0)
 	s.expect(t, s.ben, "ben", nil, 0)
 }
+
+// A new story tells the followers of its place and of every place above it,
+// except its author and the people who wrote in the arc, who hear of it as
+// NEW_PERSPECTIVE_IN_ARC.
+func TestFanoutNewStoryAtFollowedPlace(t *testing.T) {
+	t.Parallel()
+	s := newStory(t)
+	state := s.id(`SELECT place_id FROM arcs WHERE id = $1`, s.arc)
+	city := s.id(`INSERT INTO places (kind, name, parent_id, timezone, source)
+		VALUES ('PLACE_KIND_CITY', 'Follow Springs', $1, 'America/New_York', 'PLACE_SOURCE_USER') RETURNING id`, state)
+	s.exec(`UPDATE arcs SET place_id = $1 WHERE id = $2`, city, s.arc)
+	elsewhere := s.id(`INSERT INTO places (kind, name, timezone, source)
+		VALUES ('PLACE_KIND_STATE', 'Elsewhere', 'America/New_York', 'PLACE_SOURCE_USER') RETURNING id`)
+
+	followsState, followsCity, followsBoth, followsElsewhere := s.user("ivy"), s.user("jay"), s.user("kim"), s.user("lou")
+	follow := func(user, place uuid.UUID) {
+		s.exec(`INSERT INTO place_follows (user_id, place_id) VALUES ($1, $2)`, user, place)
+	}
+	follow(followsState, state)
+	follow(followsCity, city)
+	follow(followsBoth, state)
+	follow(followsBoth, city)
+	follow(followsElsewhere, elsewhere)
+	follow(s.ann, city) // the author
+	follow(s.ben, city) // wrote in the arc
+
+	kind := perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE
+	s.notifyNow(jobs.NotifyArgs{Kind: kind, ActorID: s.ann, ArcID: s.arc, PerspectiveID: s.pAnn})
+
+	one := []perspectivv1.NotificationKind{kind}
+	rows := s.expect(t, followsState, "ivy", one, 1)
+	if rows[0].payload["perspective_id"] != s.pAnn.String() || rows[0].payload["actor_id"] != s.ann.String() {
+		t.Fatalf("payload = %v", rows[0].payload)
+	}
+	s.expect(t, followsCity, "jay", one, 1)
+	// Following two places above the arc still means one notification.
+	s.expect(t, followsBoth, "kim", one, 1)
+	s.expect(t, followsElsewhere, "lou", nil, 0)
+	s.expect(t, s.ann, "ann", nil, 0)
+	s.expect(t, s.ben, "ben", nil, 0)
+}

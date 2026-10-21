@@ -517,6 +517,53 @@ func (q *Queries) EverywhereArcsRanked(ctx context.Context, arg EverywhereArcsRa
 	return items, nil
 }
 
+const followPlace = `-- name: FollowPlace :exec
+INSERT INTO place_follows (user_id, place_id) VALUES ($1::uuid, $2::uuid)
+ON CONFLICT (user_id, place_id) DO NOTHING
+`
+
+type FollowPlaceParams struct {
+	UserID  uuid.UUID
+	PlaceID uuid.UUID
+}
+
+func (q *Queries) FollowPlace(ctx context.Context, arg FollowPlaceParams) error {
+	_, err := q.db.Exec(ctx, followPlace, arg.UserID, arg.PlaceID)
+	return err
+}
+
+const followedPlaceIDs = `-- name: FollowedPlaceIDs :many
+SELECT place_id FROM place_follows WHERE user_id = $1::uuid
+ORDER BY created_at DESC, place_id
+LIMIT $2::integer
+`
+
+type FollowedPlaceIDsParams struct {
+	UserID uuid.UUID
+	Lim    int32
+}
+
+// The places a user follows, most recently followed first.
+func (q *Queries) FollowedPlaceIDs(ctx context.Context, arg FollowedPlaceIDsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, followedPlaceIDs, arg.UserID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var place_id uuid.UUID
+		if err := rows.Scan(&place_id); err != nil {
+			return nil, err
+		}
+		items = append(items, place_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getVisiblePlace = `-- name: GetVisiblePlace :one
 
 WITH RECURSIVE chain AS (
@@ -610,6 +657,22 @@ func (q *Queries) InsertUserPlace(ctx context.Context, arg InsertUserPlaceParams
 		&i.UserAdded,
 	)
 	return i, err
+}
+
+const isFollowing = `-- name: IsFollowing :one
+SELECT EXISTS (SELECT 1 FROM place_follows WHERE user_id = $1::uuid AND place_id = $2::uuid)::boolean AS following
+`
+
+type IsFollowingParams struct {
+	UserID  uuid.UUID
+	PlaceID uuid.UUID
+}
+
+func (q *Queries) IsFollowing(ctx context.Context, arg IsFollowingParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isFollowing, arg.UserID, arg.PlaceID)
+	var following bool
+	err := row.Scan(&following)
+	return following, err
 }
 
 const listAncestors = `-- name: ListAncestors :many
@@ -985,4 +1048,18 @@ func (q *Queries) SearchPlaces(ctx context.Context, arg SearchPlacesParams) ([]S
 		return nil, err
 	}
 	return items, nil
+}
+
+const unfollowPlace = `-- name: UnfollowPlace :exec
+DELETE FROM place_follows WHERE user_id = $1::uuid AND place_id = $2::uuid
+`
+
+type UnfollowPlaceParams struct {
+	UserID  uuid.UUID
+	PlaceID uuid.UUID
+}
+
+func (q *Queries) UnfollowPlace(ctx context.Context, arg UnfollowPlaceParams) error {
+	_, err := q.db.Exec(ctx, unfollowPlace, arg.UserID, arg.PlaceID)
+	return err
 }

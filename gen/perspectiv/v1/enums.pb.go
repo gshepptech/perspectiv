@@ -588,7 +588,7 @@ func (Emoji) EnumDescriptor() ([]byte, []int) {
 	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{9}
 }
 
-// NotificationKind is the six events that reach a user's inbox and email.
+// NotificationKind is the events that reach a user's inbox and email.
 type NotificationKind int32
 
 const (
@@ -601,6 +601,8 @@ const (
 	NotificationKind_NOTIFICATION_KIND_REPORT_RESOLVED        NotificationKind = 6
 	// Someone followed your invite link and wrote their side.
 	NotificationKind_NOTIFICATION_KIND_INVITE_ANSWERED NotificationKind = 7
+	// Someone wrote a story at a place you follow, or anywhere under it.
+	NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE NotificationKind = 8
 )
 
 // Enum value maps for NotificationKind.
@@ -614,16 +616,18 @@ var (
 		5: "NOTIFICATION_KIND_CANON_CHANGE",
 		6: "NOTIFICATION_KIND_REPORT_RESOLVED",
 		7: "NOTIFICATION_KIND_INVITE_ANSWERED",
+		8: "NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE",
 	}
 	NotificationKind_value = map[string]int32{
-		"NOTIFICATION_KIND_UNSPECIFIED":            0,
-		"NOTIFICATION_KIND_CLAIM_RECEIVED":         1,
-		"NOTIFICATION_KIND_CLAIM_ACCEPTED":         2,
-		"NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC": 3,
-		"NOTIFICATION_KIND_VOTE_OUT_OPENED":        4,
-		"NOTIFICATION_KIND_CANON_CHANGE":           5,
-		"NOTIFICATION_KIND_REPORT_RESOLVED":        6,
-		"NOTIFICATION_KIND_INVITE_ANSWERED":        7,
+		"NOTIFICATION_KIND_UNSPECIFIED":                 0,
+		"NOTIFICATION_KIND_CLAIM_RECEIVED":              1,
+		"NOTIFICATION_KIND_CLAIM_ACCEPTED":              2,
+		"NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC":      3,
+		"NOTIFICATION_KIND_VOTE_OUT_OPENED":             4,
+		"NOTIFICATION_KIND_CANON_CHANGE":                5,
+		"NOTIFICATION_KIND_REPORT_RESOLVED":             6,
+		"NOTIFICATION_KIND_INVITE_ANSWERED":             7,
+		"NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE": 8,
 	}
 )
 
@@ -1143,7 +1147,7 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\n" +
 	"EMOJI_FIRE\x10\x05\x12\x0e\n" +
 	"\n" +
-	"EMOJI_CLAP\x10\x06*\xc8\x02\n" +
+	"EMOJI_CLAP\x10\x06*\xfb\x02\n" +
 	"\x10NotificationKind\x12!\n" +
 	"\x1dNOTIFICATION_KIND_UNSPECIFIED\x10\x00\x12$\n" +
 	" NOTIFICATION_KIND_CLAIM_RECEIVED\x10\x01\x12$\n" +
@@ -1152,7 +1156,8 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"!NOTIFICATION_KIND_VOTE_OUT_OPENED\x10\x04\x12\"\n" +
 	"\x1eNOTIFICATION_KIND_CANON_CHANGE\x10\x05\x12%\n" +
 	"!NOTIFICATION_KIND_REPORT_RESOLVED\x10\x06\x12%\n" +
-	"!NOTIFICATION_KIND_INVITE_ANSWERED\x10\a*\x95\x01\n" +
+	"!NOTIFICATION_KIND_INVITE_ANSWERED\x10\a\x121\n" +
+	"-NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE\x10\b*\x95\x01\n" +
 	"\x10ReportTargetKind\x12\"\n" +
 	"\x1eREPORT_TARGET_KIND_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eREPORT_TARGET_KIND_PERSPECTIVE\x10\x01\x12\x1c\n" +
