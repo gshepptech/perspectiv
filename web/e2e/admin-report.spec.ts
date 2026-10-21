@@ -6,7 +6,7 @@
 import { expect, test } from "@playwright/test";
 
 import { reportAccounts } from "./support/accounts.ts";
-import { card, reader, signedIn, visit, writeAt } from "./support/ui.ts";
+import { reader, signedIn, visit, writeAt } from "./support/ui.ts";
 
 const STORE = "Harbor Light Laundromat";
 const HIDDEN = "This perspective was hidden by a moderator.";
@@ -29,7 +29,11 @@ test("NFR-004 a report is resolved by an admin and the perspective is hidden fro
   // Any signed-in, verified reader can report; the reporter has no
   // perspective in this arc.
   await visit(reporter.page, reporterAcct, arc);
-  await card(reporter.page, writerAcct.username).getByRole("button", { name: "Report", exact: true }).click();
+  await reporter.page.getByRole("link", { name: `Read ${writerAcct.username}'s perspective` }).click();
+  await reporter.page
+    .getByRole("region", { name: "Respond to this story" })
+    .getByRole("button", { name: "Report", exact: true })
+    .click();
   const dialog = reporter.page.getByRole("dialog", { name: `Report ${writerAcct.username}'s perspective` });
   await dialog.getByRole("combobox", { name: "Reason" }).click();
   await reporter.page.getByRole("option", { name: "Real name or handle of a non-user" }).click();

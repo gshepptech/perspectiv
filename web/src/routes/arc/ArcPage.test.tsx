@@ -29,33 +29,34 @@ function open(path: string, getArc: FakeHandler, opts: { signedIn?: boolean; rou
 const before = (a: Element, b: Element) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
 describe("arc page reading order", () => {
-  it("AC-030 FR-030 OT-032: renders canon, then contenders, then tales, with a demoted lore still listed", async () => {
+  it("AC-030 FR-030 OT-032: renders canon, then contenders, then stories standing alone, with a demoted lore still listed", async () => {
     await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Closing night at Moonbean" })).toBeInTheDocument();
     const canon = screen.getByRole("region", { name: "Canon" });
     const sublores = screen.getByRole("region", { name: "Contenders" });
-    const tales = screen.getByRole("region", { name: "Tales" });
+    const alone = screen.getByRole("region", { name: "Standing alone" });
     expect(before(canon, sublores)).toBe(true);
-    expect(before(sublores, tales)).toBe(true);
+    expect(before(sublores, alone)).toBe(true);
 
+    expect(within(canon).getByText("Canon of the day")).toBeInTheDocument();
+    expect(within(canon).getByRole("heading", { name: "wren, otter and 2 others" })).toBeInTheDocument();
     expect(within(canon).getByText("Canon text by otter")).toBeInTheDocument();
-    // The former canon, now a 3-member sublore, keeps every perspective readable.
-    // The former canon, now a 3-member contender: its people are listed, and
-    // its stories open on its lore page.
-    for (const name of ["moth", "finch", "vole"]) {
-      expect(within(sublores).getByRole("link", { name })).toHaveAttribute("href", `/users/${name}`);
-    }
-    expect(within(sublores).getByText("3 of 4 members to be eligible for canon")).toBeInTheDocument();
-    expect(within(sublores).getByRole("link", { name: /Read this lore/ })).toHaveAttribute("href", "/lores/lore-former");
     expect(within(canon).getByRole("link", { name: /Open the canon/ })).toHaveAttribute("href", "/lores/lore-canon");
-    expect(within(tales).getByText("A tale nobody claimed")).toBeInTheDocument();
-    expect(within(tales).getByText("A story the lore voted out")).toBeInTheDocument();
-    expect(within(tales).getByText("Removed from lore")).toBeInTheDocument();
-    // Every perspective links to the reader.
-    expect(within(tales).getAllByRole("link", { name: /^Read/ })[0]).toHaveAttribute("href", "/perspectives/p-solo");
-    // Published but not yet linked perspectives are shown too.
-    expect(screen.getByRole("region", { name: "Not yet linked" })).toHaveTextContent("Just published");
+    // The former canon, now a 3-member contender, keeps every story listed.
+    const former = within(sublores).getByRole("region", { name: "moth, finch and 1 other" });
+    for (const name of ["moth", "finch", "vole"]) {
+      expect(within(former).getByRole("article", { name: `${name}'s perspective` })).toBeInTheDocument();
+    }
+    expect(within(former).getByText("1 more person to be eligible for canon")).toBeInTheDocument();
+    expect(within(former).getByRole("link", { name: /Open this lore/ })).toHaveAttribute("href", "/lores/lore-former");
+    // Stories in no lore: the one still waiting for a link first, then the tales.
+    expect(before(within(alone).getByText("Just published"), within(alone).getByText("A tale nobody claimed"))).toBe(true);
+    expect(within(alone).getByText("A story the lore voted out")).toBeInTheDocument();
+    expect(within(alone).getByText(/Removed from lore/)).toBeInTheDocument();
+    expect(within(alone).getByText(/Waiting for a link/)).toBeInTheDocument();
+    // Every story links to its own page.
+    expect(within(alone).getByRole("link", { name: "Read solo_teller's perspective" })).toHaveAttribute("href", "/perspectives/p-solo");
   });
 
   it("shows the place chain, the date and the arc's places as links", async () => {
@@ -84,10 +85,13 @@ describe("arc page reading order", () => {
       summary({ id: "p-hid", loreStatus: "LORE_STATUS_SOLO", excerpt: "", hidden: true }),
     ];
     await open("/arcs/arc-day", () => ({ body: res }));
-    const tales = await screen.findByRole("region", { name: "Tales" });
-    expect(within(tales).getByText("This perspective was deleted.")).toBeInTheDocument();
-    expect(within(tales).getByText("This perspective was hidden by a moderator.")).toBeInTheDocument();
-    expect(within(tales).queryByRole("button")).toBeNull();
+    const alone = await screen.findByRole("region", { name: "Standing alone" });
+    expect(within(alone).getByText("This perspective was deleted.")).toBeInTheDocument();
+    expect(within(alone).getByText("This perspective was hidden by a moderator.")).toBeInTheDocument();
+    for (const gone of within(alone).getAllByRole("article", { name: "Unavailable perspective" })) {
+      expect(within(gone).queryByRole("button")).toBeNull();
+      expect(within(gone).queryByRole("link")).toBeNull();
+    }
   });
 
   it("explains a missing arc", async () => {
@@ -142,32 +146,17 @@ describe("hour timeline", () => {
 });
 
 describe("signed-out reader", () => {
-  it("AC-009: reads canon, sublores and tales, and every write action redirects to login", async () => {
+  it("AC-009: reads canon, contenders and stories standing alone, and an upvote redirects to login", async () => {
     const { api } = await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
     const canon = await screen.findByRole("region", { name: "Canon" });
     expect(within(canon).getByText("Canon text by otter")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Tales" })).toHaveTextContent("A tale nobody claimed");
+    expect(screen.getByRole("region", { name: "Standing alone" })).toHaveTextContent("A tale nobody claimed");
 
     const card = within(canon).getByRole("article", { name: "otter's perspective" });
-    await userEvent.click(within(card).getByRole("button", { name: "Upvote" }));
+    await userEvent.click(await within(card).findByRole("button", { name: "Upvote" }));
     expect(await screen.findByTestId("login")).toHaveTextContent("login at /login?next=%2Farcs%2Farc-day");
     expect(api.calls.some((c) => c.procedure.startsWith("VoteService"))).toBe(false);
   });
-
-  for (const [label, name] of [
-    ["react", /^Heart/],
-    ["claim", "Claim a character"],
-    ["report", "Report"],
-  ] as const) {
-    it(`AC-009: the ${label} action redirects to login without calling the server`, async () => {
-      const { api } = await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
-      const canon = await screen.findByRole("region", { name: "Canon" });
-      const card = within(canon).getByRole("article", { name: "otter's perspective" });
-      await userEvent.click(await within(card).findByRole("button", { name }));
-      expect(await screen.findByTestId("login")).toHaveTextContent("next=%2Farcs%2Farc-day");
-      expect(api.calls.some((c) => /^(ReactService|LoreService|ModerationService)/.test(c.procedure))).toBe(false);
-    });
-  }
 });
 
 describe("participation", () => {
@@ -180,7 +169,7 @@ describe("participation", () => {
     await open("/arcs/arc-day", () => ({ body: res }), { signedIn: true });
     const write = await screen.findByRole("link", { name: "Write your perspective" });
     expect(write).toHaveAttribute("href", "/compose?placeId=pl-store&date=2026-10-01");
-    expect(screen.getByText(/Only people with a perspective in this arc can upvote/)).toBeInTheDocument();
+    expect(screen.getByText(/Only people with a perspective here can upvote/)).toBeInTheDocument();
   });
 
   it("links a participant to their own perspective instead", async () => {
@@ -230,7 +219,7 @@ describe("arc page lists are paged (NFR-008)", () => {
         }),
       },
     });
-    const tales = await screen.findByRole("region", { name: "Tales" });
+    const tales = await screen.findByRole("region", { name: "Standing alone" });
     expect(within(tales).queryByText("A later tale")).toBeNull();
     await user.click(within(tales).getByRole("button", { name: "Show more tales" }));
     expect(await within(tales).findByText("A later tale")).toBeInTheDocument();
@@ -243,7 +232,7 @@ describe("arc page lists are paged (NFR-008)", () => {
 
   it("offers no more when a list has no next page", async () => {
     await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
-    await screen.findByRole("region", { name: "Tales" });
+    await screen.findByRole("region", { name: "Standing alone" });
     expect(screen.queryByRole("button", { name: /^Show more/ })).toBeNull();
   });
 
@@ -253,7 +242,7 @@ describe("arc page lists are paged (NFR-008)", () => {
     res.viewer = { perspectiveId: "p-page-three", loreId: "lore-elsewhere" };
     await open("/arcs/arc-day", () => ({ body: res }), { signedIn: true });
     expect(await screen.findByRole("link", { name: "Read yours" })).toHaveAttribute("href", "/perspectives/p-page-three");
-    expect(screen.queryByText(/Only people with a perspective in this arc can upvote/)).toBeNull();
+    expect(screen.queryByText(/Only people with a perspective here can upvote/)).toBeNull();
   });
 });
 

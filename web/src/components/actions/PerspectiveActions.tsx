@@ -31,7 +31,16 @@ export type ViewerRights = {
  * perspective is read once per card (and shared with the reader page's cache).
  * A deleted or hidden perspective has no actions and is never fetched.
  */
-export function PerspectiveActions({ summary, rights }: { summary: PerspectiveSummary; rights: ViewerRights }) {
+export function PerspectiveActions({
+  summary,
+  rights,
+  withCast = true,
+}: {
+  summary: PerspectiveSummary;
+  rights: ViewerRights;
+  /** False when the page already shows the story's cast. */
+  withCast?: boolean;
+}) {
   const session = useSession();
   const gone = summary.deleted || summary.hidden;
   const full = useQuery({ ...perspectiveQuery(summary.id), enabled: !gone });
@@ -49,7 +58,7 @@ export function PerspectiveActions({ summary, rights }: { summary: PerspectiveSu
 
   return (
     <div className="mt-3 flex flex-col gap-3 border-t border-rule pt-3">
-      {p && <Cast characters={p.characters} />}
+      {p && withCast && <Cast characters={p.characters} />}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <VoteButton perspectiveId={summary.id} upvotes={p?.upvotes ?? summary.upvotes} voted={p?.voted ?? false} canVote={canVote} />
         {p && <ReactBar perspectiveId={summary.id} counts={p.reacts} />}

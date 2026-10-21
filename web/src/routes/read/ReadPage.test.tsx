@@ -44,6 +44,8 @@ describe("read page (US-007, OT-033, OT-036)", () => {
     expect(screen.getByText(/January 14, 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Mystery/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to the arc" })).toHaveAttribute("href", "/arcs/arc-1");
+    // A story in a lore links to the lore, where the stories it is linked with are.
+    expect(screen.getByRole("link", { name: "In lore: read the lore" })).toHaveAttribute("href", "/lores/lore-1");
     expect(screen.getByRole("link", { name: "Sign in" })).toBeInTheDocument();
     expect(calls("PerspectiveService/Get")).toEqual([{ perspectiveId: "p-1" }]);
     expect(document.querySelector("canvas")).toBeNull();
@@ -182,8 +184,9 @@ describe("reader and arc page share one cached perspective", () => {
     });
     await user.click(await screen.findByRole("link", { name: "Back to the arc" }));
     const canon = await screen.findByRole("region", { name: "Canon" });
-    // The card of the perspective just read uses the reader's cache entry.
-    await waitFor(() => expect(within(canon).getAllByRole("group", { name: "Reacts" }).length).toBeGreaterThan(0));
+    // The row of the perspective just read uses the reader's cache entry.
+    const otter = within(canon).getByRole("article", { name: "otter's perspective" });
+    expect(await within(otter).findByRole("button", { name: "Upvote" })).toBeInTheDocument();
     expect(screen.queryByText(/Something went wrong/)).not.toBeInTheDocument();
   });
 });

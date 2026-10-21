@@ -1,8 +1,9 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { vi } from "vitest";
 
+import { createQueryClient } from "@/app/queryClient";
 import { buildRoutes } from "@/app/router";
 import { preloadedPageLoader, preloadPages } from "@/app/routes.testutil";
 import { connectError, installFakeApi, type FakeReply } from "@/lib/fakeApi.testutil";
@@ -44,8 +45,10 @@ export function renderApp(path: string, handlers: Record<string, BodyHandler>, o
     return fake(input, init);
   });
   const router = createMemoryRouter(buildRoutes(preloadedPageLoader), { initialEntries: [path] });
-  // Retries are off so an error reply shows at once.
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  // The app's own client, so caching matches production; retries are off so
+  // an error reply shows at once.
+  const queryClient = createQueryClient();
+  queryClient.setDefaultOptions({ ...queryClient.getDefaultOptions(), queries: { ...queryClient.getDefaultOptions().queries, retry: false } });
   const view = render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />

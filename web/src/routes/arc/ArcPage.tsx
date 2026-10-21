@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { ArrowLeft, ArrowRight, Clock, Crown, PenLine } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Crown, Pin, PenLine } from "lucide-react";
 import { Fragment, useState, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router";
 
@@ -8,15 +8,16 @@ import type { ViewerRights } from "@/components/actions/PerspectiveActions";
 import { ReportDialog } from "@/components/actions/ReportDialog";
 import { Button } from "@/components/ui/Button";
 import type { Arc, ArcLore, GetArcResponse, HourArc, ListArcSectionResponse } from "@/gen/perspectiv/v1/arc_pb";
+import type { Lore } from "@/gen/perspectiv/v1/lore_pb";
 import { ArcSection, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { PerspectiveSummary } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
+import { cn } from "@/lib/cn";
 import { useSession, type Session } from "@/lib/session";
 
-import { AuthorLink } from "@/components/reader/AuthorLink";
 
 import { dateLabel, hourLabel } from "./labels";
-import { PerspectiveCard } from "./PerspectiveCard";
+import { StoryRow } from "./StoryRow";
 
 export const arcKey = (arcId: string) => ["arc", "getArc", { arcId }] as const;
 
@@ -87,46 +88,142 @@ function composeHref(arc: Arc): string {
   return `/compose?${q.toString()}`;
 }
 
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+function Section({ id, title, intro, children }: { id: string; title: string; intro?: string; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="mt-10 min-w-0">
-      <h2 id={id} className="border-b border-rule pb-2 text-xl">
+    <section aria-labelledby={id} className="min-w-0">
+      <h2 id={id} className="text-xl">
         {title}
       </h2>
+      {intro && <p className="mt-1 text-sm text-ink-muted">{intro}</p>}
       {children}
     </section>
   );
 }
 
-function CardList({ items, rights, level = 3 }: { items: PerspectiveSummary[]; rights?: ViewerRights; level?: 3 | 4 }) {
+function Rows({
+  items,
+  rights,
+  level = 3,
+  showStanding = true,
+}: {
+  items: PerspectiveSummary[];
+  rights?: ViewerRights;
+  level?: 3 | 4;
+  showStanding?: boolean;
+}) {
   return (
-    <ul className="mt-4 grid min-w-0 gap-4">
+    <ul className="mt-2 min-w-0 divide-y divide-rule">
       {items.map((p) => (
         <li key={p.id} className="min-w-0">
-          <PerspectiveCard summary={p} rights={rights} level={level} />
+          <StoryRow summary={p} rights={rights} level={level} showStanding={showStanding} />
         </li>
       ))}
     </ul>
   );
 }
 
-function loreLine(l: ArcLore): string {
+function plural(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
+/** "knightsfan_04, paintedknight and 3 others": a lore is named by who is in it. */
+function loreTitle(lore: Lore, stories: PerspectiveSummary[]): string {
+  const names = (lore.members.length > 0 ? lore.members.map((m) => m.user?.username) : stories.map((p) => p.author?.username)).filter(
+    (n): n is string => !!n,
+  );
+  if (names.length === 0) return "A lore";
+  if (names.length <= 2) return names.join(" and ");
+  const rest = names.length - 2;
+  return `${names[0]}, ${names[1]} and ${plural(rest, "other", "others")}`;
+}
+
+/** Members a lore needs before it can be canon (CANON_MIN_MEMBERS). */
+const CANON_MIN_MEMBERS = 4;
+
+/**
+ * One lore as a block: its flair, who is in it, its counts, its stories as
+ * rows and the way into its own page. The canon's block is pinned first.
+ */
+function LoreBlock({ l, canon, rank, rights }: { l: ArcLore; canon: boolean; rank: number; rights: ViewerRights }) {
   const lore = l.lore;
-  if (!lore) return "";
-  return `${lore.memberCount} ${lore.memberCount === 1 ? "member" : "members"} · ${lore.upvotes} ${lore.upvotes === 1 ? "upvote" : "upvotes"}`;
+  if (!lore) return null;
+  const titleId = `lore-${lore.id}`;
+  const short = CANON_MIN_MEMBERS - lore.memberCount;
+  return (
+    <section
+      aria-labelledby={titleId}
+      className={cn("min-w-0 rounded-md border bg-paper px-3 pt-3 pb-2 sm:px-4", canon ? "border-accent" : "border-rule")}
+    >
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        {canon ? (
+          <>
+            <span className="inline-flex items-center gap-1 font-medium text-accent">
+              <Crown aria-hidden size={16} />
+              Canon of the day
+            </span>
+            <span className="inline-flex items-center gap-1 text-ink-muted">
+              <Pin aria-hidden size={14} />
+              Pinned
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="font-medium text-ink">Contender {rank}</span>
+            <span className="text-ink-muted">
+              {short > 0 ? `${plural(short, "more person", "more people")} to be eligible for canon` : "Eligible for canon; the ranking decides"}
+            </span>
+          </>
+        )}
+      </p>
+      <h3 id={titleId} className="mt-1 text-xl break-words">
+        {loreTitle(lore, l.perspectives)}
+      </h3>
+      <p className="text-sm text-ink-muted">
+        {plural(lore.memberCount, "story", "stories")} · {plural(lore.upvotes, "upvote", "upvotes")}
+      </p>
+      <Rows items={l.perspectives} rights={rights} level={4} showStanding={false} />
+      <p className="border-t border-rule pt-1">
+        <Link
+          to={`/lores/${lore.id}`}
+          className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent underline underline-offset-4"
+        >
+          {canon ? "Open the canon: who was who, full stories and thread" : "Open this lore: who was who, full stories and thread"}
+          <ArrowRight aria-hidden size={16} />
+        </Link>
+      </p>
+    </section>
+  );
+}
+
+function NoCanonYet({ leader }: { leader: ArcLore | undefined }) {
+  const members = leader?.lore?.memberCount ?? 0;
+  return (
+    <section aria-labelledby="arc-canon" className="rounded-md border border-dashed border-rule px-4 py-3">
+      <h2 id="arc-canon" className="inline-flex items-center gap-1 font-sans text-sm font-medium text-ink-muted">
+        <Crown aria-hidden size={16} />
+        Canon
+      </h2>
+      <p className="mt-1 text-ink-muted">
+        No canon yet. When people find each other in their stories, the linked stories form a lore, and a lore of{" "}
+        {CANON_MIN_MEMBERS} or more that readers favour becomes the canon of the day.
+        {leader &&
+          ` The leading contender has ${members} of ${CANON_MIN_MEMBERS} members${members >= CANON_MIN_MEMBERS ? " and is waiting for the next ranking" : ""}.`}
+      </p>
+    </section>
+  );
 }
 
 /**
- * A day arc's hours in ascending hour order, each with its canon's perspectives
- * stitched in read-only: voting and claiming in an hour depend on who wrote in
+ * A day arc's hours in ascending hour order, each with its canon's stories
+ * as read-only rows: voting and claiming in an hour depend on who wrote in
  * that hour's arc, so those actions live on the hour arc's own page.
  */
 function HourTimeline({ arcId, first, firstToken }: { arcId: string; first: HourArc[]; firstToken: string }) {
   const more = useMore(arcId, ArcSection.HOURS, firstToken, (p) => p.hours);
   const sorted = [...first, ...more.items].sort((a, b) => (a.arc?.hour ?? 0) - (b.arc?.hour ?? 0));
   return (
-    <Section id="arc-hours" title="Hours">
-      <ol className="mt-4 grid min-w-0 gap-6 border-l-2 border-rule pl-4">
+    <Section id="arc-hours" title="Hours" intro="This day, hour by hour. Each hour is its own arc with its own canon.">
+      <ol className="mt-3 grid min-w-0 gap-4 border-l-2 border-rule pl-4">
         {sorted.map((h) => {
           const a = h.arc;
           if (!a) return null;
@@ -138,15 +235,13 @@ function HourTimeline({ arcId, first, firstToken }: { arcId: string; first: Hour
                 <span className="min-w-0 break-words">{a.title}</span>
               </h3>
               <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-ink-muted">
-                <span>
-                  {h.perspectiveCount} {h.perspectiveCount === 1 ? "perspective" : "perspectives"}
-                </span>
+                <span>{plural(h.perspectiveCount, "perspective", "perspectives")}</span>
                 <Link to={`/arcs/${a.id}`} className="font-medium text-accent underline underline-offset-4">
                   Open the {at} arc
                 </Link>
               </p>
               {h.canon && h.canon.perspectives.length > 0 ? (
-                <CardList items={h.canon.perspectives} level={4} />
+                <Rows items={h.canon.perspectives} level={4} showStanding={false} />
               ) : (
                 <p className="mt-2 text-sm text-ink-muted">No canon yet</p>
               )}
@@ -156,6 +251,88 @@ function HourTimeline({ arcId, first, firstToken }: { arcId: string; first: Hour
       </ol>
       <MoreButton label="Show more hours" more={more} />
     </Section>
+  );
+}
+
+/** Every lore but the canon that has a member, highest rank first, a page at a time. */
+function Contenders({ arcId, res, rights }: { arcId: string; res: GetArcResponse; rights: ReturnType<typeof rightsIn> }) {
+  const more = useMore(arcId, ArcSection.SUBLORES, res.subloresNextPageToken, (p) => p.sublores);
+  const sublores = [...res.sublores, ...more.items];
+  if (sublores.length === 0) return null;
+  return (
+    <Section
+      id="arc-sublores"
+      title="Contenders"
+      intro="Other groups of people who found each other in their stories. One takes the canon when readers favour it more."
+    >
+      <div className="mt-3 grid min-w-0 gap-4">
+        {sublores.map((l, i) => (
+          <LoreBlock key={l.lore?.id ?? i} l={l} canon={false} rank={i + 1} rights={rights.forLore(l)} />
+        ))}
+      </div>
+      <MoreButton label="Show more contenders" more={more} />
+    </Section>
+  );
+}
+
+/** Stories in no lore: those still waiting for a link, then tales. */
+function StandingAlone({ arcId, res, rights }: { arcId: string; res: GetArcResponse; rights: ViewerRights }) {
+  const unlinked = useMore(arcId, ArcSection.UNLINKED, res.unlinkedNextPageToken, (p) => p.perspectives);
+  const tales = useMore(arcId, ArcSection.TALES, res.talesNextPageToken, (p) => p.perspectives);
+  const waiting = [...res.unlinked, ...unlinked.items];
+  const alone = [...res.tales, ...tales.items];
+  if (waiting.length === 0 && alone.length === 0) return null;
+  return (
+    <Section
+      id="arc-alone"
+      title="Standing alone"
+      intro="Stories nobody has linked to. Waiting ones can still join a lore for a week after they are published; after that they stand alone as tales."
+    >
+      <Rows items={[...waiting, ...alone]} rights={rights} />
+      <MoreButton label="Show more waiting stories" more={unlinked} />
+      <MoreButton label="Show more tales" more={tales} />
+    </Section>
+  );
+}
+
+/** How many stories and lores the page has loaded, with "+" when a list has more. */
+function counts(res: GetArcResponse): string {
+  const stories =
+    (res.canon?.perspectives.length ?? 0) +
+    res.sublores.reduce((n, l) => n + l.perspectives.length, 0) +
+    res.unlinked.length +
+    res.tales.length;
+  const more = res.subloresNextPageToken || res.unlinkedNextPageToken || res.talesNextPageToken ? "+" : "";
+  const lores = (res.canon ? 1 : 0) + res.sublores.length;
+  return `${stories}${more} ${stories === 1 && !more ? "story" : "stories"} · ${lores}${res.subloresNextPageToken ? "+" : ""} ${lores === 1 ? "lore" : "lores"}`;
+}
+
+function HowItWorks({ arc, res, rights }: { arc: Arc; res: GetArcResponse; rights: ReturnType<typeof rightsIn> }) {
+  const session = useSession();
+  return (
+    <aside aria-labelledby="arc-how" className="min-w-0 self-start rounded-md border border-rule bg-surface p-4 text-sm">
+      <h2 id="arc-how" className="font-sans text-base font-medium">
+        How this day works
+      </h2>
+      <ol className="mt-2 grid list-decimal gap-1.5 pl-5 text-ink">
+        <li>Everyone who was here writes their own side.</li>
+        <li>If someone else's story describes you, open it and claim that character.</li>
+        <li>Stories linked by claims become a lore, with its own thread.</li>
+        <li>
+          The lore readers favour most, with {CANON_MIN_MEMBERS} or more people, becomes the canon of the day. The others stay as
+          contenders.
+        </li>
+      </ol>
+      <p className="mt-3 text-ink-muted">{counts(res)}</p>
+      {session && !rights.participant && (
+        <p className="mt-2 text-ink-muted">Only people with a perspective here can upvote or claim characters. Anyone signed in can react.</p>
+      )}
+      {arc.place && (
+        <div className="mt-3">
+          <ReportDialog targetKind={ReportTargetKind.PLACE} targetId={arc.place.id} targetLabel={arc.place.name} triggerLabel="Report place" />
+        </div>
+      )}
+    </aside>
   );
 }
 
@@ -227,178 +404,28 @@ function ArcView({ res }: { res: GetArcResponse }) {
               </Link>
             </Button>
           )}
-          {arc.place && (
-            <ReportDialog
-              targetKind={ReportTargetKind.PLACE}
-              targetId={arc.place.id}
-              targetLabel={arc.place.name}
-              triggerLabel="Report place"
-            />
+        </div>
+      </header>
+
+      <div className="mt-6 grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="grid min-w-0 content-start gap-8">
+          {res.canon && res.canon.lore && res.canon.perspectives.length > 0 ? (
+            <section aria-labelledby="arc-canon" className="min-w-0">
+              <h2 id="arc-canon" className="sr-only">
+                Canon
+              </h2>
+              <LoreBlock l={res.canon} canon rank={0} rights={rights.forLore(res.canon)} />
+            </section>
+          ) : (
+            <NoCanonYet leader={res.sublores[0]} />
           )}
+          {!isHour && res.hours.length > 0 && <HourTimeline arcId={arc.id} first={res.hours} firstToken={res.hoursNextPageToken} />}
+          <Contenders arcId={arc.id} res={res} rights={rights} />
+          <StandingAlone arcId={arc.id} res={res} rights={rights.outsideLore} />
         </div>
-        {session && !rights.participant && (
-          <p className="mt-2 text-sm text-ink-muted">
-            Only people with a perspective in this arc can upvote or claim characters. Anyone signed in can react.
-          </p>
-        )}
-      </header>
-
-      <Section id="arc-canon" title="Canon">
-        {res.canon && res.canon.perspectives.length > 0 ? (
-          <>
-            <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
-              <span className="inline-flex items-center gap-1 font-medium text-accent">
-                <Crown aria-hidden size={16} />
-                The day as it is remembered
-              </span>
-              <span>{loreLine(res.canon)}</span>
-              {res.canon.lore && (
-                <Link
-                  to={`/lores/${res.canon.lore.id}`}
-                  className="inline-flex min-h-11 items-center gap-1 font-medium text-accent underline underline-offset-4"
-                >
-                  Open the canon, cast and thread
-                  <ArrowRight aria-hidden size={16} />
-                </Link>
-              )}
-            </p>
-            <CardList items={res.canon.perspectives} rights={rights.forLore(res.canon)} />
-          </>
-        ) : (
-          <NoCanonYet leader={res.sublores[0]} />
-        )}
-      </Section>
-
-      {!isHour && res.hours.length > 0 && <HourTimeline arcId={arc.id} first={res.hours} firstToken={res.hoursNextPageToken} />}
-
-      <Sublores arcId={arc.id} res={res} />
-
-      <PerspectiveList
-        arcId={arc.id}
-        section={ArcSection.TALES}
-        id="arc-tales"
-        title="Tales"
-        intro="Perspectives that stand alone, outside any lore."
-        moreLabel="Show more tales"
-        first={res.tales}
-        firstToken={res.talesNextPageToken}
-        rights={rights.outsideLore}
-      />
-
-      <PerspectiveList
-        arcId={arc.id}
-        section={ArcSection.UNLINKED}
-        id="arc-unlinked"
-        title="Not yet linked"
-        intro="Published within the last week and waiting for a claim to link them into a lore."
-        moreLabel="Show more perspectives"
-        first={res.unlinked}
-        firstToken={res.unlinkedNextPageToken}
-        rights={rights.outsideLore}
-      />
-    </article>
-  );
-}
-
-/** Members a lore needs before it can be canon (CANON_MIN_MEMBERS). */
-const CANON_MIN_MEMBERS = 4;
-
-function NoCanonYet({ leader }: { leader: ArcLore | undefined }) {
-  const members = leader?.lore?.memberCount ?? 0;
-  return (
-    <p className="mt-2 text-ink-muted">
-      No canon yet. When people find each other in their stories, the linked stories form a lore, and a lore of{" "}
-      {CANON_MIN_MEMBERS} or more that readers favour becomes the canon of the day.
-      {leader &&
-        ` The leading contender has ${members} of ${CANON_MIN_MEMBERS} members${members >= CANON_MIN_MEMBERS ? " and is waiting for the next ranking" : ""}.`}
-    </p>
-  );
-}
-
-/**
- * A contender: a lore that is not the canon, as a card that says who is in
- * it, how close it is to being eligible for canon, and opens the lore.
- */
-function ContenderCard({ l, rank }: { l: ArcLore; rank: number }) {
-  const lore = l.lore;
-  if (!lore) return null;
-  const pct = Math.min(100, Math.round((lore.memberCount / CANON_MIN_MEMBERS) * 100));
-  return (
-    <article aria-labelledby={`contender-${lore.id}`} className="min-w-0 rounded-xl border border-rule bg-paper p-4 shadow-sm">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 id={`contender-${lore.id}`} className="font-sans text-base font-medium">
-          Contender {rank}
-        </h3>
-        <p className="text-sm text-ink-muted">{loreLine(l)}</p>
-      </header>
-      <p className="mt-2 flex min-w-0 flex-wrap gap-x-2 text-sm text-ink">
-        {lore.members.map((m, i) => (
-          <span key={m.perspectiveId} className="min-w-0">
-            {m.user ? <AuthorLink username={m.user.username} /> : "Someone"}
-            {i < lore.members.length - 1 ? "," : ""}
-          </span>
-        ))}
-      </p>
-      <div className="mt-3" aria-label={`${lore.memberCount} of ${CANON_MIN_MEMBERS} members needed for canon`}>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface">
-          <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
-        </div>
-        <p className="mt-1 text-xs text-ink-muted">
-          {lore.memberCount >= CANON_MIN_MEMBERS
-            ? "Eligible for canon; the ranking decides"
-            : `${lore.memberCount} of ${CANON_MIN_MEMBERS} members to be eligible for canon`}
-        </p>
+        <HowItWorks arc={arc} res={res} rights={rights} />
       </div>
-      <Link
-        to={`/lores/${lore.id}`}
-        className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent underline underline-offset-4"
-      >
-        Read this lore
-        <ArrowRight aria-hidden size={16} />
-      </Link>
     </article>
-  );
-}
-
-/** Every lore but the canon that has a member, highest rank first, a page at a time. */
-function Sublores({ arcId, res }: { arcId: string; res: GetArcResponse }) {
-  const more = useMore(arcId, ArcSection.SUBLORES, res.subloresNextPageToken, (p) => p.sublores);
-  const sublores = [...res.sublores, ...more.items];
-  if (sublores.length === 0) return null;
-  return (
-    <Section id="arc-sublores" title="Contenders">
-      <p className="mt-2 text-sm text-ink-muted">Other lores from this day. One takes the canon when readers favour it more.</p>
-      <div className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2">
-        {sublores.map((l, i) => (
-          <ContenderCard key={l.lore?.id ?? i} l={l} rank={i + 1} />
-        ))}
-      </div>
-      <MoreButton label="Show more contenders" more={more} />
-    </Section>
-  );
-}
-
-/** Tales or perspectives not yet linked, oldest first, a page at a time. */
-function PerspectiveList(props: {
-  arcId: string;
-  section: ArcSection;
-  id: string;
-  title: string;
-  intro: string;
-  moreLabel: string;
-  first: PerspectiveSummary[];
-  firstToken: string;
-  rights: ViewerRights;
-}) {
-  const more = useMore(props.arcId, props.section, props.firstToken, (p) => p.perspectives);
-  const items = [...props.first, ...more.items];
-  if (items.length === 0) return null;
-  return (
-    <Section id={props.id} title={props.title}>
-      <p className="mt-2 text-sm text-ink-muted">{props.intro}</p>
-      <CardList items={items} rights={props.rights} />
-      <MoreButton label={props.moreLabel} more={more} />
-    </Section>
   );
 }
 
@@ -419,10 +446,12 @@ function Missing() {
 }
 
 /**
- * The arc page. Reading order is fixed: canon first, then (on a day arc) the
- * hour timeline with each hour's canon, then every sublore highest rank first,
- * then tales, then perspectives not yet linked. A demoted lore is just another
- * sublore here, so nothing is hidden by losing canon.
+ * The arc page, an index of the day like a subreddit's front page. Reading
+ * order is fixed: the canon pinned first, then (on a day arc) the hour
+ * timeline with each hour's canon, then every contender highest rank first,
+ * then the stories in no lore. A demoted lore is just another contender here,
+ * so nothing is hidden by losing canon. Stories are rows; reading, claiming
+ * and reacting happen on a story's own page.
  */
 export function Component() {
   const { arcId = "" } = useParams();

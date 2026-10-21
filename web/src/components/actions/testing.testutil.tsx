@@ -46,7 +46,8 @@ export async function renderApp(
     [
       route,
       { path: "/login", Component: LoginStub },
-      { path: "/perspectives/:perspectiveId", Component: ReaderStub },
+      // The reader stub stands in for the story page unless the story page is under test.
+      ...(route.path === "/perspectives/:perspectiveId" ? [] : [{ path: "/perspectives/:perspectiveId", Component: ReaderStub }]),
     ],
     { initialEntries: [path] },
   );

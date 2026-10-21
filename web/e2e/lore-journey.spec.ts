@@ -16,16 +16,22 @@ const BARISTA = "the barista with the green scarf";
 const READER = "the man reading a paperback by the window";
 const UMBRELLA = "the woman shaking out a yellow umbrella";
 
-/** Claims `label` in `author`'s perspective from the arc page. */
-async function claim(w: Writer, arc: string, author: string, label: string) {
-  // A fresh load: the arc page decides who may claim from who has written here.
+/**
+ * Opens `author`'s story from the arc page and returns the actions under it,
+ * where a reader claims, votes it out or reports it.
+ */
+async function openStory(w: Writer, arc: string, author: string) {
+  // A fresh load: the arc decides who may act from who has written here.
   await visit(w.page, w.account, arc);
-  // A story already in a contender lore is read, and claimed from, on its lore page.
-  if ((await card(w.page, author).count()) === 0) {
-    const contender = w.page.getByRole("region", { name: "Contenders" }).getByRole("article").filter({ hasText: author });
-    await contender.getByRole("link", { name: /Read this lore/ }).click();
-  }
-  await card(w.page, author).getByRole("button", { name: "Claim a character" }).click();
+  await w.page.getByRole("link", { name: `Read ${author}'s perspective` }).click();
+  await expect(w.page.getByRole("heading", { level: 1 })).toBeVisible();
+  return w.page.getByRole("region", { name: "Respond to this story" });
+}
+
+/** Claims `label` in `author`'s perspective from the story's own page. */
+async function claim(w: Writer, arc: string, author: string, label: string) {
+  const actions = await openStory(w, arc, author);
+  await actions.getByRole("button", { name: "Claim a character" }).click();
   const dialog = w.page.getByRole("dialog", { name: "Claim a character" });
   await dialog.getByRole("listitem").filter({ hasText: label }).getByRole("button", { name: "That was me" }).click();
   await expect(dialog.getByRole("status")).toContainText("Claim sent.");
@@ -33,13 +39,14 @@ async function claim(w: Writer, arc: string, author: string, label: string) {
   await expect(dialog).toBeHidden();
 }
 
-/** Casts a remove vote on `target`'s perspective in the canon lore. */
+/** Casts a remove vote on `target`'s perspective from its own page; returns the actions under it. */
 async function voteToRemove(w: Writer, arc: string, target: string) {
-  await visit(w.page, w.account, arc);
-  await card(w.page.getByRole("region", { name: "Canon" }), target).getByRole("button", { name: "Vote to remove" }).click();
+  const actions = await openStory(w, arc, target);
+  await actions.getByRole("button", { name: "Vote to remove" }).click();
   const dialog = w.page.getByRole("dialog", { name: `Vote to remove ${target}'s perspective?` });
   await dialog.getByRole("button", { name: "Vote to remove" }).click();
   await expect(dialog).toBeHidden();
+  return actions;
 }
 
 test("NFR-004 four accounts publish, claim, accept, reach canon within 60 seconds and vote one out", async ({ browser }) => {
@@ -74,7 +81,7 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
     anon,
     arc,
     async () => {
-      const unlinked = anon.getByRole("region", { name: "Not yet linked" });
+      const unlinked = anon.getByRole("region", { name: "Standing alone" });
       for (const u of [anaAcct, benAcct, calAcct, deeAcct]) await expect(card(unlinked, u.username)).toBeVisible({ timeout: 2_000 });
     },
     15_000,
@@ -117,27 +124,27 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
     async () => expect(canon.getByRole("link", { name: /Open the canon/ })).toBeVisible({ timeout: 2_000 }),
     canonWaitMs(),
   );
-  await expect(canon).toContainText("4 members");
+  await expect(canon).toContainText("4 stories");
   expect(Date.now() - acceptedAt).toBeLessThan(60_000);
   await expect(canon).toContainText("1 upvote");
   for (const u of [anaAcct, benAcct, calAcct, deeAcct]) {
-    await expect(card(canon, u.username)).toContainText("In lore");
+    await expect(card(canon, u.username)).toBeVisible();
   }
 
-  // Dee cannot vote on her own perspective; the other members can.
-  await visit(dee.page, deeAcct, arc);
-  await expect(card(dee.page, deeAcct.username)).toBeVisible();
-  await expect(card(dee.page, deeAcct.username).getByRole("button", { name: "Vote to remove" })).toHaveCount(0);
+  // Dee cannot vote on her own perspective; its page offers its author no
+  // reader actions at all. The other members can.
+  await expect(await openStory(dee, arc, deeAcct.username)).toHaveCount(0);
 
   // Two of the other three members are a majority: Dee is voted out.
-  await voteToRemove(ana, arc, deeAcct.username);
-  const deeForAna = card(ana.page.getByRole("region", { name: "Canon" }), deeAcct.username);
-  await expect(deeForAna.getByRole("status")).toHaveText("1 of 3 members have voted to remove it.");
-  await expect(deeForAna).toContainText("In lore");
+  const anaVote = await voteToRemove(ana, arc, deeAcct.username);
+  await expect(anaVote.getByRole("status")).toHaveText("1 of 3 members have voted to remove it.");
+  await visit(ana.page, anaAcct, arc);
+  await expect(card(ana.page.getByRole("region", { name: "Canon" }), deeAcct.username)).toBeVisible();
   await voteToRemove(ben, arc, deeAcct.username);
   // The vote that makes the majority removes her at once; the arc page then
-  // lists her perspective under Tales rather than in the canon lore.
-  await expect(card(ben.page.getByRole("region", { name: "Tales" }), deeAcct.username)).toContainText("Removed from lore");
+  // lists her perspective as standing alone rather than in the canon lore.
+  await visit(ben.page, benAcct, arc);
+  await expect(card(ben.page.getByRole("region", { name: "Standing alone" }), deeAcct.username)).toContainText("Removed from lore");
   await expect(card(ben.page.getByRole("region", { name: "Canon" }), deeAcct.username)).toHaveCount(0);
 
   // The lore is down to 3 members, below the canon minimum, so the next pass
@@ -147,15 +154,15 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
     arc,
     async () => {
       await expect(canon).toContainText("No canon yet.", { timeout: 2_000 });
-      await expect(anon.getByRole("region", { name: "Contenders" })).toContainText("3 members", { timeout: 2_000 });
+      await expect(anon.getByRole("region", { name: "Contenders" })).toContainText("3 stories", { timeout: 2_000 });
     },
     canonWaitMs(),
   );
-  const tales = anon.getByRole("region", { name: "Tales" });
+  const tales = anon.getByRole("region", { name: "Standing alone" });
   await expect(card(tales, deeAcct.username)).toContainText("Removed from lore");
-  // The demoted lore is a contender: its people are listed on its card.
+  // The demoted lore is a contender: its people's stories are listed in its block.
   const contenders = anon.getByRole("region", { name: "Contenders" });
   for (const u of [anaAcct, benAcct, calAcct]) {
-    await expect(contenders.getByRole("link", { name: u.username })).toBeVisible();
+    await expect(contenders.getByRole("link", { name: u.username, exact: true })).toBeVisible();
   }
 });

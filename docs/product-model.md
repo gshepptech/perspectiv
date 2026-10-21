@@ -65,22 +65,32 @@ many canons and lores the person is part of.
 
 ## The arc page
 
-The arc page is the day as the people who were there remember it.
+The arc page is the day as the people who were there remember it, laid out
+like a subreddit's front page: an index of the day's stories, organised by
+who found whom. Each story is a compact row (upvote rail, author, genre, the
+opening two lines, "Read"); reading, claiming, reacting, voting out and
+reporting happen on the story's own page and on its lore page.
 
-1. **Canon, centre stage.** The canon lore's perspectives read in order of
-   publishing, as one connected story, with a **cast strip** above them: each
-   claimed character and who turned out to be them. If there is no canon
-   yet, this space says how a lore becomes canon and how close the leading
-   contender is.
+1. **Canon, pinned.** The canon lore first, marked "Canon of the day", named
+   after its people ("knightsfan_04, paintedknight and 3 others"), with its
+   stories in publishing order and one link into its lore page. If there is
+   no canon yet, this space says how a lore becomes canon and how close the
+   leading contender is.
 2. **Contenders.** Every other lore that still has members, highest ranked
-   first, each as a card: its members, its upvotes, and its progress toward
-   canon ("3 of 4 members"). A contender is promoted by the rank job when it
-   outranks the canon; the old canon becomes a contender, never deleted.
-3. **Not yet linked.** Perspectives published in the last seven days that
-   nobody has linked yet, with a prompt to claim.
-4. **Tales.** Perspectives that stand alone.
+   first, each as the same kind of block with its progress toward canon ("1
+   more person to be eligible for canon"). A contender is promoted by the rank
+   job when it outranks the canon; the old canon becomes a contender, never
+   deleted.
+3. **Standing alone.** Stories in no lore: those published in the last seven
+   days that nobody has linked yet, then tales.
+4. **Sidebar.** How a day works in four steps, the day's counts, and who may
+   do what here.
 
-Clicking the canon or a contender opens its **lore page**.
+**Someone who was there but is not in the canon** writes their own
+perspective into the same arc. If they and others claim each other, their
+stories form their own lore, shown as a contender. If nobody links to it, it
+stands alone and becomes a tale after seven days. Nobody has to be in the
+first writer's story to belong to the day.
 
 ## The lore page
 

@@ -1,3 +1,4 @@
+import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -5,14 +6,16 @@ import { useCallback, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { InviteDialog } from "@/components/actions/InviteDialog";
+import { PerspectiveActions } from "@/components/actions/PerspectiveActions";
+import { useStoryRights } from "@/components/actions/rights";
 import { perspectiveQuery } from "@/components/actions/queries";
 import { formatDay, genreLabel, loreStatusLabel } from "@/components/reader/format";
 import { Cast } from "@/components/reader/Cast";
 import { Reader } from "@/components/reader/Reader";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
-import { Genre, PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
-import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
+import { Genre, LoreStatus, PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
+import { type Perspective, PerspectiveSummarySchema } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
 import { AuthorLink } from "@/components/reader/AuthorLink";
@@ -28,10 +31,11 @@ function partFrom(value: string | null, total: number): number {
 }
 
 function Byline({ p }: { p: Perspective }) {
-  const bits = [
-    p.genre !== Genre.UNSPECIFIED ? genreLabel(p.genre) : "",
-    loreStatusLabel(p.loreStatus),
-  ].filter(Boolean);
+  const genre = p.genre !== Genre.UNSPECIFIED ? genreLabel(p.genre) : "";
+  const standing = loreStatusLabel(p.loreStatus);
+  // A story in a lore links to it: the lore page holds the other stories it
+  // is linked with and the thread.
+  const inLore = p.loreStatus === LoreStatus.IN_LORE && p.loreId !== "";
   return (
     <p className="flex flex-wrap gap-x-3 gap-y-1">
       {p.author && (
@@ -45,9 +49,14 @@ function Byline({ p }: { p: Perspective }) {
         </Link>
       )}
       <span>{formatDay(p.localDate, p.hour)}</span>
-      {bits.map((b) => (
-        <span key={b}>{b}</span>
-      ))}
+      {genre && <span>{genre}</span>}
+      {inLore ? (
+        <Link to={`/lores/${p.loreId}`} className="text-accent underline underline-offset-4">
+          {standing}: read the lore
+        </Link>
+      ) : (
+        standing && <span>{standing}</span>
+      )}
     </p>
   );
 }
@@ -249,6 +258,32 @@ export function Component() {
         part={partFrom(params.get("part"), bodies.length)}
         onPartChange={onPartChange}
       />
+      {!isDraft && !mine && <ReaderActions p={p} />}
     </div>
+  );
+}
+
+/**
+ * What a reader can do with someone else's story once they have read it:
+ * upvote, react, claim the character that was them, vote it out of their
+ * lore, or report it.
+ */
+function ReaderActions({ p }: { p: Perspective }) {
+  const rights = useStoryRights(p.arcId, p.loreId);
+  const summary = create(PerspectiveSummarySchema, {
+    id: p.id,
+    arcId: p.arcId,
+    author: p.author,
+    genre: p.genre,
+    loreStatus: p.loreStatus,
+    loreId: p.loreId,
+    upvotes: p.upvotes,
+    deleted: p.deleted,
+    hidden: p.hidden,
+  });
+  return (
+    <section aria-label="Respond to this story" className="mx-auto mt-6 max-w-measure">
+      <PerspectiveActions summary={summary} rights={rights} withCast={false} />
+    </section>
   );
 }

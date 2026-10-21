@@ -148,6 +148,39 @@ ARIA behaviour come from Radix, not from hand-written handlers:
 Icons are `lucide-react`, imported by name, at 16px in interface text and 20px
 in navigation, with `aria-hidden` when a text label sits beside them.
 
+## Arc page (the day)
+
+The arc page is an index, like a subreddit's front page: it organises the
+day's stories so a reader can see what there is and pick one. Reading happens
+on the story's own page, so the arc page MUST NOT carry a story's full action
+bar (cast, reacts, claim, report); those live on the story's page and on its
+lore page.
+
+- **Header:** the place chain, the arc title, then one metadata line:
+  the place-local day and who started it. The primary action ("Write your
+  perspective", or "Read yours" for a participant) sits in the header at every
+  width.
+- **Two columns from `lg`:** a feed column (`minmax(0,1fr)`) and an 18rem
+  sidebar. Below `lg` the sidebar follows the feed.
+- **Lore block:** each lore is one bordered block with a flair line ("Canon"
+  with a crown in `accent`, or "Contender"), a title built from its members
+  ("knightsfan_04, paintedknight and 3 others"), its counts, then its stories as
+  compact rows, then one link to the lore page ("Open the lore: cast, full
+  stories and thread"). The canon block comes first and is marked pinned; a
+  contender block carries its progress toward canon.
+- **Story row:** a vote rail on the left (the upvote button and its count),
+  then the author, genre and part count on one `text-sm` line, then the opening
+  of the story in the serif face clamped to two lines, then "Read". The row is
+  the only place on the arc page a reader acts on a story.
+- **Standing alone:** stories in no lore (waiting for a link, or tales) are one
+  section of story rows below the lores, each row carrying its standing as a
+  flair word.
+- **Sidebar:** the four steps of how a day becomes canon, the number of
+  stories and lores, who may do what here in one sentence, and "Report place".
+  A day arc's hours sit in the feed, after the canon.
+- **Flairs** are words in `text-sm` with an icon where one exists; canon uses
+  `accent`, pending uses `warning`, never colour alone.
+
 ## Landing (the front door)
 
 The landing page is the one surface that has to sell the idea to someone who
