@@ -400,13 +400,22 @@ describe("report", () => {
   });
 });
 
-describe("deleted perspectives", () => {
-  it("are never fetched on the arc page", async () => {
+describe("the arc page's reads", () => {
+  it("draws every row, deleted ones included, from GetArc alone, with no read per story", async () => {
     const arc = dayArcResponse();
     arc.tales = [summary({ id: "p-del", loreStatus: "LORE_STATUS_SOLO", deleted: true, excerpt: "" })];
     const app = await openSignedIn({}, {}, arc);
     await screen.findByText("This perspective was deleted.");
-    await waitFor(() => expect(bodiesFor(app.api, "PerspectiveService/Get").length).toBeGreaterThan(0));
-    expect(bodiesFor(app.api, "PerspectiveService/Get").map((b) => b.perspectiveId)).not.toContain("p-del");
+    await within(await card("Canon", "otter")).findByRole("button", { name: "Upvote" });
+    expect(bodiesFor(app.api, "PerspectiveService/Get")).toEqual([]);
+  });
+
+  it("shows the viewer's own upvotes from the listing", async () => {
+    const arc = dayArcResponse();
+    arc.canon.perspectives = arc.canon.perspectives.map((p) => (p.id === "p-otter" ? { ...p, voted: true, upvotes: 3 } : p));
+    await openSignedIn({}, {}, arc);
+    const otter = await card("Canon", "otter");
+    expect(within(otter).getByRole("button", { name: "Remove upvote" })).toHaveAttribute("aria-pressed", "true");
+    expect(otter).toHaveTextContent("3 upvotes");
   });
 });

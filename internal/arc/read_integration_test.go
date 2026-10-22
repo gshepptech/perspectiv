@@ -4,6 +4,7 @@ package arc_test
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -471,4 +472,100 @@ func TestListArcSection_Refusals(t *testing.T) {
 	})); codeOf(err) != connect.CodeNotFound {
 		t.Fatalf("hidden arc: code = %v, want NotFound", codeOf(err))
 	}
+}
+
+// votedIDs lists, sorted, the ids of the summaries marked voted.
+func votedIDs(lists ...[]*perspectivv1.PerspectiveSummary) []string {
+	var out []string
+	for _, l := range lists {
+		for _, p := range l {
+			if p.GetVoted() {
+				out = append(out, p.GetId())
+			}
+		}
+	}
+	slices.Sort(out)
+	return out
+}
+
+// votedOnPage is votedIDs over every list of a GetArc page.
+func votedOnPage(r *perspectivv1.GetArcResponse) []string {
+	lists := [][]*perspectivv1.PerspectiveSummary{r.GetCanon().GetPerspectives(), r.GetTales(), r.GetUnlinked()}
+	for _, l := range r.GetSublores() {
+		lists = append(lists, l.GetPerspectives())
+	}
+	return votedIDs(lists...)
+}
+
+// GetArc and ListArcSection mark the stories the signed-in viewer upvoted,
+// in every list, so the arc page reads no story to draw its vote rail.
+func TestGetArc_Voted(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t, testdb.New(t))
+	viewer := w.user(t)
+	dayID := w.mustResolve(t, arc.ResolveInput{PlaceID: w.diner, LocalDate: day, Title: "The voted night", CreatedBy: viewer})
+	t0 := time.Now().Add(-time.Hour)
+	at := func(i int) time.Time { return t0.Add(time.Duration(i) * time.Minute) }
+	c1 := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_IN_LORE", publishAt: at(1)})
+	c2 := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_IN_LORE", publishAt: at(2)})
+	w.link(t, c1, c2)
+	canon := w.lore(t, dayID, "LORE_STANDING_CANON", 2, c1, c2)
+	w.exec(t, `UPDATE arcs SET canon_lore_id = $2 WHERE id = $1`, dayID, canon)
+	s1 := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_IN_LORE", publishAt: at(3)})
+	s2 := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_IN_LORE", publishAt: at(4)})
+	w.link(t, s1, s2)
+	w.lore(t, dayID, "LORE_STANDING_SUBLORE", 1, s1, s2)
+	solo1 := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_SOLO", publishAt: at(5)})
+	solo2 := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_SOLO", publishAt: at(6)})
+	pending := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_PENDING", publishAt: at(7)})
+	for _, p := range []uuid.UUID{c2, s1, solo2, pending} {
+		w.exec(t, `INSERT INTO votes (perspective_id, user_id) VALUES ($1, $2)`, p, viewer)
+	}
+	// Someone else's vote marks nothing for the viewer.
+	w.exec(t, `INSERT INTO votes (perspective_id, user_id) VALUES ($1, $2)`, c1, w.user(t))
+
+	client := w.client(t)
+	ctx := context.Background()
+
+	tests := []struct {
+		name string
+		as   uuid.UUID
+		want []string
+	}{
+		{name: "signed out sees no votes", as: uuid.Nil, want: nil},
+		{name: "the viewer's votes in canon, contender, tales and unlinked", as: viewer, want: []string{c2.String(), s1.String(), solo2.String(), pending.String()}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			resp, err := client.GetArc(ctx, as(tc.as, &perspectivv1.GetArcRequest{ArcId: dayID.String()}))
+			if err != nil {
+				t.Fatalf("GetArc: %v", err)
+			}
+			want := slices.Clone(tc.want)
+			slices.Sort(want)
+			if got := votedOnPage(resp.Msg); !slices.Equal(got, want) {
+				t.Fatalf("voted = %v, want %v", got, want)
+			}
+		})
+	}
+
+	t.Run("later pages are marked too", func(t *testing.T) {
+		t.Parallel()
+		first, err := client.GetArc(ctx, as(viewer, &perspectivv1.GetArcRequest{ArcId: dayID.String(), PageSize: 1}))
+		if err != nil {
+			t.Fatalf("GetArc: %v", err)
+		}
+		next, err := client.ListArcSection(ctx, as(viewer, &perspectivv1.ListArcSectionRequest{
+			ArcId: dayID.String(), Section: perspectivv1.ArcSection_ARC_SECTION_TALES, PageToken: first.Msg.GetTalesNextPageToken(), PageSize: 1,
+		}))
+		if err != nil {
+			t.Fatalf("ListArcSection: %v", err)
+		}
+		pages := []string{first.Msg.GetTales()[0].GetId(), next.Msg.GetPerspectives()[0].GetId()}
+		voted := votedIDs(first.Msg.GetTales(), next.Msg.GetPerspectives())
+		if !slices.Contains(pages, solo1.String()) || !slices.Equal(voted, []string{solo2.String()}) {
+			t.Fatalf("tales pages = %v, voted = %v; want solo2 voted", pages, voted)
+		}
+	})
 }

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowBigUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -24,20 +25,28 @@ type Props = {
 };
 
 /** The up-vote toggle. There is no downvote: pressing it again clears the vote. */
-export function VoteButton({ perspectiveId, upvotes, voted, canVote, variant = "bar" }: Props) {
+export function VoteButton({ perspectiveId, upvotes: upvotesProp, voted: votedProp, canVote, variant = "bar" }: Props) {
   const { gate } = useWriteGate();
   const client = useQueryClient();
   const invalidate = useInvalidateAfterWrite();
+  // The server's last answer, shown until the props catch up with it, so a
+  // list that refetches after the vote never flashes the old state.
+  const [answer, setAnswer] = useState<{ voted: boolean; upvotes: number } | null>(null);
+  useEffect(() => setAnswer(null), [votedProp, upvotesProp]);
   const vote = useMutation({
     mutationFn: (on: boolean) => clients.vote.vote({ perspectiveId, on }),
     // The server's answer goes into the cache at once; the refetch that
     // follows brings everything else the vote changed.
-    onSuccess: (res) =>
+    onSuccess: (res) => {
+      setAnswer({ voted: res.on, upvotes: res.upvotes });
       client.setQueryData<Perspective | null>(perspectiveKey(perspectiveId), (old) =>
         old ? { ...old, voted: res.on, upvotes: res.upvotes } : old,
-      ),
+      );
+    },
     onSettled: () => invalidate(perspectiveId),
   });
+  const voted = answer?.voted ?? votedProp;
+  const upvotes = answer?.upvotes ?? upvotesProp;
   const count = `${upvotes} ${upvotes === 1 ? "upvote" : "upvotes"}`;
   if (variant === "rail") {
     return (

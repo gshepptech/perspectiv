@@ -786,3 +786,34 @@ func (q *Queries) ViewerInArc(ctx context.Context, arg ViewerInArcParams) (Viewe
 	err := row.Scan(&i.ID, &i.MemberOf)
 	return i, err
 }
+
+const viewerVotes = `-- name: ViewerVotes :many
+SELECT perspective_id FROM votes
+WHERE user_id = $1::uuid AND perspective_id = ANY($2::uuid[])
+`
+
+type ViewerVotesParams struct {
+	UserID uuid.UUID
+	Ids    []uuid.UUID
+}
+
+// Which of the given perspectives the user has upvoted.
+func (q *Queries) ViewerVotes(ctx context.Context, arg ViewerVotesParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, viewerVotes, arg.UserID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var perspective_id uuid.UUID
+		if err := rows.Scan(&perspective_id); err != nil {
+			return nil, err
+		}
+		items = append(items, perspective_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

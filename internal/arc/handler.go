@@ -53,7 +53,11 @@ func (h *Handler) ListArcSection(ctx context.Context, req *connect.Request[persp
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	resp, err := h.svc.ListArcSection(ctx, id, req.Msg.GetSection(), req.Msg.GetPageToken(), req.Msg.GetPageSize())
+	viewer := uuid.Nil
+	if c, ok := apiutil.CallerFrom(ctx); ok {
+		viewer = c.UserID
+	}
+	resp, err := h.svc.ListArcSection(ctx, viewer, id, req.Msg.GetSection(), req.Msg.GetPageToken(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}

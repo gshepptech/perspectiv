@@ -121,6 +121,9 @@ message PerspectiveSummary {
   google.protobuf.Timestamp published_at = 10;
   bool deleted = 11;
   bool hidden = 12;
+  // Whether the signed-in caller has upvoted it; false when signed out.
+  // Set by GetArc and ListArcSection.
+  bool voted = 13;
 }
 
 message SaveDraftRequest {

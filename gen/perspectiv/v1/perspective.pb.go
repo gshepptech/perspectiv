@@ -464,12 +464,15 @@ type PerspectiveSummary struct {
 	LoreStatus LoreStatus             `protobuf:"varint,5,opt,name=lore_status,json=loreStatus,proto3,enum=perspectiv.v1.LoreStatus" json:"lore_status,omitempty"`
 	LoreId     string                 `protobuf:"bytes,6,opt,name=lore_id,json=loreId,proto3" json:"lore_id,omitempty"`
 	// The opening of the first part; empty when deleted or hidden.
-	Excerpt       string                 `protobuf:"bytes,7,opt,name=excerpt,proto3" json:"excerpt,omitempty"`
-	PartCount     int32                  `protobuf:"varint,8,opt,name=part_count,json=partCount,proto3" json:"part_count,omitempty"`
-	Upvotes       int32                  `protobuf:"varint,9,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
-	PublishedAt   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
-	Deleted       bool                   `protobuf:"varint,11,opt,name=deleted,proto3" json:"deleted,omitempty"`
-	Hidden        bool                   `protobuf:"varint,12,opt,name=hidden,proto3" json:"hidden,omitempty"`
+	Excerpt     string                 `protobuf:"bytes,7,opt,name=excerpt,proto3" json:"excerpt,omitempty"`
+	PartCount   int32                  `protobuf:"varint,8,opt,name=part_count,json=partCount,proto3" json:"part_count,omitempty"`
+	Upvotes     int32                  `protobuf:"varint,9,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
+	PublishedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
+	Deleted     bool                   `protobuf:"varint,11,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	Hidden      bool                   `protobuf:"varint,12,opt,name=hidden,proto3" json:"hidden,omitempty"`
+	// Whether the signed-in caller has upvoted it; false when signed out.
+	// Set by GetArc and ListArcSection.
+	Voted         bool `protobuf:"varint,13,opt,name=voted,proto3" json:"voted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -584,6 +587,13 @@ func (x *PerspectiveSummary) GetDeleted() bool {
 func (x *PerspectiveSummary) GetHidden() bool {
 	if x != nil {
 		return x.Hidden
+	}
+	return false
+}
+
+func (x *PerspectiveSummary) GetVoted() bool {
+	if x != nil {
+		return x.Voted
 	}
 	return false
 }
@@ -1780,7 +1790,7 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"updated_at\x18\x14 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x18\n" +
 	"\adeleted\x18\x15 \x01(\bR\adeleted\x12\x16\n" +
 	"\x06hidden\x18\x16 \x01(\bR\x06hiddenB\a\n" +
-	"\x05_hour\"\xb0\x03\n" +
+	"\x05_hour\"\xc6\x03\n" +
 	"\x12PerspectiveSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06arc_id\x18\x02 \x01(\tR\x05arcId\x12.\n" +
@@ -1796,7 +1806,8 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\fpublished_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\vpublishedAt\x12\x18\n" +
 	"\adeleted\x18\v \x01(\bR\adeleted\x12\x16\n" +
-	"\x06hidden\x18\f \x01(\bR\x06hidden\"\xbf\x02\n" +
+	"\x06hidden\x18\f \x01(\bR\x06hidden\x12\x14\n" +
+	"\x05voted\x18\r \x01(\bR\x05voted\"\xbf\x02\n" +
 	"\x10SaveDraftRequest\x12%\n" +
 	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12\x19\n" +
 	"\bplace_id\x18\x02 \x01(\tR\aplaceId\x12\x1d\n" +

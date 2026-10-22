@@ -1,8 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 
 import type { ViewerRights } from "@/components/actions/PerspectiveActions";
-import { perspectiveQuery } from "@/components/actions/queries";
 import { VoteButton } from "@/components/actions/VoteButton";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import type { PerspectiveSummary } from "@/gen/perspectiv/v1/perspective_pb";
@@ -14,24 +12,14 @@ import { genreLabel, loreStatusLabel } from "./labels";
 const tones = { muted: "text-ink-muted", warning: "text-warning", success: "text-success" } as const;
 
 /**
- * The vote rail of a row. The listing summary has no "voted" state, so the
- * full perspective is read (the reader page shares the cache entry). Without
- * rights the rail only shows the count.
+ * The vote rail of a row. The listing says whether the viewer voted, so no
+ * story is read to draw it. Without rights the rail only shows the count.
  */
 function Rail({ summary, rights }: { summary: PerspectiveSummary; rights?: ViewerRights }) {
   const session = useSession();
-  const full = useQuery({ ...perspectiveQuery(summary.id), enabled: !!rights });
   const own = !!session && session.userId === summary.author?.userId;
   const canVote = !!rights && !own && (!session || rights.participant);
-  return (
-    <VoteButton
-      variant="rail"
-      perspectiveId={summary.id}
-      upvotes={full.data?.upvotes ?? summary.upvotes}
-      voted={full.data?.voted ?? false}
-      canVote={canVote && !!full.data}
-    />
-  );
+  return <VoteButton variant="rail" perspectiveId={summary.id} upvotes={summary.upvotes} voted={summary.voted} canVote={canVote} />;
 }
 
 /**

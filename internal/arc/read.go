@@ -67,10 +67,7 @@ func (s *Service) GetArc(ctx context.Context, viewer, arcID uuid.UUID, pageSize 
 				return err
 			}
 		}
-		if viewer != uuid.Nil {
-			resp.Viewer, err = viewerIn(ctx, q, arcID, viewer)
-		}
-		return err
+		return forViewer(ctx, q, resp, viewer)
 	})
 	if err != nil {
 		return nil, err
@@ -81,7 +78,7 @@ func (s *Service) GetArc(ctx context.Context, viewer, arcID uuid.UUID, pageSize 
 // ListArcSection serves the next page of one list on an arc page, from a
 // token GetArc or an earlier call returned. An hour arc has no hours list,
 // so asking for it there returns an empty page.
-func (s *Service) ListArcSection(ctx context.Context, arcID uuid.UUID, section perspectivv1.ArcSection, pageToken string, pageSize int32) (*perspectivv1.ListArcSectionResponse, error) {
+func (s *Service) ListArcSection(ctx context.Context, viewer, arcID uuid.UUID, section perspectivv1.ArcSection, pageToken string, pageSize int32) (*perspectivv1.ListArcSectionResponse, error) {
 	page, err := apiutil.ParsePageToken(pageToken, pageSize)
 	if err != nil {
 		return nil, err
@@ -106,12 +103,68 @@ func (s *Service) ListArcSection(ctx context.Context, arcID uuid.UUID, section p
 		default:
 			err = apiutil.InvalidArg("section is not a known arc page list")
 		}
-		return err
+		if err != nil || viewer == uuid.Nil {
+			return err
+		}
+		lists := [][]*perspectivv1.PerspectiveSummary{resp.Perspectives}
+		for _, l := range resp.Sublores {
+			lists = append(lists, l.GetPerspectives())
+		}
+		return markVoted(ctx, q, viewer, lists...)
 	})
 	if err != nil {
 		return nil, err
 	}
 	return resp, nil
+}
+
+// forViewer adds what only a signed-in viewer sees: where they stand in the
+// arc and which stories they upvoted. A signed-out response is left as is.
+func forViewer(ctx context.Context, q *dbq.Queries, resp *perspectivv1.GetArcResponse, viewer uuid.UUID) error {
+	if viewer == uuid.Nil {
+		return nil
+	}
+	var err error
+	if resp.Viewer, err = viewerIn(ctx, q, parseID(resp.GetArc().GetId()), viewer); err != nil {
+		return err
+	}
+	lists := [][]*perspectivv1.PerspectiveSummary{resp.Tales, resp.Unlinked}
+	for _, l := range append([]*perspectivv1.ArcLore{resp.Canon}, resp.Sublores...) {
+		lists = append(lists, l.GetPerspectives())
+	}
+	return markVoted(ctx, q, viewer, lists...)
+}
+
+// markVoted sets Voted on every summary the viewer has upvoted, with one
+// query, so the arc page needs no read per story to draw its vote rail.
+func markVoted(ctx context.Context, q *dbq.Queries, viewer uuid.UUID, lists ...[]*perspectivv1.PerspectiveSummary) error {
+	byID := map[uuid.UUID][]*perspectivv1.PerspectiveSummary{}
+	var ids []uuid.UUID
+	for _, l := range lists {
+		for _, p := range l {
+			id, err := uuid.Parse(p.GetId())
+			if err != nil {
+				continue
+			}
+			if _, seen := byID[id]; !seen {
+				ids = append(ids, id)
+			}
+			byID[id] = append(byID[id], p)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	voted, err := q.ViewerVotes(ctx, dbq.ViewerVotesParams{UserID: viewer, Ids: ids})
+	if err != nil {
+		return apiutil.Internal(fmt.Errorf("read viewer votes: %w", err))
+	}
+	for _, id := range voted {
+		for _, p := range byID[id] {
+			p.Voted = true
+		}
+	}
+	return nil
 }
 
 // readTx runs fn in one read-only REPEATABLE READ snapshot.

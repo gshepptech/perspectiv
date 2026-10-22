@@ -223,3 +223,8 @@ WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
   AND pe.author_id = sqlc.arg(author_id)::uuid
   AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND pe.deleted_at IS NULL AND pe.hidden_at IS NULL;
+
+-- name: ViewerVotes :many
+-- Which of the given perspectives the user has upvoted.
+SELECT perspective_id FROM votes
+WHERE user_id = sqlc.arg(user_id)::uuid AND perspective_id = ANY(sqlc.arg(ids)::uuid[]);
