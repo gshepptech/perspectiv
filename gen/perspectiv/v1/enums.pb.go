@@ -666,6 +666,10 @@ const (
 	ReportTargetKind_REPORT_TARGET_KIND_PERSPECTIVE ReportTargetKind = 1
 	ReportTargetKind_REPORT_TARGET_KIND_PLACE       ReportTargetKind = 2
 	ReportTargetKind_REPORT_TARGET_KIND_USER        ReportTargetKind = 3
+	// A post in a lore's thread; the target id is the post's.
+	ReportTargetKind_REPORT_TARGET_KIND_LORE_POST ReportTargetKind = 4
+	// A lore's name; the target id is the lore's.
+	ReportTargetKind_REPORT_TARGET_KIND_LORE_NAME ReportTargetKind = 5
 )
 
 // Enum value maps for ReportTargetKind.
@@ -675,12 +679,16 @@ var (
 		1: "REPORT_TARGET_KIND_PERSPECTIVE",
 		2: "REPORT_TARGET_KIND_PLACE",
 		3: "REPORT_TARGET_KIND_USER",
+		4: "REPORT_TARGET_KIND_LORE_POST",
+		5: "REPORT_TARGET_KIND_LORE_NAME",
 	}
 	ReportTargetKind_value = map[string]int32{
 		"REPORT_TARGET_KIND_UNSPECIFIED": 0,
 		"REPORT_TARGET_KIND_PERSPECTIVE": 1,
 		"REPORT_TARGET_KIND_PLACE":       2,
 		"REPORT_TARGET_KIND_USER":        3,
+		"REPORT_TARGET_KIND_LORE_POST":   4,
+		"REPORT_TARGET_KIND_LORE_NAME":   5,
 	}
 )
 
@@ -833,6 +841,10 @@ const (
 	ModerationAction_MODERATION_ACTION_HIDE_PLACE       ModerationAction = 2
 	ModerationAction_MODERATION_ACTION_SUSPEND_USER     ModerationAction = 3
 	ModerationAction_MODERATION_ACTION_DISMISS          ModerationAction = 4
+	// Hides a thread post from readers.
+	ModerationAction_MODERATION_ACTION_HIDE_LORE_POST ModerationAction = 5
+	// Clears a lore's name; its members may name it again.
+	ModerationAction_MODERATION_ACTION_CLEAR_LORE_NAME ModerationAction = 6
 )
 
 // Enum value maps for ModerationAction.
@@ -843,6 +855,8 @@ var (
 		2: "MODERATION_ACTION_HIDE_PLACE",
 		3: "MODERATION_ACTION_SUSPEND_USER",
 		4: "MODERATION_ACTION_DISMISS",
+		5: "MODERATION_ACTION_HIDE_LORE_POST",
+		6: "MODERATION_ACTION_CLEAR_LORE_NAME",
 	}
 	ModerationAction_value = map[string]int32{
 		"MODERATION_ACTION_UNSPECIFIED":      0,
@@ -850,6 +864,8 @@ var (
 		"MODERATION_ACTION_HIDE_PLACE":       2,
 		"MODERATION_ACTION_SUSPEND_USER":     3,
 		"MODERATION_ACTION_DISMISS":          4,
+		"MODERATION_ACTION_HIDE_LORE_POST":   5,
+		"MODERATION_ACTION_CLEAR_LORE_NAME":  6,
 	}
 )
 
@@ -1157,12 +1173,14 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\x1eNOTIFICATION_KIND_CANON_CHANGE\x10\x05\x12%\n" +
 	"!NOTIFICATION_KIND_REPORT_RESOLVED\x10\x06\x12%\n" +
 	"!NOTIFICATION_KIND_INVITE_ANSWERED\x10\a\x121\n" +
-	"-NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE\x10\b*\x95\x01\n" +
+	"-NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE\x10\b*\xd9\x01\n" +
 	"\x10ReportTargetKind\x12\"\n" +
 	"\x1eREPORT_TARGET_KIND_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eREPORT_TARGET_KIND_PERSPECTIVE\x10\x01\x12\x1c\n" +
 	"\x18REPORT_TARGET_KIND_PLACE\x10\x02\x12\x1b\n" +
-	"\x17REPORT_TARGET_KIND_USER\x10\x03*\xf4\x01\n" +
+	"\x17REPORT_TARGET_KIND_USER\x10\x03\x12 \n" +
+	"\x1cREPORT_TARGET_KIND_LORE_POST\x10\x04\x12 \n" +
+	"\x1cREPORT_TARGET_KIND_LORE_NAME\x10\x05*\xf4\x01\n" +
 	"\fReportReason\x12\x1d\n" +
 	"\x19REPORT_REASON_UNSPECIFIED\x10\x00\x121\n" +
 	"-REPORT_REASON_REAL_NAME_OR_HANDLE_OF_NON_USER\x10\x01\x12\x1c\n" +
@@ -1174,13 +1192,15 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\fReportStatus\x12\x1d\n" +
 	"\x19REPORT_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12REPORT_STATUS_OPEN\x10\x01\x12\x1a\n" +
-	"\x16REPORT_STATUS_RESOLVED\x10\x02*\xc2\x01\n" +
+	"\x16REPORT_STATUS_RESOLVED\x10\x02*\x8f\x02\n" +
 	"\x10ModerationAction\x12!\n" +
 	"\x1dMODERATION_ACTION_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"MODERATION_ACTION_HIDE_PERSPECTIVE\x10\x01\x12 \n" +
 	"\x1cMODERATION_ACTION_HIDE_PLACE\x10\x02\x12\"\n" +
 	"\x1eMODERATION_ACTION_SUSPEND_USER\x10\x03\x12\x1d\n" +
-	"\x19MODERATION_ACTION_DISMISS\x10\x04*a\n" +
+	"\x19MODERATION_ACTION_DISMISS\x10\x04\x12$\n" +
+	" MODERATION_ACTION_HIDE_LORE_POST\x10\x05\x12%\n" +
+	"!MODERATION_ACTION_CLEAR_LORE_NAME\x10\x06*a\n" +
 	"\aEpicTab\x12\x18\n" +
 	"\x14EPIC_TAB_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fEPIC_TAB_RANKED\x10\x01\x12\x13\n" +

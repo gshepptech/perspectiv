@@ -6,10 +6,13 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { actionError } from "@/components/actions/errors";
+import { ReportDialog } from "@/components/actions/ReportDialog";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
+import { ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
+import { useSession } from "@/lib/session";
 
 const MAX_POST = 1000;
 
@@ -30,6 +33,7 @@ const when = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", 
  */
 export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boolean }) {
   const client = useQueryClient();
+  const session = useSession();
   const headingId = useId();
   const fieldId = useId();
   const key = ["lore", "listLorePosts", { loreId }] as const;
@@ -71,6 +75,15 @@ export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boole
                 {p.author && <AuthorLink username={p.author.username} />}
                 {p.byMember && <span className="rounded-full bg-accent/10 px-2 text-xs font-medium text-accent">In this lore</span>}
                 {p.createdAt && <time dateTime={timestampDate(p.createdAt).toISOString()}>{when.format(timestampDate(p.createdAt))}</time>}
+                {p.author?.userId !== session?.userId && (
+                  <span className="ml-auto">
+                    <ReportDialog
+                      targetKind={ReportTargetKind.LORE_POST}
+                      targetId={p.id}
+                      targetLabel={`${p.author?.username ?? "this"}'s post`}
+                    />
+                  </span>
+                )}
               </p>
               <p className="mt-1 whitespace-pre-line wrap-anywhere text-ink">{p.body}</p>
             </li>

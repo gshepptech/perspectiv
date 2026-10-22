@@ -44,7 +44,9 @@ func validTargetKind(k perspectivv1.ReportTargetKind) bool {
 	switch k {
 	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PERSPECTIVE,
 		perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PLACE,
-		perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_USER:
+		perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_USER,
+		perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_POST,
+		perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_NAME:
 		return true
 	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_UNSPECIFIED:
 		return false
@@ -87,6 +89,10 @@ func actionTargets(a perspectivv1.ModerationAction) (kind perspectivv1.ReportTar
 		return perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PLACE, false, true
 	case perspectivv1.ModerationAction_MODERATION_ACTION_SUSPEND_USER:
 		return perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_USER, false, true
+	case perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_LORE_POST:
+		return perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_POST, false, true
+	case perspectivv1.ModerationAction_MODERATION_ACTION_CLEAR_LORE_NAME:
+		return perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_NAME, false, true
 	case perspectivv1.ModerationAction_MODERATION_ACTION_DISMISS:
 		return perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_UNSPECIFIED, true, true
 	case perspectivv1.ModerationAction_MODERATION_ACTION_UNSPECIFIED:

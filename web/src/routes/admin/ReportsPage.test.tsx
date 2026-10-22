@@ -128,6 +128,37 @@ describe("report queue (FR-035)", () => {
     expect(within(dialog).getByRole("radio", { name: "Hide place" })).toBeInTheDocument();
   });
 
+  it("hides a reported thread post or clears a reported lore name", async () => {
+    const user = userEvent.setup();
+    installApi(
+      {
+        "ModerationService/ListReports": () =>
+          ok({
+            reports: [
+              report({ id: "r-post", targetKind: "REPORT_TARGET_KIND_LORE_POST", targetId: "lp-1", targetLabel: "That cashier is Jo Smith" }),
+              report({ id: "r-name", targetKind: "REPORT_TARGET_KIND_LORE_NAME", targetId: "lore-1", targetLabel: "Bad name" }),
+            ],
+          }),
+      },
+      admin,
+    );
+    renderRoute("/admin/reports");
+    const postItem = await screen.findByRole("listitem", { name: /Jo Smith/ });
+    expect(postItem).toHaveTextContent("Thread post");
+    await user.click(within(postItem).getByRole("button", { name: "Resolve" }));
+    let dialog = await screen.findByRole("dialog", { name: "Resolve report" });
+    expect(within(dialog).getByRole("radio", { name: "Hide post" })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("radio", { name: "Hide perspective" })).toBeNull();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    const nameItem = screen.getByRole("listitem", { name: /Bad name/ });
+    expect(within(nameItem).getByRole("link", { name: "Open the lore" })).toHaveAttribute("href", "/lores/lore-1");
+    await user.click(within(nameItem).getByRole("button", { name: "Resolve" }));
+    dialog = await screen.findByRole("dialog", { name: "Resolve report" });
+    expect(within(dialog).getByRole("radio", { name: "Clear the name" })).toBeInTheDocument();
+  });
+
   it("can be worked entirely from the keyboard", async () => {
     const user = userEvent.setup();
     const api = installApi(

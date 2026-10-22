@@ -22,6 +22,18 @@ SELECT EXISTS (
     SELECT 1 FROM places WHERE id = @id::uuid AND hidden_at IS NULL
 )::boolean AS ok;
 
+-- name: LorePostReportable :one
+-- A thread post can be reported while readers can see it.
+SELECT EXISTS (
+    SELECT 1 FROM lore_posts WHERE id = @id::uuid AND deleted_at IS NULL AND hidden_at IS NULL
+)::boolean AS ok;
+
+-- name: LoreNameReportable :one
+-- A lore's name can be reported while it has one.
+SELECT EXISTS (
+    SELECT 1 FROM lores WHERE id = @id::uuid AND name IS NOT NULL
+)::boolean AS ok;
+
 -- name: UserReportable :one
 SELECT EXISTS (
     SELECT 1 FROM users WHERE id = @id::uuid AND deleted_at IS NULL
@@ -62,6 +74,12 @@ UPDATE arcs SET lore_dirty_at = now() WHERE id = @id::uuid;
 -- name: HidePlace :execrows
 UPDATE places SET hidden_at = coalesce(hidden_at, now()) WHERE id = @id::uuid;
 
+-- name: HideLorePost :execrows
+UPDATE lore_posts SET hidden_at = coalesce(hidden_at, now()) WHERE id = @id::uuid;
+
+-- name: ClearLoreName :execrows
+UPDATE lores SET name = NULL, named_by = NULL WHERE id = @id::uuid;
+
 -- name: SuspendUser :execrows
 UPDATE users SET suspended_at = coalesce(suspended_at, now()) WHERE id = @id::uuid;
 
@@ -94,6 +112,8 @@ SELECT r.id,
            WHEN 'REPORT_TARGET_KIND_PLACE' THEN (SELECT tp.name FROM places tp WHERE tp.id = r.target_id)
            WHEN 'REPORT_TARGET_KIND_PERSPECTIVE' THEN (
                SELECT ta.title FROM perspectives tv JOIN arcs ta ON ta.id = tv.arc_id WHERE tv.id = r.target_id)
+           WHEN 'REPORT_TARGET_KIND_LORE_POST' THEN (SELECT left(tlp.body, 120) FROM lore_posts tlp WHERE tlp.id = r.target_id)
+           WHEN 'REPORT_TARGET_KIND_LORE_NAME' THEN (SELECT tl.name FROM lores tl WHERE tl.id = r.target_id)
        END, '')::text AS target_label,
        r.reason,
        r.details,
@@ -124,6 +144,8 @@ SELECT r.id,
            WHEN 'REPORT_TARGET_KIND_PLACE' THEN (SELECT tp.name FROM places tp WHERE tp.id = r.target_id)
            WHEN 'REPORT_TARGET_KIND_PERSPECTIVE' THEN (
                SELECT ta.title FROM perspectives tv JOIN arcs ta ON ta.id = tv.arc_id WHERE tv.id = r.target_id)
+           WHEN 'REPORT_TARGET_KIND_LORE_POST' THEN (SELECT left(tlp.body, 120) FROM lore_posts tlp WHERE tlp.id = r.target_id)
+           WHEN 'REPORT_TARGET_KIND_LORE_NAME' THEN (SELECT tl.name FROM lores tl WHERE tl.id = r.target_id)
        END, '')::text AS target_label,
        r.reason,
        r.details,

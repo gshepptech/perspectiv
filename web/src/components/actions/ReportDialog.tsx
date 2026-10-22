@@ -37,7 +37,7 @@ type Props = {
   triggerLabel?: string;
 };
 
-/** Reports a perspective, place or user to the moderators, with a reason from the fixed set. */
+/** Reports a perspective, place, user, thread post or lore name to the moderators, with a reason from the fixed set. */
 export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel = "Report" }: Props) {
   const { gate } = useWriteGate();
   const [open, setOpen] = useState(false);

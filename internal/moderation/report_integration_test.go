@@ -222,3 +222,53 @@ func TestReportBySuspendedOrDeletedAccount(t *testing.T) {
 		t.Fatalf("refused reports wrote %d rows", n)
 	}
 }
+
+// A thread post can be reported while readers see it, and a lore's name
+// while it has one; the queue labels each by what was reported.
+func TestReportLoreContent(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	w := e.world("author_a")
+	reporter := e.user("reporter_r")
+	admin := e.adminUser("admin_a")
+	report := func(kind perspectivv1.ReportTargetKind, target uuid.UUID) error {
+		_, err := e.client(reporter).Report(context.Background(), connect.NewRequest(&perspectivv1.ReportRequest{
+			TargetKind: kind, TargetId: target.String(), Reason: perspectivv1.ReportReason_REPORT_REASON_HARASSMENT,
+		}))
+		return err
+	}
+	if err := report(perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_POST, w.post); err != nil {
+		t.Fatalf("report post: %v", err)
+	}
+	if err := report(perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_NAME, w.lore); err != nil {
+		t.Fatalf("report name: %v", err)
+	}
+	res, err := e.admin(admin).ListReports(context.Background(), connect.NewRequest(&perspectivv1.ListReportsRequest{}))
+	if err != nil {
+		t.Fatalf("ListReports: %v", err)
+	}
+	labels := map[perspectivv1.ReportTargetKind]string{}
+	for _, r := range res.Msg.GetReports() {
+		labels[r.GetTargetKind()] = r.GetTargetLabel()
+	}
+	if labels[perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_POST] != "The cashier is Jo Smith" ||
+		labels[perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_NAME] != "Deli regulars" {
+		t.Fatalf("labels = %v", labels)
+	}
+
+	tests := []struct {
+		name   string
+		kind   perspectivv1.ReportTargetKind
+		target uuid.UUID
+		setup  string
+	}{
+		{name: "a hidden post", kind: perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_POST, target: w.post, setup: `UPDATE lore_posts SET hidden_at = now() WHERE id = $1`},
+		{name: "a lore with no name", kind: perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_NAME, target: w.lore, setup: `UPDATE lores SET name = NULL WHERE id = $1`},
+	}
+	for _, tc := range tests {
+		e.exec(tc.setup, tc.target)
+		if err := report(tc.kind, tc.target); connect.CodeOf(err) != connect.CodeNotFound {
+			t.Fatalf("%s: err = %v, want NotFound", tc.name, err)
+		}
+	}
+}

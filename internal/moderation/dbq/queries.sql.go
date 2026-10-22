@@ -12,6 +12,18 @@ import (
 	"github.com/google/uuid"
 )
 
+const clearLoreName = `-- name: ClearLoreName :execrows
+UPDATE lores SET name = NULL, named_by = NULL WHERE id = $1::uuid
+`
+
+func (q *Queries) ClearLoreName(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, clearLoreName, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const findOpenReport = `-- name: FindOpenReport :one
 SELECT id
 FROM reports
@@ -72,6 +84,8 @@ SELECT r.id,
            WHEN 'REPORT_TARGET_KIND_PLACE' THEN (SELECT tp.name FROM places tp WHERE tp.id = r.target_id)
            WHEN 'REPORT_TARGET_KIND_PERSPECTIVE' THEN (
                SELECT ta.title FROM perspectives tv JOIN arcs ta ON ta.id = tv.arc_id WHERE tv.id = r.target_id)
+           WHEN 'REPORT_TARGET_KIND_LORE_POST' THEN (SELECT left(tlp.body, 120) FROM lore_posts tlp WHERE tlp.id = r.target_id)
+           WHEN 'REPORT_TARGET_KIND_LORE_NAME' THEN (SELECT tl.name FROM lores tl WHERE tl.id = r.target_id)
        END, '')::text AS target_label,
        r.reason,
        r.details,
@@ -129,6 +143,18 @@ func (q *Queries) GetReport(ctx context.Context, id uuid.UUID) (GetReportRow, er
 		&i.ResolvedAt,
 	)
 	return i, err
+}
+
+const hideLorePost = `-- name: HideLorePost :execrows
+UPDATE lore_posts SET hidden_at = coalesce(hidden_at, now()) WHERE id = $1::uuid
+`
+
+func (q *Queries) HideLorePost(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, hideLorePost, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const hidePerspective = `-- name: HidePerspective :one
@@ -225,6 +251,8 @@ SELECT r.id,
            WHEN 'REPORT_TARGET_KIND_PLACE' THEN (SELECT tp.name FROM places tp WHERE tp.id = r.target_id)
            WHEN 'REPORT_TARGET_KIND_PERSPECTIVE' THEN (
                SELECT ta.title FROM perspectives tv JOIN arcs ta ON ta.id = tv.arc_id WHERE tv.id = r.target_id)
+           WHEN 'REPORT_TARGET_KIND_LORE_POST' THEN (SELECT left(tlp.body, 120) FROM lore_posts tlp WHERE tlp.id = r.target_id)
+           WHEN 'REPORT_TARGET_KIND_LORE_NAME' THEN (SELECT tl.name FROM lores tl WHERE tl.id = r.target_id)
        END, '')::text AS target_label,
        r.reason,
        r.details,
@@ -370,6 +398,34 @@ SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))
 func (q *Queries) LockReportKey(ctx context.Context, key string) error {
 	_, err := q.db.Exec(ctx, lockReportKey, key)
 	return err
+}
+
+const loreNameReportable = `-- name: LoreNameReportable :one
+SELECT EXISTS (
+    SELECT 1 FROM lores WHERE id = $1::uuid AND name IS NOT NULL
+)::boolean AS ok
+`
+
+// A lore's name can be reported while it has one.
+func (q *Queries) LoreNameReportable(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, loreNameReportable, id)
+	var ok bool
+	err := row.Scan(&ok)
+	return ok, err
+}
+
+const lorePostReportable = `-- name: LorePostReportable :one
+SELECT EXISTS (
+    SELECT 1 FROM lore_posts WHERE id = $1::uuid AND deleted_at IS NULL AND hidden_at IS NULL
+)::boolean AS ok
+`
+
+// A thread post can be reported while readers can see it.
+func (q *Queries) LorePostReportable(ctx context.Context, id uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, lorePostReportable, id)
+	var ok bool
+	err := row.Scan(&ok)
+	return ok, err
 }
 
 const markArcLoreDirty = `-- name: MarkArcLoreDirty :exec

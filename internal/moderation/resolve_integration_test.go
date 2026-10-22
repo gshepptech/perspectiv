@@ -195,6 +195,18 @@ func TestResolveActions(t *testing.T) {
 			},
 		},
 		{
+			name: "hide lore post", kind: perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_POST,
+			action:  perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_LORE_POST,
+			target:  func(w world) uuid.UUID { return w.post },
+			applied: postHidden,
+		},
+		{
+			name: "clear lore name", kind: perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_NAME,
+			action:  perspectivv1.ModerationAction_MODERATION_ACTION_CLEAR_LORE_NAME,
+			target:  func(w world) uuid.UUID { return w.lore },
+			applied: nameCleared,
+		},
+		{
 			name: "dismiss", kind: perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PERSPECTIVE,
 			action: perspectivv1.ModerationAction_MODERATION_ACTION_DISMISS,
 			target: func(w world) uuid.UUID { return w.perspective },
@@ -229,6 +241,27 @@ func TestResolveActions(t *testing.T) {
 				admin: admin, report: report, action: tc.action, kind: tc.kind, target: target,
 			})
 		})
+	}
+}
+
+// postHidden checks a HIDE_LORE_POST resolution hid the thread post.
+func postHidden(t *testing.T, e *env, w world) {
+	t.Helper()
+	var hidden *time.Time
+	e.scan(`SELECT hidden_at FROM lore_posts WHERE id = $1`, []any{w.post}, &hidden)
+	if hidden == nil {
+		t.Fatal("post hidden_at not set")
+	}
+}
+
+// nameCleared checks a CLEAR_LORE_NAME resolution cleared the name and who set it.
+func nameCleared(t *testing.T, e *env, w world) {
+	t.Helper()
+	var name *string
+	var namedBy *uuid.UUID
+	e.scan(`SELECT name, named_by FROM lores WHERE id = $1`, []any{w.lore}, &name, &namedBy)
+	if name != nil || namedBy != nil {
+		t.Fatalf("lore name %v by %v, want both cleared", name, namedBy)
 	}
 }
 

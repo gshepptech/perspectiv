@@ -127,6 +127,10 @@ enum ReportTargetKind {
   REPORT_TARGET_KIND_PERSPECTIVE = 1;
   REPORT_TARGET_KIND_PLACE = 2;
   REPORT_TARGET_KIND_USER = 3;
+  // A post in a lore's thread; the target id is the post's.
+  REPORT_TARGET_KIND_LORE_POST = 4;
+  // A lore's name; the target id is the lore's.
+  REPORT_TARGET_KIND_LORE_NAME = 5;
 }
 
 // ReportReason is why something was reported. The first value is the rule the
@@ -155,6 +159,10 @@ enum ModerationAction {
   MODERATION_ACTION_HIDE_PLACE = 2;
   MODERATION_ACTION_SUSPEND_USER = 3;
   MODERATION_ACTION_DISMISS = 4;
+  // Hides a thread post from readers.
+  MODERATION_ACTION_HIDE_LORE_POST = 5;
+  // Clears a lore's name; its members may name it again.
+  MODERATION_ACTION_CLEAR_LORE_NAME = 6;
 }
 
 // EpicTab selects the listing a place page shows.

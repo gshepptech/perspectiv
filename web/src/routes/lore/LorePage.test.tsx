@@ -148,6 +148,47 @@ describe("lore page", () => {
     expect(screen.queryByRole("button", { name: /Name this lore/ })).not.toBeInTheDocument();
   });
 
+  it("lets a reader report a thread post, but not their own", async () => {
+    polyfillRadix();
+    const user = userEvent.setup();
+    const { calls } = renderApp(
+      "/lores/lore-1",
+      {
+        ...handlers([
+          { id: "lp-1", author: otter, body: "That cashier is Jo Smith.", byMember: true, createdAt: "2026-10-10T12:00:00Z" },
+          { id: "lp-2", author: { userId: ME, username: "teller" }, body: "Mine.", byMember: false, createdAt: "2026-10-10T13:00:00Z" },
+        ]),
+        "ModerationService/Report": () => ({ body: { reportId: "r-1" } }),
+      },
+      { refresh: () => sessionReply({ token: "tok" }) },
+    );
+    const posts = await screen.findByRole("list", { name: "Posts" });
+    const [theirs, mine] = within(posts).getAllByRole("listitem");
+    expect(within(mine!).queryByRole("button", { name: "Report" })).not.toBeInTheDocument();
+    await user.click(within(theirs!).getByRole("button", { name: "Report" }));
+    const dialog = await screen.findByRole("dialog", { name: "Report otter's post" });
+    await user.click(within(dialog).getByRole("combobox", { name: "Reason" }));
+    await user.click(await screen.findByRole("option", { name: "Real name or handle of a non-user" }));
+    await user.click(within(dialog).getByRole("button", { name: "Send report" }));
+    await waitFor(() =>
+      expect(calls("ModerationService/Report")).toEqual([
+        { targetKind: "REPORT_TARGET_KIND_LORE_POST", targetId: "lp-1", reason: "REPORT_REASON_REAL_NAME_OR_HANDLE_OF_NON_USER" },
+      ]),
+    );
+  });
+
+  it("offers a reader outside the lore a way to report its name", async () => {
+    polyfillRadix();
+    renderApp(
+      "/lores/lore-1",
+      { ...handlers(), "LoreService/GetLore": () => ({ body: { lore: { ...lore, name: "Bad name", namedBy: wren } } }) },
+      { refresh: () => sessionReply({ token: "tok" }) },
+    );
+    expect(await screen.findByRole("heading", { level: 1, name: "Bad name" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Report this name" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Name this lore|Rename/ })).not.toBeInTheDocument();
+  });
+
   it("says when the lore is gone", async () => {
     renderApp("/lores/nope", { "LoreService/GetLore": () => connectError("not_found") });
     expect(await screen.findByRole("heading", { name: "Lore not found" })).toBeInTheDocument();

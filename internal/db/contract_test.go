@@ -88,7 +88,8 @@ func TestEnumValues(t *testing.T) {
 		{
 			name: "report target kind",
 			enum: perspectivv1.ReportTargetKind(0).Descriptor(),
-			want: []string{"REPORT_TARGET_KIND_UNSPECIFIED", "REPORT_TARGET_KIND_PERSPECTIVE", "REPORT_TARGET_KIND_PLACE", "REPORT_TARGET_KIND_USER"},
+			want: []string{"REPORT_TARGET_KIND_UNSPECIFIED", "REPORT_TARGET_KIND_PERSPECTIVE", "REPORT_TARGET_KIND_PLACE", "REPORT_TARGET_KIND_USER",
+				"REPORT_TARGET_KIND_LORE_POST", "REPORT_TARGET_KIND_LORE_NAME"},
 		},
 		{
 			name: "report reason leads with real name or handle of a non-user",
@@ -106,7 +107,8 @@ func TestEnumValues(t *testing.T) {
 		{
 			name: "moderation action",
 			enum: perspectivv1.ModerationAction(0).Descriptor(),
-			want: []string{"MODERATION_ACTION_UNSPECIFIED", "MODERATION_ACTION_HIDE_PERSPECTIVE", "MODERATION_ACTION_HIDE_PLACE", "MODERATION_ACTION_SUSPEND_USER", "MODERATION_ACTION_DISMISS"},
+			want: []string{"MODERATION_ACTION_UNSPECIFIED", "MODERATION_ACTION_HIDE_PERSPECTIVE", "MODERATION_ACTION_HIDE_PLACE", "MODERATION_ACTION_SUSPEND_USER", "MODERATION_ACTION_DISMISS",
+				"MODERATION_ACTION_HIDE_LORE_POST", "MODERATION_ACTION_CLEAR_LORE_NAME"},
 		},
 		{
 			name: "epic tab",

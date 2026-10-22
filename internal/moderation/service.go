@@ -70,7 +70,7 @@ type ReportInput struct {
 
 func (in *ReportInput) validate() error {
 	if !validTargetKind(in.TargetKind) {
-		return apiutil.InvalidArg("target_kind must be a perspective, place or user")
+		return apiutil.InvalidArg("target_kind must be a perspective, place, user, post or lore name")
 	}
 	if in.TargetID == uuid.Nil {
 		return apiutil.InvalidArg("target_id is required")
@@ -172,10 +172,16 @@ func requireReportable(ctx context.Context, q *dbq.Queries, kind perspectivv1.Re
 	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_USER:
 		ok, err = q.UserReportable(ctx, id)
 		what = "user"
+	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_POST:
+		ok, err = q.LorePostReportable(ctx, id)
+		what = "post"
+	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_NAME:
+		ok, err = q.LoreNameReportable(ctx, id)
+		what = "lore name"
 	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_UNSPECIFIED:
-		return apiutil.InvalidArg("target_kind must be a perspective, place or user")
+		return apiutil.InvalidArg("target_kind must be a perspective, place, user, post or lore name")
 	default:
-		return apiutil.InvalidArg("target_kind must be a perspective, place or user")
+		return apiutil.InvalidArg("target_kind must be a perspective, place, user, post or lore name")
 	}
 	if err != nil {
 		return apiutil.Internal(fmt.Errorf("check %s target: %w", what, err))
@@ -426,6 +432,12 @@ func applyAction(ctx context.Context, q *dbq.Queries, admin uuid.UUID, action pe
 	case perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_PLACE:
 		n, err := q.HidePlace(ctx, target)
 		return oneRow(n, err, "hide place", "the reported place no longer exists")
+	case perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_LORE_POST:
+		n, err := q.HideLorePost(ctx, target)
+		return oneRow(n, err, "hide lore post", "the reported post no longer exists")
+	case perspectivv1.ModerationAction_MODERATION_ACTION_CLEAR_LORE_NAME:
+		n, err := q.ClearLoreName(ctx, target)
+		return oneRow(n, err, "clear lore name", "the reported lore no longer exists")
 	case perspectivv1.ModerationAction_MODERATION_ACTION_SUSPEND_USER:
 		if target == admin {
 			return apiutil.FailedPrecondition("you cannot suspend your own account")

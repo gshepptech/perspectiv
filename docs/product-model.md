@@ -36,7 +36,7 @@ the code implements them, and where the two disagree the code is the bug.
 | Post in a lore's thread | A member of the lore, or anyone with a perspective in the arc |
 | Name a lore | A member of the lore; the latest name wins and shows who set it |
 | Follow a place | Anyone signed in; a new story at the place or anywhere under it lands in their inbox (and email, if they keep it on) |
-| Report | A verified account |
+| Report a perspective, place, user, thread post or lore name | A verified account; an admin hides the post or perspective, hides the place, suspends the user, or clears the name |
 
 Claiming is never required. A story that links to nobody is still
 published and read; it becomes a tale after seven days. Claiming is how a

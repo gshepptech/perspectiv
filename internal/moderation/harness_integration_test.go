@@ -237,14 +237,17 @@ func (e *env) count(query string, args ...any) int {
 	return n
 }
 
-// world is a small published scene: a store under a state, a day arc and one
-// published perspective by its author.
+// world is a small published scene: a store under a state, a day arc, one
+// published perspective by its author, and a lore its author named with one
+// post in its thread.
 type world struct {
 	author      uuid.UUID
 	state       uuid.UUID
 	store       uuid.UUID
 	arc         uuid.UUID
 	perspective uuid.UUID
+	lore        uuid.UUID
+	post        uuid.UUID
 }
 
 func (e *env) world(authorName string) world {
@@ -259,6 +262,8 @@ func (e *env) world(authorName string) world {
 	w.perspective = e.id(`INSERT INTO perspectives (arc_id, author_id, genre, status, lore_status, published_at)
 		VALUES ($1, $2, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now())
 		RETURNING id`, w.arc, w.author)
+	w.lore = e.id(`INSERT INTO lores (arc_id, name, named_by) VALUES ($1, 'Deli regulars', $2) RETURNING id`, w.arc, w.author)
+	w.post = e.id(`INSERT INTO lore_posts (lore_id, author_id, body) VALUES ($1, $2, 'The cashier is Jo Smith') RETURNING id`, w.lore, w.author)
 	return w
 }
 

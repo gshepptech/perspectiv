@@ -5,10 +5,11 @@ import { ArrowLeft, BookOpen, Crown } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 import { PerspectiveActions, type ViewerRights } from "@/components/actions/PerspectiveActions";
+import { ReportDialog } from "@/components/actions/ReportDialog";
 import { perspectiveQuery } from "@/components/actions/queries";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { formatDay, genreLabel } from "@/components/reader/format";
-import { Genre, LoreStanding } from "@/gen/perspectiv/v1/enums_pb";
+import { Genre, LoreStanding, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { Lore } from "@/gen/perspectiv/v1/lore_pb";
 import { type Perspective, PerspectiveSummarySchema } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
@@ -194,6 +195,17 @@ export function Component() {
         {member && (
           <div className="mt-3">
             <NameLore loreId={lore.id} current={lore.name} />
+          </div>
+        )}
+        {/* Members fix a bad name by renaming; anyone else can report it. */}
+        {!member && lore.name && (
+          <div className="mt-2">
+            <ReportDialog
+              targetKind={ReportTargetKind.LORE_NAME}
+              targetId={lore.id}
+              targetLabel={`the lore name “${lore.name}”`}
+              triggerLabel="Report this name"
+            />
           </div>
         )}
       </header>

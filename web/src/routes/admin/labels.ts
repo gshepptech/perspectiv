@@ -8,6 +8,10 @@ export function targetKindLabel(kind: ReportTargetKind): string {
       return "Place";
     case ReportTargetKind.USER:
       return "User";
+    case ReportTargetKind.LORE_POST:
+      return "Thread post";
+    case ReportTargetKind.LORE_NAME:
+      return "Lore name";
     case ReportTargetKind.UNSPECIFIED:
       return "Unknown target";
   }
@@ -40,6 +44,10 @@ export function actionLabel(action: ModerationAction): string {
       return "Hide place";
     case ModerationAction.SUSPEND_USER:
       return "Suspend user";
+    case ModerationAction.HIDE_LORE_POST:
+      return "Hide post";
+    case ModerationAction.CLEAR_LORE_NAME:
+      return "Clear the name";
     case ModerationAction.DISMISS:
       return "Dismiss";
     case ModerationAction.UNSPECIFIED:
@@ -59,6 +67,10 @@ export function actionsFor(kind: ReportTargetKind): ModerationAction[] {
       return [ModerationAction.HIDE_PLACE, ModerationAction.DISMISS];
     case ReportTargetKind.USER:
       return [ModerationAction.SUSPEND_USER, ModerationAction.DISMISS];
+    case ReportTargetKind.LORE_POST:
+      return [ModerationAction.HIDE_LORE_POST, ModerationAction.DISMISS];
+    case ReportTargetKind.LORE_NAME:
+      return [ModerationAction.CLEAR_LORE_NAME, ModerationAction.DISMISS];
     case ReportTargetKind.UNSPECIFIED:
       return [ModerationAction.DISMISS];
   }
@@ -91,6 +103,10 @@ export function targetHref(kind: ReportTargetKind, id: string): { href: string; 
       return { href: `/perspectives/${encodeURIComponent(id)}`, text: "Open the perspective" };
     case ReportTargetKind.PLACE:
       return { href: `/places/${encodeURIComponent(id)}`, text: "Open the place" };
+    case ReportTargetKind.LORE_NAME:
+      return { href: `/lores/${encodeURIComponent(id)}`, text: "Open the lore" };
+    // The queue shows a post's text; a post has no page of its own.
+    case ReportTargetKind.LORE_POST:
     case ReportTargetKind.USER:
     case ReportTargetKind.UNSPECIFIED:
       return null;
