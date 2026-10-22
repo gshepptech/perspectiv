@@ -142,6 +142,16 @@ describe("hour timeline", () => {
     expect(before(within(canon).getByText("Canon text by wren"), within(items[1]!).getByText("Hour eleven canon text"))).toBe(true);
   });
 
+  it("a day written only in its hours leads with the hours, not an empty canon", async () => {
+    const res = dayArcResponse();
+    await open("/arcs/arc-day", () => ({
+      body: { ...res, arc: arc({ canonLoreId: "" }), canon: undefined, sublores: [], tales: [], unlinked: [] },
+    }));
+    const hours = await screen.findByRole("region", { name: "Hours" });
+    expect(hours).toHaveTextContent("Everything written about this day happened within these hours.");
+    expect(screen.queryByText(/No canon yet\. When people find each other/)).not.toBeInTheDocument();
+  });
+
   it("an hour arc links back to its day arc and has no timeline", async () => {
     await open("/arcs/arc-h15", () => ({
       body: { arc: arc({ id: "arc-h15", hour: 15, parentArcId: "arc-day", title: "The afternoon rush" }), sublores: [], tales: [], hours: [] },

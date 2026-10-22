@@ -219,11 +219,30 @@ function NoCanonYet({ leader }: { leader: ArcLore | undefined }) {
  * as read-only rows: voting and claiming in an hour depend on who wrote in
  * that hour's arc, so those actions live on the hour arc's own page.
  */
-function HourTimeline({ arcId, first, firstToken }: { arcId: string; first: HourArc[]; firstToken: string }) {
+function HourTimeline({
+  arcId,
+  first,
+  firstToken,
+  hoursOnly,
+}: {
+  arcId: string;
+  first: HourArc[];
+  firstToken: string;
+  /** The day has no stories of its own, only its hours'. */
+  hoursOnly: boolean;
+}) {
   const more = useMore(arcId, ArcSection.HOURS, firstToken, (p) => p.hours);
   const sorted = [...first, ...more.items].sort((a, b) => (a.arc?.hour ?? 0) - (b.arc?.hour ?? 0));
   return (
-    <Section id="arc-hours" title="Hours" intro="This day, hour by hour. Each hour is its own arc with its own canon.">
+    <Section
+      id="arc-hours"
+      title="Hours"
+      intro={
+        hoursOnly
+          ? "Everything written about this day happened within these hours. Each hour is its own arc with its own canon."
+          : "This day, hour by hour. Each hour is its own arc with its own canon."
+      }
+    >
       <ol className="mt-3 grid min-w-0 gap-4 border-l-2 border-rule pl-4">
         {sorted.map((h) => {
           const a = h.arc;
@@ -343,6 +362,10 @@ function ArcView({ res }: { res: GetArcResponse }) {
   if (!arc) return <Missing />;
   const rights = rightsIn(res, session);
   const isHour = arc.hour !== undefined;
+  // A day whose stories were all written into its hours: the hours are the
+  // page, not an empty canon.
+  const hoursOnly =
+    !isHour && res.hours.length > 0 && !res.canon && res.sublores.length === 0 && res.tales.length === 0 && res.unlinked.length === 0;
   // Arriving from an invite: the reader has just written their side here.
   const invited = (useLocation().state as { invited?: boolean } | null)?.invited === true;
   return (
@@ -418,9 +441,9 @@ function ArcView({ res }: { res: GetArcResponse }) {
               <LoreBlock l={res.canon} canon rank={0} rights={rights.forLore(res.canon)} />
             </section>
           ) : (
-            <NoCanonYet leader={res.sublores[0]} />
+            !hoursOnly && <NoCanonYet leader={res.sublores[0]} />
           )}
-          {!isHour && res.hours.length > 0 && <HourTimeline arcId={arc.id} first={res.hours} firstToken={res.hoursNextPageToken} />}
+          {!isHour && res.hours.length > 0 && <HourTimeline arcId={arc.id} first={res.hours} firstToken={res.hoursNextPageToken} hoursOnly={hoursOnly} />}
           <Contenders arcId={arc.id} res={res} rights={rights} />
           <StandingAlone arcId={arc.id} res={res} rights={rights.outsideLore} />
         </div>

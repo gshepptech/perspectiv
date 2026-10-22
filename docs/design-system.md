@@ -172,6 +172,8 @@ lore page.
   then the author, genre and part count on one `text-sm` line, then the opening
   of the story in the serif face clamped to two lines, then "Read". The row is
   the only place on the arc page a reader acts on a story.
+- **A day written only in its hours** has no stories of its own: the page
+  leads with the hour timeline and says so, instead of an empty canon.
 - **Standing alone:** stories in no lore (waiting for a link, or tales) are one
   section of story rows below the lores, each row carrying its standing as a
   flair word.
