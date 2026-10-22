@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"html"
 	"io/fs"
 	"net/http"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -43,7 +45,24 @@ type RouterConfig struct {
 	Handlers []Mount
 	// Static is the built SPA (web/dist). Nil serves no SPA.
 	Static fs.FS
+	// Preview names the page a shared link points at, so link previews in
+	// chat apps show its title and opening. Nil serves index.html as built.
+	Preview Previewer
 }
+
+// Preview is what a link preview shows for one page.
+type Preview struct {
+	Title       string
+	Description string
+}
+
+// Previewer returns the preview for a request path; ok is false when the
+// path names nothing a signed-out reader may see.
+type Previewer func(ctx context.Context, path string) (p Preview, ok bool)
+
+// previewTimeout bounds one preview lookup; past it the page is served
+// without one rather than late.
+const previewTimeout = 500 * time.Millisecond
 
 // MaxRequestBytes bounds a Connect request body. The largest legitimate
 // request is a perspective of 10 parts of 300 words, far under this.
@@ -79,7 +98,7 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	}
 	r.Mount("/api", http.StripPrefix("/api", api))
 
-	spa := spaHandler(cfg.Static)
+	spa := spaHandler(cfg.Static, cfg.Preview)
 	r.Get("/*", spa)
 	r.Head("/*", spa)
 	return r
@@ -187,7 +206,7 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 // routes such as /places/<id> load the app. A missing path with an extension
 // (a stale /assets/x.js) is 404 rather than HTML under a script's name.
 // Hashed files under /assets/ are cached for a year; index.html never is.
-func spaHandler(static fs.FS) http.HandlerFunc {
+func spaHandler(static fs.FS, preview Previewer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if static == nil {
 			http.NotFound(w, r)
@@ -197,7 +216,7 @@ func spaHandler(static fs.FS) http.HandlerFunc {
 		// rejects any name that would leave its root.
 		name := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
 		if name == "" || name == "index.html" {
-			serveIndex(w, r, static)
+			serveIndex(w, r, static, preview)
 			return
 		}
 		st, err := fs.Stat(static, name)
@@ -212,16 +231,24 @@ func spaHandler(static fs.FS) http.HandlerFunc {
 		case path.Ext(name) != "":
 			http.NotFound(w, r)
 		default:
-			serveIndex(w, r, static)
+			serveIndex(w, r, static, preview)
 		}
 	}
 }
 
-func serveIndex(w http.ResponseWriter, r *http.Request, static fs.FS) {
+func serveIndex(w http.ResponseWriter, r *http.Request, static fs.FS, preview Previewer) {
 	body, err := fs.ReadFile(static, "index.html")
 	if err != nil {
 		http.NotFound(w, r)
 		return
+	}
+	if preview != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), previewTimeout)
+		p, ok := preview(ctx, r.URL.Path)
+		cancel()
+		if ok {
+			body = withPreview(body, p)
+		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -229,4 +256,29 @@ func serveIndex(w http.ResponseWriter, r *http.Request, static fs.FS) {
 	if r.Method != http.MethodHead {
 		_, _ = w.Write(body)
 	}
+}
+
+var (
+	titleTag   = regexp.MustCompile(`<title>[^<]*</title>`)
+	metaTitle  = regexp.MustCompile(`(<meta property="og:title" content=")[^"]*(")`)
+	metaDescs  = regexp.MustCompile(`(<meta (?:name="description"|property="og:description") content=")[^"]*(")`)
+	previewMax = 300
+)
+
+// withPreview writes p into the page title and the description and Open
+// Graph tags of index.html, escaped for HTML.
+func withPreview(body []byte, p Preview) []byte {
+	title := html.EscapeString(p.Title)
+	desc := []rune(p.Description)
+	if len(desc) > previewMax {
+		desc = append(desc[:previewMax-1], '…')
+	}
+	d := html.EscapeString(string(desc))
+	// The replacement strings hold user text; escape "$" so it is not read
+	// as a group reference.
+	t := strings.ReplaceAll(title, "$", "$$")
+	d = strings.ReplaceAll(d, "$", "$$")
+	body = titleTag.ReplaceAll(body, []byte("<title>"+t+" · Perspectiv</title>"))
+	body = metaTitle.ReplaceAll(body, []byte("${1}"+t+"${2}"))
+	return metaDescs.ReplaceAll(body, []byte("${1}"+d+"${2}"))
 }

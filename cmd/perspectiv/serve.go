@@ -107,6 +107,7 @@ func serveErr(ctx context.Context, cfg config, log zerolog.Logger) error {
 		Health:   api.HealthChecks(app.healthChecks(pool)),
 		Handlers: app.mounts,
 		Static:   app.static,
+		Preview:  app.preview,
 	})
 
 	// Bind before starting workers so a taken port fails fast.
@@ -145,6 +146,8 @@ type app struct {
 	mounts []api.Mount
 	// static is the SPA; nil unless the API runs.
 	static fs.FS
+	// preview names a shared link's page for its link preview.
+	preview api.Previewer
 	// worker is the working River client; nil unless the workers run.
 	worker *river.Client[pgx.Tx]
 }
@@ -246,6 +249,9 @@ func (a *app) addAPI(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, enq *jo
 		return err
 	}
 	arcSvc := arc.NewService(pool)
+	placeSvc := place.NewService(place.NewStore(pool))
+	perspectiveSvc := perspective.NewService(pool, arcSvc, loreSvc, enq, m, cfg.ExpiryWindow)
+	a.preview = previewer{arcs: arcSvc, perspectives: perspectiveSvc, lores: loreSvc, places: placeSvc}.preview
 	chain := connect.WithInterceptors(api.Interceptors(log, authSvc, authSvc, limiter)...)
 
 	a.mounts = []api.Mount{
@@ -253,10 +259,10 @@ func (a *app) addAPI(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, enq *jo
 		mount[perspectivv1connect.UserServiceHandler](perspectivv1connect.NewUserServiceHandler,
 			user.NewHandler(user.NewService(pool, avatars, authSvc, log)), chain),
 		mount[perspectivv1connect.PlaceServiceHandler](perspectivv1connect.NewPlaceServiceHandler,
-			place.NewHandler(place.NewService(place.NewStore(pool))), chain),
+			place.NewHandler(placeSvc), chain),
 		mount[perspectivv1connect.ArcServiceHandler](perspectivv1connect.NewArcServiceHandler, arc.NewHandler(arcSvc), chain),
 		mount[perspectivv1connect.PerspectiveServiceHandler](perspectivv1connect.NewPerspectiveServiceHandler,
-			perspective.NewHandler(perspective.NewService(pool, arcSvc, loreSvc, enq, m, cfg.ExpiryWindow)), chain),
+			perspective.NewHandler(perspectiveSvc), chain),
 		mount[perspectivv1connect.LoreServiceHandler](perspectivv1connect.NewLoreServiceHandler, lore.NewHandler(loreSvc), chain),
 		mount[perspectivv1connect.VoteServiceHandler](perspectivv1connect.NewVoteServiceHandler,
 			vote.NewHandler(vote.NewService(pool, loreSvc, enq)), chain),

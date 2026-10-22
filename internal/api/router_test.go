@@ -206,6 +206,69 @@ func TestSPA(t *testing.T) {
 	}
 }
 
+// A page with a preview gets its title and description written into the
+// page title and the description and Open Graph tags, escaped; any other
+// page is index.html as built.
+func TestSPAPreview(t *testing.T) {
+	t.Parallel()
+	index := `<!doctype html><head><meta name="description" content="Default." />` +
+		`<meta property="og:title" content="Perspectiv" /><meta property="og:description" content="Default." />` +
+		`<title>Perspectiv</title></head>`
+	static := fstest.MapFS{"index.html": {Data: []byte(index)}}
+	long := strings.Repeat("a", 400)
+	previews := map[string]api.Preview{
+		"/arcs/1":   {Title: "Fourth quarter", Description: "The pick in the fourth."},
+		"/lores/1":  {Title: `Fish & "chips" <b>`, Description: "Cost $1 and $2."},
+		"/places/1": {Title: "Long", Description: long},
+	}
+	h := api.NewRouter(api.RouterConfig{Log: zerolog.Nop(), Static: static, Preview: func(_ context.Context, path string) (api.Preview, bool) {
+		p, ok := previews[path]
+		return p, ok
+	}})
+
+	tests := []struct {
+		name string
+		path string
+		want []string
+		not  []string
+	}{
+		{
+			name: "a story's page names it",
+			path: "/arcs/1",
+			want: []string{
+				"<title>Fourth quarter · Perspectiv</title>",
+				`<meta property="og:title" content="Fourth quarter" />`,
+				`<meta name="description" content="The pick in the fourth." />`,
+				`<meta property="og:description" content="The pick in the fourth." />`,
+			},
+		},
+		{
+			name: "user text is escaped, and a dollar sign stays literal",
+			path: "/lores/1",
+			want: []string{"<title>Fish &amp; &#34;chips&#34; &lt;b&gt; · Perspectiv</title>", `content="Cost $1 and $2."`},
+			not:  []string{"<b>"},
+		},
+		{name: "a long description is cut short", path: "/places/1", want: []string{strings.Repeat("a", 299) + "…\""}},
+		{name: "a page with no preview is served as built", path: "/claims", want: []string{"<title>Perspectiv</title>", `content="Default."`}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, body := get(t, h, tc.path)
+			for _, w := range tc.want {
+				if !strings.Contains(body, w) {
+					t.Fatalf("body = %q, want it to contain %q", body, w)
+				}
+			}
+			for _, n := range tc.not {
+				if strings.Contains(body, n) {
+					t.Fatalf("body = %q, want no %q", body, n)
+				}
+			}
+		})
+	}
+}
+
 func TestNoStaticServesNoSPA(t *testing.T) {
 	t.Parallel()
 	resp, _ := get(t, api.NewRouter(api.RouterConfig{Log: zerolog.Nop()}), "/places/1")
