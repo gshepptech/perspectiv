@@ -569,3 +569,73 @@ func TestGetArc_Voted(t *testing.T) {
 		}
 	})
 }
+
+// ListOpenCharacters lists the characters nobody holds in the arc's readable
+// stories, in publishing order, and leaves out claimed ones, rejected claims
+// aside, and those in hidden, deleted or voted-out stories.
+func TestListOpenCharacters(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t, testdb.New(t))
+	creator := w.user(t)
+	dayID := w.mustResolve(t, arc.ResolveInput{PlaceID: w.diner, LocalDate: day, Title: "The open night", CreatedBy: creator})
+	t0 := time.Now().Add(-time.Hour)
+	at := func(i int) time.Time { return t0.Add(time.Duration(i) * time.Minute) }
+	character := func(p uuid.UUID, label string, pos int) uuid.UUID {
+		return w.id(t, `INSERT INTO characters (perspective_id, label, position) VALUES ($1, $2, $3) RETURNING id`, p, label, pos)
+	}
+	claim := func(ch, claimant uuid.UUID, status string) {
+		w.exec(t, `INSERT INTO claims (character_id, claimant_user_id, claimant_perspective_id, status)
+			SELECT $1, author_id, id, $3 FROM perspectives WHERE id = $2`, ch, claimant, status)
+	}
+	first := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_PENDING", publishAt: at(1)})
+	second := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_PENDING", publishAt: at(2)})
+	hidden := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_PENDING", publishAt: at(3), hidden: true})
+	removed := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_REMOVED", publishAt: at(4)})
+	claimant := w.perspective(t, dayID, perspectiveOpts{loreStatus: "LORE_STATUS_PENDING", publishAt: at(5)})
+
+	open1 := character(first, "the cook with the burn", 1)
+	accepted := character(first, "the waitress", 2)
+	pending := character(second, "the man at the counter", 1)
+	rejected := character(second, "the kid with the milkshake", 2)
+	character(hidden, "a hidden one", 1)
+	character(removed, "a removed one", 1)
+	claim(accepted, claimant, "CLAIM_STATUS_ACCEPTED")
+	claim(pending, claimant, "CLAIM_STATUS_PENDING")
+	claim(rejected, claimant, "CLAIM_STATUS_REJECTED")
+
+	client := w.client(t)
+	ctx := context.Background()
+	res, err := client.ListOpenCharacters(ctx, as(uuid.Nil, &perspectivv1.ListOpenCharactersRequest{ArcId: dayID.String()}))
+	if err != nil {
+		t.Fatalf("ListOpenCharacters: %v", err)
+	}
+	var got []string
+	for _, c := range res.Msg.GetCharacters() {
+		got = append(got, c.GetCharacterId())
+	}
+	if want := []string{open1.String(), rejected.String()}; !slices.Equal(got, want) {
+		t.Fatalf("open characters = %v, want %v", got, want)
+	}
+	if c := res.Msg.GetCharacters()[0]; c.GetLabel() != "the cook with the burn" || c.GetPerspectiveId() != first.String() || c.GetAuthor().GetUsername() == "" {
+		t.Fatalf("first = %v", c)
+	}
+
+	tests := []struct {
+		name string
+		id   string
+		code connect.Code
+	}{
+		{name: "missing arc", id: uuid.NewString(), code: connect.CodeNotFound},
+		{name: "malformed id", id: "x", code: connect.CodeInvalidArgument},
+	}
+	for _, tc := range tests {
+		_, err := client.ListOpenCharacters(ctx, as(uuid.Nil, &perspectivv1.ListOpenCharactersRequest{ArcId: tc.id}))
+		if codeOf(err) != tc.code {
+			t.Fatalf("%s: err = %v, want %v", tc.name, err, tc.code)
+		}
+	}
+	w.exec(t, `UPDATE places SET hidden_at = now() WHERE id = $1`, w.diner)
+	if _, err := client.ListOpenCharacters(ctx, as(uuid.Nil, &perspectivv1.ListOpenCharactersRequest{ArcId: dayID.String()})); codeOf(err) != connect.CodeNotFound {
+		t.Fatalf("under a hidden place: err = %v, want NotFound", err)
+	}
+}

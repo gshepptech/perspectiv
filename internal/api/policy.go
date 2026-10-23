@@ -79,9 +79,10 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.PlaceService/FollowPlace":   {Access: User},
 	"/perspectiv.v1.PlaceService/ListFollowing": {Access: User},
 
-	"/perspectiv.v1.ArcService/GetArc":         {Access: Public},
-	"/perspectiv.v1.ArcService/ListArcSection": {Access: Public},
-	"/perspectiv.v1.ArcService/RetitleHourArc": {Access: User, Verified: true},
+	"/perspectiv.v1.ArcService/GetArc":             {Access: Public},
+	"/perspectiv.v1.ArcService/ListArcSection":     {Access: Public},
+	"/perspectiv.v1.ArcService/ListOpenCharacters": {Access: Public},
+	"/perspectiv.v1.ArcService/RetitleHourArc":     {Access: User, Verified: true},
 
 	"/perspectiv.v1.PerspectiveService/SaveDraft":    {Access: User},
 	"/perspectiv.v1.PerspectiveService/Publish":      {Access: User, Verified: true, RateLimit: LimitPublish},

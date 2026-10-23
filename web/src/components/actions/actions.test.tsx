@@ -311,6 +311,35 @@ describe("claim", () => {
   });
 });
 
+describe("claim from a \"That was me\" link", () => {
+  const characters = [{ id: "c-1", position: 1, label: "The barista in the green apron", hasAcceptedClaim: false, hasPendingClaim: false }];
+
+  it("opens the claim dialog on arrival", async () => {
+    const store: Store = {};
+    store["p-heron"] = perspective("p-heron", { author: HERON, loreId: "lore-canon", characters }).perspective;
+    await renderApp(storyRoute, "/perspectives/p-heron?claim=1", {
+      signedIn: true,
+      routes: {
+        "ArcService/GetArc": () => ({ body: dayArcResponse() }),
+        "LoreService/GetLore": () => ({ body: { lore: lore("lore-canon", "CANON", []) } }),
+        "PerspectiveService/Get": getFrom(store),
+      },
+    });
+    const dialog = await screen.findByRole("dialog", { name: "Claim a character" });
+    expect(within(dialog).getByRole("listitem", { name: "The barista in the green apron" })).toBeInTheDocument();
+  });
+
+  it("sends a signed-out reader to sign in instead", async () => {
+    const store: Store = {};
+    store["p-heron"] = perspective("p-heron", { author: HERON, loreId: "lore-canon", characters }).perspective;
+    await renderApp(storyRoute, "/perspectives/p-heron?claim=1", {
+      routes: { "ArcService/GetArc": () => ({ body: dayArcResponse() }), "PerspectiveService/Get": getFrom(store) },
+    });
+    expect(await screen.findByTestId("login")).toHaveTextContent("next=%2Fperspectives%2Fp-heron%3Fclaim%3D1");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
 describe("remove vote", () => {
   it("a member of a 4-member lore votes to remove another member's perspective after confirming", async () => {
     const app = await openStory("p-otter", OTTER, {

@@ -17,6 +17,7 @@ import { useSession, type Session } from "@/lib/session";
 
 
 import { dateLabel, hourLabel } from "./labels";
+import { OpenCharacters } from "./OpenCharacters";
 import { StoryRow } from "./StoryRow";
 
 export const arcKey = (arcId: string) => ["arc", "getArc", { arcId }] as const;
@@ -330,7 +331,7 @@ function counts(res: GetArcResponse): string {
 function HowItWorks({ arc, res, rights }: { arc: Arc; res: GetArcResponse; rights: ReturnType<typeof rightsIn> }) {
   const session = useSession();
   return (
-    <aside aria-labelledby="arc-how" className="min-w-0 self-start rounded-md border border-rule bg-surface p-4 text-sm">
+    <aside aria-labelledby="arc-how" className="min-w-0 rounded-md border border-rule bg-surface p-4 text-sm">
       <h2 id="arc-how" className="font-sans text-base font-medium">
         How this day works
       </h2>
@@ -447,7 +448,10 @@ function ArcView({ res }: { res: GetArcResponse }) {
           <Contenders arcId={arc.id} res={res} rights={rights} />
           <StandingAlone arcId={arc.id} res={res} rights={rights.outsideLore} />
         </div>
-        <HowItWorks arc={arc} res={res} rights={rights} />
+        <div className="grid min-w-0 content-start gap-4">
+          <OpenCharacters arcId={arc.id} />
+          <HowItWorks arc={arc} res={res} rights={rights} />
+        </div>
       </div>
     </article>
   );

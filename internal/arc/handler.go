@@ -64,6 +64,19 @@ func (h *Handler) ListArcSection(ctx context.Context, req *connect.Request[persp
 	return connect.NewResponse(resp), nil
 }
 
+// ListOpenCharacters lists the arc's unclaimed characters. It is public.
+func (h *Handler) ListOpenCharacters(ctx context.Context, req *connect.Request[perspectivv1.ListOpenCharactersRequest]) (*connect.Response[perspectivv1.ListOpenCharactersResponse], error) {
+	id, err := parseArcID(req.Msg.GetArcId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	chars, err := h.svc.ListOpenCharacters(ctx, id)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ListOpenCharactersResponse{Characters: chars}), nil
+}
+
 // RetitleHourArc retitles an hour arc for its creator.
 func (h *Handler) RetitleHourArc(ctx context.Context, req *connect.Request[perspectivv1.RetitleHourArcRequest]) (*connect.Response[perspectivv1.RetitleHourArcResponse], error) {
 	caller, ok := apiutil.CallerFrom(ctx)

@@ -264,3 +264,45 @@ describe("arc page lists are paged (NFR-008)", () => {
   });
 });
 
+describe("is this you?", () => {
+  const open = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      characterId: `c-${i}`,
+      label: `the person in seat ${i}`,
+      perspectiveId: `p-${i}`,
+      author: i === 0 ? { userId: ME, username: "wren" } : { userId: `u-${i}`, username: `writer${i}` },
+    }));
+
+  it("lists the people nobody has claimed, without the viewer's own, each opening its story to claim", async () => {
+    const user = userEvent.setup();
+    await renderApp(route, "/arcs/arc-day", {
+      signedIn: true,
+      routes: {
+        "ArcService/GetArc": () => ({ body: dayArcResponse() }),
+        "ArcService/ListOpenCharacters": () => ({ body: { characters: open(9) } }),
+        "PerspectiveService/Get": () => ({ body: perspective("any") }),
+      },
+    });
+    const panel = await screen.findByRole("region", { name: "Is this you?" });
+    expect(within(panel).queryByText("“the person in seat 0”")).toBeNull();
+    const links = within(panel).getAllByRole("link", { name: /^That was me/ });
+    expect(links).toHaveLength(6);
+    expect(links[0]).toHaveAccessibleName("That was me: the person in seat 1");
+    expect(links[0]).toHaveAttribute("href", "/perspectives/p-1?claim=1");
+    expect(panel).toHaveTextContent("in writer1's story");
+    await user.click(within(panel).getByRole("button", { name: "Show all 8" }));
+    expect(within(panel).getAllByRole("link", { name: /^That was me/ })).toHaveLength(8);
+  });
+
+  it("is left out when everyone described has been claimed", async () => {
+    await renderApp(route, "/arcs/arc-day", {
+      routes: {
+        "ArcService/GetArc": () => ({ body: dayArcResponse() }),
+        "ArcService/ListOpenCharacters": () => ({ body: { characters: [] } }),
+        "PerspectiveService/Get": () => ({ body: perspective("any") }),
+      },
+    });
+    await screen.findByRole("heading", { level: 1 });
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Is this you?" })).toBeNull());
+  });
+});

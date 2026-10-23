@@ -753,6 +753,165 @@ func (x *RetitleHourArcResponse) GetArc() *Arc {
 	return nil
 }
 
+type ListOpenCharactersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ArcId         string                 `protobuf:"bytes,1,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOpenCharactersRequest) Reset() {
+	*x = ListOpenCharactersRequest{}
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOpenCharactersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOpenCharactersRequest) ProtoMessage() {}
+
+func (x *ListOpenCharactersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOpenCharactersRequest.ProtoReflect.Descriptor instead.
+func (*ListOpenCharactersRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ListOpenCharactersRequest) GetArcId() string {
+	if x != nil {
+		return x.ArcId
+	}
+	return ""
+}
+
+// OpenCharacter is one unclaimed character and the story it is in.
+type OpenCharacter struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CharacterId   string                 `protobuf:"bytes,1,opt,name=character_id,json=characterId,proto3" json:"character_id,omitempty"`
+	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	PerspectiveId string                 `protobuf:"bytes,3,opt,name=perspective_id,json=perspectiveId,proto3" json:"perspective_id,omitempty"`
+	Author        *UserRef               `protobuf:"bytes,4,opt,name=author,proto3" json:"author,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenCharacter) Reset() {
+	*x = OpenCharacter{}
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenCharacter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenCharacter) ProtoMessage() {}
+
+func (x *OpenCharacter) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenCharacter.ProtoReflect.Descriptor instead.
+func (*OpenCharacter) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *OpenCharacter) GetCharacterId() string {
+	if x != nil {
+		return x.CharacterId
+	}
+	return ""
+}
+
+func (x *OpenCharacter) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *OpenCharacter) GetPerspectiveId() string {
+	if x != nil {
+		return x.PerspectiveId
+	}
+	return ""
+}
+
+func (x *OpenCharacter) GetAuthor() *UserRef {
+	if x != nil {
+		return x.Author
+	}
+	return nil
+}
+
+type ListOpenCharactersResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// In the order their stories were published, then as each story lists
+	// them; at most 200.
+	Characters    []*OpenCharacter `protobuf:"bytes,1,rep,name=characters,proto3" json:"characters,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListOpenCharactersResponse) Reset() {
+	*x = ListOpenCharactersResponse{}
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListOpenCharactersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListOpenCharactersResponse) ProtoMessage() {}
+
+func (x *ListOpenCharactersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListOpenCharactersResponse.ProtoReflect.Descriptor instead.
+func (*ListOpenCharactersResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListOpenCharactersResponse) GetCharacters() []*OpenCharacter {
+	if x != nil {
+		return x.Characters
+	}
+	return nil
+}
+
 var File_perspectiv_v1_arc_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_arc_proto_rawDesc = "" +
@@ -819,12 +978,24 @@ const file_perspectiv_v1_arc_proto_rawDesc = "" +
 	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\">\n" +
 	"\x16RetitleHourArcResponse\x12$\n" +
-	"\x03arc\x18\x01 \x01(\v2\x12.perspectiv.v1.ArcR\x03arc2\x91\x02\n" +
+	"\x03arc\x18\x01 \x01(\v2\x12.perspectiv.v1.ArcR\x03arc\"2\n" +
+	"\x19ListOpenCharactersRequest\x12\x15\n" +
+	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\"\x9f\x01\n" +
+	"\rOpenCharacter\x12!\n" +
+	"\fcharacter_id\x18\x01 \x01(\tR\vcharacterId\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12%\n" +
+	"\x0eperspective_id\x18\x03 \x01(\tR\rperspectiveId\x12.\n" +
+	"\x06author\x18\x04 \x01(\v2\x16.perspectiv.v1.UserRefR\x06author\"Z\n" +
+	"\x1aListOpenCharactersResponse\x12<\n" +
+	"\n" +
+	"characters\x18\x01 \x03(\v2\x1c.perspectiv.v1.OpenCharacterR\n" +
+	"characters2\xfc\x02\n" +
 	"\n" +
 	"ArcService\x12E\n" +
 	"\x06GetArc\x12\x1c.perspectiv.v1.GetArcRequest\x1a\x1d.perspectiv.v1.GetArcResponse\x12]\n" +
 	"\x0eListArcSection\x12$.perspectiv.v1.ListArcSectionRequest\x1a%.perspectiv.v1.ListArcSectionResponse\x12]\n" +
-	"\x0eRetitleHourArc\x12$.perspectiv.v1.RetitleHourArcRequest\x1a%.perspectiv.v1.RetitleHourArcResponseB\x9d\x01\n" +
+	"\x0eRetitleHourArc\x12$.perspectiv.v1.RetitleHourArcRequest\x1a%.perspectiv.v1.RetitleHourArcResponse\x12i\n" +
+	"\x12ListOpenCharacters\x12(.perspectiv.v1.ListOpenCharactersRequest\x1a).perspectiv.v1.ListOpenCharactersResponseB\x9d\x01\n" +
 	"\x11com.perspectiv.v1B\bArcProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -839,57 +1010,64 @@ func file_perspectiv_v1_arc_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_arc_proto_rawDescData
 }
 
-var file_perspectiv_v1_arc_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_perspectiv_v1_arc_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_perspectiv_v1_arc_proto_goTypes = []any{
-	(*Arc)(nil),                    // 0: perspectiv.v1.Arc
-	(*ArcLore)(nil),                // 1: perspectiv.v1.ArcLore
-	(*HourArc)(nil),                // 2: perspectiv.v1.HourArc
-	(*GetArcRequest)(nil),          // 3: perspectiv.v1.GetArcRequest
-	(*ArcViewer)(nil),              // 4: perspectiv.v1.ArcViewer
-	(*GetArcResponse)(nil),         // 5: perspectiv.v1.GetArcResponse
-	(*ListArcSectionRequest)(nil),  // 6: perspectiv.v1.ListArcSectionRequest
-	(*ListArcSectionResponse)(nil), // 7: perspectiv.v1.ListArcSectionResponse
-	(*RetitleHourArcRequest)(nil),  // 8: perspectiv.v1.RetitleHourArcRequest
-	(*RetitleHourArcResponse)(nil), // 9: perspectiv.v1.RetitleHourArcResponse
-	(*PlaceRef)(nil),               // 10: perspectiv.v1.PlaceRef
-	(*UserRef)(nil),                // 11: perspectiv.v1.UserRef
-	(*timestamppb.Timestamp)(nil),  // 12: google.protobuf.Timestamp
-	(*Lore)(nil),                   // 13: perspectiv.v1.Lore
-	(*PerspectiveSummary)(nil),     // 14: perspectiv.v1.PerspectiveSummary
-	(ArcSection)(0),                // 15: perspectiv.v1.ArcSection
+	(*Arc)(nil),                        // 0: perspectiv.v1.Arc
+	(*ArcLore)(nil),                    // 1: perspectiv.v1.ArcLore
+	(*HourArc)(nil),                    // 2: perspectiv.v1.HourArc
+	(*GetArcRequest)(nil),              // 3: perspectiv.v1.GetArcRequest
+	(*ArcViewer)(nil),                  // 4: perspectiv.v1.ArcViewer
+	(*GetArcResponse)(nil),             // 5: perspectiv.v1.GetArcResponse
+	(*ListArcSectionRequest)(nil),      // 6: perspectiv.v1.ListArcSectionRequest
+	(*ListArcSectionResponse)(nil),     // 7: perspectiv.v1.ListArcSectionResponse
+	(*RetitleHourArcRequest)(nil),      // 8: perspectiv.v1.RetitleHourArcRequest
+	(*RetitleHourArcResponse)(nil),     // 9: perspectiv.v1.RetitleHourArcResponse
+	(*ListOpenCharactersRequest)(nil),  // 10: perspectiv.v1.ListOpenCharactersRequest
+	(*OpenCharacter)(nil),              // 11: perspectiv.v1.OpenCharacter
+	(*ListOpenCharactersResponse)(nil), // 12: perspectiv.v1.ListOpenCharactersResponse
+	(*PlaceRef)(nil),                   // 13: perspectiv.v1.PlaceRef
+	(*UserRef)(nil),                    // 14: perspectiv.v1.UserRef
+	(*timestamppb.Timestamp)(nil),      // 15: google.protobuf.Timestamp
+	(*Lore)(nil),                       // 16: perspectiv.v1.Lore
+	(*PerspectiveSummary)(nil),         // 17: perspectiv.v1.PerspectiveSummary
+	(ArcSection)(0),                    // 18: perspectiv.v1.ArcSection
 }
 var file_perspectiv_v1_arc_proto_depIdxs = []int32{
-	10, // 0: perspectiv.v1.Arc.place:type_name -> perspectiv.v1.PlaceRef
-	10, // 1: perspectiv.v1.Arc.place_chain:type_name -> perspectiv.v1.PlaceRef
-	11, // 2: perspectiv.v1.Arc.created_by:type_name -> perspectiv.v1.UserRef
-	12, // 3: perspectiv.v1.Arc.created_at:type_name -> google.protobuf.Timestamp
-	13, // 4: perspectiv.v1.ArcLore.lore:type_name -> perspectiv.v1.Lore
-	14, // 5: perspectiv.v1.ArcLore.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
+	13, // 0: perspectiv.v1.Arc.place:type_name -> perspectiv.v1.PlaceRef
+	13, // 1: perspectiv.v1.Arc.place_chain:type_name -> perspectiv.v1.PlaceRef
+	14, // 2: perspectiv.v1.Arc.created_by:type_name -> perspectiv.v1.UserRef
+	15, // 3: perspectiv.v1.Arc.created_at:type_name -> google.protobuf.Timestamp
+	16, // 4: perspectiv.v1.ArcLore.lore:type_name -> perspectiv.v1.Lore
+	17, // 5: perspectiv.v1.ArcLore.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
 	0,  // 6: perspectiv.v1.HourArc.arc:type_name -> perspectiv.v1.Arc
 	1,  // 7: perspectiv.v1.HourArc.canon:type_name -> perspectiv.v1.ArcLore
 	0,  // 8: perspectiv.v1.GetArcResponse.arc:type_name -> perspectiv.v1.Arc
 	1,  // 9: perspectiv.v1.GetArcResponse.canon:type_name -> perspectiv.v1.ArcLore
 	1,  // 10: perspectiv.v1.GetArcResponse.sublores:type_name -> perspectiv.v1.ArcLore
-	14, // 11: perspectiv.v1.GetArcResponse.tales:type_name -> perspectiv.v1.PerspectiveSummary
-	14, // 12: perspectiv.v1.GetArcResponse.unlinked:type_name -> perspectiv.v1.PerspectiveSummary
+	17, // 11: perspectiv.v1.GetArcResponse.tales:type_name -> perspectiv.v1.PerspectiveSummary
+	17, // 12: perspectiv.v1.GetArcResponse.unlinked:type_name -> perspectiv.v1.PerspectiveSummary
 	2,  // 13: perspectiv.v1.GetArcResponse.hours:type_name -> perspectiv.v1.HourArc
 	4,  // 14: perspectiv.v1.GetArcResponse.viewer:type_name -> perspectiv.v1.ArcViewer
-	15, // 15: perspectiv.v1.ListArcSectionRequest.section:type_name -> perspectiv.v1.ArcSection
+	18, // 15: perspectiv.v1.ListArcSectionRequest.section:type_name -> perspectiv.v1.ArcSection
 	1,  // 16: perspectiv.v1.ListArcSectionResponse.sublores:type_name -> perspectiv.v1.ArcLore
-	14, // 17: perspectiv.v1.ListArcSectionResponse.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
+	17, // 17: perspectiv.v1.ListArcSectionResponse.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
 	2,  // 18: perspectiv.v1.ListArcSectionResponse.hours:type_name -> perspectiv.v1.HourArc
 	0,  // 19: perspectiv.v1.RetitleHourArcResponse.arc:type_name -> perspectiv.v1.Arc
-	3,  // 20: perspectiv.v1.ArcService.GetArc:input_type -> perspectiv.v1.GetArcRequest
-	6,  // 21: perspectiv.v1.ArcService.ListArcSection:input_type -> perspectiv.v1.ListArcSectionRequest
-	8,  // 22: perspectiv.v1.ArcService.RetitleHourArc:input_type -> perspectiv.v1.RetitleHourArcRequest
-	5,  // 23: perspectiv.v1.ArcService.GetArc:output_type -> perspectiv.v1.GetArcResponse
-	7,  // 24: perspectiv.v1.ArcService.ListArcSection:output_type -> perspectiv.v1.ListArcSectionResponse
-	9,  // 25: perspectiv.v1.ArcService.RetitleHourArc:output_type -> perspectiv.v1.RetitleHourArcResponse
-	23, // [23:26] is the sub-list for method output_type
-	20, // [20:23] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	14, // 20: perspectiv.v1.OpenCharacter.author:type_name -> perspectiv.v1.UserRef
+	11, // 21: perspectiv.v1.ListOpenCharactersResponse.characters:type_name -> perspectiv.v1.OpenCharacter
+	3,  // 22: perspectiv.v1.ArcService.GetArc:input_type -> perspectiv.v1.GetArcRequest
+	6,  // 23: perspectiv.v1.ArcService.ListArcSection:input_type -> perspectiv.v1.ListArcSectionRequest
+	8,  // 24: perspectiv.v1.ArcService.RetitleHourArc:input_type -> perspectiv.v1.RetitleHourArcRequest
+	10, // 25: perspectiv.v1.ArcService.ListOpenCharacters:input_type -> perspectiv.v1.ListOpenCharactersRequest
+	5,  // 26: perspectiv.v1.ArcService.GetArc:output_type -> perspectiv.v1.GetArcResponse
+	7,  // 27: perspectiv.v1.ArcService.ListArcSection:output_type -> perspectiv.v1.ListArcSectionResponse
+	9,  // 28: perspectiv.v1.ArcService.RetitleHourArc:output_type -> perspectiv.v1.RetitleHourArcResponse
+	12, // 29: perspectiv.v1.ArcService.ListOpenCharacters:output_type -> perspectiv.v1.ListOpenCharactersResponse
+	26, // [26:30] is the sub-list for method output_type
+	22, // [22:26] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_arc_proto_init() }
@@ -909,7 +1087,7 @@ func file_perspectiv_v1_arc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_arc_proto_rawDesc), len(file_perspectiv_v1_arc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

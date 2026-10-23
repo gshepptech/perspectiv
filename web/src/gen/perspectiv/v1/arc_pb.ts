@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/arc.proto.
  */
 export const file_perspectiv_v1_arc: GenFile = /*@__PURE__*/
-  fileDesc("ChdwZXJzcGVjdGl2L3YxL2FyYy5wcm90bxINcGVyc3BlY3Rpdi52MSLbAgoDQXJjEgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEiYKBXBsYWNlGAMgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhIsCgtwbGFjZV9jaGFpbhgEIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSEgoKbG9jYWxfZGF0ZRgFIAEoCRIRCgRob3VyGAYgASgFSACIAQESFQoNcGFyZW50X2FyY19pZBgHIAEoCRIVCg1jYW5vbl9sb3JlX2lkGAggASgJEhMKC2Nhbm9uX3Njb3JlGAkgASgBEhQKDG1lbWJlcl9jb3VudBgKIAEoBRIqCgpjcmVhdGVkX2J5GAsgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmEi4KCmNyZWF0ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgcKBV9ob3VyImUKB0FyY0xvcmUSIQoEbG9yZRgBIAEoCzITLnBlcnNwZWN0aXYudjEuTG9yZRI3CgxwZXJzcGVjdGl2ZXMYAiADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeSJsCgdIb3VyQXJjEh8KA2FyYxgBIAEoCzISLnBlcnNwZWN0aXYudjEuQXJjEiUKBWNhbm9uGAIgASgLMhYucGVyc3BlY3Rpdi52MS5BcmNMb3JlEhkKEXBlcnNwZWN0aXZlX2NvdW50GAMgASgFIjIKDUdldEFyY1JlcXVlc3QSDgoGYXJjX2lkGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBSI0CglBcmNWaWV3ZXISFgoOcGVyc3BlY3RpdmVfaWQYASABKAkSDwoHbG9yZV9pZBgCIAEoCSK8AwoOR2V0QXJjUmVzcG9uc2USHwoDYXJjGAEgASgLMhIucGVyc3BlY3Rpdi52MS5BcmMSJQoFY2Fub24YAiABKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSKAoIc3VibG9yZXMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSMAoFdGFsZXMYBCADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeRIzCgh1bmxpbmtlZBgFIAMoCzIhLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTdW1tYXJ5EiUKBWhvdXJzGAYgAygLMhYucGVyc3BlY3Rpdi52MS5Ib3VyQXJjEiAKGHN1YmxvcmVzX25leHRfcGFnZV90b2tlbhgHIAEoCRIdChV0YWxlc19uZXh0X3BhZ2VfdG9rZW4YCCABKAkSIAoYdW5saW5rZWRfbmV4dF9wYWdlX3Rva2VuGAkgASgJEh0KFWhvdXJzX25leHRfcGFnZV90b2tlbhgKIAEoCRIoCgZ2aWV3ZXIYCyABKAsyGC5wZXJzcGVjdGl2LnYxLkFyY1ZpZXdlciJ6ChVMaXN0QXJjU2VjdGlvblJlcXVlc3QSDgoGYXJjX2lkGAEgASgJEioKB3NlY3Rpb24YAiABKA4yGS5wZXJzcGVjdGl2LnYxLkFyY1NlY3Rpb24SEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUiuwEKFkxpc3RBcmNTZWN0aW9uUmVzcG9uc2USKAoIc3VibG9yZXMYASADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSNwoMcGVyc3BlY3RpdmVzGAIgAygLMiEucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVN1bW1hcnkSJQoFaG91cnMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkhvdXJBcmMSFwoPbmV4dF9wYWdlX3Rva2VuGAQgASgJIjYKFVJldGl0bGVIb3VyQXJjUmVxdWVzdBIOCgZhcmNfaWQYASABKAkSDQoFdGl0bGUYAiABKAkiOQoWUmV0aXRsZUhvdXJBcmNSZXNwb25zZRIfCgNhcmMYASABKAsyEi5wZXJzcGVjdGl2LnYxLkFyYzKRAgoKQXJjU2VydmljZRJFCgZHZXRBcmMSHC5wZXJzcGVjdGl2LnYxLkdldEFyY1JlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLkdldEFyY1Jlc3BvbnNlEl0KDkxpc3RBcmNTZWN0aW9uEiQucGVyc3BlY3Rpdi52MS5MaXN0QXJjU2VjdGlvblJlcXVlc3QaJS5wZXJzcGVjdGl2LnYxLkxpc3RBcmNTZWN0aW9uUmVzcG9uc2USXQoOUmV0aXRsZUhvdXJBcmMSJC5wZXJzcGVjdGl2LnYxLlJldGl0bGVIb3VyQXJjUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuUmV0aXRsZUhvdXJBcmNSZXNwb25zZUKdAQoRY29tLnBlcnNwZWN0aXYudjFCCEFyY1Byb3RvUAFaKXBlcnNwZWN0aXYvZ2VuL3BlcnNwZWN0aXYvdjE7cGVyc3BlY3RpdnYxogIDUFhYqgINUGVyc3BlY3Rpdi5WMcoCDVBlcnNwZWN0aXZcVjHiAhlQZXJzcGVjdGl2XFYxXEdQQk1ldGFkYXRh6gIOUGVyc3BlY3Rpdjo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_lore, file_perspectiv_v1_perspective, file_perspectiv_v1_place, file_perspectiv_v1_user]);
+  fileDesc("ChdwZXJzcGVjdGl2L3YxL2FyYy5wcm90bxINcGVyc3BlY3Rpdi52MSLbAgoDQXJjEgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEiYKBXBsYWNlGAMgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhIsCgtwbGFjZV9jaGFpbhgEIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSEgoKbG9jYWxfZGF0ZRgFIAEoCRIRCgRob3VyGAYgASgFSACIAQESFQoNcGFyZW50X2FyY19pZBgHIAEoCRIVCg1jYW5vbl9sb3JlX2lkGAggASgJEhMKC2Nhbm9uX3Njb3JlGAkgASgBEhQKDG1lbWJlcl9jb3VudBgKIAEoBRIqCgpjcmVhdGVkX2J5GAsgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmEi4KCmNyZWF0ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgcKBV9ob3VyImUKB0FyY0xvcmUSIQoEbG9yZRgBIAEoCzITLnBlcnNwZWN0aXYudjEuTG9yZRI3CgxwZXJzcGVjdGl2ZXMYAiADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeSJsCgdIb3VyQXJjEh8KA2FyYxgBIAEoCzISLnBlcnNwZWN0aXYudjEuQXJjEiUKBWNhbm9uGAIgASgLMhYucGVyc3BlY3Rpdi52MS5BcmNMb3JlEhkKEXBlcnNwZWN0aXZlX2NvdW50GAMgASgFIjIKDUdldEFyY1JlcXVlc3QSDgoGYXJjX2lkGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBSI0CglBcmNWaWV3ZXISFgoOcGVyc3BlY3RpdmVfaWQYASABKAkSDwoHbG9yZV9pZBgCIAEoCSK8AwoOR2V0QXJjUmVzcG9uc2USHwoDYXJjGAEgASgLMhIucGVyc3BlY3Rpdi52MS5BcmMSJQoFY2Fub24YAiABKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSKAoIc3VibG9yZXMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSMAoFdGFsZXMYBCADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeRIzCgh1bmxpbmtlZBgFIAMoCzIhLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTdW1tYXJ5EiUKBWhvdXJzGAYgAygLMhYucGVyc3BlY3Rpdi52MS5Ib3VyQXJjEiAKGHN1YmxvcmVzX25leHRfcGFnZV90b2tlbhgHIAEoCRIdChV0YWxlc19uZXh0X3BhZ2VfdG9rZW4YCCABKAkSIAoYdW5saW5rZWRfbmV4dF9wYWdlX3Rva2VuGAkgASgJEh0KFWhvdXJzX25leHRfcGFnZV90b2tlbhgKIAEoCRIoCgZ2aWV3ZXIYCyABKAsyGC5wZXJzcGVjdGl2LnYxLkFyY1ZpZXdlciJ6ChVMaXN0QXJjU2VjdGlvblJlcXVlc3QSDgoGYXJjX2lkGAEgASgJEioKB3NlY3Rpb24YAiABKA4yGS5wZXJzcGVjdGl2LnYxLkFyY1NlY3Rpb24SEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUiuwEKFkxpc3RBcmNTZWN0aW9uUmVzcG9uc2USKAoIc3VibG9yZXMYASADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSNwoMcGVyc3BlY3RpdmVzGAIgAygLMiEucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVN1bW1hcnkSJQoFaG91cnMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkhvdXJBcmMSFwoPbmV4dF9wYWdlX3Rva2VuGAQgASgJIjYKFVJldGl0bGVIb3VyQXJjUmVxdWVzdBIOCgZhcmNfaWQYASABKAkSDQoFdGl0bGUYAiABKAkiOQoWUmV0aXRsZUhvdXJBcmNSZXNwb25zZRIfCgNhcmMYASABKAsyEi5wZXJzcGVjdGl2LnYxLkFyYyIrChlMaXN0T3BlbkNoYXJhY3RlcnNSZXF1ZXN0Eg4KBmFyY19pZBgBIAEoCSJ0Cg1PcGVuQ2hhcmFjdGVyEhQKDGNoYXJhY3Rlcl9pZBgBIAEoCRINCgVsYWJlbBgCIAEoCRIWCg5wZXJzcGVjdGl2ZV9pZBgDIAEoCRImCgZhdXRob3IYBCABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYiTgoaTGlzdE9wZW5DaGFyYWN0ZXJzUmVzcG9uc2USMAoKY2hhcmFjdGVycxgBIAMoCzIcLnBlcnNwZWN0aXYudjEuT3BlbkNoYXJhY3RlcjL8AgoKQXJjU2VydmljZRJFCgZHZXRBcmMSHC5wZXJzcGVjdGl2LnYxLkdldEFyY1JlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLkdldEFyY1Jlc3BvbnNlEl0KDkxpc3RBcmNTZWN0aW9uEiQucGVyc3BlY3Rpdi52MS5MaXN0QXJjU2VjdGlvblJlcXVlc3QaJS5wZXJzcGVjdGl2LnYxLkxpc3RBcmNTZWN0aW9uUmVzcG9uc2USXQoOUmV0aXRsZUhvdXJBcmMSJC5wZXJzcGVjdGl2LnYxLlJldGl0bGVIb3VyQXJjUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuUmV0aXRsZUhvdXJBcmNSZXNwb25zZRJpChJMaXN0T3BlbkNoYXJhY3RlcnMSKC5wZXJzcGVjdGl2LnYxLkxpc3RPcGVuQ2hhcmFjdGVyc1JlcXVlc3QaKS5wZXJzcGVjdGl2LnYxLkxpc3RPcGVuQ2hhcmFjdGVyc1Jlc3BvbnNlQp0BChFjb20ucGVyc3BlY3Rpdi52MUIIQXJjUHJvdG9QAVopcGVyc3BlY3Rpdi9nZW4vcGVyc3BlY3Rpdi92MTtwZXJzcGVjdGl2djGiAgNQWFiqAg1QZXJzcGVjdGl2LlYxygINUGVyc3BlY3RpdlxWMeICGVBlcnNwZWN0aXZcVjFcR1BCTWV0YWRhdGHqAg5QZXJzcGVjdGl2OjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_lore, file_perspectiv_v1_perspective, file_perspectiv_v1_place, file_perspectiv_v1_user]);
 
 /**
  * Arc is one place and one place-local day, or one hour child of a day arc.
@@ -411,6 +411,77 @@ export const RetitleHourArcResponseSchema: GenMessage<RetitleHourArcResponse> = 
   messageDesc(file_perspectiv_v1_arc, 9);
 
 /**
+ * @generated from message perspectiv.v1.ListOpenCharactersRequest
+ */
+export type ListOpenCharactersRequest = Message<"perspectiv.v1.ListOpenCharactersRequest"> & {
+  /**
+   * @generated from field: string arc_id = 1;
+   */
+  arcId: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListOpenCharactersRequest.
+ * Use `create(ListOpenCharactersRequestSchema)` to create a new message.
+ */
+export const ListOpenCharactersRequestSchema: GenMessage<ListOpenCharactersRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_arc, 10);
+
+/**
+ * OpenCharacter is one unclaimed character and the story it is in.
+ *
+ * @generated from message perspectiv.v1.OpenCharacter
+ */
+export type OpenCharacter = Message<"perspectiv.v1.OpenCharacter"> & {
+  /**
+   * @generated from field: string character_id = 1;
+   */
+  characterId: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: string perspective_id = 3;
+   */
+  perspectiveId: string;
+
+  /**
+   * @generated from field: perspectiv.v1.UserRef author = 4;
+   */
+  author?: UserRef | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.OpenCharacter.
+ * Use `create(OpenCharacterSchema)` to create a new message.
+ */
+export const OpenCharacterSchema: GenMessage<OpenCharacter> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_arc, 11);
+
+/**
+ * @generated from message perspectiv.v1.ListOpenCharactersResponse
+ */
+export type ListOpenCharactersResponse = Message<"perspectiv.v1.ListOpenCharactersResponse"> & {
+  /**
+   * In the order their stories were published, then as each story lists
+   * them; at most 200.
+   *
+   * @generated from field: repeated perspectiv.v1.OpenCharacter characters = 1;
+   */
+  characters: OpenCharacter[];
+};
+
+/**
+ * Describes the message perspectiv.v1.ListOpenCharactersResponse.
+ * Use `create(ListOpenCharactersResponseSchema)` to create a new message.
+ */
+export const ListOpenCharactersResponseSchema: GenMessage<ListOpenCharactersResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_arc, 12);
+
+/**
  * ArcService reads an arc page: canon first, then sublores, then tales.
  *
  * @generated from service perspectiv.v1.ArcService
@@ -444,6 +515,17 @@ export const ArcService: GenService<{
     methodKind: "unary";
     input: typeof RetitleHourArcRequestSchema;
     output: typeof RetitleHourArcResponseSchema;
+  },
+  /**
+   * Public. The characters in the arc's readable stories that nobody holds
+   * yet (no pending or accepted claim): who readers might turn out to be.
+   *
+   * @generated from rpc perspectiv.v1.ArcService.ListOpenCharacters
+   */
+  listOpenCharacters: {
+    methodKind: "unary";
+    input: typeof ListOpenCharactersRequestSchema;
+    output: typeof ListOpenCharactersResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_arc, 0);

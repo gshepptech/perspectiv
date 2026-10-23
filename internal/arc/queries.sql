@@ -228,3 +228,23 @@ WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
 -- Which of the given perspectives the user has upvoted.
 SELECT perspective_id FROM votes
 WHERE user_id = sqlc.arg(user_id)::uuid AND perspective_id = ANY(sqlc.arg(ids)::uuid[]);
+
+-- name: ListOpenCharacters :many
+-- Characters in the arc's readable stories with no pending or accepted
+-- claim. A story voted out of its lore cannot be claimed from, and a deleted
+-- author's stories are not shown.
+SELECT c.id, c.label, c.perspective_id, p.author_id, u.username
+FROM characters c
+JOIN perspectives p ON p.id = c.perspective_id
+JOIN users u ON u.id = p.author_id
+WHERE p.arc_id = sqlc.arg(arc_id)::uuid
+  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+  AND p.lore_status <> 'LORE_STATUS_REMOVED'
+  AND u.deleted_at IS NULL
+  AND NOT EXISTS (
+        SELECT 1 FROM claims cl
+        WHERE cl.character_id = c.id
+          AND cl.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
+ORDER BY p.published_at, p.id, c.position
+LIMIT 200;

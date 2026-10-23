@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { UserCheck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
@@ -24,6 +24,12 @@ type Props = {
    * offer still shows its "Claim sent." confirmation.
    */
   offer: boolean;
+  /**
+   * Opens the dialog once on arrival, for a link that says "That was me"
+   * (the arc page's "Is this you?" list). A signed-out reader is sent to
+   * sign in instead.
+   */
+  openOnArrival?: boolean;
 };
 
 /**
@@ -32,9 +38,15 @@ type Props = {
  * only offered while the viewer has no claim in it; a character someone else
  * holds shows who, and one the viewer was turned down for says so.
  */
-export function ClaimDialog({ perspectiveId, authorName, characters, offer }: Props) {
+export function ClaimDialog({ perspectiveId, authorName, characters, offer, openOnArrival = false }: Props) {
   const { gate } = useWriteGate();
   const [open, setOpen] = useState(false);
+  const arrived = useRef(false);
+  useEffect(() => {
+    if (!openOnArrival || !offer || arrived.current) return;
+    arrived.current = true;
+    if (gate()) setOpen(true);
+  }, [openOnArrival, offer, gate]);
   const invalidate = useInvalidateAfterWrite();
   const claim = useMutation({
     mutationFn: (characterId: string) => clients.lore.claimCharacter({ characterId }),

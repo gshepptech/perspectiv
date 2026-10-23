@@ -177,6 +177,11 @@ lore page.
 - **Standing alone:** stories in no lore (waiting for a link, or tales) are one
   section of story rows below the lores, each row carrying its standing as a
   flair word.
+- **Is this you?** At the top of the sidebar: the people described in the
+  day's stories whom nobody has claimed, each quoted in Literata with "in
+  otter's story" and a "That was me" link that opens the story with the
+  claim dialog up. Six at first, then "Show all". Left out when there are
+  none; the viewer's own characters are never listed.
 - **Sidebar:** the four steps of how a day becomes canon, the number of
   stories and lores, who may do what here in one sentence, and "Report place".
   A day arc's hours sit in the feed, after the canon.

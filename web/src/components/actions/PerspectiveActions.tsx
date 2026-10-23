@@ -35,11 +35,14 @@ export function PerspectiveActions({
   summary,
   rights,
   withCast = true,
+  claimOnArrival = false,
 }: {
   summary: PerspectiveSummary;
   rights: ViewerRights;
   /** False when the page already shows the story's cast. */
   withCast?: boolean;
+  /** Opens the claim dialog on arrival (a "That was me" link). */
+  claimOnArrival?: boolean;
 }) {
   const session = useSession();
   const gone = summary.deleted || summary.hidden;
@@ -64,7 +67,15 @@ export function PerspectiveActions({
         {p && <ReactBar perspectiveId={summary.id} counts={p.reacts} />}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {canClaim && <ClaimDialog perspectiveId={summary.id} authorName={authorName} characters={p.characters} offer={hasOpenCharacter(p.characters)} />}
+        {canClaim && (
+          <ClaimDialog
+            perspectiveId={summary.id}
+            authorName={authorName}
+            characters={p.characters}
+            offer={hasOpenCharacter(p.characters)}
+            openOnArrival={claimOnArrival}
+          />
+        )}
         {mine && (
           <p className="text-sm text-ink">
             You are <span className="font-serif">{mine.label}</span>

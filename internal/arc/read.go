@@ -534,3 +534,31 @@ func parseID(s string) uuid.UUID {
 	}
 	return id
 }
+
+// ListOpenCharacters lists the characters in the arc's readable stories that
+// nobody holds yet, for the arc page's "Is this you?" list. A missing arc,
+// or one at or under a hidden place, is NotFound.
+func (s *Service) ListOpenCharacters(ctx context.Context, arcID uuid.UUID) ([]*perspectivv1.OpenCharacter, error) {
+	var out []*perspectivv1.OpenCharacter
+	err := s.readTx(ctx, func(q *dbq.Queries) error {
+		if _, err := loadArc(ctx, q, arcID); err != nil {
+			return err
+		}
+		rows, err := q.ListOpenCharacters(ctx, arcID)
+		if err != nil {
+			return apiutil.Internal(fmt.Errorf("list open characters: %w", err))
+		}
+		out = make([]*perspectivv1.OpenCharacter, len(rows))
+		for i, r := range rows {
+			out[i] = &perspectivv1.OpenCharacter{
+				CharacterId: r.ID.String(), Label: r.Label, PerspectiveId: r.PerspectiveID.String(),
+				Author: &perspectivv1.UserRef{UserId: r.AuthorID.String(), Username: r.Username},
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}

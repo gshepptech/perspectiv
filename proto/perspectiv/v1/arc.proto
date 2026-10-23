@@ -17,6 +17,9 @@ service ArcService {
   // Public. The next page of one list on an arc page.
   rpc ListArcSection(ListArcSectionRequest) returns (ListArcSectionResponse);
   rpc RetitleHourArc(RetitleHourArcRequest) returns (RetitleHourArcResponse);
+  // Public. The characters in the arc's readable stories that nobody holds
+  // yet (no pending or accepted claim): who readers might turn out to be.
+  rpc ListOpenCharacters(ListOpenCharactersRequest) returns (ListOpenCharactersResponse);
 }
 
 // Arc is one place and one place-local day, or one hour child of a day arc.
@@ -117,4 +120,22 @@ message RetitleHourArcRequest {
 
 message RetitleHourArcResponse {
   Arc arc = 1;
+}
+
+message ListOpenCharactersRequest {
+  string arc_id = 1;
+}
+
+// OpenCharacter is one unclaimed character and the story it is in.
+message OpenCharacter {
+  string character_id = 1;
+  string label = 2;
+  string perspective_id = 3;
+  UserRef author = 4;
+}
+
+message ListOpenCharactersResponse {
+  // In the order their stories were published, then as each story lists
+  // them; at most 200.
+  repeated OpenCharacter characters = 1;
 }

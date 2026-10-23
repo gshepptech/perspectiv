@@ -270,6 +270,9 @@ export function Component() {
  */
 function ReaderActions({ p }: { p: Perspective }) {
   const rights = useStoryRights(p.arcId, p.loreId);
+  // "That was me" on the arc page links here with ?claim=1.
+  const [params] = useSearchParams();
+  const claimOnArrival = params.get("claim") === "1";
   const summary = create(PerspectiveSummarySchema, {
     id: p.id,
     arcId: p.arcId,
@@ -283,7 +286,7 @@ function ReaderActions({ p }: { p: Perspective }) {
   });
   return (
     <section aria-label="Respond to this story" className="mx-auto mt-6 max-w-measure">
-      <PerspectiveActions summary={summary} rights={rights} withCast={false} />
+      <PerspectiveActions summary={summary} rights={rights} withCast={false} claimOnArrival={claimOnArrival} />
     </section>
   );
 }

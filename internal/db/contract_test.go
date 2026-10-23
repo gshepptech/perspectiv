@@ -142,7 +142,7 @@ var services = map[string][]string{
 	"AuthService":        {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword"},
 	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount"},
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing"},
-	"ArcService":         {"GetArc", "ListArcSection", "RetitleHourArc"},
+	"ArcService":         {"GetArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},
 	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite"},
 	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore"},
 	"VoteService":        {"Vote", "VoteRemove"},

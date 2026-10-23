@@ -85,8 +85,9 @@ reporting happen on the story's own page and on its lore page.
    deleted.
 3. **Standing alone.** Stories in no lore: those published in the last seven
    days that nobody has linked yet, then tales.
-4. **Sidebar.** How a day works in four steps, the day's counts, and who may
-   do what here.
+4. **Sidebar.** "Is this you?" first: every character in the day's stories
+   that nobody holds yet, each a link straight to claiming it. Then how a
+   day works in four steps, the day's counts, and who may do what here.
 
 **Someone who was there but is not in the canon** writes their own
 perspective into the same arc. If they and others claim each other, their

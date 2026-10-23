@@ -660,6 +660,61 @@ func (q *Queries) ListLorePerspectives(ctx context.Context, loreIds []uuid.UUID)
 	return items, nil
 }
 
+const listOpenCharacters = `-- name: ListOpenCharacters :many
+SELECT c.id, c.label, c.perspective_id, p.author_id, u.username
+FROM characters c
+JOIN perspectives p ON p.id = c.perspective_id
+JOIN users u ON u.id = p.author_id
+WHERE p.arc_id = $1::uuid
+  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+  AND p.lore_status <> 'LORE_STATUS_REMOVED'
+  AND u.deleted_at IS NULL
+  AND NOT EXISTS (
+        SELECT 1 FROM claims cl
+        WHERE cl.character_id = c.id
+          AND cl.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
+ORDER BY p.published_at, p.id, c.position
+LIMIT 200
+`
+
+type ListOpenCharactersRow struct {
+	ID            uuid.UUID
+	Label         string
+	PerspectiveID uuid.UUID
+	AuthorID      uuid.UUID
+	Username      string
+}
+
+// Characters in the arc's readable stories with no pending or accepted
+// claim. A story voted out of its lore cannot be claimed from, and a deleted
+// author's stories are not shown.
+func (q *Queries) ListOpenCharacters(ctx context.Context, arcID uuid.UUID) ([]ListOpenCharactersRow, error) {
+	rows, err := q.db.Query(ctx, listOpenCharacters, arcID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOpenCharactersRow
+	for rows.Next() {
+		var i ListOpenCharactersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Label,
+			&i.PerspectiveID,
+			&i.AuthorID,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockArcForRetitle = `-- name: LockArcForRetitle :one
 WITH RECURSIVE up AS (
     SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
