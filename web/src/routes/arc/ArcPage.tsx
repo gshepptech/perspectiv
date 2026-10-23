@@ -432,6 +432,10 @@ function ArcView({ res }: { res: GetArcResponse }) {
         </div>
       </header>
 
+      {/* Phones: the sidebar falls below every story, so the list starts here. */}
+      <div className="mt-4 lg:hidden">
+        <OpenCharacters arcId={arc.id} compact />
+      </div>
       <div className="mt-6 grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="grid min-w-0 content-start gap-8">
           {res.canon && res.canon.lore && res.canon.perspectives.length > 0 ? (
@@ -449,7 +453,9 @@ function ArcView({ res }: { res: GetArcResponse }) {
           <StandingAlone arcId={arc.id} res={res} rights={rights.outsideLore} />
         </div>
         <div className="grid min-w-0 content-start gap-4">
-          <OpenCharacters arcId={arc.id} />
+          <div className="hidden lg:block">
+            <OpenCharacters arcId={arc.id} />
+          </div>
           <HowItWorks arc={arc} res={res} rights={rights} />
         </div>
       </div>

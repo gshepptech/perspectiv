@@ -181,7 +181,9 @@ lore page.
   day's stories whom nobody has claimed, each quoted in Literata with "in
   otter's story" and a "That was me" link that opens the story with the
   claim dialog up. Six at first, then "Show all". Left out when there are
-  none; the viewer's own characters are never listed.
+  none; the viewer's own characters are never listed. Below `lg`, where the
+  sidebar falls under every story, it is a closed one-line disclosure under
+  the header instead ("Is this you? 2 people nobody has claimed yet").
 - **Sidebar:** the four steps of how a day becomes canon, the number of
   stories and lores, who may do what here in one sentence, and "Report place".
   A day arc's hours sit in the feed, after the canon.

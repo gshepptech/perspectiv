@@ -294,6 +294,19 @@ describe("is this you?", () => {
     expect(within(panel).getAllByRole("link", { name: /^That was me/ })).toHaveLength(8);
   });
 
+  it("on phones starts as a one-line disclosure under the header", async () => {
+    await renderApp(route, "/arcs/arc-day", {
+      routes: {
+        "ArcService/GetArc": () => ({ body: dayArcResponse() }),
+        "ArcService/ListOpenCharacters": () => ({ body: { characters: open(3) } }),
+        "PerspectiveService/Get": () => ({ body: perspective("any") }),
+      },
+    });
+    const summary = await screen.findByText("Is this you? 3 people nobody has claimed yet");
+    expect(summary.tagName).toBe("SUMMARY");
+    expect(summary.closest("details")).not.toHaveAttribute("open");
+  });
+
   it("is left out when everyone described has been claimed", async () => {
     await renderApp(route, "/arcs/arc-day", {
       routes: {
