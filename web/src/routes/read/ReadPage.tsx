@@ -8,6 +8,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from "reac
 import { InviteDialog } from "@/components/actions/InviteDialog";
 import { PerspectiveActions } from "@/components/actions/PerspectiveActions";
 import { useStoryRights } from "@/components/actions/rights";
+import { OpenCharacters } from "@/routes/arc/OpenCharacters";
 import { perspectiveQuery } from "@/components/actions/queries";
 import { formatDay, genreLabel, loreStatusLabel } from "@/components/reader/format";
 import { Cast } from "@/components/reader/Cast";
@@ -240,6 +241,12 @@ export function Component() {
           </Link>{" "}
           and find yourself in their stories: claim the character that was you, and your stories link. Or invite who was there with the button below.
         </p>
+      )}
+      {/* The moment after publishing is when a writer knows who was there. */}
+      {justPublished && mine && !isDraft && p.arcId && (
+        <div className="mx-auto mb-6 max-w-measure">
+          <OpenCharacters arcId={p.arcId} />
+        </div>
       )}
       {!isDraft && mine && (
         <div className="mx-auto mb-4 max-w-measure text-sm">

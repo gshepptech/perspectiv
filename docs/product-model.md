@@ -41,8 +41,11 @@ the code implements them, and where the two disagree the code is the bug.
 Claiming is never required. A story that links to nobody is still
 published and read; it becomes a tale after seven days. Claiming is how a
 writer joins a lore, so the app asks for it at the moment it is most
-natural: right after publishing into an arc that already has stories, and
-on any story in the arc that names characters the reader has not claimed.
+natural: right after publishing into an arc that already has stories (the
+story page then lists the day's unclaimed characters under "Is this you?"),
+on the arc page's own "Is this you?" list, on a place page's description
+search, and on any story in the arc that names characters the reader has
+not claimed.
 
 **One character per perspective.** A person can only be one of the people
 in someone else's story. Once your claim on a character in a perspective
