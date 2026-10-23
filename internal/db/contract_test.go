@@ -141,7 +141,7 @@ func TestEnumValues(t *testing.T) {
 var services = map[string][]string{
 	"AuthService":        {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword"},
 	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount"},
-	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing"},
+	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters"},
 	"ArcService":         {"GetArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},
 	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite"},
 	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore"},

@@ -230,3 +230,25 @@ func taleToProto(t EpicTale) *perspectivv1.EpicTale {
 		PublishedAt: timestamppb.New(t.PublishedAt), Excerpt: t.Excerpt,
 	}
 }
+
+// SearchCharacters finds unclaimed characters at a place. It is public.
+func (h *Handler) SearchCharacters(ctx context.Context, req *connect.Request[perspectivv1.SearchCharactersRequest]) (*connect.Response[perspectivv1.SearchCharactersResponse], error) {
+	id, err := parseID(req.Msg.GetPlaceId(), "place_id")
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	found, err := h.svc.SearchCharacters(ctx, id, req.Msg.GetQuery())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	res := &perspectivv1.SearchCharactersResponse{Characters: make([]*perspectivv1.FoundCharacter, len(found))}
+	for i, c := range found {
+		res.Characters[i] = &perspectivv1.FoundCharacter{
+			CharacterId: c.ID.String(), Label: c.Label, PerspectiveId: c.PerspectiveID.String(),
+			Author: &perspectivv1.UserRef{UserId: c.AuthorID.String(), Username: c.AuthorUsername},
+			ArcId:  c.ArcID.String(), ArcTitle: c.ArcTitle, LocalDate: c.LocalDate.Format(dateLayout), Hour: c.Hour,
+			Place: refToProto(c.Place),
+		}
+	}
+	return connect.NewResponse(res), nil
+}

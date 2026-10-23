@@ -735,3 +735,105 @@ func TestFollowPlace(t *testing.T) {
 	_, err := c.FollowPlace(ctx, as(uuid.Nil, &perspectivv1.FollowPlaceRequest{PlaceId: h.city.String(), On: true}))
 	wantCode(t, err, connect.CodeUnauthenticated)
 }
+
+// searchCharacterIDs runs a character search signed out and returns the
+// found character ids in order; never nil.
+func searchCharacterIDs(ctx context.Context, c perspectivv1connect.PlaceServiceClient, place uuid.UUID, q string) ([]string, error) {
+	res, err := c.SearchCharacters(ctx, as(uuid.Nil, &perspectivv1.SearchCharactersRequest{PlaceId: place.String(), Query: q}))
+	if err != nil {
+		return nil, err
+	}
+	ids := []string{}
+	for _, f := range res.Msg.GetCharacters() {
+		ids = append(ids, f.GetCharacterId())
+	}
+	return ids, nil
+}
+
+// uuidStrings formats ids; never nil.
+func uuidStrings(ids []uuid.UUID) []string {
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		out[i] = id.String()
+	}
+	return out
+}
+
+// TestSearchCharacters covers "were you in someone's story?": unclaimed
+// characters at the place and below whose description contains the query,
+// ignoring case and matching wildcards literally, most recent day first.
+func TestSearchCharacters(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	c := client(t, h.pool)
+	ctx := context.Background()
+	by := h.user(true)
+	t0 := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	story := func(placeID uuid.UUID, date string, status perspectivv1.LoreStatus, labels ...string) []uuid.UUID {
+		a := h.arc(placeID, date, "Day "+date+" "+uuid.NewString()[:4], by, t0)
+		p := h.perspective(a, h.user(true), perspectivv1.Genre_GENRE_DRAMA, status, t0, "text")
+		ids := make([]uuid.UUID, len(labels))
+		for i, l := range labels {
+			ids[i] = h.id(`INSERT INTO characters (perspective_id, label, position) VALUES ($1, $2, $3) RETURNING id`, p, l, i+1)
+		}
+		return ids
+	}
+	claimants := h.arc(h.otherCity, "2026-09-01", "Where the claimants wrote", by, t0)
+	claim := func(ch uuid.UUID, status string) {
+		claimant := h.user(true)
+		cp := h.perspective(claimants, claimant, perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_PENDING, t0, "x")
+		h.exec(`INSERT INTO claims (character_id, claimant_user_id, claimant_perspective_id, status) VALUES ($1, $2, $3, $4)`, ch, claimant, cp, status)
+	}
+	older := story(h.store, "2026-10-01", perspectivv1.LoreStatus_LORE_STATUS_PENDING, "the kid in GOLD body paint", "a man with 100% confidence")
+	newer := story(h.town, "2026-10-05", perspectivv1.LoreStatus_LORE_STATUS_PENDING, "a woman with gold earrings")
+	taken := story(h.city, "2026-10-03", perspectivv1.LoreStatus_LORE_STATUS_PENDING, "the gold-chain bouncer", "the gold scarf", "the gold hat")
+	claim(taken[0], "CLAIM_STATUS_ACCEPTED")
+	claim(taken[1], "CLAIM_STATUS_PENDING")
+	claim(taken[2], "CLAIM_STATUS_REJECTED")
+	story(h.city, "2026-10-04", perspectivv1.LoreStatus_LORE_STATUS_REMOVED, "a voted-out gold coat")
+	story(h.otherCity, "2026-10-02", perspectivv1.LoreStatus_LORE_STATUS_PENDING, "a gold watch in Chicago")
+
+	search := func(place uuid.UUID, q string) ([]string, error) { return searchCharacterIDs(ctx, c, place, q) }
+	tests := []struct {
+		name  string
+		place uuid.UUID
+		query string
+		want  []uuid.UUID
+		code  connect.Code
+	}{
+		{name: "case-insensitive, newest day first, rejected claims still open", place: h.city, query: "  Gold  ", want: []uuid.UUID{newer[0], taken[2], older[0]}},
+		{name: "only under the place", place: h.mall, query: "gold", want: []uuid.UUID{older[0]}},
+		{name: "a percent sign is literal", place: h.city, query: "100%", want: []uuid.UUID{older[1]}},
+		{name: "an underscore is literal", place: h.city, query: "g_ld", want: nil},
+		{name: "too short", place: h.city, query: "g", code: connect.CodeInvalidArgument},
+		{name: "too long", place: h.city, query: strings.Repeat("g", 61), code: connect.CodeInvalidArgument},
+		{name: "missing place", place: uuid.New(), query: "gold", code: connect.CodeNotFound},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := search(tc.place, tc.query)
+			if tc.code != 0 {
+				wantCode(t, err, tc.code)
+				return
+			}
+			if err != nil {
+				t.Fatalf("search: %v", err)
+			}
+			if want := uuidStrings(tc.want); !slices.Equal(got, want) {
+				t.Fatalf("found %v, want %v", got, want)
+			}
+		})
+	}
+
+	t.Run("a hidden place below drops its stories", func(t *testing.T) {
+		t.Parallel()
+		hidden := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Hidden Gold Shop", h.town)
+		story(hidden, "2026-10-06", perspectivv1.LoreStatus_LORE_STATUS_PENDING, "the hidden goldsmith")
+		h.hide(hidden)
+		got, err := search(h.city, "goldsmith")
+		if err != nil || len(got) != 0 {
+			t.Fatalf("found %v, %v; want nothing", got, err)
+		}
+	})
+}

@@ -24,6 +24,10 @@ service PlaceService {
   rpc FollowPlace(FollowPlaceRequest) returns (FollowPlaceResponse);
   // The places the caller follows, most recently followed first.
   rpc ListFollowing(ListFollowingRequest) returns (ListFollowingResponse);
+  // Public. Unclaimed characters described in stories at the place or
+  // anywhere under it whose description contains the query: "were you in
+  // someone's story?"
+  rpc SearchCharacters(SearchCharactersRequest) returns (SearchCharactersResponse);
 }
 
 // PlaceRef is a place as a link: id, kind and name.
@@ -182,4 +186,30 @@ message ListFollowingRequest {}
 message ListFollowingResponse {
   // At most 100 places.
   repeated Place places = 1;
+}
+
+message SearchCharactersRequest {
+  string place_id = 1;
+  // 2 to 60 characters after trimming; matched anywhere in a description,
+  // ignoring case.
+  string query = 2;
+}
+
+// FoundCharacter is one unclaimed character and the story and day it is in.
+message FoundCharacter {
+  string character_id = 1;
+  string label = 2;
+  string perspective_id = 3;
+  UserRef author = 4;
+  string arc_id = 5;
+  string arc_title = 6;
+  // Place-local calendar day, YYYY-MM-DD.
+  string local_date = 7;
+  optional int32 hour = 8;
+  PlaceRef place = 9;
+}
+
+message SearchCharactersResponse {
+  // Most recent day first; at most 30.
+  repeated FoundCharacter characters = 1;
 }

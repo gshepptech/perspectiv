@@ -942,6 +942,86 @@ func (q *Queries) LockVisibleParent(ctx context.Context, id uuid.UUID) (LockVisi
 	return i, err
 }
 
+const searchCharacters = `-- name: SearchCharacters :many
+SELECT c.id, c.label, c.perspective_id, p.author_id, u.username,
+       a.id AS arc_id, a.title AS arc_title, a.local_date, a.hour,
+       a.place_id, pl.kind AS place_kind, pl.name AS place_name
+FROM arcs a
+JOIN places pl ON pl.id = a.place_id
+JOIN perspectives p ON p.arc_id = a.id
+JOIN users u ON u.id = p.author_id
+JOIN characters c ON c.perspective_id = p.id
+WHERE a.place_path @> ARRAY[$1::uuid]
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+  AND p.lore_status <> 'LORE_STATUS_REMOVED'
+  AND u.deleted_at IS NULL
+  AND c.label ILIKE '%' || $2::text || '%'
+  AND NOT EXISTS (
+        SELECT 1 FROM claims cl
+        WHERE cl.character_id = c.id AND cl.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
+ORDER BY a.local_date DESC, a.hour DESC NULLS LAST, p.published_at, c.position
+LIMIT 30
+`
+
+type SearchCharactersParams struct {
+	PlaceID uuid.UUID
+	Pattern string
+}
+
+type SearchCharactersRow struct {
+	ID            uuid.UUID
+	Label         string
+	PerspectiveID uuid.UUID
+	AuthorID      uuid.UUID
+	Username      string
+	ArcID         uuid.UUID
+	ArcTitle      string
+	LocalDate     pgtype.Date
+	Hour          pgtype.Int2
+	PlaceID       uuid.UUID
+	PlaceKind     string
+	PlaceName     string
+}
+
+// Unclaimed characters (no pending or accepted claim) in readable stories
+// at the place or any visible place under it, found through
+// arcs_place_path_idx, whose label contains the pattern. The caller escapes
+// LIKE's wildcards. Voted-out stories cannot be claimed from and are left out.
+func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error) {
+	rows, err := q.db.Query(ctx, searchCharacters, arg.PlaceID, arg.Pattern)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchCharactersRow
+	for rows.Next() {
+		var i SearchCharactersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Label,
+			&i.PerspectiveID,
+			&i.AuthorID,
+			&i.Username,
+			&i.ArcID,
+			&i.ArcTitle,
+			&i.LocalDate,
+			&i.Hour,
+			&i.PlaceID,
+			&i.PlaceKind,
+			&i.PlaceName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchPlaces = `-- name: SearchPlaces :many
 WITH RECURSIVE scope AS (
     SELECT p.id, 0 AS depth

@@ -542,3 +542,35 @@ func (s *Store) FollowedPlaceIDs(ctx context.Context, userID uuid.UUID, limit in
 	}
 	return ids, nil
 }
+
+// FoundCharacter is one unclaimed character a character search found.
+type FoundCharacter struct {
+	ID             uuid.UUID
+	Label          string
+	PerspectiveID  uuid.UUID
+	AuthorID       uuid.UUID
+	AuthorUsername string
+	ArcID          uuid.UUID
+	ArcTitle       string
+	LocalDate      time.Time
+	Hour           *int32
+	Place          Ref
+}
+
+// SearchCharacters finds unclaimed characters at the place and below whose
+// label contains pattern, a LIKE pattern with its wildcards already escaped.
+func (s *Store) SearchCharacters(ctx context.Context, placeID uuid.UUID, pattern string) ([]FoundCharacter, error) {
+	rows, err := s.q.SearchCharacters(ctx, dbq.SearchCharactersParams{PlaceID: placeID, Pattern: pattern})
+	if err != nil {
+		return nil, fmt.Errorf("search characters: %w", err)
+	}
+	out := make([]FoundCharacter, len(rows))
+	for i, r := range rows {
+		out[i] = FoundCharacter{
+			ID: r.ID, Label: r.Label, PerspectiveID: r.PerspectiveID, AuthorID: r.AuthorID, AuthorUsername: r.Username,
+			ArcID: r.ArcID, ArcTitle: r.ArcTitle, LocalDate: r.LocalDate.Time, Hour: hourOf(r.Hour),
+			Place: Ref{ID: r.PlaceID, Kind: kindOf(r.PlaceKind), Name: r.PlaceName},
+		}
+	}
+	return out, nil
+}

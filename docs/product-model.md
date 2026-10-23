@@ -120,6 +120,12 @@ there remember most, and each card opens its place page.
 
 ## Places
 
+**Were you in someone's story?** Every place page has a search over the
+descriptions nobody has claimed in stories at the place or anywhere under
+it, on any day ("gold paint", "red umbrella"). Each match links straight to
+claiming it. This is how someone who does not know which day or arc to open
+still finds the story they are in.
+
 **Following.** Anyone signed in can follow a place, at any level: a store,
 a mall, a town, a city or a state. A new story at the followed place, or
 anywhere under it, notifies the follower once, however many of its

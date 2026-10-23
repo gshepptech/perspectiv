@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/place.proto.
  */
 export const file_perspectiv_v1_place: GenFile = /*@__PURE__*/
-  fileDesc("ChlwZXJzcGVjdGl2L3YxL3BsYWNlLnByb3RvEg1wZXJzcGVjdGl2LnYxIkwKCFBsYWNlUmVmEgoKAmlkGAEgASgJEiYKBGtpbmQYAiABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZBIMCgRuYW1lGAMgASgJIp0CCgVQbGFjZRIKCgJpZBgBIAEoCRImCgRraW5kGAIgASgOMhgucGVyc3BlY3Rpdi52MS5QbGFjZUtpbmQSDAoEbmFtZRgDIAEoCRIRCglwYXJlbnRfaWQYBCABKAkSEAoIdGltZXpvbmUYBSABKAkSKgoGc291cmNlGAYgASgOMhoucGVyc3BlY3Rpdi52MS5QbGFjZVNvdXJjZRISCgp1c2VyX2FkZGVkGAcgASgIEioKCWFuY2VzdG9ycxgIIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSLgoIY2F0ZWdvcnkYCSABKA4yHC5wZXJzcGVjdGl2LnYxLlBsYWNlQ2F0ZWdvcnkSEQoJZm9sbG93aW5nGAogASgIIl8KE1NlYXJjaFBsYWNlc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSEQoJcGFyZW50X2lkGAIgASgJEiYKBGtpbmQYAyABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZCI8ChRTZWFyY2hQbGFjZXNSZXNwb25zZRIkCgZwbGFjZXMYASADKAsyFC5wZXJzcGVjdGl2LnYxLlBsYWNlIiMKD0dldFBsYWNlUmVxdWVzdBIQCghwbGFjZV9pZBgBIAEoCSI3ChBHZXRQbGFjZVJlc3BvbnNlEiMKBXBsYWNlGAEgASgLMhQucGVyc3BlY3Rpdi52MS5QbGFjZSKVAQoTTGlzdENoaWxkcmVuUmVxdWVzdBIRCglwYXJlbnRfaWQYASABKAkSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSFAoMd2l0aF9zdG9yaWVzGAQgASgIEi4KCGNhdGVnb3J5GAUgASgOMhwucGVyc3BlY3Rpdi52MS5QbGFjZUNhdGVnb3J5IlUKFExpc3RDaGlsZHJlblJlc3BvbnNlEiQKBnBsYWNlcxgBIAMoCzIULnBlcnNwZWN0aXYudjEuUGxhY2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIl0KEkNyZWF0ZVBsYWNlUmVxdWVzdBIMCgRuYW1lGAEgASgJEiYKBGtpbmQYAiABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZBIRCglwYXJlbnRfaWQYAyABKAkiTAoTQ3JlYXRlUGxhY2VSZXNwb25zZRIQCghwbGFjZV9pZBgBIAEoCRIjCgVwbGFjZRgCIAEoCzIULnBlcnNwZWN0aXYudjEuUGxhY2UikwEKDkdldEVwaWNSZXF1ZXN0EhAKCHBsYWNlX2lkGAEgASgJEiMKA3RhYhgCIAEoDjIWLnBlcnNwZWN0aXYudjEuRXBpY1RhYhISCgpwYWdlX3Rva2VuGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBRIjCgVnZW5yZRgFIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUirAIKB0VwaWNBcmMSDgoGYXJjX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEiYKBXBsYWNlGAMgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhISCgpsb2NhbF9kYXRlGAQgASgJEhEKBGhvdXIYBSABKAVIAIgBARIVCg1jYW5vbl9sb3JlX2lkGAYgASgJEhMKC2Nhbm9uX3Njb3JlGAcgASgBEhQKDG1lbWJlcl9jb3VudBgIIAEoBRIZChFwZXJzcGVjdGl2ZV9jb3VudBgJIAEoBRIuCgpjcmVhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRjaXR5GAsgASgJEg8KB2V4Y2VycHQYDCABKAlCBwoFX2hvdXIi3QIKCEVwaWNUYWxlEhYKDnBlcnNwZWN0aXZlX2lkGAEgASgJEg4KBmFyY19pZBgCIAEoCRIRCglhcmNfdGl0bGUYAyABKAkSJgoFcGxhY2UYBCABKAsyFy5wZXJzcGVjdGl2LnYxLlBsYWNlUmVmEhIKCmxvY2FsX2RhdGUYBSABKAkSEQoEaG91chgGIAEoBUgAiAEBEiYKBmF1dGhvchgHIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIjCgVnZW5yZRgIIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSLgoLbG9yZV9zdGF0dXMYCSABKA4yGS5wZXJzcGVjdGl2LnYxLkxvcmVTdGF0dXMSMAoMcHVibGlzaGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIPCgdleGNlcnB0GAsgASgJQgcKBV9ob3VyIp0BCg9HZXRFcGljUmVzcG9uc2USIwoFcGxhY2UYASABKAsyFC5wZXJzcGVjdGl2LnYxLlBsYWNlEiQKBGFyY3MYAiADKAsyFi5wZXJzcGVjdGl2LnYxLkVwaWNBcmMSJgoFdGFsZXMYAyADKAsyFy5wZXJzcGVjdGl2LnYxLkVwaWNUYWxlEhcKD25leHRfcGFnZV90b2tlbhgEIAEoCSIyChJGb2xsb3dQbGFjZVJlcXVlc3QSEAoIcGxhY2VfaWQYASABKAkSCgoCb24YAiABKAgiKAoTRm9sbG93UGxhY2VSZXNwb25zZRIRCglmb2xsb3dpbmcYASABKAgiFgoUTGlzdEZvbGxvd2luZ1JlcXVlc3QiPQoVTGlzdEZvbGxvd2luZ1Jlc3BvbnNlEiQKBnBsYWNlcxgBIAMoCzIULnBlcnNwZWN0aXYudjEuUGxhY2Uy3wQKDFBsYWNlU2VydmljZRJXCgxTZWFyY2hQbGFjZXMSIi5wZXJzcGVjdGl2LnYxLlNlYXJjaFBsYWNlc1JlcXVlc3QaIy5wZXJzcGVjdGl2LnYxLlNlYXJjaFBsYWNlc1Jlc3BvbnNlEksKCEdldFBsYWNlEh4ucGVyc3BlY3Rpdi52MS5HZXRQbGFjZVJlcXVlc3QaHy5wZXJzcGVjdGl2LnYxLkdldFBsYWNlUmVzcG9uc2USVwoMTGlzdENoaWxkcmVuEiIucGVyc3BlY3Rpdi52MS5MaXN0Q2hpbGRyZW5SZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5MaXN0Q2hpbGRyZW5SZXNwb25zZRJUCgtDcmVhdGVQbGFjZRIhLnBlcnNwZWN0aXYudjEuQ3JlYXRlUGxhY2VSZXF1ZXN0GiIucGVyc3BlY3Rpdi52MS5DcmVhdGVQbGFjZVJlc3BvbnNlEkgKB0dldEVwaWMSHS5wZXJzcGVjdGl2LnYxLkdldEVwaWNSZXF1ZXN0Gh4ucGVyc3BlY3Rpdi52MS5HZXRFcGljUmVzcG9uc2USVAoLRm9sbG93UGxhY2USIS5wZXJzcGVjdGl2LnYxLkZvbGxvd1BsYWNlUmVxdWVzdBoiLnBlcnNwZWN0aXYudjEuRm9sbG93UGxhY2VSZXNwb25zZRJaCg1MaXN0Rm9sbG93aW5nEiMucGVyc3BlY3Rpdi52MS5MaXN0Rm9sbG93aW5nUmVxdWVzdBokLnBlcnNwZWN0aXYudjEuTGlzdEZvbGxvd2luZ1Jlc3BvbnNlQp8BChFjb20ucGVyc3BlY3Rpdi52MUIKUGxhY2VQcm90b1ABWilwZXJzcGVjdGl2L2dlbi9wZXJzcGVjdGl2L3YxO3BlcnNwZWN0aXZ2MaICA1BYWKoCDVBlcnNwZWN0aXYuVjHKAg1QZXJzcGVjdGl2XFYx4gIZUGVyc3BlY3RpdlxWMVxHUEJNZXRhZGF0YeoCDlBlcnNwZWN0aXY6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
+  fileDesc("ChlwZXJzcGVjdGl2L3YxL3BsYWNlLnByb3RvEg1wZXJzcGVjdGl2LnYxIkwKCFBsYWNlUmVmEgoKAmlkGAEgASgJEiYKBGtpbmQYAiABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZBIMCgRuYW1lGAMgASgJIp0CCgVQbGFjZRIKCgJpZBgBIAEoCRImCgRraW5kGAIgASgOMhgucGVyc3BlY3Rpdi52MS5QbGFjZUtpbmQSDAoEbmFtZRgDIAEoCRIRCglwYXJlbnRfaWQYBCABKAkSEAoIdGltZXpvbmUYBSABKAkSKgoGc291cmNlGAYgASgOMhoucGVyc3BlY3Rpdi52MS5QbGFjZVNvdXJjZRISCgp1c2VyX2FkZGVkGAcgASgIEioKCWFuY2VzdG9ycxgIIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSLgoIY2F0ZWdvcnkYCSABKA4yHC5wZXJzcGVjdGl2LnYxLlBsYWNlQ2F0ZWdvcnkSEQoJZm9sbG93aW5nGAogASgIIl8KE1NlYXJjaFBsYWNlc1JlcXVlc3QSDQoFcXVlcnkYASABKAkSEQoJcGFyZW50X2lkGAIgASgJEiYKBGtpbmQYAyABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZCI8ChRTZWFyY2hQbGFjZXNSZXNwb25zZRIkCgZwbGFjZXMYASADKAsyFC5wZXJzcGVjdGl2LnYxLlBsYWNlIiMKD0dldFBsYWNlUmVxdWVzdBIQCghwbGFjZV9pZBgBIAEoCSI3ChBHZXRQbGFjZVJlc3BvbnNlEiMKBXBsYWNlGAEgASgLMhQucGVyc3BlY3Rpdi52MS5QbGFjZSKVAQoTTGlzdENoaWxkcmVuUmVxdWVzdBIRCglwYXJlbnRfaWQYASABKAkSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSFAoMd2l0aF9zdG9yaWVzGAQgASgIEi4KCGNhdGVnb3J5GAUgASgOMhwucGVyc3BlY3Rpdi52MS5QbGFjZUNhdGVnb3J5IlUKFExpc3RDaGlsZHJlblJlc3BvbnNlEiQKBnBsYWNlcxgBIAMoCzIULnBlcnNwZWN0aXYudjEuUGxhY2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIl0KEkNyZWF0ZVBsYWNlUmVxdWVzdBIMCgRuYW1lGAEgASgJEiYKBGtpbmQYAiABKA4yGC5wZXJzcGVjdGl2LnYxLlBsYWNlS2luZBIRCglwYXJlbnRfaWQYAyABKAkiTAoTQ3JlYXRlUGxhY2VSZXNwb25zZRIQCghwbGFjZV9pZBgBIAEoCRIjCgVwbGFjZRgCIAEoCzIULnBlcnNwZWN0aXYudjEuUGxhY2UikwEKDkdldEVwaWNSZXF1ZXN0EhAKCHBsYWNlX2lkGAEgASgJEiMKA3RhYhgCIAEoDjIWLnBlcnNwZWN0aXYudjEuRXBpY1RhYhISCgpwYWdlX3Rva2VuGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBRIjCgVnZW5yZRgFIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUirAIKB0VwaWNBcmMSDgoGYXJjX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEiYKBXBsYWNlGAMgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhISCgpsb2NhbF9kYXRlGAQgASgJEhEKBGhvdXIYBSABKAVIAIgBARIVCg1jYW5vbl9sb3JlX2lkGAYgASgJEhMKC2Nhbm9uX3Njb3JlGAcgASgBEhQKDG1lbWJlcl9jb3VudBgIIAEoBRIZChFwZXJzcGVjdGl2ZV9jb3VudBgJIAEoBRIuCgpjcmVhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIMCgRjaXR5GAsgASgJEg8KB2V4Y2VycHQYDCABKAlCBwoFX2hvdXIi3QIKCEVwaWNUYWxlEhYKDnBlcnNwZWN0aXZlX2lkGAEgASgJEg4KBmFyY19pZBgCIAEoCRIRCglhcmNfdGl0bGUYAyABKAkSJgoFcGxhY2UYBCABKAsyFy5wZXJzcGVjdGl2LnYxLlBsYWNlUmVmEhIKCmxvY2FsX2RhdGUYBSABKAkSEQoEaG91chgGIAEoBUgAiAEBEiYKBmF1dGhvchgHIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIjCgVnZW5yZRgIIAEoDjIULnBlcnNwZWN0aXYudjEuR2VucmUSLgoLbG9yZV9zdGF0dXMYCSABKA4yGS5wZXJzcGVjdGl2LnYxLkxvcmVTdGF0dXMSMAoMcHVibGlzaGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIPCgdleGNlcnB0GAsgASgJQgcKBV9ob3VyIp0BCg9HZXRFcGljUmVzcG9uc2USIwoFcGxhY2UYASABKAsyFC5wZXJzcGVjdGl2LnYxLlBsYWNlEiQKBGFyY3MYAiADKAsyFi5wZXJzcGVjdGl2LnYxLkVwaWNBcmMSJgoFdGFsZXMYAyADKAsyFy5wZXJzcGVjdGl2LnYxLkVwaWNUYWxlEhcKD25leHRfcGFnZV90b2tlbhgEIAEoCSIyChJGb2xsb3dQbGFjZVJlcXVlc3QSEAoIcGxhY2VfaWQYASABKAkSCgoCb24YAiABKAgiKAoTRm9sbG93UGxhY2VSZXNwb25zZRIRCglmb2xsb3dpbmcYASABKAgiFgoUTGlzdEZvbGxvd2luZ1JlcXVlc3QiPQoVTGlzdEZvbGxvd2luZ1Jlc3BvbnNlEiQKBnBsYWNlcxgBIAMoCzIULnBlcnNwZWN0aXYudjEuUGxhY2UiOgoXU2VhcmNoQ2hhcmFjdGVyc1JlcXVlc3QSEAoIcGxhY2VfaWQYASABKAkSDQoFcXVlcnkYAiABKAki8AEKDkZvdW5kQ2hhcmFjdGVyEhQKDGNoYXJhY3Rlcl9pZBgBIAEoCRINCgVsYWJlbBgCIAEoCRIWCg5wZXJzcGVjdGl2ZV9pZBgDIAEoCRImCgZhdXRob3IYBCABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSDgoGYXJjX2lkGAUgASgJEhEKCWFyY190aXRsZRgGIAEoCRISCgpsb2NhbF9kYXRlGAcgASgJEhEKBGhvdXIYCCABKAVIAIgBARImCgVwbGFjZRgJIAEoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWZCBwoFX2hvdXIiTQoYU2VhcmNoQ2hhcmFjdGVyc1Jlc3BvbnNlEjEKCmNoYXJhY3RlcnMYASADKAsyHS5wZXJzcGVjdGl2LnYxLkZvdW5kQ2hhcmFjdGVyMsQFCgxQbGFjZVNlcnZpY2USVwoMU2VhcmNoUGxhY2VzEiIucGVyc3BlY3Rpdi52MS5TZWFyY2hQbGFjZXNSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5TZWFyY2hQbGFjZXNSZXNwb25zZRJLCghHZXRQbGFjZRIeLnBlcnNwZWN0aXYudjEuR2V0UGxhY2VSZXF1ZXN0Gh8ucGVyc3BlY3Rpdi52MS5HZXRQbGFjZVJlc3BvbnNlElcKDExpc3RDaGlsZHJlbhIiLnBlcnNwZWN0aXYudjEuTGlzdENoaWxkcmVuUmVxdWVzdBojLnBlcnNwZWN0aXYudjEuTGlzdENoaWxkcmVuUmVzcG9uc2USVAoLQ3JlYXRlUGxhY2USIS5wZXJzcGVjdGl2LnYxLkNyZWF0ZVBsYWNlUmVxdWVzdBoiLnBlcnNwZWN0aXYudjEuQ3JlYXRlUGxhY2VSZXNwb25zZRJICgdHZXRFcGljEh0ucGVyc3BlY3Rpdi52MS5HZXRFcGljUmVxdWVzdBoeLnBlcnNwZWN0aXYudjEuR2V0RXBpY1Jlc3BvbnNlElQKC0ZvbGxvd1BsYWNlEiEucGVyc3BlY3Rpdi52MS5Gb2xsb3dQbGFjZVJlcXVlc3QaIi5wZXJzcGVjdGl2LnYxLkZvbGxvd1BsYWNlUmVzcG9uc2USWgoNTGlzdEZvbGxvd2luZxIjLnBlcnNwZWN0aXYudjEuTGlzdEZvbGxvd2luZ1JlcXVlc3QaJC5wZXJzcGVjdGl2LnYxLkxpc3RGb2xsb3dpbmdSZXNwb25zZRJjChBTZWFyY2hDaGFyYWN0ZXJzEiYucGVyc3BlY3Rpdi52MS5TZWFyY2hDaGFyYWN0ZXJzUmVxdWVzdBonLnBlcnNwZWN0aXYudjEuU2VhcmNoQ2hhcmFjdGVyc1Jlc3BvbnNlQp8BChFjb20ucGVyc3BlY3Rpdi52MUIKUGxhY2VQcm90b1ABWilwZXJzcGVjdGl2L2dlbi9wZXJzcGVjdGl2L3YxO3BlcnNwZWN0aXZ2MaICA1BYWKoCDVBlcnNwZWN0aXYuVjHKAg1QZXJzcGVjdGl2XFYx4gIZUGVyc3BlY3RpdlxWMVxHUEJNZXRhZGF0YeoCDlBlcnNwZWN0aXY6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
 
 /**
  * PlaceRef is a place as a link: id, kind and name.
@@ -640,6 +640,111 @@ export const ListFollowingResponseSchema: GenMessage<ListFollowingResponse> = /*
   messageDesc(file_perspectiv_v1_place, 17);
 
 /**
+ * @generated from message perspectiv.v1.SearchCharactersRequest
+ */
+export type SearchCharactersRequest = Message<"perspectiv.v1.SearchCharactersRequest"> & {
+  /**
+   * @generated from field: string place_id = 1;
+   */
+  placeId: string;
+
+  /**
+   * 2 to 60 characters after trimming; matched anywhere in a description,
+   * ignoring case.
+   *
+   * @generated from field: string query = 2;
+   */
+  query: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.SearchCharactersRequest.
+ * Use `create(SearchCharactersRequestSchema)` to create a new message.
+ */
+export const SearchCharactersRequestSchema: GenMessage<SearchCharactersRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_place, 18);
+
+/**
+ * FoundCharacter is one unclaimed character and the story and day it is in.
+ *
+ * @generated from message perspectiv.v1.FoundCharacter
+ */
+export type FoundCharacter = Message<"perspectiv.v1.FoundCharacter"> & {
+  /**
+   * @generated from field: string character_id = 1;
+   */
+  characterId: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: string perspective_id = 3;
+   */
+  perspectiveId: string;
+
+  /**
+   * @generated from field: perspectiv.v1.UserRef author = 4;
+   */
+  author?: UserRef | undefined;
+
+  /**
+   * @generated from field: string arc_id = 5;
+   */
+  arcId: string;
+
+  /**
+   * @generated from field: string arc_title = 6;
+   */
+  arcTitle: string;
+
+  /**
+   * Place-local calendar day, YYYY-MM-DD.
+   *
+   * @generated from field: string local_date = 7;
+   */
+  localDate: string;
+
+  /**
+   * @generated from field: optional int32 hour = 8;
+   */
+  hour?: number | undefined;
+
+  /**
+   * @generated from field: perspectiv.v1.PlaceRef place = 9;
+   */
+  place?: PlaceRef | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.FoundCharacter.
+ * Use `create(FoundCharacterSchema)` to create a new message.
+ */
+export const FoundCharacterSchema: GenMessage<FoundCharacter> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_place, 19);
+
+/**
+ * @generated from message perspectiv.v1.SearchCharactersResponse
+ */
+export type SearchCharactersResponse = Message<"perspectiv.v1.SearchCharactersResponse"> & {
+  /**
+   * Most recent day first; at most 30.
+   *
+   * @generated from field: repeated perspectiv.v1.FoundCharacter characters = 1;
+   */
+  characters: FoundCharacter[];
+};
+
+/**
+ * Describes the message perspectiv.v1.SearchCharactersResponse.
+ * Use `create(SearchCharactersResponseSchema)` to create a new message.
+ */
+export const SearchCharactersResponseSchema: GenMessage<SearchCharactersResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_place, 20);
+
+/**
  * PlaceService reads the place hierarchy, adds user places and lists a
  * place's epic. Reads are public.
  *
@@ -715,6 +820,18 @@ export const PlaceService: GenService<{
     methodKind: "unary";
     input: typeof ListFollowingRequestSchema;
     output: typeof ListFollowingResponseSchema;
+  },
+  /**
+   * Public. Unclaimed characters described in stories at the place or
+   * anywhere under it whose description contains the query: "were you in
+   * someone's story?"
+   *
+   * @generated from rpc perspectiv.v1.PlaceService.SearchCharacters
+   */
+  searchCharacters: {
+    methodKind: "unary";
+    input: typeof SearchCharactersRequestSchema;
+    output: typeof SearchCharactersResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_place, 0);

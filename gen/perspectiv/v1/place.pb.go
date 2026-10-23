@@ -1244,6 +1244,215 @@ func (x *ListFollowingResponse) GetPlaces() []*Place {
 	return nil
 }
 
+type SearchCharactersRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	PlaceId string                 `protobuf:"bytes,1,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
+	// 2 to 60 characters after trimming; matched anywhere in a description,
+	// ignoring case.
+	Query         string `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchCharactersRequest) Reset() {
+	*x = SearchCharactersRequest{}
+	mi := &file_perspectiv_v1_place_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchCharactersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchCharactersRequest) ProtoMessage() {}
+
+func (x *SearchCharactersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_place_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchCharactersRequest.ProtoReflect.Descriptor instead.
+func (*SearchCharactersRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_place_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *SearchCharactersRequest) GetPlaceId() string {
+	if x != nil {
+		return x.PlaceId
+	}
+	return ""
+}
+
+func (x *SearchCharactersRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+// FoundCharacter is one unclaimed character and the story and day it is in.
+type FoundCharacter struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CharacterId   string                 `protobuf:"bytes,1,opt,name=character_id,json=characterId,proto3" json:"character_id,omitempty"`
+	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	PerspectiveId string                 `protobuf:"bytes,3,opt,name=perspective_id,json=perspectiveId,proto3" json:"perspective_id,omitempty"`
+	Author        *UserRef               `protobuf:"bytes,4,opt,name=author,proto3" json:"author,omitempty"`
+	ArcId         string                 `protobuf:"bytes,5,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	ArcTitle      string                 `protobuf:"bytes,6,opt,name=arc_title,json=arcTitle,proto3" json:"arc_title,omitempty"`
+	// Place-local calendar day, YYYY-MM-DD.
+	LocalDate     string    `protobuf:"bytes,7,opt,name=local_date,json=localDate,proto3" json:"local_date,omitempty"`
+	Hour          *int32    `protobuf:"varint,8,opt,name=hour,proto3,oneof" json:"hour,omitempty"`
+	Place         *PlaceRef `protobuf:"bytes,9,opt,name=place,proto3" json:"place,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FoundCharacter) Reset() {
+	*x = FoundCharacter{}
+	mi := &file_perspectiv_v1_place_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FoundCharacter) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FoundCharacter) ProtoMessage() {}
+
+func (x *FoundCharacter) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_place_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FoundCharacter.ProtoReflect.Descriptor instead.
+func (*FoundCharacter) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_place_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *FoundCharacter) GetCharacterId() string {
+	if x != nil {
+		return x.CharacterId
+	}
+	return ""
+}
+
+func (x *FoundCharacter) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *FoundCharacter) GetPerspectiveId() string {
+	if x != nil {
+		return x.PerspectiveId
+	}
+	return ""
+}
+
+func (x *FoundCharacter) GetAuthor() *UserRef {
+	if x != nil {
+		return x.Author
+	}
+	return nil
+}
+
+func (x *FoundCharacter) GetArcId() string {
+	if x != nil {
+		return x.ArcId
+	}
+	return ""
+}
+
+func (x *FoundCharacter) GetArcTitle() string {
+	if x != nil {
+		return x.ArcTitle
+	}
+	return ""
+}
+
+func (x *FoundCharacter) GetLocalDate() string {
+	if x != nil {
+		return x.LocalDate
+	}
+	return ""
+}
+
+func (x *FoundCharacter) GetHour() int32 {
+	if x != nil && x.Hour != nil {
+		return *x.Hour
+	}
+	return 0
+}
+
+func (x *FoundCharacter) GetPlace() *PlaceRef {
+	if x != nil {
+		return x.Place
+	}
+	return nil
+}
+
+type SearchCharactersResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Most recent day first; at most 30.
+	Characters    []*FoundCharacter `protobuf:"bytes,1,rep,name=characters,proto3" json:"characters,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchCharactersResponse) Reset() {
+	*x = SearchCharactersResponse{}
+	mi := &file_perspectiv_v1_place_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchCharactersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchCharactersResponse) ProtoMessage() {}
+
+func (x *SearchCharactersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_place_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchCharactersResponse.ProtoReflect.Descriptor instead.
+func (*SearchCharactersResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_place_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *SearchCharactersResponse) GetCharacters() []*FoundCharacter {
+	if x != nil {
+		return x.Characters
+	}
+	return nil
+}
+
 var File_perspectiv_v1_place_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_place_proto_rawDesc = "" +
@@ -1346,7 +1555,26 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"\tfollowing\x18\x01 \x01(\bR\tfollowing\"\x16\n" +
 	"\x14ListFollowingRequest\"E\n" +
 	"\x15ListFollowingResponse\x12,\n" +
-	"\x06places\x18\x01 \x03(\v2\x14.perspectiv.v1.PlaceR\x06places2\xdf\x04\n" +
+	"\x06places\x18\x01 \x03(\v2\x14.perspectiv.v1.PlaceR\x06places\"J\n" +
+	"\x17SearchCharactersRequest\x12\x19\n" +
+	"\bplace_id\x18\x01 \x01(\tR\aplaceId\x12\x14\n" +
+	"\x05query\x18\x02 \x01(\tR\x05query\"\xc4\x02\n" +
+	"\x0eFoundCharacter\x12!\n" +
+	"\fcharacter_id\x18\x01 \x01(\tR\vcharacterId\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12%\n" +
+	"\x0eperspective_id\x18\x03 \x01(\tR\rperspectiveId\x12.\n" +
+	"\x06author\x18\x04 \x01(\v2\x16.perspectiv.v1.UserRefR\x06author\x12\x15\n" +
+	"\x06arc_id\x18\x05 \x01(\tR\x05arcId\x12\x1b\n" +
+	"\tarc_title\x18\x06 \x01(\tR\barcTitle\x12\x1d\n" +
+	"\n" +
+	"local_date\x18\a \x01(\tR\tlocalDate\x12\x17\n" +
+	"\x04hour\x18\b \x01(\x05H\x00R\x04hour\x88\x01\x01\x12-\n" +
+	"\x05place\x18\t \x01(\v2\x17.perspectiv.v1.PlaceRefR\x05placeB\a\n" +
+	"\x05_hour\"Y\n" +
+	"\x18SearchCharactersResponse\x12=\n" +
+	"\n" +
+	"characters\x18\x01 \x03(\v2\x1d.perspectiv.v1.FoundCharacterR\n" +
+	"characters2\xc4\x05\n" +
 	"\fPlaceService\x12W\n" +
 	"\fSearchPlaces\x12\".perspectiv.v1.SearchPlacesRequest\x1a#.perspectiv.v1.SearchPlacesResponse\x12K\n" +
 	"\bGetPlace\x12\x1e.perspectiv.v1.GetPlaceRequest\x1a\x1f.perspectiv.v1.GetPlaceResponse\x12W\n" +
@@ -1354,7 +1582,8 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"\vCreatePlace\x12!.perspectiv.v1.CreatePlaceRequest\x1a\".perspectiv.v1.CreatePlaceResponse\x12H\n" +
 	"\aGetEpic\x12\x1d.perspectiv.v1.GetEpicRequest\x1a\x1e.perspectiv.v1.GetEpicResponse\x12T\n" +
 	"\vFollowPlace\x12!.perspectiv.v1.FollowPlaceRequest\x1a\".perspectiv.v1.FollowPlaceResponse\x12Z\n" +
-	"\rListFollowing\x12#.perspectiv.v1.ListFollowingRequest\x1a$.perspectiv.v1.ListFollowingResponseB\x9f\x01\n" +
+	"\rListFollowing\x12#.perspectiv.v1.ListFollowingRequest\x1a$.perspectiv.v1.ListFollowingResponse\x12c\n" +
+	"\x10SearchCharacters\x12&.perspectiv.v1.SearchCharactersRequest\x1a'.perspectiv.v1.SearchCharactersResponseB\x9f\x01\n" +
 	"\x11com.perspectiv.v1B\n" +
 	"PlaceProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
@@ -1370,80 +1599,88 @@ func file_perspectiv_v1_place_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_place_proto_rawDescData
 }
 
-var file_perspectiv_v1_place_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_perspectiv_v1_place_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_perspectiv_v1_place_proto_goTypes = []any{
-	(*PlaceRef)(nil),              // 0: perspectiv.v1.PlaceRef
-	(*Place)(nil),                 // 1: perspectiv.v1.Place
-	(*SearchPlacesRequest)(nil),   // 2: perspectiv.v1.SearchPlacesRequest
-	(*SearchPlacesResponse)(nil),  // 3: perspectiv.v1.SearchPlacesResponse
-	(*GetPlaceRequest)(nil),       // 4: perspectiv.v1.GetPlaceRequest
-	(*GetPlaceResponse)(nil),      // 5: perspectiv.v1.GetPlaceResponse
-	(*ListChildrenRequest)(nil),   // 6: perspectiv.v1.ListChildrenRequest
-	(*ListChildrenResponse)(nil),  // 7: perspectiv.v1.ListChildrenResponse
-	(*CreatePlaceRequest)(nil),    // 8: perspectiv.v1.CreatePlaceRequest
-	(*CreatePlaceResponse)(nil),   // 9: perspectiv.v1.CreatePlaceResponse
-	(*GetEpicRequest)(nil),        // 10: perspectiv.v1.GetEpicRequest
-	(*EpicArc)(nil),               // 11: perspectiv.v1.EpicArc
-	(*EpicTale)(nil),              // 12: perspectiv.v1.EpicTale
-	(*GetEpicResponse)(nil),       // 13: perspectiv.v1.GetEpicResponse
-	(*FollowPlaceRequest)(nil),    // 14: perspectiv.v1.FollowPlaceRequest
-	(*FollowPlaceResponse)(nil),   // 15: perspectiv.v1.FollowPlaceResponse
-	(*ListFollowingRequest)(nil),  // 16: perspectiv.v1.ListFollowingRequest
-	(*ListFollowingResponse)(nil), // 17: perspectiv.v1.ListFollowingResponse
-	(PlaceKind)(0),                // 18: perspectiv.v1.PlaceKind
-	(PlaceSource)(0),              // 19: perspectiv.v1.PlaceSource
-	(PlaceCategory)(0),            // 20: perspectiv.v1.PlaceCategory
-	(EpicTab)(0),                  // 21: perspectiv.v1.EpicTab
-	(Genre)(0),                    // 22: perspectiv.v1.Genre
-	(*timestamppb.Timestamp)(nil), // 23: google.protobuf.Timestamp
-	(*UserRef)(nil),               // 24: perspectiv.v1.UserRef
-	(LoreStatus)(0),               // 25: perspectiv.v1.LoreStatus
+	(*PlaceRef)(nil),                 // 0: perspectiv.v1.PlaceRef
+	(*Place)(nil),                    // 1: perspectiv.v1.Place
+	(*SearchPlacesRequest)(nil),      // 2: perspectiv.v1.SearchPlacesRequest
+	(*SearchPlacesResponse)(nil),     // 3: perspectiv.v1.SearchPlacesResponse
+	(*GetPlaceRequest)(nil),          // 4: perspectiv.v1.GetPlaceRequest
+	(*GetPlaceResponse)(nil),         // 5: perspectiv.v1.GetPlaceResponse
+	(*ListChildrenRequest)(nil),      // 6: perspectiv.v1.ListChildrenRequest
+	(*ListChildrenResponse)(nil),     // 7: perspectiv.v1.ListChildrenResponse
+	(*CreatePlaceRequest)(nil),       // 8: perspectiv.v1.CreatePlaceRequest
+	(*CreatePlaceResponse)(nil),      // 9: perspectiv.v1.CreatePlaceResponse
+	(*GetEpicRequest)(nil),           // 10: perspectiv.v1.GetEpicRequest
+	(*EpicArc)(nil),                  // 11: perspectiv.v1.EpicArc
+	(*EpicTale)(nil),                 // 12: perspectiv.v1.EpicTale
+	(*GetEpicResponse)(nil),          // 13: perspectiv.v1.GetEpicResponse
+	(*FollowPlaceRequest)(nil),       // 14: perspectiv.v1.FollowPlaceRequest
+	(*FollowPlaceResponse)(nil),      // 15: perspectiv.v1.FollowPlaceResponse
+	(*ListFollowingRequest)(nil),     // 16: perspectiv.v1.ListFollowingRequest
+	(*ListFollowingResponse)(nil),    // 17: perspectiv.v1.ListFollowingResponse
+	(*SearchCharactersRequest)(nil),  // 18: perspectiv.v1.SearchCharactersRequest
+	(*FoundCharacter)(nil),           // 19: perspectiv.v1.FoundCharacter
+	(*SearchCharactersResponse)(nil), // 20: perspectiv.v1.SearchCharactersResponse
+	(PlaceKind)(0),                   // 21: perspectiv.v1.PlaceKind
+	(PlaceSource)(0),                 // 22: perspectiv.v1.PlaceSource
+	(PlaceCategory)(0),               // 23: perspectiv.v1.PlaceCategory
+	(EpicTab)(0),                     // 24: perspectiv.v1.EpicTab
+	(Genre)(0),                       // 25: perspectiv.v1.Genre
+	(*timestamppb.Timestamp)(nil),    // 26: google.protobuf.Timestamp
+	(*UserRef)(nil),                  // 27: perspectiv.v1.UserRef
+	(LoreStatus)(0),                  // 28: perspectiv.v1.LoreStatus
 }
 var file_perspectiv_v1_place_proto_depIdxs = []int32{
-	18, // 0: perspectiv.v1.PlaceRef.kind:type_name -> perspectiv.v1.PlaceKind
-	18, // 1: perspectiv.v1.Place.kind:type_name -> perspectiv.v1.PlaceKind
-	19, // 2: perspectiv.v1.Place.source:type_name -> perspectiv.v1.PlaceSource
+	21, // 0: perspectiv.v1.PlaceRef.kind:type_name -> perspectiv.v1.PlaceKind
+	21, // 1: perspectiv.v1.Place.kind:type_name -> perspectiv.v1.PlaceKind
+	22, // 2: perspectiv.v1.Place.source:type_name -> perspectiv.v1.PlaceSource
 	0,  // 3: perspectiv.v1.Place.ancestors:type_name -> perspectiv.v1.PlaceRef
-	20, // 4: perspectiv.v1.Place.category:type_name -> perspectiv.v1.PlaceCategory
-	18, // 5: perspectiv.v1.SearchPlacesRequest.kind:type_name -> perspectiv.v1.PlaceKind
+	23, // 4: perspectiv.v1.Place.category:type_name -> perspectiv.v1.PlaceCategory
+	21, // 5: perspectiv.v1.SearchPlacesRequest.kind:type_name -> perspectiv.v1.PlaceKind
 	1,  // 6: perspectiv.v1.SearchPlacesResponse.places:type_name -> perspectiv.v1.Place
 	1,  // 7: perspectiv.v1.GetPlaceResponse.place:type_name -> perspectiv.v1.Place
-	20, // 8: perspectiv.v1.ListChildrenRequest.category:type_name -> perspectiv.v1.PlaceCategory
+	23, // 8: perspectiv.v1.ListChildrenRequest.category:type_name -> perspectiv.v1.PlaceCategory
 	1,  // 9: perspectiv.v1.ListChildrenResponse.places:type_name -> perspectiv.v1.Place
-	18, // 10: perspectiv.v1.CreatePlaceRequest.kind:type_name -> perspectiv.v1.PlaceKind
+	21, // 10: perspectiv.v1.CreatePlaceRequest.kind:type_name -> perspectiv.v1.PlaceKind
 	1,  // 11: perspectiv.v1.CreatePlaceResponse.place:type_name -> perspectiv.v1.Place
-	21, // 12: perspectiv.v1.GetEpicRequest.tab:type_name -> perspectiv.v1.EpicTab
-	22, // 13: perspectiv.v1.GetEpicRequest.genre:type_name -> perspectiv.v1.Genre
+	24, // 12: perspectiv.v1.GetEpicRequest.tab:type_name -> perspectiv.v1.EpicTab
+	25, // 13: perspectiv.v1.GetEpicRequest.genre:type_name -> perspectiv.v1.Genre
 	0,  // 14: perspectiv.v1.EpicArc.place:type_name -> perspectiv.v1.PlaceRef
-	23, // 15: perspectiv.v1.EpicArc.created_at:type_name -> google.protobuf.Timestamp
+	26, // 15: perspectiv.v1.EpicArc.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 16: perspectiv.v1.EpicTale.place:type_name -> perspectiv.v1.PlaceRef
-	24, // 17: perspectiv.v1.EpicTale.author:type_name -> perspectiv.v1.UserRef
-	22, // 18: perspectiv.v1.EpicTale.genre:type_name -> perspectiv.v1.Genre
-	25, // 19: perspectiv.v1.EpicTale.lore_status:type_name -> perspectiv.v1.LoreStatus
-	23, // 20: perspectiv.v1.EpicTale.published_at:type_name -> google.protobuf.Timestamp
+	27, // 17: perspectiv.v1.EpicTale.author:type_name -> perspectiv.v1.UserRef
+	25, // 18: perspectiv.v1.EpicTale.genre:type_name -> perspectiv.v1.Genre
+	28, // 19: perspectiv.v1.EpicTale.lore_status:type_name -> perspectiv.v1.LoreStatus
+	26, // 20: perspectiv.v1.EpicTale.published_at:type_name -> google.protobuf.Timestamp
 	1,  // 21: perspectiv.v1.GetEpicResponse.place:type_name -> perspectiv.v1.Place
 	11, // 22: perspectiv.v1.GetEpicResponse.arcs:type_name -> perspectiv.v1.EpicArc
 	12, // 23: perspectiv.v1.GetEpicResponse.tales:type_name -> perspectiv.v1.EpicTale
 	1,  // 24: perspectiv.v1.ListFollowingResponse.places:type_name -> perspectiv.v1.Place
-	2,  // 25: perspectiv.v1.PlaceService.SearchPlaces:input_type -> perspectiv.v1.SearchPlacesRequest
-	4,  // 26: perspectiv.v1.PlaceService.GetPlace:input_type -> perspectiv.v1.GetPlaceRequest
-	6,  // 27: perspectiv.v1.PlaceService.ListChildren:input_type -> perspectiv.v1.ListChildrenRequest
-	8,  // 28: perspectiv.v1.PlaceService.CreatePlace:input_type -> perspectiv.v1.CreatePlaceRequest
-	10, // 29: perspectiv.v1.PlaceService.GetEpic:input_type -> perspectiv.v1.GetEpicRequest
-	14, // 30: perspectiv.v1.PlaceService.FollowPlace:input_type -> perspectiv.v1.FollowPlaceRequest
-	16, // 31: perspectiv.v1.PlaceService.ListFollowing:input_type -> perspectiv.v1.ListFollowingRequest
-	3,  // 32: perspectiv.v1.PlaceService.SearchPlaces:output_type -> perspectiv.v1.SearchPlacesResponse
-	5,  // 33: perspectiv.v1.PlaceService.GetPlace:output_type -> perspectiv.v1.GetPlaceResponse
-	7,  // 34: perspectiv.v1.PlaceService.ListChildren:output_type -> perspectiv.v1.ListChildrenResponse
-	9,  // 35: perspectiv.v1.PlaceService.CreatePlace:output_type -> perspectiv.v1.CreatePlaceResponse
-	13, // 36: perspectiv.v1.PlaceService.GetEpic:output_type -> perspectiv.v1.GetEpicResponse
-	15, // 37: perspectiv.v1.PlaceService.FollowPlace:output_type -> perspectiv.v1.FollowPlaceResponse
-	17, // 38: perspectiv.v1.PlaceService.ListFollowing:output_type -> perspectiv.v1.ListFollowingResponse
-	32, // [32:39] is the sub-list for method output_type
-	25, // [25:32] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	27, // 25: perspectiv.v1.FoundCharacter.author:type_name -> perspectiv.v1.UserRef
+	0,  // 26: perspectiv.v1.FoundCharacter.place:type_name -> perspectiv.v1.PlaceRef
+	19, // 27: perspectiv.v1.SearchCharactersResponse.characters:type_name -> perspectiv.v1.FoundCharacter
+	2,  // 28: perspectiv.v1.PlaceService.SearchPlaces:input_type -> perspectiv.v1.SearchPlacesRequest
+	4,  // 29: perspectiv.v1.PlaceService.GetPlace:input_type -> perspectiv.v1.GetPlaceRequest
+	6,  // 30: perspectiv.v1.PlaceService.ListChildren:input_type -> perspectiv.v1.ListChildrenRequest
+	8,  // 31: perspectiv.v1.PlaceService.CreatePlace:input_type -> perspectiv.v1.CreatePlaceRequest
+	10, // 32: perspectiv.v1.PlaceService.GetEpic:input_type -> perspectiv.v1.GetEpicRequest
+	14, // 33: perspectiv.v1.PlaceService.FollowPlace:input_type -> perspectiv.v1.FollowPlaceRequest
+	16, // 34: perspectiv.v1.PlaceService.ListFollowing:input_type -> perspectiv.v1.ListFollowingRequest
+	18, // 35: perspectiv.v1.PlaceService.SearchCharacters:input_type -> perspectiv.v1.SearchCharactersRequest
+	3,  // 36: perspectiv.v1.PlaceService.SearchPlaces:output_type -> perspectiv.v1.SearchPlacesResponse
+	5,  // 37: perspectiv.v1.PlaceService.GetPlace:output_type -> perspectiv.v1.GetPlaceResponse
+	7,  // 38: perspectiv.v1.PlaceService.ListChildren:output_type -> perspectiv.v1.ListChildrenResponse
+	9,  // 39: perspectiv.v1.PlaceService.CreatePlace:output_type -> perspectiv.v1.CreatePlaceResponse
+	13, // 40: perspectiv.v1.PlaceService.GetEpic:output_type -> perspectiv.v1.GetEpicResponse
+	15, // 41: perspectiv.v1.PlaceService.FollowPlace:output_type -> perspectiv.v1.FollowPlaceResponse
+	17, // 42: perspectiv.v1.PlaceService.ListFollowing:output_type -> perspectiv.v1.ListFollowingResponse
+	20, // 43: perspectiv.v1.PlaceService.SearchCharacters:output_type -> perspectiv.v1.SearchCharactersResponse
+	36, // [36:44] is the sub-list for method output_type
+	28, // [28:36] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_place_proto_init() }
@@ -1455,13 +1692,14 @@ func file_perspectiv_v1_place_proto_init() {
 	file_perspectiv_v1_user_proto_init()
 	file_perspectiv_v1_place_proto_msgTypes[11].OneofWrappers = []any{}
 	file_perspectiv_v1_place_proto_msgTypes[12].OneofWrappers = []any{}
+	file_perspectiv_v1_place_proto_msgTypes[19].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_place_proto_rawDesc), len(file_perspectiv_v1_place_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

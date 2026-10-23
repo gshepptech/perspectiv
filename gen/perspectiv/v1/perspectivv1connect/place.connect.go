@@ -52,6 +52,9 @@ const (
 	// PlaceServiceListFollowingProcedure is the fully-qualified name of the PlaceService's
 	// ListFollowing RPC.
 	PlaceServiceListFollowingProcedure = "/perspectiv.v1.PlaceService/ListFollowing"
+	// PlaceServiceSearchCharactersProcedure is the fully-qualified name of the PlaceService's
+	// SearchCharacters RPC.
+	PlaceServiceSearchCharactersProcedure = "/perspectiv.v1.PlaceService/SearchCharacters"
 )
 
 // PlaceServiceClient is a client for the perspectiv.v1.PlaceService service.
@@ -71,6 +74,10 @@ type PlaceServiceClient interface {
 	FollowPlace(context.Context, *connect.Request[v1.FollowPlaceRequest]) (*connect.Response[v1.FollowPlaceResponse], error)
 	// The places the caller follows, most recently followed first.
 	ListFollowing(context.Context, *connect.Request[v1.ListFollowingRequest]) (*connect.Response[v1.ListFollowingResponse], error)
+	// Public. Unclaimed characters described in stories at the place or
+	// anywhere under it whose description contains the query: "were you in
+	// someone's story?"
+	SearchCharacters(context.Context, *connect.Request[v1.SearchCharactersRequest]) (*connect.Response[v1.SearchCharactersResponse], error)
 }
 
 // NewPlaceServiceClient constructs a client for the perspectiv.v1.PlaceService service. By default,
@@ -126,18 +133,25 @@ func NewPlaceServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(placeServiceMethods.ByName("ListFollowing")),
 			connect.WithClientOptions(opts...),
 		),
+		searchCharacters: connect.NewClient[v1.SearchCharactersRequest, v1.SearchCharactersResponse](
+			httpClient,
+			baseURL+PlaceServiceSearchCharactersProcedure,
+			connect.WithSchema(placeServiceMethods.ByName("SearchCharacters")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // placeServiceClient implements PlaceServiceClient.
 type placeServiceClient struct {
-	searchPlaces  *connect.Client[v1.SearchPlacesRequest, v1.SearchPlacesResponse]
-	getPlace      *connect.Client[v1.GetPlaceRequest, v1.GetPlaceResponse]
-	listChildren  *connect.Client[v1.ListChildrenRequest, v1.ListChildrenResponse]
-	createPlace   *connect.Client[v1.CreatePlaceRequest, v1.CreatePlaceResponse]
-	getEpic       *connect.Client[v1.GetEpicRequest, v1.GetEpicResponse]
-	followPlace   *connect.Client[v1.FollowPlaceRequest, v1.FollowPlaceResponse]
-	listFollowing *connect.Client[v1.ListFollowingRequest, v1.ListFollowingResponse]
+	searchPlaces     *connect.Client[v1.SearchPlacesRequest, v1.SearchPlacesResponse]
+	getPlace         *connect.Client[v1.GetPlaceRequest, v1.GetPlaceResponse]
+	listChildren     *connect.Client[v1.ListChildrenRequest, v1.ListChildrenResponse]
+	createPlace      *connect.Client[v1.CreatePlaceRequest, v1.CreatePlaceResponse]
+	getEpic          *connect.Client[v1.GetEpicRequest, v1.GetEpicResponse]
+	followPlace      *connect.Client[v1.FollowPlaceRequest, v1.FollowPlaceResponse]
+	listFollowing    *connect.Client[v1.ListFollowingRequest, v1.ListFollowingResponse]
+	searchCharacters *connect.Client[v1.SearchCharactersRequest, v1.SearchCharactersResponse]
 }
 
 // SearchPlaces calls perspectiv.v1.PlaceService.SearchPlaces.
@@ -175,6 +189,11 @@ func (c *placeServiceClient) ListFollowing(ctx context.Context, req *connect.Req
 	return c.listFollowing.CallUnary(ctx, req)
 }
 
+// SearchCharacters calls perspectiv.v1.PlaceService.SearchCharacters.
+func (c *placeServiceClient) SearchCharacters(ctx context.Context, req *connect.Request[v1.SearchCharactersRequest]) (*connect.Response[v1.SearchCharactersResponse], error) {
+	return c.searchCharacters.CallUnary(ctx, req)
+}
+
 // PlaceServiceHandler is an implementation of the perspectiv.v1.PlaceService service.
 type PlaceServiceHandler interface {
 	// Typeahead over place names.
@@ -192,6 +211,10 @@ type PlaceServiceHandler interface {
 	FollowPlace(context.Context, *connect.Request[v1.FollowPlaceRequest]) (*connect.Response[v1.FollowPlaceResponse], error)
 	// The places the caller follows, most recently followed first.
 	ListFollowing(context.Context, *connect.Request[v1.ListFollowingRequest]) (*connect.Response[v1.ListFollowingResponse], error)
+	// Public. Unclaimed characters described in stories at the place or
+	// anywhere under it whose description contains the query: "were you in
+	// someone's story?"
+	SearchCharacters(context.Context, *connect.Request[v1.SearchCharactersRequest]) (*connect.Response[v1.SearchCharactersResponse], error)
 }
 
 // NewPlaceServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -243,6 +266,12 @@ func NewPlaceServiceHandler(svc PlaceServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(placeServiceMethods.ByName("ListFollowing")),
 		connect.WithHandlerOptions(opts...),
 	)
+	placeServiceSearchCharactersHandler := connect.NewUnaryHandler(
+		PlaceServiceSearchCharactersProcedure,
+		svc.SearchCharacters,
+		connect.WithSchema(placeServiceMethods.ByName("SearchCharacters")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.PlaceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PlaceServiceSearchPlacesProcedure:
@@ -259,6 +288,8 @@ func NewPlaceServiceHandler(svc PlaceServiceHandler, opts ...connect.HandlerOpti
 			placeServiceFollowPlaceHandler.ServeHTTP(w, r)
 		case PlaceServiceListFollowingProcedure:
 			placeServiceListFollowingHandler.ServeHTTP(w, r)
+		case PlaceServiceSearchCharactersProcedure:
+			placeServiceSearchCharactersHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -294,4 +325,8 @@ func (UnimplementedPlaceServiceHandler) FollowPlace(context.Context, *connect.Re
 
 func (UnimplementedPlaceServiceHandler) ListFollowing(context.Context, *connect.Request[v1.ListFollowingRequest]) (*connect.Response[v1.ListFollowingResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PlaceService.ListFollowing is not implemented"))
+}
+
+func (UnimplementedPlaceServiceHandler) SearchCharacters(context.Context, *connect.Request[v1.SearchCharactersRequest]) (*connect.Response[v1.SearchCharactersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PlaceService.SearchCharacters is not implemented"))
 }

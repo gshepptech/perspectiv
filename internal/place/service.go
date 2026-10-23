@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -371,4 +372,31 @@ func (s *Service) ListFollowing(ctx context.Context, caller uuid.UUID) ([]Place,
 		out = append(out, p)
 	}
 	return out, nil
+}
+
+// Character search query bounds, in runes after trimming.
+const (
+	minCharacterQuery = 2
+	maxCharacterQuery = 60
+)
+
+// likeEscaper escapes LIKE's wildcards and its escape character, so a query
+// matches its own text literally.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+// SearchCharacters finds unclaimed characters described in stories at a
+// visible place or under it. A missing or hidden place is NotFound.
+func (s *Service) SearchCharacters(ctx context.Context, placeID uuid.UUID, query string) ([]FoundCharacter, error) {
+	query = strings.Join(strings.Fields(query), " ")
+	if n := utf8.RuneCountInString(query); n < minCharacterQuery || n > maxCharacterQuery {
+		return nil, apiutil.InvalidArg(fmt.Sprintf("search for %d to %d characters", minCharacterQuery, maxCharacterQuery))
+	}
+	if _, err := s.store.Get(ctx, placeID); err != nil {
+		return nil, notFound(err)
+	}
+	found, err := s.store.SearchCharacters(ctx, placeID, likeEscaper.Replace(query))
+	if err != nil {
+		return nil, apiutil.Internal(err)
+	}
+	return found, nil
 }

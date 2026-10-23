@@ -16,6 +16,7 @@ import { clients } from "@/lib/connect";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { useDebounced } from "@/routes/compose/search";
 
+import { FindYourself } from "./FindYourself";
 import { FollowButton } from "./FollowButton";
 
 // The tab and genre live in the address as lower-case words (?tab=tales,
@@ -426,7 +427,8 @@ export function Component() {
             ))}
           </Tabs>
         </section>
-        <aside className="min-w-0">
+        <aside className="grid min-w-0 content-start gap-6">
+          <FindYourself placeId={place.id} placeName={place.name} />
           <Children place={place} />
         </aside>
       </div>

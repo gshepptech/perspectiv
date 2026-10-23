@@ -188,6 +188,16 @@ lore page.
 - **Flairs** are words in `text-sm` with an icon where one exists; canon uses
   `accent`, pending uses `warning`, never colour alone.
 
+## Place page sidebar
+
+- **Were you in someone's story?** First in the sidebar: a search field
+  (placeholder "gold paint, red umbrella…") over unclaimed descriptions at the
+  place and below. Results quote the description in Literata, name the writer,
+  place and day, and link "That was me" to the story with the claim dialog up.
+  Under two characters nothing is searched; an empty result says so in a
+  `status` line.
+- The list of places inside follows it.
+
 ## Landing (the front door)
 
 The landing page is the one surface that has to sell the idea to someone who

@@ -280,3 +280,46 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     expect(await screen.findByRole("heading", { name: "Place not found" })).toBeInTheDocument();
   });
 });
+
+describe("were you in someone's story?", () => {
+  it("searches unclaimed descriptions here and links each to claiming it", async () => {
+    const user = userEvent.setup();
+    const { calls } = placePage("/places/ci-spr", {
+      "PlaceService/SearchCharacters": (body) => ({
+        body: {
+          characters:
+            body.query === "gold paint"
+              ? [
+                  {
+                    characterId: "c-1",
+                    label: "the kid in gold paint",
+                    perspectiveId: "p-9",
+                    author: { userId: "u-9", username: "knightsfan" },
+                    arcId: "arc-9",
+                    arcTitle: "Fourth quarter",
+                    localDate: "2026-10-03",
+                    place: store,
+                  },
+                ]
+              : [],
+        },
+      }),
+    });
+    const panel = await screen.findByRole("region", { name: "Were you in someone's story?" });
+    const box = within(panel).getByRole("searchbox", { name: "Search descriptions" });
+    await user.type(box, "g");
+    // One letter is not a search.
+    await new Promise((r) => setTimeout(r, 300));
+    expect(calls("PlaceService/SearchCharacters")).toEqual([]);
+    await user.type(box, "old  paint");
+    const results = await within(panel).findByRole("list", { name: "Matching descriptions" });
+    expect(results).toHaveTextContent("“the kid in gold paint”");
+    expect(results).toHaveTextContent("knightsfan at Prairie Books, October 3, 2026");
+    expect(within(results).getByRole("link", { name: "That was me: the kid in gold paint" })).toHaveAttribute("href", "/perspectives/p-9?claim=1");
+    expect(calls("PlaceService/SearchCharacters").at(-1)).toEqual({ placeId: "ci-spr", query: "gold paint" });
+
+    await user.clear(box);
+    await user.type(box, "zebra");
+    expect(await within(panel).findByRole("status")).toHaveTextContent("Nobody unclaimed matches “zebra” here yet.");
+  });
+});

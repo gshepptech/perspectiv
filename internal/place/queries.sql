@@ -326,3 +326,29 @@ SELECT EXISTS (SELECT 1 FROM place_follows WHERE user_id = @user_id::uuid AND pl
 SELECT place_id FROM place_follows WHERE user_id = @user_id::uuid
 ORDER BY created_at DESC, place_id
 LIMIT @lim::integer;
+
+-- name: SearchCharacters :many
+-- Unclaimed characters (no pending or accepted claim) in readable stories
+-- at the place or any visible place under it, found through
+-- arcs_place_path_idx, whose label contains the pattern. The caller escapes
+-- LIKE's wildcards. Voted-out stories cannot be claimed from and are left out.
+SELECT c.id, c.label, c.perspective_id, p.author_id, u.username,
+       a.id AS arc_id, a.title AS arc_title, a.local_date, a.hour,
+       a.place_id, pl.kind AS place_kind, pl.name AS place_name
+FROM arcs a
+JOIN places pl ON pl.id = a.place_id
+JOIN perspectives p ON p.arc_id = a.id
+JOIN users u ON u.id = p.author_id
+JOIN characters c ON c.perspective_id = p.id
+WHERE a.place_path @> ARRAY[@place_id::uuid]
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+  AND p.lore_status <> 'LORE_STATUS_REMOVED'
+  AND u.deleted_at IS NULL
+  AND c.label ILIKE '%' || @pattern::text || '%'
+  AND NOT EXISTS (
+        SELECT 1 FROM claims cl
+        WHERE cl.character_id = c.id AND cl.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
+ORDER BY a.local_date DESC, a.hour DESC NULLS LAST, p.published_at, c.position
+LIMIT 30;
