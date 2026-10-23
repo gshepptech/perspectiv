@@ -68,9 +68,10 @@ export function FindYourself({ placeId, placeName }: { placeId: string; placeNam
               </p>
               <Link
                 to={`/perspectives/${encodeURIComponent(c.perspectiveId)}?claim=1`}
+                aria-label={`That was me: ${c.label}`}
                 className="inline-flex min-h-9 items-center font-medium text-accent underline underline-offset-4"
               >
-                That was me<span className="sr-only">: {c.label}</span>
+                That was me
               </Link>
             </li>
           ))}

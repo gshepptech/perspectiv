@@ -62,6 +62,12 @@ export const reportAccounts = () => ({
   admin: account("adm", true),
 });
 
+/** The writer who describes a stranger, and the stranger who finds themselves. */
+export const findAccounts = () => ({
+  finn: account("finn"),
+  gil: account("gil"),
+});
+
 export function allAccounts(): Account[] {
-  return [...Object.values(loreAccounts()), ...Object.values(reportAccounts())];
+  return [...Object.values(loreAccounts()), ...Object.values(reportAccounts()), ...Object.values(findAccounts())];
 }

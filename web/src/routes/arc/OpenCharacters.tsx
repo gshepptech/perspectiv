@@ -39,9 +39,10 @@ export function OpenCharacters({ arcId }: { arcId: string }) {
               <span className="wrap-anywhere">in {c.author?.username ?? "someone"}'s story</span>
               <Link
                 to={`/perspectives/${encodeURIComponent(c.perspectiveId)}?claim=1`}
+                aria-label={`That was me: ${c.label}`}
                 className="inline-flex min-h-9 items-center font-medium text-accent underline underline-offset-4"
               >
-                That was me<span className="sr-only">: {c.label}</span>
+                That was me
               </Link>
             </p>
           </li>
