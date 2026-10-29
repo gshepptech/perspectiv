@@ -57,6 +57,10 @@ function Terms() {
         </li>
         <li>No harassment, hateful or sexual content, or spam.</li>
       </ul>
+      <p className="mt-2">
+        The full <Link to="/terms" className={linkClass}>terms</Link>, <Link to="/privacy" className={linkClass}>privacy notice</Link> and{" "}
+        <Link to="/guidelines" className={linkClass}>community guidelines</Link> apply.
+      </p>
     </section>
   );
 }
@@ -186,7 +190,7 @@ export function Component() {
                   />
                 </FormControl>
                 <FormLabel className="text-base font-normal">
-                  I am 18 or over, and I agree to the rules above.
+                  I am 18 or over, and I agree to the rules and terms above.
                 </FormLabel>
                 <FormMessage className="col-span-2" />
               </FormItem>

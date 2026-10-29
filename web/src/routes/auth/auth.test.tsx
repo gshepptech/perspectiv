@@ -38,6 +38,11 @@ describe("SignUpPage", () => {
     await user.keyboard("wren_writes");
     await user.tab();
     await user.keyboard("a long enough secret");
+    // The terms come before the agreement: their three links, then the box.
+    for (const name of ["terms", "privacy notice", "community guidelines"]) {
+      await user.tab();
+      expect(screen.getByRole("link", { name })).toHaveFocus();
+    }
     await user.tab();
     expect(screen.getByRole("checkbox", { name: /I am 18 or over/ })).toHaveFocus();
     await user.keyboard(" ");

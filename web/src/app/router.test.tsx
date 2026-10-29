@@ -56,6 +56,9 @@ const contract: [string, string][] = [
   ["/claims", "claims/ClaimsPage"],
   ["/admin/reports", "admin/ReportsPage"],
   ["/admin/access", "admin/AccessPage"],
+  ["/terms", "legal/TermsPage"],
+  ["/privacy", "legal/PrivacyPage"],
+  ["/guidelines", "legal/GuidelinesPage"],
   ["/login", "auth/LoginPage"],
   ["/signup", "auth/SignUpPage"],
   ["/verify-email?token=t", "auth/VerifyEmailPage"],
@@ -82,7 +85,7 @@ describe("route table", () => {
 });
 
 describe("signed-out reading and writing", () => {
-  const publicPaths = ["/", "/places/p-1", "/perspectives/x-1", "/arcs/a-1", "/i/abcdefgh23", "/login", "/signup"];
+  const publicPaths = ["/", "/places/p-1", "/perspectives/x-1", "/arcs/a-1", "/i/abcdefgh23", "/login", "/signup", "/terms", "/privacy", "/guidelines"];
   for (const path of publicPaths) {
     it(`${path} renders for a signed-out reader`, async () => {
       renderAt(path);

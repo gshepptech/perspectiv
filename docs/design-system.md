@@ -229,6 +229,14 @@ Two tabs, **Codes** and **Waitlist**, built on the report queue's patterns:
 - **Waitlist:** people waiting first, each with a masked address, note and
   date, and "Send invite". Invited people show when and with which code.
 
+## Legal and trust pages
+
+`/terms`, `/privacy` and `/guidelines` are public reading pages: a title, a
+"Last updated" line, prose at the reading measure with plain `h2` sections
+and bullet lists, and a closing row of links to the other two. The footer
+links all three on every page, and the sign-up terms box links them before
+the age-and-agreement checkbox, so a keyboard user meets them first.
+
 ## Landing (the front door)
 
 The landing page is the one surface that has to sell the idea to someone who

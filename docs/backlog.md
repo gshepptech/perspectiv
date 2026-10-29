@@ -5,13 +5,11 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing
 
-2. **Legal and trust pages.** Terms, Privacy and Community guidelines as
-   public pages, linked from the footer and from sign-up.
+3. **Download my data.** A settings action that returns the account's own
+   data (profile, stories, characters, claims, thread posts, follows) as JSON.
 
 ## Next
 
-3. **Download my data.** A settings action that returns the account's own
-   data (profile, stories, characters, claims, thread posts, follows) as JSON.
 5. **Hour and day listings.** A place page lists an hour arc ("Dryer number
    six · 23:00") apart from its day; group an hour under its day.
 6. **Installable on phones.** A web app manifest and icons, so "Add to home
@@ -21,6 +19,9 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Waiting on a decision or an event
 
+- **Legal review and a contact address.** The Terms, Privacy and
+  Community guidelines pages describe what the code does today; they need a
+  lawyer's review and a real contact address from the owner before launch.
 - **History before any push.** Two early commits on this branch hold 58 MB of
   stray binaries; squash them before the branch is pushed. Rewriting history
   waits for the owner's go-ahead.
@@ -30,6 +31,10 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Legal and trust pages: /terms, /privacy and /guidelines, written from
+  what the code stores and sends (email provider only, one sign-in cookie,
+  no trackers), linked from the footer and the sign-up terms. Verified by
+  the route contract and keyboard-order tests.
 - Accessibility review fixes: a pending button keeps focus (aria-disabled,
   not disabled) everywhere; focus moves to a stable place after a claim, a
   revoke, a waitlist invite and a delete; the claim dialog says "Your claim"
