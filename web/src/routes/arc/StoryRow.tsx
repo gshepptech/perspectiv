@@ -19,7 +19,17 @@ function Rail({ summary, rights }: { summary: PerspectiveSummary; rights?: Viewe
   const session = useSession();
   const own = !!session && session.userId === summary.author?.userId;
   const canVote = !!rights && !own && (!session || rights.participant);
-  return <VoteButton variant="rail" perspectiveId={summary.id} upvotes={summary.upvotes} voted={summary.voted} canVote={canVote} />;
+  const name = summary.author?.username;
+  return (
+    <VoteButton
+      variant="rail"
+      perspectiveId={summary.id}
+      upvotes={summary.upvotes}
+      voted={summary.voted}
+      canVote={canVote}
+      targetName={name ? `${name}'s perspective` : "this perspective"}
+    />
+  );
 }
 
 /**

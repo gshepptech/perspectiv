@@ -78,7 +78,7 @@ export function UsernameSection({ profile, account, now = Date.now() }: { profil
           <FormAlert message={change.error ? errorMessage(change.error) : null} />
           <Saved message={change.isSuccess ? `Your username is now ${change.data.profile?.username || change.variables.username}.` : null} />
           <div>
-            <Button type="submit" variant="secondary" disabled={held || change.isPending}>
+            <Button type="submit" variant="secondary" disabled={held} pending={change.isPending}>
               Change username
             </Button>
           </div>

@@ -71,7 +71,7 @@ export function Component() {
                 : null
             }
           />
-          <Button type="submit" disabled={login.isPending}>
+          <Button type="submit" pending={login.isPending}>
             Sign in
           </Button>
         </form>

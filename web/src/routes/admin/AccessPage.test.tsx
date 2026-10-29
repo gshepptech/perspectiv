@@ -49,7 +49,7 @@ describe("beta access admin", () => {
     const items = within(list).getAllByRole("listitem");
     expect(items.map((i) => within(i).getByText(/^(Live|Used up|Revoked|Expired)$/).textContent)).toEqual(["Live", "Used up", "Revoked", "Expired"]);
     expect(items[0]).toHaveTextContent("3 of 25 used");
-    expect(within(items[0]!).getByRole("button", { name: "Copy invite link" })).toBeInTheDocument();
+    expect(within(items[0]!).getByRole("button", { name: /^Copy invite link/ })).toBeInTheDocument();
     expect(within(items[1]!).queryByRole("button", { name: "Revoke" })).toBeNull();
 
     await user.clear(screen.getByLabelText("Uses"));
@@ -83,7 +83,7 @@ describe("beta access admin", () => {
       admin,
     );
     renderRoute("/admin/access");
-    await user.click(await screen.findByRole("button", { name: "Revoke" }));
+    await user.click(await screen.findByRole("button", { name: "Revoke ucf-launch" }));
     const dialog = await screen.findByRole("dialog", { name: "Revoke ucf-launch?" });
     await user.click(within(dialog).getByRole("button", { name: "Revoke code" }));
     expect(await screen.findByText("Revoked")).toBeInTheDocument();
@@ -115,7 +115,7 @@ describe("beta access admin", () => {
     await user.click(await screen.findByRole("tab", { name: "Waitlist" }));
     const waiting = await screen.findByRole("list", { name: "Waiting" });
     expect(waiting).toHaveTextContent("pa•••@example.test");
-    await user.click(within(waiting).getByRole("button", { name: "Send invite" }));
+    await user.click(within(waiting).getByRole("button", { name: /^Send invite/ }));
     const done = await screen.findByRole("list", { name: "Invited" });
     expect(done).toHaveTextContent("wl-abcd2345");
     await waitFor(() => expect(screen.getByRole("heading", { name: /Waiting \(0\)/ })).toBeInTheDocument());

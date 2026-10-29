@@ -91,7 +91,7 @@ export function Component() {
             )}
           />
           <FormAlert message={reset.error ? errorMessage(reset.error) : null} />
-          <Button type="submit" disabled={reset.isPending}>
+          <Button type="submit" pending={reset.isPending}>
             Set new password
           </Button>
         </form>

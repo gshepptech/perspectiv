@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { UserCheck } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
@@ -30,6 +30,11 @@ type Props = {
    * sign in instead.
    */
   openOnArrival?: boolean;
+  /**
+   * Where focus goes when the dialog closes after a claim took away its
+   * trigger: the line that now says who the viewer is in the story.
+   */
+  returnFocusTo?: RefObject<HTMLElement | null>;
 };
 
 /**
@@ -38,7 +43,7 @@ type Props = {
  * only offered while the viewer has no claim in it; a character someone else
  * holds shows who, and one the viewer was turned down for says so.
  */
-export function ClaimDialog({ perspectiveId, authorName, characters, offer, openOnArrival = false }: Props) {
+export function ClaimDialog({ perspectiveId, authorName, characters, offer, openOnArrival = false, returnFocusTo }: Props) {
   const { gate } = useWriteGate();
   const [open, setOpen] = useState(false);
   const arrived = useRef(false);
@@ -70,7 +75,15 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent>
+      <DialogContent
+        onCloseAutoFocus={(e) => {
+          // The trigger is gone once the viewer holds a character here.
+          if (!offer && returnFocusTo?.current) {
+            e.preventDefault();
+            returnFocusTo.current.focus();
+          }
+        }}
+      >
         <DialogTitle>Claim a character</DialogTitle>
         <DialogDescription>
           If {authorName} described you, claim that character. {authorName} decides whether to accept.
@@ -90,12 +103,19 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
                   <span className="text-sm text-ink-muted">Turned out to be {c.claimedBy.username}</span>
                 ) : c.hasAcceptedClaim ? (
                   <span className="text-sm text-ink-muted">Already claimed</span>
+                ) : c.myClaim === ClaimStatus.PENDING ? (
+                  <span className="text-sm text-ink-muted">Your claim, waiting for {authorName}</span>
                 ) : c.hasPendingClaim ? (
                   <span className="text-sm text-ink-muted">Someone has claimed this</span>
                 ) : c.myClaim === ClaimStatus.REJECTED || !isOpen(c) ? (
                   <span className="text-sm text-ink-muted">{authorName} said this was not you</span>
                 ) : (
-                  <Button size="sm" disabled={claim.isPending || claim.isSuccess} onClick={() => claim.mutate(c.id)}>
+                  <Button
+                    size="sm"
+                    aria-label={`That was me: ${c.label}`}
+                    pending={claim.isPending || claim.isSuccess}
+                    onClick={() => claim.mutate(c.id)}
+                  >
                     That was me
                   </Button>
                 )}
@@ -103,11 +123,10 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
             ))}
           </ul>
         )}
-        {claim.isSuccess && (
-          <p role="status" className="mt-4 text-sm font-medium text-success">
-            Claim sent. {authorName} will accept or reject it.
-          </p>
-        )}
+        {/* Always mounted, so screen readers announce the claim when it lands. */}
+        <p role="status" className="mt-4 text-sm font-medium text-success empty:hidden">
+          {claim.isSuccess ? `Claim sent. ${authorName} will accept or reject it.` : ""}
+        </p>
         {claim.isError && (
           <p role="alert" className="mt-4 text-sm font-medium text-error">
             {actionError(claim.error)}

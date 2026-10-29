@@ -219,7 +219,7 @@ export function AddPlace({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={create.isPending}>
+        <Button type="submit" pending={create.isPending}>
           Add and write
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>

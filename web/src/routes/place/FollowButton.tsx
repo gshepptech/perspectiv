@@ -29,7 +29,7 @@ export function FollowButton({ placeId, following }: { placeId: string; followin
       <Button
         variant={following ? "secondary" : "ghost"}
         aria-pressed={following}
-        disabled={follow.isPending}
+        pending={follow.isPending}
         onClick={() => {
           if (gate()) follow.mutate(!following);
         }}

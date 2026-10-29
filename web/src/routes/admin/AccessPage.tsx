@@ -2,7 +2,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -20,6 +20,7 @@ const ADMINS_ONLY = "Only site admins can manage beta access.";
 const codesKey = ["auth", "listAccessCodes"] as const;
 const waitlistKey = ["auth", "listWaitlist"] as const;
 const dateFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
+const INVITED_HEADING = "access-invited";
 
 function failure(err: unknown, what: string): string {
   const e = ConnectError.from(err);
@@ -132,7 +133,7 @@ function CreateCode({ onCreated }: { onCreated: (c: AccessCode) => void }) {
             {failure(create.error, "Creating the code")}
           </p>
         )}
-        <Button type="submit" className="justify-self-start" disabled={create.isPending}>
+        <Button type="submit" className="justify-self-start" pending={create.isPending}>
           Create code
         </Button>
       </form>
@@ -140,7 +141,7 @@ function CreateCode({ onCreated }: { onCreated: (c: AccessCode) => void }) {
   );
 }
 
-function RevokeCode({ code }: { code: string }) {
+function RevokeCode({ code, returnFocusTo }: { code: string; returnFocusTo: RefObject<HTMLElement | null> }) {
   const client = useQueryClient();
   const [open, setOpen] = useState(false);
   const revoke = useMutation({
@@ -153,11 +154,19 @@ function RevokeCode({ code }: { code: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="ghost">
+        <Button size="sm" variant="ghost" aria-label={`Revoke ${code}`}>
           Revoke
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent
+        onCloseAutoFocus={(e) => {
+          // Revoke disappears once the code is revoked; focus its name.
+          if (revoke.isSuccess && returnFocusTo.current) {
+            e.preventDefault();
+            returnFocusTo.current.focus();
+          }
+        }}
+      >
         <DialogTitle>Revoke {code}?</DialogTitle>
         <DialogDescription>Nobody else can sign up with it. People who already joined keep their accounts.</DialogDescription>
         {revoke.isError && (
@@ -166,7 +175,7 @@ function RevokeCode({ code }: { code: string }) {
           </p>
         )}
         <div className="mt-4 flex gap-2">
-          <Button variant="danger" disabled={revoke.isPending} onClick={() => revoke.mutate()}>
+          <Button variant="danger" pending={revoke.isPending} onClick={() => revoke.mutate()}>
             Revoke code
           </Button>
           <DialogClose asChild>
@@ -179,27 +188,46 @@ function RevokeCode({ code }: { code: string }) {
 }
 
 function CopyLink({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
+  useEffect(() => {
+    if (state === "idle") return;
+    const t = setTimeout(() => setState("idle"), 4000);
+    return () => clearTimeout(t);
+  }, [state]);
   return (
-    <Button
-      size="sm"
-      variant="secondary"
-      onClick={() => {
-        void navigator.clipboard?.writeText(signUpLink(code)).then(() => setCopied(true));
-      }}
-    >
-      {copied ? "Copied" : "Copy invite link"}
-    </Button>
+    <>
+      <Button
+        size="sm"
+        variant="secondary"
+        aria-label={`Copy invite link for ${code}`}
+        onClick={() => {
+          if (!navigator.clipboard) {
+            setState("failed");
+            return;
+          }
+          navigator.clipboard.writeText(signUpLink(code)).then(
+            () => setState("copied"),
+            () => setState("failed"),
+          );
+        }}
+      >
+        Copy invite link
+      </Button>
+      <span role="status" className={state === "failed" ? "text-sm text-error" : "text-sm text-success"}>
+        {state === "copied" ? "Copied." : state === "failed" ? `Copying failed. The link is ${signUpLink(code)}` : ""}
+      </span>
+    </>
   );
 }
 
 function CodeItem({ c }: { c: AccessCode }) {
   const headingId = useId();
+  const name = useRef<HTMLSpanElement>(null);
   const standing = codeStanding(c);
   return (
     <li aria-labelledby={headingId} className="grid min-w-0 gap-1 border-b border-rule py-3">
       <p className="flex flex-wrap items-baseline gap-x-3">
-        <span id={headingId} className="font-mono text-base wrap-anywhere text-ink">
+        <span id={headingId} ref={name} tabIndex={-1} className="font-mono text-base wrap-anywhere text-ink">
           {c.code}
         </span>
         <span className={standing === "Live" ? "text-sm font-medium text-success" : "text-sm font-medium text-ink-muted"}>{standing}</span>
@@ -213,7 +241,7 @@ function CodeItem({ c }: { c: AccessCode }) {
       {standing === "Live" && (
         <div className="flex flex-wrap gap-2">
           <CopyLink code={c.code} />
-          <RevokeCode code={c.code} />
+          <RevokeCode code={c.code} returnFocusTo={name} />
         </div>
       )}
     </li>
@@ -249,7 +277,7 @@ function Codes() {
         </ul>
       )}
       {list.hasNextPage && (
-        <Button variant="secondary" className="justify-self-start" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+        <Button variant="secondary" className="justify-self-start" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
           Show more codes
         </Button>
       )}
@@ -264,6 +292,8 @@ function WaitlistItem({ w }: { w: WaitlistEntry }) {
     mutationFn: () => clients.auth.inviteFromWaitlist({ id: w.id }),
     onSuccess: async () => {
       await Promise.all([client.invalidateQueries({ queryKey: waitlistKey }), client.invalidateQueries({ queryKey: codesKey })]);
+      // The entry moves to Invited; focus follows to that list's heading.
+      requestAnimationFrame(() => document.getElementById(INVITED_HEADING)?.focus());
     },
   });
   return (
@@ -287,7 +317,13 @@ function WaitlistItem({ w }: { w: WaitlistEntry }) {
         </p>
       )}
       <div>
-        <Button size="sm" variant={w.invitedAt ? "ghost" : "primary"} disabled={invite.isPending} onClick={() => invite.mutate()}>
+        <Button
+          size="sm"
+          variant={w.invitedAt ? "ghost" : "primary"}
+          aria-label={`${w.invitedAt ? "Send again to" : "Send invite to"} ${w.emailHint}`}
+          pending={invite.isPending}
+          onClick={() => invite.mutate()}
+        >
           {w.invitedAt ? "Send again" : "Send invite"}
         </Button>
       </div>
@@ -327,8 +363,8 @@ function WaitlistList() {
         </ul>
       </section>
       {invited.length > 0 && (
-        <section aria-labelledby="invited-title">
-          <h2 id="invited-title" className="text-xl">
+        <section aria-labelledby={INVITED_HEADING}>
+          <h2 id={INVITED_HEADING} tabIndex={-1} className="text-xl focus:outline-none">
             Invited
           </h2>
           <ul aria-label="Invited" className="min-w-0">
@@ -339,7 +375,7 @@ function WaitlistList() {
         </section>
       )}
       {list.hasNextPage && (
-        <Button variant="secondary" className="justify-self-start" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+        <Button variant="secondary" className="justify-self-start" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
           Show more
         </Button>
       )}

@@ -32,7 +32,7 @@ test("NFR-004 a report is resolved by an admin and the perspective is hidden fro
   await reporter.page.getByRole("link", { name: `Read ${writerAcct.username}'s perspective` }).click();
   await reporter.page
     .getByRole("region", { name: "Respond to this story" })
-    .getByRole("button", { name: "Report", exact: true })
+    .getByRole("button", { name: /^Report:/ })
     .click();
   const dialog = reporter.page.getByRole("dialog", { name: `Report ${writerAcct.username}'s perspective` });
   await dialog.getByRole("combobox", { name: "Reason" }).click();

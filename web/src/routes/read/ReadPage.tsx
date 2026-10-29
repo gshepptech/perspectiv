@@ -2,7 +2,7 @@ import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { InviteDialog } from "@/components/actions/InviteDialog";
@@ -20,6 +20,28 @@ import { type Perspective, PerspectiveSummarySchema } from "@/gen/perspectiv/v1/
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
 import { AuthorLink } from "@/components/reader/AuthorLink";
+
+/**
+ * A deleted or hidden perspective. Its heading takes focus, so an author who
+ * just deleted their story from this page is not left on a vanished button.
+ */
+function Gone({ p }: { p: Perspective }) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), []);
+  return (
+    <div className="min-w-0">
+      <BackLink p={p} />
+      <section className="mx-auto max-w-measure border-y border-rule py-8" aria-labelledby="read-gone">
+        <h1 id="read-gone" ref={heading} tabIndex={-1} className="text-2xl wrap-anywhere focus:outline-none sm:text-3xl">
+          {p.arcTitle || "A perspective"}
+        </h1>
+        <p className="mt-3 text-ink-muted">
+          {p.hidden ? "This perspective was hidden by a moderator." : "This perspective was deleted by its author."}
+        </p>
+      </section>
+    </div>
+  );
+}
 
 /**
  * The part in the address, clamped to the perspective: a missing, malformed
@@ -145,7 +167,7 @@ function AuthorActions({ p }: { p: Perspective }) {
             <DialogClose asChild>
               <Button variant="secondary">Cancel</Button>
             </DialogClose>
-            <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate()}>
+            <Button variant="danger" pending={remove.isPending} onClick={() => remove.mutate()}>
               Delete {noun}
             </Button>
           </div>
@@ -202,21 +224,7 @@ export function Component() {
   const p = query.data;
   if (!p) return <Missing title="Perspective not found" detail="It may have been removed." />;
 
-  if (p.deleted || p.hidden) {
-    return (
-      <div className="min-w-0">
-        <BackLink p={p} />
-        <section className="mx-auto max-w-measure border-y border-rule py-8" aria-labelledby="read-gone">
-          <h1 id="read-gone" className="text-2xl wrap-anywhere sm:text-3xl">
-            {p.arcTitle || "A perspective"}
-          </h1>
-          <p className="mt-3 text-ink-muted">
-            {p.hidden ? "This perspective was hidden by a moderator." : "This perspective was deleted by its author."}
-          </p>
-        </section>
-      </div>
-    );
-  }
+  if (p.deleted || p.hidden) return <Gone p={p} />;
 
   const isDraft = p.status === PerspectiveStatus.DRAFT;
   const mine = session !== null && p.author?.userId === session.userId;
@@ -242,12 +250,7 @@ export function Component() {
           and find yourself in their stories: claim the character that was you, and your stories link. Or invite who was there with the button below.
         </p>
       )}
-      {/* The moment after publishing is when a writer knows who was there. */}
-      {justPublished && mine && !isDraft && p.arcId && (
-        <div className="mx-auto mb-6 max-w-measure">
-          <OpenCharacters arcId={p.arcId} />
-        </div>
-      )}
+
       {!isDraft && mine && (
         <div className="mx-auto mb-4 max-w-measure text-sm">
           <AuthorActions p={p} />
@@ -266,6 +269,13 @@ export function Component() {
         onPartChange={onPartChange}
       />
       {!isDraft && !mine && <ReaderActions p={p} />}
+      {/* The moment after publishing is when a writer knows who was there;
+          the list follows the story so its heading comes after the title. */}
+      {justPublished && mine && !isDraft && p.arcId && (
+        <div className="mx-auto mt-6 max-w-measure">
+          <OpenCharacters arcId={p.arcId} />
+        </div>
+      )}
     </div>
   );
 }

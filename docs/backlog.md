@@ -12,9 +12,6 @@ moves to Done in the same commit as the work, with what was verified.
 
 3. **Download my data.** A settings action that returns the account's own
    data (profile, stories, characters, claims, thread posts, follows) as JSON.
-4. **Accessibility review findings.** Focus lost after actions, claim
-   dialog wording, unannounced results and errors, small navigation targets,
-   duplicate button names, and the heading order after publishing.
 5. **Hour and day listings.** A place page lists an hour arc ("Dryer number
    six · 23:00") apart from its day; group an hour under its day.
 6. **Installable on phones.** A web app manifest and icons, so "Add to home
@@ -33,6 +30,15 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Accessibility review fixes: a pending button keeps focus (aria-disabled,
+  not disabled) everywhere; focus moves to a stable place after a claim, a
+  revoke, a waitlist invite and a delete; the claim dialog says "Your claim"
+  and names each character; claim, search and copy results are announced;
+  form errors are tied to their fields; upvote and report buttons name what
+  they act on and keep one name when pressed; navigation targets are 44px;
+  the phone "Is this you?" shows a disclosure arrow; the post-publish list
+  follows the story's title. Verified by unit tests (Button pending, claim
+  focus) and the e2e suite.
 - Security review fixes: a member's invite link admits at most 5 sign-ups
   and only while its story is readable; thread posts and lore names are rate
   limited (30 an hour); a moderator's name clear locks renaming for 7 days;

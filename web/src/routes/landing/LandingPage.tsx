@@ -31,45 +31,41 @@ function SearchResults({ query }: { query: string }) {
     queryKey: ["place", "searchPlaces", { query }],
     queryFn: ({ signal }) => clients.place.searchPlaces({ query }, { signal }),
   });
-  if (search.isPending) {
-    return (
-      <p role="status" className="mt-4 text-sm text-ink-muted">
-        Searching…
-      </p>
-    );
-  }
-  if (search.isError) {
-    return (
-      <p role="alert" className="mt-4 text-sm text-error">
-        Search is unavailable right now. Try again in a moment.
-      </p>
-    );
-  }
-  const places = search.data.places;
-  if (places.length === 0) {
-    return (
-      <>
-        <p className="mt-4 text-ink-muted">No places match “{query}”.</p>
-        <AddPlaceLink name={query} />
-      </>
-    );
-  }
+  const places = search.data?.places ?? [];
+  // One status line, always mounted, so a screen reader hears each result.
+  const status = search.isPending
+    ? "Searching…"
+    : search.isError
+      ? ""
+      : places.length === 0
+        ? `No places match “${query}”.`
+        : `${places.length} ${places.length === 1 ? "place matches" : "places match"} “${query}”.`;
   return (
     <>
-    <ul aria-label="Matching places" className="mt-4 divide-y divide-rule border-y border-rule">
-      {places.map((place) => (
-        <li key={place.id}>
-          <Link
-            to={`/places/${place.id}`}
-            className="flex min-h-11 min-w-0 flex-col justify-center py-2 hover:bg-surface sm:px-2"
-          >
-            <span className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">{place.name}</span>
-            <span className="text-sm wrap-anywhere text-ink-muted">{placeChain(place.kind, place.ancestors)}</span>
-          </Link>
-        </li>
-      ))}
-    </ul>
-    <AddPlaceLink name={query} />
+      <p role="status" className={places.length > 0 ? "sr-only" : "mt-4 text-sm text-ink-muted"}>
+        {status}
+      </p>
+      {search.isError && (
+        <p role="alert" className="mt-4 text-sm text-error">
+          Search is unavailable right now. Try again in a moment.
+        </p>
+      )}
+      {places.length > 0 && (
+        <ul aria-label="Matching places" className="mt-4 divide-y divide-rule border-y border-rule">
+          {places.map((place) => (
+            <li key={place.id}>
+              <Link
+                to={`/places/${place.id}`}
+                className="flex min-h-11 min-w-0 flex-col justify-center py-2 hover:bg-surface sm:px-2"
+              >
+                <span className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">{place.name}</span>
+                <span className="text-sm wrap-anywhere text-ink-muted">{placeChain(place.kind, place.ancestors)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {search.isSuccess && <AddPlaceLink name={query} />}
     </>
   );
 }
@@ -105,7 +101,7 @@ function BrowseStates() {
           <li key={state.id}>
             <Link
               to={`/places/${state.id}`}
-              className="inline-flex min-h-11 items-center rounded-full border border-rule bg-paper px-3.5 text-sm text-ink hover:border-accent hover:text-accent sm:min-h-9"
+              className="inline-flex min-h-11 items-center rounded-full border border-rule bg-paper px-3.5 text-sm text-ink hover:border-accent hover:text-accent"
             >
               {state.name}
             </Link>
@@ -174,7 +170,7 @@ function YourPerspectives() {
         ))}
       </ul>
       {mine.hasNextPage && (
-        <Button variant="secondary" className="mt-3" disabled={mine.isFetchingNextPage} onClick={() => void mine.fetchNextPage()}>
+        <Button variant="secondary" className="mt-3" pending={mine.isFetchingNextPage} onClick={() => void mine.fetchNextPage()}>
           Show more
         </Button>
       )}

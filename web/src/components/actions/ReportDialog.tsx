@@ -59,7 +59,7 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="text-ink-muted">
+        <Button aria-label={`${triggerLabel}: ${targetLabel}`} variant="ghost" size="sm" className="text-ink-muted">
           <Flag aria-hidden size={16} />
           {triggerLabel}
         </Button>
@@ -121,7 +121,7 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
                 </p>
               )}
               <div className="flex justify-end">
-                <Button type="submit" disabled={report.isPending}>
+                <Button type="submit" pending={report.isPending}>
                   Send report
                 </Button>
               </div>

@@ -119,7 +119,7 @@ export function ProfileSection({ profile }: { profile: Profile }) {
           <FormAlert message={save.error ? errorMessage(save.error) : null} />
           <Saved message={save.isSuccess && !form.formState.isDirty ? "Profile saved." : null} />
           <div>
-            <Button type="submit" disabled={save.isPending}>
+            <Button type="submit" pending={save.isPending}>
               Save profile
             </Button>
           </div>

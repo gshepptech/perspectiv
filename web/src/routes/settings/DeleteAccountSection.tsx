@@ -85,7 +85,7 @@ export function DeleteAccountSection() {
                     : null
                 }
               />
-              <Button type="submit" variant="danger" disabled={remove.isPending}>
+              <Button type="submit" variant="danger" pending={remove.isPending}>
                 Delete my account
               </Button>
             </form>

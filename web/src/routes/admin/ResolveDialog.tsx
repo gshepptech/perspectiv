@@ -113,7 +113,7 @@ export function ResolveDialog({
               </p>
             )}
             <div className="flex flex-wrap justify-end gap-2">
-              <Button type="submit" disabled={resolve.isPending}>
+              <Button type="submit" pending={resolve.isPending}>
                 Resolve report
               </Button>
               <DialogClose asChild>

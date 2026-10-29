@@ -74,7 +74,7 @@ export function BlocksSection({ blocked }: { blocked: UserRef[] }) {
                 variant="secondary"
                 size="sm"
                 aria-label={`Unblock ${u.username}`}
-                disabled={unblock.isPending && unblock.variables === u.userId}
+                pending={unblock.isPending && unblock.variables === u.userId}
                 onClick={() => unblock.mutate(u.userId)}
               >
                 Unblock
@@ -95,7 +95,7 @@ export function BlocksSection({ blocked }: { blocked: UserRef[] }) {
             spellCheck={false}
             onChange={(e) => setUsername(e.target.value)}
           />
-          <Button type="submit" variant="secondary" disabled={block.isPending}>
+          <Button type="submit" variant="secondary" pending={block.isPending}>
             Block
           </Button>
         </div>

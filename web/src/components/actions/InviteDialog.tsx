@@ -122,7 +122,7 @@ export function InviteDialog({
             </div>
           </div>
         ) : (
-          <Button className="mt-4" disabled={create.isPending} onClick={() => create.mutate()}>
+          <Button className="mt-4" pending={create.isPending} onClick={() => create.mutate()}>
             {create.isPending ? "Making your link…" : "Make the link"}
           </Button>
         )}

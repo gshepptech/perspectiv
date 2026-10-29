@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 
@@ -61,8 +62,9 @@ export function OpenCharacters({
   );
   if (compact) {
     return (
-      <details className="min-w-0 rounded-md border border-rule bg-paper px-4 py-2 text-sm">
-        <summary className="flex min-h-11 cursor-pointer items-center font-medium text-ink">
+      <details className="group min-w-0 rounded-md border border-rule bg-paper px-4 py-2 text-sm">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium text-ink [&::-webkit-details-marker]:hidden">
+          <ChevronRight aria-hidden size={16} className="shrink-0 transition-transform group-open:rotate-90" />
           Is this you? {chars.length === 1 ? "1 person" : `${chars.length} people`} nobody has claimed yet
         </summary>
         {list}

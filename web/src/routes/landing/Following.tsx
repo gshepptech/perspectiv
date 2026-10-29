@@ -22,7 +22,7 @@ export function Following() {
           <li key={p.id} className="min-w-0">
             <Link
               to={`/places/${p.id}`}
-              className="inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-full border border-rule bg-paper px-3.5 text-sm text-ink hover:border-accent hover:text-accent sm:min-h-9"
+              className="inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-full border border-rule bg-paper px-3.5 text-sm text-ink hover:border-accent hover:text-accent"
             >
               <Bell aria-hidden size={14} className="shrink-0 text-accent" />
               <span className="min-w-0 truncate">{p.name}</span>

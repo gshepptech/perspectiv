@@ -94,44 +94,44 @@ describe("upvote rail on the arc page", () => {
     }, store);
 
     const otter = await card("Canon", "otter");
-    const button = await within(otter).findByRole("button", { name: "Upvote" });
+    const button = await within(otter).findByRole("button", { name: /^Upvote/, pressed: false });
     expect(button).toHaveAttribute("aria-pressed", "false");
     expect(otter).toHaveTextContent("2 upvotes");
 
     await userEvent.click(button);
-    const pressed = await within(otter).findByRole("button", { name: "Remove upvote" });
+    const pressed = await within(otter).findByRole("button", { name: /^Upvote/, pressed: true });
     expect(pressed).toHaveAttribute("aria-pressed", "true");
     await waitFor(() => expect(otter).toHaveTextContent("3 upvotes"));
     expect(bodiesFor(app.api, "VoteService/Vote")[0]).toEqual({ perspectiveId: "p-otter", on: true });
 
     await userEvent.click(pressed);
-    await within(otter).findByRole("button", { name: "Upvote" });
+    await within(otter).findByRole("button", { name: /^Upvote/, pressed: false });
     expect(bodiesFor(app.api, "VoteService/Vote")[1]).toEqual({ perspectiveId: "p-otter" });
   });
 
   it("is not offered on the viewer's own perspective", async () => {
     await openSignedIn({});
     const otter = await card("Canon", "otter");
-    await within(otter).findByRole("button", { name: "Upvote" });
+    await within(otter).findByRole("button", { name: /^Upvote/, pressed: false });
     const mine = await card("Canon", "wren");
-    expect(within(mine).queryByRole("button", { name: "Upvote" })).toBeNull();
+    expect(within(mine).queryByRole("button", { name: /^Upvote/, pressed: false })).toBeNull();
     expect(mine).toHaveTextContent("2 upvotes");
   });
 
   it("shows the server's refusal", async () => {
     await openSignedIn({ "VoteService/Vote": () => connectError("failed_precondition", "verify your email first") });
     const otter = await card("Canon", "otter");
-    await userEvent.click(await within(otter).findByRole("button", { name: "Upvote" }));
+    await userEvent.click(await within(otter).findByRole("button", { name: /^Upvote/, pressed: false }));
     expect(await within(otter).findByRole("alert")).toHaveTextContent("verify your email first");
   });
 
   it("keeps the arc page to the rail: reacting, claiming and reporting happen on the story's page", async () => {
     await openSignedIn({});
     const otter = await card("Canon", "otter");
-    await within(otter).findByRole("button", { name: "Upvote" });
+    await within(otter).findByRole("button", { name: /^Upvote/, pressed: false });
     expect(within(otter).queryByRole("group", { name: "Reacts" })).toBeNull();
     expect(within(otter).queryByRole("button", { name: "Claim a character" })).toBeNull();
-    expect(within(otter).queryByRole("button", { name: "Report" })).toBeNull();
+    expect(within(otter).queryByRole("button", { name: /^Report:/ })).toBeNull();
     expect(within(otter).getByRole("link", { name: "Read otter's perspective" })).toHaveAttribute("href", "/perspectives/p-otter");
   });
 });
@@ -155,8 +155,8 @@ describe("on a story's own page", () => {
       },
     });
     const actions = await story();
-    await userEvent.click(await within(actions).findByRole("button", { name: "Upvote" }));
-    expect(await within(actions).findByRole("button", { name: "Remove upvote" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(await within(actions).findByRole("button", { name: /^Upvote/, pressed: false }));
+    expect(await within(actions).findByRole("button", { name: /^Upvote/, pressed: true })).toHaveAttribute("aria-pressed", "true");
     expect(within(actions).getByText("3 upvotes")).toBeInTheDocument();
     expect(bodiesFor(app.api, "VoteService/Vote")).toEqual([{ perspectiveId: "p-otter", on: true }]);
   });
@@ -164,10 +164,10 @@ describe("on a story's own page", () => {
 
 describe("signed-out reader on a story's page", () => {
   for (const [label, name] of [
-    ["upvote", "Upvote"],
+    ["upvote", /^Upvote/],
     ["react", /^Heart/],
     ["claim", "Claim a character"],
-    ["report", "Report"],
+    ["report", /^Report:/],
   ] as const) {
     it(`AC-009: the ${label} action redirects to login without calling the server`, async () => {
       const { api } = await openStory("p-otter", OTTER, {
@@ -206,7 +206,7 @@ describe("react", () => {
     const actions = await story();
     const group = await within(actions).findByRole("group", { name: "Reacts" });
     // Not a participant: no upvote, but reacting is open to any signed-in reader.
-    expect(within(actions).queryByRole("button", { name: "Upvote" })).toBeNull();
+    expect(within(actions).queryByRole("button", { name: /^Upvote/, pressed: false })).toBeNull();
     expect(within(group).getAllByRole("button")).toHaveLength(6);
 
     const fire = within(group).getByRole("button", { name: "Fire, 0" });
@@ -253,7 +253,7 @@ describe("claim", () => {
     expect(within(within(dialog).getByRole("listitem", { name: "Someone by the window" })).getByText("Someone has claimed this")).toBeInTheDocument();
 
     const open = within(dialog).getByRole("listitem", { name: "The barista in the green apron" });
-    await userEvent.click(within(open).getByRole("button", { name: "That was me" }));
+    await userEvent.click(within(open).getByRole("button", { name: "That was me: The barista in the green apron" }));
     expect(await within(dialog).findByRole("status")).toHaveTextContent("Claim sent");
     expect(bodiesFor(app.api, "LoreService/ClaimCharacter")).toEqual([{ characterId: "c-1" }]);
     // The refetched story no longer offers a claim; the confirmation stays up
@@ -262,8 +262,13 @@ describe("claim", () => {
     expect(within(actions).queryByRole("button", { name: "Claim a character", hidden: true })).toBeNull();
     expect(within(screen.getByRole("dialog", { name: "Claim a character" })).getByRole("status")).toHaveTextContent("Claim sent");
 
+    // The refetched story shows the viewer's own claim as theirs.
+    expect(within(screen.getByRole("dialog", { name: "Claim a character" })).getByText("Your claim, waiting for heron")).toBeInTheDocument();
+
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // The trigger is gone, so focus lands on the line that replaced it.
+    await waitFor(() => expect(within(actions).getByText(/waiting for heron to accept/).closest("p")).toHaveFocus());
   });
 
   it("shows the server's reason when a claim is refused", async () => {
@@ -274,7 +279,7 @@ describe("claim", () => {
     const actions = await story();
     await userEvent.click(await within(actions).findByRole("button", { name: "Claim a character" }));
     const dialog = await screen.findByRole("dialog");
-    await userEvent.click(within(dialog).getByRole("button", { name: "That was me" }));
+    await userEvent.click(within(dialog).getByRole("button", { name: /^That was me/ }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("write your perspective in this arc first");
   });
 
@@ -382,7 +387,7 @@ describe("report", () => {
   it("AC-040 OT-043: the report form offers the real-name-or-handle reason and sends it for the perspective", async () => {
     const app = await openStory("p-otter", OTTER, { routes: { "ModerationService/Report": () => ({ body: { reportId: "r-9" } }) } });
     const actions = await story();
-    await userEvent.click(await within(actions).findByRole("button", { name: "Report" }));
+    await userEvent.click(await within(actions).findByRole("button", { name: /^Report:/ }));
     const dialog = await screen.findByRole("dialog", { name: "Report otter's perspective" });
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Send report" }));
@@ -420,7 +425,7 @@ describe("report", () => {
       routes: { "ModerationService/Report": () => connectError("resource_exhausted", "too many reports, try later") },
     });
     const actions = await story();
-    await userEvent.click(await within(actions).findByRole("button", { name: "Report" }));
+    await userEvent.click(await within(actions).findByRole("button", { name: /^Report:/ }));
     const dialog = await screen.findByRole("dialog");
     await userEvent.click(within(dialog).getByRole("combobox", { name: "Reason" }));
     await userEvent.click(await screen.findByRole("option", { name: "Spam" }));
@@ -435,7 +440,7 @@ describe("the arc page's reads", () => {
     arc.tales = [summary({ id: "p-del", loreStatus: "LORE_STATUS_SOLO", deleted: true, excerpt: "" })];
     const app = await openSignedIn({}, {}, arc);
     await screen.findByText("This perspective was deleted.");
-    await within(await card("Canon", "otter")).findByRole("button", { name: "Upvote" });
+    await within(await card("Canon", "otter")).findByRole("button", { name: /^Upvote/, pressed: false });
     expect(bodiesFor(app.api, "PerspectiveService/Get")).toEqual([]);
   });
 
@@ -444,7 +449,7 @@ describe("the arc page's reads", () => {
     arc.canon.perspectives = arc.canon.perspectives.map((p) => (p.id === "p-otter" ? { ...p, voted: true, upvotes: 3 } : p));
     await openSignedIn({}, {}, arc);
     const otter = await card("Canon", "otter");
-    expect(within(otter).getByRole("button", { name: "Remove upvote" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(otter).getByRole("button", { name: /^Upvote/, pressed: true })).toHaveAttribute("aria-pressed", "true");
     expect(otter).toHaveTextContent("3 upvotes");
   });
 });

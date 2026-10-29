@@ -171,7 +171,7 @@ describe("signed-out reader", () => {
     expect(screen.getByRole("region", { name: "Standing alone" })).toHaveTextContent("A tale nobody claimed");
 
     const card = within(canon).getByRole("article", { name: "otter's perspective" });
-    await userEvent.click(await within(card).findByRole("button", { name: "Upvote" }));
+    await userEvent.click(await within(card).findByRole("button", { name: /^Upvote/, pressed: false }));
     expect(await screen.findByTestId("login")).toHaveTextContent("login at /login?next=%2Farcs%2Farc-day");
     expect(api.calls.some((c) => c.procedure.startsWith("VoteService"))).toBe(false);
   });
@@ -211,7 +211,7 @@ describe("participation", () => {
       signedIn: true,
       routes: { "ModerationService/Report": () => ({ body: { reportId: "r-1" } }) },
     });
-    await userEvent.click(await screen.findByRole("button", { name: "Report place" }));
+    await userEvent.click(await screen.findByRole("button", { name: /^Report place/ }));
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toHaveTextContent("Moonbean Coffee");
     await userEvent.click(within(dialog).getByRole("combobox", { name: "Reason" }));

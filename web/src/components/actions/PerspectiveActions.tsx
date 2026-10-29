@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useRef } from "react";
 
 import { Cast } from "@/components/reader/Cast";
 import { hasOpenCharacter, myCharacter } from "@/components/reader/claims";
@@ -47,6 +48,7 @@ export function PerspectiveActions({
   const session = useSession();
   const gone = summary.deleted || summary.hidden;
   const full = useQuery({ ...perspectiveQuery(summary.id), enabled: !gone });
+  const mineLine = useRef<HTMLParagraphElement>(null);
   if (gone) return null;
 
   const p = full.data;
@@ -63,7 +65,13 @@ export function PerspectiveActions({
     <div className="mt-3 flex flex-col gap-3 border-t border-rule pt-3">
       {p && withCast && <Cast characters={p.characters} />}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <VoteButton perspectiveId={summary.id} upvotes={p?.upvotes ?? summary.upvotes} voted={p?.voted ?? false} canVote={canVote} />
+        <VoteButton
+          perspectiveId={summary.id}
+          upvotes={p?.upvotes ?? summary.upvotes}
+          voted={p?.voted ?? false}
+          canVote={canVote}
+          targetName={`${authorName}'s perspective`}
+        />
         {p && <ReactBar perspectiveId={summary.id} counts={p.reacts} />}
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -74,10 +82,11 @@ export function PerspectiveActions({
             characters={p.characters}
             offer={hasOpenCharacter(p.characters)}
             openOnArrival={claimOnArrival}
+            returnFocusTo={mineLine}
           />
         )}
         {mine && (
-          <p className="text-sm text-ink">
+          <p ref={mineLine} tabIndex={-1} className="text-sm text-ink">
             You are <span className="font-serif">{mine.label}</span>
             {mine.myClaim === ClaimStatus.PENDING ? (
               <span className="text-warning"> · waiting for {authorName} to accept</span>

@@ -41,13 +41,13 @@ export function ReactBar({ perspectiveId, counts }: { perspectiveId: string; cou
               type="button"
               aria-label={`${name}, ${count}`}
               aria-pressed={mine}
-              disabled={react.isPending}
+              aria-disabled={react.isPending || undefined}
               onClick={() => {
-                if (gate()) react.mutate({ emoji: value, on: !mine });
+                if (!react.isPending && gate()) react.mutate({ emoji: value, on: !mine });
               }}
               className={cn(
                 "inline-flex min-h-9 items-center gap-1 rounded-full border px-2.5 text-sm",
-                "disabled:pointer-events-none",
+                "aria-disabled:opacity-60",
                 mine ? "border-accent bg-surface text-ink" : "border-control text-ink-muted hover:border-ink hover:text-ink",
               )}
             >

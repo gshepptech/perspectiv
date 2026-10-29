@@ -75,7 +75,7 @@ function MoreButton({ label, more }: { label: string; more: ReturnType<typeof us
         </p>
       )}
       {more.hasMore && (
-        <Button variant="secondary" className="mt-4" disabled={more.loading} onClick={more.showMore}>
+        <Button variant="secondary" className="mt-4" pending={more.loading} onClick={more.showMore}>
           {label}
         </Button>
       )}
@@ -384,7 +384,7 @@ function ArcView({ res }: { res: GetArcResponse }) {
               <Fragment key={p.id}>
                 {i > 0 && <li aria-hidden>›</li>}
                 <li className="min-w-0 break-words">
-                  <Link to={`/places/${p.id}`} className="underline-offset-4 hover:text-ink hover:underline">
+                  <Link to={`/places/${p.id}`} className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">
                     {p.name}
                   </Link>
                 </li>
@@ -409,7 +409,7 @@ function ArcView({ res }: { res: GetArcResponse }) {
           <p className="mt-2">
             <Link
               to={`/arcs/${arc.parentArcId}`}
-              className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-accent underline underline-offset-4"
+              className="inline-flex min-h-11 items-center gap-1 text-sm font-medium text-accent underline underline-offset-4"
             >
               <ArrowLeft aria-hidden size={16} />
               The whole day

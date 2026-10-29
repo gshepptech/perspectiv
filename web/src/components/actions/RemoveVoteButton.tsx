@@ -55,7 +55,7 @@ export function RemoveVoteButton({ perspectiveId, authorName }: { perspectiveId:
             <DialogClose asChild>
               <Button variant="secondary">Cancel</Button>
             </DialogClose>
-            <Button variant="danger" disabled={remove.isPending} onClick={() => remove.mutate()}>
+            <Button variant="danger" pending={remove.isPending} onClick={() => remove.mutate()}>
               Vote to remove
             </Button>
           </div>

@@ -62,7 +62,7 @@ export function Component() {
             )}
           />
           <FormAlert message={request.error ? errorMessage(request.error) : null} />
-          <Button type="submit" disabled={request.isPending}>
+          <Button type="submit" pending={request.isPending}>
             Send link
           </Button>
         </form>

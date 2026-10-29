@@ -22,10 +22,17 @@ type Props = {
    * an icon toggle over the count. The default is the full button and label.
    */
   variant?: "bar" | "rail";
+  /**
+   * What is upvoted ("otter's perspective"), for the button's name, so a
+   * list of rails reads as distinct buttons. The name stays the same when
+   * pressed; aria-pressed says whether the viewer's vote is on.
+   */
+  targetName?: string;
 };
 
 /** The up-vote toggle. There is no downvote: pressing it again clears the vote. */
-export function VoteButton({ perspectiveId, upvotes: upvotesProp, voted: votedProp, canVote, variant = "bar" }: Props) {
+export function VoteButton({ perspectiveId, upvotes: upvotesProp, voted: votedProp, canVote, variant = "bar", targetName }: Props) {
+  const label = targetName ? `Upvote ${targetName}` : "Upvote";
   const { gate } = useWriteGate();
   const client = useQueryClient();
   const invalidate = useInvalidateAfterWrite();
@@ -55,14 +62,14 @@ export function VoteButton({ perspectiveId, upvotes: upvotesProp, voted: votedPr
           <button
             type="button"
             aria-pressed={voted}
-            aria-label={voted ? "Remove upvote" : "Upvote"}
-            disabled={vote.isPending}
+            aria-label={label}
+            aria-disabled={vote.isPending || undefined}
             className={cn(
-              "inline-flex size-11 items-center justify-center rounded-md hover:bg-surface disabled:opacity-60",
+              "inline-flex size-11 items-center justify-center rounded-md hover:bg-surface aria-disabled:opacity-60",
               voted ? "text-accent" : "text-ink-muted",
             )}
             onClick={() => {
-              if (gate()) vote.mutate(!voted);
+              if (!vote.isPending && gate()) vote.mutate(!voted);
             }}
           >
             <ArrowBigUp aria-hidden size={22} fill={voted ? "currentColor" : "none"} />
@@ -89,14 +96,15 @@ export function VoteButton({ perspectiveId, upvotes: upvotesProp, voted: votedPr
           variant="secondary"
           size="sm"
           aria-pressed={voted}
-          disabled={vote.isPending}
+          aria-label={label}
+          pending={vote.isPending}
           className={voted ? "border-accent text-accent" : undefined}
           onClick={() => {
             if (gate()) vote.mutate(!voted);
           }}
         >
-          <ArrowBigUp aria-hidden size={16} />
-          {voted ? "Remove upvote" : "Upvote"}
+          <ArrowBigUp aria-hidden size={16} fill={voted ? "currentColor" : "none"} />
+          Upvote
         </Button>
       )}
       <span className="text-sm font-bold text-ink">{count}</span>

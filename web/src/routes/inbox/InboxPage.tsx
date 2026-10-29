@@ -97,7 +97,8 @@ export function Component() {
         <Button
           size="sm"
           variant="secondary"
-          disabled={!inbox.isSuccess || unreadCount === 0 || markRead.isPending}
+          disabled={!inbox.isSuccess || unreadCount === 0}
+          pending={markRead.isPending}
           onClick={() => markRead.mutate("all")}
         >
           Mark all read
@@ -134,7 +135,7 @@ export function Component() {
         <Button
           variant="secondary"
           className="mt-4"
-          disabled={inbox.isFetchingNextPage}
+          pending={inbox.isFetchingNextPage}
           onClick={() => void inbox.fetchNextPage()}
         >
           Show older

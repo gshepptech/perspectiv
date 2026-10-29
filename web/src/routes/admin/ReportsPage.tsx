@@ -93,7 +93,7 @@ function ReportList({ status, onResolved }: { status: ReportStatus; onResolved: 
       </ul>
       {list.hasNextPage && (
         <div className="mt-4">
-          <Button variant="secondary" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+          <Button variant="secondary" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
             Show more
           </Button>
         </div>

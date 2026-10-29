@@ -164,8 +164,8 @@ describe("lore page", () => {
     );
     const posts = await screen.findByRole("list", { name: "Posts" });
     const [theirs, mine] = within(posts).getAllByRole("listitem");
-    expect(within(mine!).queryByRole("button", { name: "Report" })).not.toBeInTheDocument();
-    await user.click(within(theirs!).getByRole("button", { name: "Report" }));
+    expect(within(mine!).queryByRole("button", { name: /^Report:/ })).not.toBeInTheDocument();
+    await user.click(within(theirs!).getByRole("button", { name: /^Report:/ }));
     const dialog = await screen.findByRole("dialog", { name: "Report otter's post" });
     await user.click(within(dialog).getByRole("combobox", { name: "Reason" }));
     await user.click(await screen.findByRole("option", { name: "Real name or handle of a non-user" }));
@@ -185,7 +185,7 @@ describe("lore page", () => {
       { refresh: () => sessionReply({ token: "tok" }) },
     );
     expect(await screen.findByRole("heading", { level: 1, name: "Bad name" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Report this name" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Report this name/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Name this lore|Rename/ })).not.toBeInTheDocument();
   });
 

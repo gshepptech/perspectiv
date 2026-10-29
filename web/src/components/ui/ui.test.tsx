@@ -222,3 +222,33 @@ describe("Form", () => {
     expect(screen.getByLabelText("Username")).toHaveAttribute("aria-invalid", "false");
   });
 });
+
+describe("Button pending", () => {
+  it("keeps focus while a request is in flight and ignores presses, including a form submit", async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+    const onSubmit = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
+    const { rerender } = render(
+      <form onSubmit={onSubmit}>
+        <Button type="submit" onClick={onClick}>
+          Save
+        </Button>
+      </form>,
+    );
+    const button = screen.getByRole("button", { name: "Save" });
+    button.focus();
+    rerender(
+      <form onSubmit={onSubmit}>
+        <Button type="submit" onClick={onClick} pending>
+          Save
+        </Button>
+      </form>,
+    );
+    expect(button).toHaveFocus();
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveAttribute("aria-busy", "true");
+    await user.keyboard("{Enter}");
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});

@@ -193,7 +193,7 @@ export function Component() {
             )}
           />
           <FormAlert message={signUp.error ? signUpError(signUp.error) : null} />
-          <Button type="submit" disabled={signUp.isPending}>
+          <Button type="submit" pending={signUp.isPending}>
             Sign up
           </Button>
         </form>

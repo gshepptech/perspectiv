@@ -164,7 +164,7 @@ function EpicList({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Ge
         </ul>
       )}
       {epic.hasNextPage && (
-        <Button variant="secondary" className="mt-4" disabled={epic.isFetchingNextPage} onClick={() => void epic.fetchNextPage()}>
+        <Button variant="secondary" className="mt-4" pending={epic.isFetchingNextPage} onClick={() => void epic.fetchNextPage()}>
           {epic.isFetchingNextPage ? "Loading…" : "Show more"}
         </Button>
       )}
@@ -262,7 +262,7 @@ function Children({ place }: { place: Place }) {
                   setBrowsing(true);
                 }}
                 className={cn(
-                  "min-h-9 rounded-full border px-3 text-sm",
+                  "min-h-11 rounded-full border px-3 text-sm",
                   browsing && category === c ? "border-accent bg-accent/10 text-accent" : "border-rule text-ink hover:border-accent",
                 )}
               >
@@ -285,13 +285,13 @@ function Children({ place }: { place: Place }) {
               )}
               <PlaceLinks places={all} label={`All places in ${place.name}`} />
               {children.hasNextPage && (
-                <Button variant="ghost" size="sm" disabled={children.isFetchingNextPage} onClick={() => void children.fetchNextPage()}>
+                <Button variant="ghost" size="sm" className="min-h-11" pending={children.isFetchingNextPage} onClick={() => void children.fetchNextPage()}>
                   More places
                 </Button>
               )}
             </>
           ) : (
-            <Button variant="ghost" size="sm" className="mt-2" onClick={() => setBrowsing(true)}>
+            <Button variant="ghost" size="sm" className="mt-2 min-h-11" onClick={() => setBrowsing(true)}>
               Browse all places in {place.name}
             </Button>
           )

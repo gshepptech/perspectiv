@@ -105,7 +105,7 @@ function Writing({ userId, username }: { userId: string; username: string }) {
       )}
       {list.isSuccess && <WritingList pages={list.data.pages} username={username} />}
       {list.hasNextPage && (
-        <Button variant="secondary" className="mt-3" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+        <Button variant="secondary" className="mt-3" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
           Show more
         </Button>
       )}

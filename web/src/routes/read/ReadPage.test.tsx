@@ -186,7 +186,7 @@ describe("reader and arc page share one cached perspective", () => {
     const canon = await screen.findByRole("region", { name: "Canon" });
     // The row of the perspective just read uses the reader's cache entry.
     const otter = within(canon).getByRole("article", { name: "otter's perspective" });
-    expect(await within(otter).findByRole("button", { name: "Upvote" })).toBeInTheDocument();
+    expect(await within(otter).findByRole("button", { name: /^Upvote/, pressed: false })).toBeInTheDocument();
     expect(screen.queryByText(/Something went wrong/)).not.toBeInTheDocument();
   });
 });

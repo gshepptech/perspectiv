@@ -323,7 +323,7 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
         )}
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" pending={busy}>
             {published ? "Save changes" : "Publish"}
           </Button>
           <SaveStatus state={autosave.state} published={published} />

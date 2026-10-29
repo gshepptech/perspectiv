@@ -73,15 +73,20 @@ export function NameLore({ loreId, current }: { loreId: string; current: string 
             maxLength={MAX_NAME + 20}
             placeholder="The Lot 7 tailgate"
             aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${fieldId}-error` : undefined}
             {...form.register("name")}
           />
-          {error && <p className="text-sm font-medium text-error">{error}</p>}
+          {error && (
+            <p id={`${fieldId}-error`} role="alert" className="text-sm font-medium text-error">
+              {error}
+            </p>
+          )}
           {save.isError && (
             <p role="alert" className="text-sm text-error">
               {actionError(save.error)}
             </p>
           )}
-          <Button type="submit" className="justify-self-start" disabled={save.isPending}>
+          <Button type="submit" className="justify-self-start" pending={save.isPending}>
             {save.isPending ? "Saving…" : "Save name"}
           </Button>
         </form>

@@ -86,7 +86,7 @@ export function Waitlist() {
             )}
           />
           <FormAlert message={join.error ? errorMessage(join.error) : null} />
-          <Button type="submit" variant="secondary" disabled={join.isPending}>
+          <Button type="submit" variant="secondary" pending={join.isPending}>
             Request an invite
           </Button>
         </form>

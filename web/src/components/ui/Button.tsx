@@ -20,9 +20,15 @@ export type ButtonProps = ComponentProps<"button"> & {
   size?: keyof typeof sizes;
   /** Render the single child element (a link, say) with button styling. */
   asChild?: boolean;
+  /**
+   * A request is in flight: the button looks disabled and ignores presses,
+   * but keeps keyboard focus. `disabled` would drop focus to the page, and a
+   * keyboard or screen-reader user would lose their place.
+   */
+  pending?: boolean;
 };
 
-export function Button({ variant = "primary", size = "md", asChild = false, className, type, ...props }: ButtonProps) {
+export function Button({ variant = "primary", size = "md", asChild = false, pending = false, className, type, onClick, ...props }: ButtonProps) {
   const classes = cn(
     "inline-flex items-center justify-center gap-2 rounded-md font-sans font-medium transition-opacity duration-150",
     "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
@@ -30,7 +36,23 @@ export function Button({ variant = "primary", size = "md", asChild = false, clas
     sizes[size],
     className,
   );
-  if (asChild) return <Slot className={classes} {...props} />;
-  // A button outside a form must never submit by accident.
-  return <button type={type ?? "button"} className={classes} {...props} />;
+  if (asChild) return <Slot className={classes} onClick={onClick} {...props} />;
+  return (
+    <button
+      // A button outside a form must never submit by accident.
+      type={type ?? "button"}
+      className={classes}
+      aria-disabled={pending || undefined}
+      aria-busy={pending || undefined}
+      onClick={(e) => {
+        // A pending press neither submits its form nor runs its handler.
+        if (pending) {
+          e.preventDefault();
+          return;
+        }
+        onClick?.(e);
+      }}
+      {...props}
+    />
+  );
 }

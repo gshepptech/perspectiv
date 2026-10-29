@@ -53,11 +53,14 @@ export function FindYourself({ placeId, placeName }: { placeId: string; placeNam
           The search failed. Try again in a moment.
         </p>
       )}
-      {ready && found.isSuccess && chars.length === 0 && (
-        <p role="status" className="mt-3 text-ink-muted">
-          Nobody unclaimed matches “{query}” here yet.
-        </p>
-      )}
+      {/* Always mounted, so a screen reader hears each search's result. */}
+      <p role="status" className={chars.length > 0 ? "sr-only" : "mt-3 text-ink-muted empty:hidden"}>
+        {ready && found.isSuccess
+          ? chars.length === 0
+            ? `Nobody unclaimed matches “${query}” here yet.`
+            : `${chars.length} ${chars.length === 1 ? "description matches" : "descriptions match"} “${query}”.`
+          : ""}
+      </p>
       {chars.length > 0 && (
         <ul aria-label="Matching descriptions" className="mt-3 grid gap-3">
           {chars.map((c) => (

@@ -320,6 +320,6 @@ describe("were you in someone's story?", () => {
 
     await user.clear(box);
     await user.type(box, "zebra");
-    expect(await within(panel).findByRole("status")).toHaveTextContent("Nobody unclaimed matches “zebra” here yet.");
+    await waitFor(() => expect(within(panel).getByRole("status")).toHaveTextContent("Nobody unclaimed matches “zebra” here yet."));
   });
 });

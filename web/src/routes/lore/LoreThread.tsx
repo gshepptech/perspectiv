@@ -91,7 +91,7 @@ export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boole
         </ol>
       )}
       {posts.hasNextPage && (
-        <Button variant="ghost" size="sm" className="mt-3" disabled={posts.isFetchingNextPage} onClick={() => void posts.fetchNextPage()}>
+        <Button variant="ghost" size="sm" className="mt-3" pending={posts.isFetchingNextPage} onClick={() => void posts.fetchNextPage()}>
           Older posts
         </Button>
       )}
@@ -105,15 +105,20 @@ export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boole
             rows={3}
             maxLength={MAX_POST}
             aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${fieldId}-error` : undefined}
             {...form.register("body")}
           />
-          {error && <p className="text-sm font-medium text-error">{error}</p>}
+          {error && (
+            <p id={`${fieldId}-error`} role="alert" className="text-sm font-medium text-error">
+              {error}
+            </p>
+          )}
           {add.isError && (
             <p role="alert" className="text-sm text-error">
               {actionError(add.error)}
             </p>
           )}
-          <Button type="submit" className="justify-self-start" disabled={add.isPending}>
+          <Button type="submit" className="justify-self-start" pending={add.isPending}>
             {add.isPending ? "Posting…" : "Post"}
           </Button>
         </form>

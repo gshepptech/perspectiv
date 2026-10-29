@@ -95,8 +95,8 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
   // Ben also upvotes Ana: participants vote, and votes feed the lore's score.
   await visit(ben.page, benAcct, arc);
   const anaCardForBen = card(ben.page, anaAcct.username);
-  await anaCardForBen.getByRole("button", { name: "Upvote" }).click();
-  await expect(anaCardForBen.getByRole("button", { name: "Remove upvote" })).toBeVisible();
+  await anaCardForBen.getByRole("button", { name: /^Upvote/, pressed: false }).click();
+  await expect(anaCardForBen.getByRole("button", { name: /^Upvote/, pressed: true })).toBeVisible();
   await expect(anaCardForBen).toContainText("1 upvote");
 
   // Ana accepts all three claims from her claims inbox.

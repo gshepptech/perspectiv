@@ -84,10 +84,10 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
       </div>
       {incoming && pending && (
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" disabled={resolve.isPending} onClick={() => resolve.mutate(true)}>
+          <Button size="sm" pending={resolve.isPending} onClick={() => resolve.mutate(true)}>
             Accept
           </Button>
-          <Button size="sm" variant="danger" disabled={resolve.isPending} onClick={() => setConfirmReject(true)}>
+          <Button size="sm" variant="danger" pending={resolve.isPending} onClick={() => setConfirmReject(true)}>
             Reject
           </Button>
         </div>
@@ -107,7 +107,7 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
             <DialogClose asChild>
               <Button variant="secondary">Cancel</Button>
             </DialogClose>
-            <Button variant="danger" disabled={resolve.isPending} onClick={() => resolve.mutate(false)}>
+            <Button variant="danger" pending={resolve.isPending} onClick={() => resolve.mutate(false)}>
               Reject claim
             </Button>
           </div>
@@ -158,7 +158,7 @@ function ClaimList({ direction }: { direction: ClaimDirection }) {
       </ul>
       {list.hasNextPage && (
         <div className="mt-4">
-          <Button variant="secondary" disabled={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+          <Button variant="secondary" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
             Show more
           </Button>
         </div>
