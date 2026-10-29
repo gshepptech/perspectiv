@@ -18,6 +18,9 @@ service UserService {
   rpc UnblockUser(UnblockUserRequest) returns (UnblockUserResponse);
   // Soft-deletes the account and its perspectives.
   rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
+  // Everything Perspectiv holds about the caller's account, as one JSON
+  // document ("Download my data"). Only the caller's own data.
+  rpc ExportMyData(ExportMyDataRequest) returns (ExportMyDataResponse);
 }
 
 // UserRef is how one user appears to another: an id and a chosen username,
@@ -114,3 +117,12 @@ message DeleteAccountRequest {
 }
 
 message DeleteAccountResponse {}
+
+message ExportMyDataRequest {}
+
+message ExportMyDataResponse {
+  // A JSON object: the account, its stories with parts and characters,
+  // claims made and received, votes, reactions, thread posts, lores named,
+  // follows, blocks, reports filed, invites sent and notification settings.
+  string json = 1;
+}

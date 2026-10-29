@@ -505,3 +505,14 @@ func (s *Service) checkPassword(ctx context.Context, u dbq.GetUserRow, password 
 	s.log.Warn().Str("event", "delete_account_bad_password").Str("sub", u.ID.String()).Send()
 	return apiutil.PermissionDenied("password is incorrect")
 }
+
+// ExportMyData returns everything the database holds about the caller's
+// account as one JSON document, built by ExportAccount.
+func (s *Service) ExportMyData(ctx context.Context, caller uuid.UUID) (string, error) {
+	doc, err := s.q.ExportAccount(ctx, caller)
+	if err != nil {
+		return "", apiutil.Internal(fmt.Errorf("export account: %w", err))
+	}
+	s.log.Info().Str("event", "data_export").Str("sub", caller.String()).Msg("account data exported")
+	return doc, nil
+}

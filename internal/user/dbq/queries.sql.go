@@ -100,6 +100,89 @@ func (q *Queries) DeleteBlock(ctx context.Context, arg DeleteBlockParams) error 
 	return err
 }
 
+const exportAccount = `-- name: ExportAccount :one
+SELECT jsonb_build_object(
+  'exported_at', now(),
+  'account', (
+    SELECT jsonb_build_object(
+      'id', u.id, 'email', u.email, 'username', u.username, 'bio', u.bio,
+      'created_at', u.created_at, 'email_verified_at', u.email_verified_at,
+      'age_confirmed_at', u.age_confirmed_at, 'username_changed_at', u.username_changed_at,
+      'joined_with', u.joined_with, 'has_avatar', u.avatar_path IS NOT NULL)
+    FROM users u WHERE u.id = $1::uuid),
+  'perspectives', coalesce((
+    SELECT jsonb_agg(jsonb_build_object(
+      'id', p.id, 'arc_id', p.arc_id, 'place_id', p.place_id, 'local_date', p.local_date, 'hour', p.hour,
+      'title_if_new_arc', p.title_if_new_arc, 'genre', p.genre, 'status', p.status, 'lore_status', p.lore_status,
+      'created_at', p.created_at, 'published_at', p.published_at, 'updated_at', p.updated_at,
+      'deleted_at', p.deleted_at, 'hidden_at', p.hidden_at,
+      'parts', coalesce((SELECT jsonb_agg(pp.body ORDER BY pp.position) FROM perspective_parts pp WHERE pp.perspective_id = p.id), '[]'::jsonb),
+      'characters', coalesce((SELECT jsonb_agg(jsonb_build_object('id', c.id, 'label', c.label) ORDER BY c.position)
+                              FROM characters c WHERE c.perspective_id = p.id), '[]'::jsonb))
+      ORDER BY p.created_at)
+    FROM perspectives p WHERE p.author_id = $1::uuid), '[]'::jsonb),
+  'claims_made', coalesce((
+    SELECT jsonb_agg(jsonb_build_object(
+      'character', c.label, 'in_perspective_id', c.perspective_id, 'status', cl.status,
+      'created_at', cl.created_at, 'resolved_at', cl.resolved_at) ORDER BY cl.created_at)
+    FROM claims cl JOIN characters c ON c.id = cl.character_id
+    WHERE cl.claimant_user_id = $1::uuid), '[]'::jsonb),
+  'claims_received', coalesce((
+    SELECT jsonb_agg(jsonb_build_object(
+      'character', c.label, 'by', coalesce(cu.username, '[deleted]'), 'status', cl.status,
+      'created_at', cl.created_at, 'resolved_at', cl.resolved_at) ORDER BY cl.created_at)
+    FROM claims cl JOIN characters c ON c.id = cl.character_id
+    JOIN perspectives p ON p.id = c.perspective_id
+    LEFT JOIN users cu ON cu.id = cl.claimant_user_id AND cu.deleted_at IS NULL
+    WHERE p.author_id = $1::uuid), '[]'::jsonb),
+  'upvotes', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('perspective_id', v.perspective_id, 'created_at', v.created_at) ORDER BY v.created_at)
+    FROM votes v WHERE v.user_id = $1::uuid), '[]'::jsonb),
+  'reactions', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('perspective_id', r.perspective_id, 'emoji', r.emoji, 'created_at', r.created_at) ORDER BY r.created_at)
+    FROM reacts r WHERE r.user_id = $1::uuid), '[]'::jsonb),
+  'remove_votes', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('perspective_id', rv.perspective_id, 'created_at', rv.created_at) ORDER BY rv.created_at)
+    FROM remove_votes rv WHERE rv.user_id = $1::uuid), '[]'::jsonb),
+  'thread_posts', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('lore_id', lp.lore_id, 'body', lp.body, 'created_at', lp.created_at,
+                                        'deleted_at', lp.deleted_at, 'hidden_at', lp.hidden_at) ORDER BY lp.created_at)
+    FROM lore_posts lp WHERE lp.author_id = $1::uuid), '[]'::jsonb),
+  'lores_named', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('lore_id', l.id, 'name', l.name))
+    FROM lores l WHERE l.named_by = $1::uuid), '[]'::jsonb),
+  'places_followed', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('place_id', f.place_id, 'name', pl.name, 'since', f.created_at) ORDER BY f.created_at)
+    FROM place_follows f JOIN places pl ON pl.id = f.place_id WHERE f.user_id = $1::uuid), '[]'::jsonb),
+  'blocked', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('username', coalesce(bu.username, '[deleted]'), 'since', b.created_at) ORDER BY b.created_at)
+    FROM blocks b LEFT JOIN users bu ON bu.id = b.blocked_id AND bu.deleted_at IS NULL
+    WHERE b.blocker_id = $1::uuid), '[]'::jsonb),
+  'reports_filed', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('target_kind', rp.target_kind, 'target_id', rp.target_id, 'reason', rp.reason,
+                                        'details', rp.details, 'status', rp.status, 'created_at', rp.created_at) ORDER BY rp.created_at)
+    FROM reports rp WHERE rp.reporter_id = $1::uuid), '[]'::jsonb),
+  'invites_sent', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('code', i.code, 'perspective_id', i.perspective_id, 'signups', i.signups, 'created_at', i.created_at) ORDER BY i.created_at)
+    FROM invites i WHERE i.inviter_id = $1::uuid), '[]'::jsonb),
+  'notification_settings', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('kind', np.kind, 'in_app', np.in_app, 'email', np.email))
+    FROM notification_preferences np WHERE np.user_id = $1::uuid), '[]'::jsonb)
+)::text AS export
+`
+
+// Everything the database holds about one account, as one JSON document,
+// for "Download my data". It carries the account's own email and nobody
+// else's; other people appear only by username, as they do on the site.
+// Soft-deleted and moderated rows are included and marked: they are still
+// held.
+func (q *Queries) ExportAccount(ctx context.Context, userID uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, exportAccount, userID)
+	var export string
+	err := row.Scan(&export)
+	return export, err
+}
+
 const getActiveUserIDByUsername = `-- name: GetActiveUserIDByUsername :one
 SELECT id
 FROM users

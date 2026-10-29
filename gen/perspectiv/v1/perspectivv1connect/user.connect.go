@@ -48,6 +48,9 @@ const (
 	// UserServiceDeleteAccountProcedure is the fully-qualified name of the UserService's DeleteAccount
 	// RPC.
 	UserServiceDeleteAccountProcedure = "/perspectiv.v1.UserService/DeleteAccount"
+	// UserServiceExportMyDataProcedure is the fully-qualified name of the UserService's ExportMyData
+	// RPC.
+	UserServiceExportMyDataProcedure = "/perspectiv.v1.UserService/ExportMyData"
 )
 
 // UserServiceClient is a client for the perspectiv.v1.UserService service.
@@ -62,6 +65,9 @@ type UserServiceClient interface {
 	UnblockUser(context.Context, *connect.Request[v1.UnblockUserRequest]) (*connect.Response[v1.UnblockUserResponse], error)
 	// Soft-deletes the account and its perspectives.
 	DeleteAccount(context.Context, *connect.Request[v1.DeleteAccountRequest]) (*connect.Response[v1.DeleteAccountResponse], error)
+	// Everything Perspectiv holds about the caller's account, as one JSON
+	// document ("Download my data"). Only the caller's own data.
+	ExportMyData(context.Context, *connect.Request[v1.ExportMyDataRequest]) (*connect.Response[v1.ExportMyDataResponse], error)
 }
 
 // NewUserServiceClient constructs a client for the perspectiv.v1.UserService service. By default,
@@ -111,6 +117,12 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(userServiceMethods.ByName("DeleteAccount")),
 			connect.WithClientOptions(opts...),
 		),
+		exportMyData: connect.NewClient[v1.ExportMyDataRequest, v1.ExportMyDataResponse](
+			httpClient,
+			baseURL+UserServiceExportMyDataProcedure,
+			connect.WithSchema(userServiceMethods.ByName("ExportMyData")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -122,6 +134,7 @@ type userServiceClient struct {
 	blockUser      *connect.Client[v1.BlockUserRequest, v1.BlockUserResponse]
 	unblockUser    *connect.Client[v1.UnblockUserRequest, v1.UnblockUserResponse]
 	deleteAccount  *connect.Client[v1.DeleteAccountRequest, v1.DeleteAccountResponse]
+	exportMyData   *connect.Client[v1.ExportMyDataRequest, v1.ExportMyDataResponse]
 }
 
 // GetProfile calls perspectiv.v1.UserService.GetProfile.
@@ -154,6 +167,11 @@ func (c *userServiceClient) DeleteAccount(ctx context.Context, req *connect.Requ
 	return c.deleteAccount.CallUnary(ctx, req)
 }
 
+// ExportMyData calls perspectiv.v1.UserService.ExportMyData.
+func (c *userServiceClient) ExportMyData(ctx context.Context, req *connect.Request[v1.ExportMyDataRequest]) (*connect.Response[v1.ExportMyDataResponse], error) {
+	return c.exportMyData.CallUnary(ctx, req)
+}
+
 // UserServiceHandler is an implementation of the perspectiv.v1.UserService service.
 type UserServiceHandler interface {
 	// Public. Any user's public profile; the caller's own profile also carries
@@ -166,6 +184,9 @@ type UserServiceHandler interface {
 	UnblockUser(context.Context, *connect.Request[v1.UnblockUserRequest]) (*connect.Response[v1.UnblockUserResponse], error)
 	// Soft-deletes the account and its perspectives.
 	DeleteAccount(context.Context, *connect.Request[v1.DeleteAccountRequest]) (*connect.Response[v1.DeleteAccountResponse], error)
+	// Everything Perspectiv holds about the caller's account, as one JSON
+	// document ("Download my data"). Only the caller's own data.
+	ExportMyData(context.Context, *connect.Request[v1.ExportMyDataRequest]) (*connect.Response[v1.ExportMyDataResponse], error)
 }
 
 // NewUserServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -211,6 +232,12 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(userServiceMethods.ByName("DeleteAccount")),
 		connect.WithHandlerOptions(opts...),
 	)
+	userServiceExportMyDataHandler := connect.NewUnaryHandler(
+		UserServiceExportMyDataProcedure,
+		svc.ExportMyData,
+		connect.WithSchema(userServiceMethods.ByName("ExportMyData")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.UserService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case UserServiceGetProfileProcedure:
@@ -225,6 +252,8 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceUnblockUserHandler.ServeHTTP(w, r)
 		case UserServiceDeleteAccountProcedure:
 			userServiceDeleteAccountHandler.ServeHTTP(w, r)
+		case UserServiceExportMyDataProcedure:
+			userServiceExportMyDataHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -256,4 +285,8 @@ func (UnimplementedUserServiceHandler) UnblockUser(context.Context, *connect.Req
 
 func (UnimplementedUserServiceHandler) DeleteAccount(context.Context, *connect.Request[v1.DeleteAccountRequest]) (*connect.Response[v1.DeleteAccountResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.UserService.DeleteAccount is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) ExportMyData(context.Context, *connect.Request[v1.ExportMyDataRequest]) (*connect.Response[v1.ExportMyDataResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.UserService.ExportMyData is not implemented"))
 }

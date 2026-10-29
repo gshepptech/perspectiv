@@ -43,6 +43,7 @@ export function Component() {
       <ul>
         <li>Turn each kind of notification and email on or off in Settings.</li>
         <li>Edit or delete anything you wrote.</li>
+        <li>Download everything we keep about your account, as one file, from Settings.</li>
         <li>
           Delete your account from Settings. Your stories are removed from Perspectiv, and your email, username, bio, picture and
           password hash are erased.

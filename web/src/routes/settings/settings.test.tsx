@@ -301,3 +301,25 @@ describe("SettingsPage layout", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/unreachable/);
   });
 });
+
+describe("SettingsPage your data", () => {
+  it("downloads everything held about the account as a JSON file", async () => {
+    const created: Blob[] = [];
+    vi.stubGlobal("URL", Object.assign(URL, {
+      createObjectURL: vi.fn((b: Blob) => {
+        created.push(b);
+        return "blob:export";
+      }),
+      revokeObjectURL: vi.fn(),
+    }));
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    const { api, user } = settings({ "UserService/ExportMyData": () => ok({ json: '{"account":{"username":"wren"}}' }) });
+    const region = await screen.findByRole("region", { name: "Your data" });
+    await user.click(within(region).getByRole("button", { name: "Download my data" }));
+    expect(await within(region).findByText("Your data was downloaded.")).toBeInTheDocument();
+    expect(api.sent("UserService/ExportMyData")).toHaveLength(1);
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(await created[0]?.text()).toBe('{"account":{"username":"wren"}}');
+    click.mockRestore();
+  });
+});

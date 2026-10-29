@@ -50,6 +50,7 @@ const (
 	LimitReport  = "report"
 	LimitPost    = "post"
 	LimitSearch  = "search"
+	LimitExport  = "export"
 )
 
 // Routes maps every Connect procedure to its policy. A procedure missing here
@@ -79,6 +80,7 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.UserService/BlockUser":      {Access: User},
 	"/perspectiv.v1.UserService/UnblockUser":    {Access: User},
 	"/perspectiv.v1.UserService/DeleteAccount":  {Access: User},
+	"/perspectiv.v1.UserService/ExportMyData":   {Access: User, RateLimit: LimitExport},
 
 	"/perspectiv.v1.PlaceService/SearchPlaces":     {Access: Public},
 	"/perspectiv.v1.PlaceService/GetPlace":         {Access: Public},

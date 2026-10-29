@@ -6,6 +6,7 @@ import { FormAlert } from "@/routes/auth/AuthPanel";
 import { errorMessage } from "@/routes/auth/errors";
 
 import { BlocksSection } from "./BlocksSection";
+import { DataSection } from "./DataSection";
 import { DeleteAccountSection } from "./DeleteAccountSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { ProfileSection } from "./ProfileSection";
@@ -64,6 +65,9 @@ export function Component() {
           <UsernameSection profile={me.data.profile} account={me.data.account} />
           <NotificationsSection />
           <BlocksSection blocked={me.data.account.blocked} />
+          <Section title="Your data">
+            <DataSection username={me.data.profile.username} />
+          </Section>
           <DeleteAccountSection />
         </div>
       )}

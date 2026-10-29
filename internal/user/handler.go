@@ -189,3 +189,16 @@ func accountToProto(a *Account) *perspectivv1.Account {
 	}
 	return out
 }
+
+// ExportMyData returns the caller's own data as JSON.
+func (h *Handler) ExportMyData(ctx context.Context, _ *connect.Request[perspectivv1.ExportMyDataRequest]) (*connect.Response[perspectivv1.ExportMyDataResponse], error) {
+	caller, err := callerID(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	doc, err := h.svc.ExportMyData(ctx, caller)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ExportMyDataResponse{Json: doc}), nil
+}

@@ -5,13 +5,11 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing
 
-3. **Download my data.** A settings action that returns the account's own
-   data (profile, stories, characters, claims, thread posts, follows) as JSON.
+5. **Hour and day listings.** A place page lists an hour arc ("Dryer number
+   six · 23:00") apart from its day; group an hour under its day.
 
 ## Next
 
-5. **Hour and day listings.** A place page lists an hour arc ("Dryer number
-   six · 23:00") apart from its day; group an hour under its day.
 6. **Installable on phones.** A web app manifest and icons, so "Add to home
    screen" gives a real app icon and name.
 7. **Notification digest.** An optional daily email instead of one email per
@@ -31,6 +29,12 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Download my data: ExportMyData (5 an hour) returns one JSON document built
+  in Postgres with the account, stories with parts and characters, claims
+  both ways, votes, reactions, thread posts, lores named, follows, blocks,
+  reports, invites and notification settings, and no other member's email;
+  Settings saves it as a file. Verified by TestExportMyData and the settings
+  test.
 - Legal and trust pages: /terms, /privacy and /guidelines, written from
   what the code stores and sends (email provider only, one sign-in cookie,
   no trackers), linked from the footer and the sign-up terms. Verified by

@@ -86,6 +86,8 @@ func TestRoutePolicies(t *testing.T) {
 		// Searching descriptions is public and scans text; it is bounded per
 		// address like the other public writes.
 		"/perspectiv.v1.PlaceService/SearchCharacters": api.LimitSearch,
+		// An export builds one large document; a few an hour is plenty.
+		"/perspectiv.v1.UserService/ExportMyData": api.LimitExport,
 	}
 	for p, limit := range verified {
 		if limit != "" {

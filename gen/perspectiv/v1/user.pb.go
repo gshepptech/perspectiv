@@ -839,6 +839,89 @@ func (*DeleteAccountResponse) Descriptor() ([]byte, []int) {
 	return file_perspectiv_v1_user_proto_rawDescGZIP(), []int{14}
 }
 
+type ExportMyDataRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExportMyDataRequest) Reset() {
+	*x = ExportMyDataRequest{}
+	mi := &file_perspectiv_v1_user_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExportMyDataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExportMyDataRequest) ProtoMessage() {}
+
+func (x *ExportMyDataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_user_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExportMyDataRequest.ProtoReflect.Descriptor instead.
+func (*ExportMyDataRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_user_proto_rawDescGZIP(), []int{15}
+}
+
+type ExportMyDataResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A JSON object: the account, its stories with parts and characters,
+	// claims made and received, votes, reactions, thread posts, lores named,
+	// follows, blocks, reports filed, invites sent and notification settings.
+	Json          string `protobuf:"bytes,1,opt,name=json,proto3" json:"json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ExportMyDataResponse) Reset() {
+	*x = ExportMyDataResponse{}
+	mi := &file_perspectiv_v1_user_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExportMyDataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExportMyDataResponse) ProtoMessage() {}
+
+func (x *ExportMyDataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_user_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExportMyDataResponse.ProtoReflect.Descriptor instead.
+func (*ExportMyDataResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_user_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ExportMyDataResponse) GetJson() string {
+	if x != nil {
+		return x.Json
+	}
+	return ""
+}
+
 var File_perspectiv_v1_user_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_user_proto_rawDesc = "" +
@@ -893,7 +976,10 @@ const file_perspectiv_v1_user_proto_rawDesc = "" +
 	"\x13UnblockUserResponse\"2\n" +
 	"\x14DeleteAccountRequest\x12\x1a\n" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\"\x17\n" +
-	"\x15DeleteAccountResponse2\x9d\x04\n" +
+	"\x15DeleteAccountResponse\"\x15\n" +
+	"\x13ExportMyDataRequest\"*\n" +
+	"\x14ExportMyDataResponse\x12\x12\n" +
+	"\x04json\x18\x01 \x01(\tR\x04json2\xf6\x04\n" +
 	"\vUserService\x12Q\n" +
 	"\n" +
 	"GetProfile\x12 .perspectiv.v1.GetProfileRequest\x1a!.perspectiv.v1.GetProfileResponse\x12Z\n" +
@@ -901,7 +987,8 @@ const file_perspectiv_v1_user_proto_rawDesc = "" +
 	"\x0eChangeUsername\x12$.perspectiv.v1.ChangeUsernameRequest\x1a%.perspectiv.v1.ChangeUsernameResponse\x12N\n" +
 	"\tBlockUser\x12\x1f.perspectiv.v1.BlockUserRequest\x1a .perspectiv.v1.BlockUserResponse\x12T\n" +
 	"\vUnblockUser\x12!.perspectiv.v1.UnblockUserRequest\x1a\".perspectiv.v1.UnblockUserResponse\x12Z\n" +
-	"\rDeleteAccount\x12#.perspectiv.v1.DeleteAccountRequest\x1a$.perspectiv.v1.DeleteAccountResponseB\x9e\x01\n" +
+	"\rDeleteAccount\x12#.perspectiv.v1.DeleteAccountRequest\x1a$.perspectiv.v1.DeleteAccountResponse\x12W\n" +
+	"\fExportMyData\x12\".perspectiv.v1.ExportMyDataRequest\x1a#.perspectiv.v1.ExportMyDataResponseB\x9e\x01\n" +
 	"\x11com.perspectiv.v1B\tUserProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -916,7 +1003,7 @@ func file_perspectiv_v1_user_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_user_proto_rawDescData
 }
 
-var file_perspectiv_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_perspectiv_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_perspectiv_v1_user_proto_goTypes = []any{
 	(*UserRef)(nil),                // 0: perspectiv.v1.UserRef
 	(*Profile)(nil),                // 1: perspectiv.v1.Profile
@@ -933,34 +1020,38 @@ var file_perspectiv_v1_user_proto_goTypes = []any{
 	(*UnblockUserResponse)(nil),    // 12: perspectiv.v1.UnblockUserResponse
 	(*DeleteAccountRequest)(nil),   // 13: perspectiv.v1.DeleteAccountRequest
 	(*DeleteAccountResponse)(nil),  // 14: perspectiv.v1.DeleteAccountResponse
-	(*timestamppb.Timestamp)(nil),  // 15: google.protobuf.Timestamp
-	(Role)(0),                      // 16: perspectiv.v1.Role
+	(*ExportMyDataRequest)(nil),    // 15: perspectiv.v1.ExportMyDataRequest
+	(*ExportMyDataResponse)(nil),   // 16: perspectiv.v1.ExportMyDataResponse
+	(*timestamppb.Timestamp)(nil),  // 17: google.protobuf.Timestamp
+	(Role)(0),                      // 18: perspectiv.v1.Role
 }
 var file_perspectiv_v1_user_proto_depIdxs = []int32{
-	15, // 0: perspectiv.v1.Profile.joined_at:type_name -> google.protobuf.Timestamp
-	16, // 1: perspectiv.v1.Account.role:type_name -> perspectiv.v1.Role
-	15, // 2: perspectiv.v1.Account.username_changed_at:type_name -> google.protobuf.Timestamp
-	15, // 3: perspectiv.v1.Account.next_username_change_at:type_name -> google.protobuf.Timestamp
+	17, // 0: perspectiv.v1.Profile.joined_at:type_name -> google.protobuf.Timestamp
+	18, // 1: perspectiv.v1.Account.role:type_name -> perspectiv.v1.Role
+	17, // 2: perspectiv.v1.Account.username_changed_at:type_name -> google.protobuf.Timestamp
+	17, // 3: perspectiv.v1.Account.next_username_change_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: perspectiv.v1.Account.blocked:type_name -> perspectiv.v1.UserRef
 	1,  // 5: perspectiv.v1.GetProfileResponse.profile:type_name -> perspectiv.v1.Profile
 	2,  // 6: perspectiv.v1.GetProfileResponse.account:type_name -> perspectiv.v1.Account
 	1,  // 7: perspectiv.v1.UpdateProfileResponse.profile:type_name -> perspectiv.v1.Profile
 	1,  // 8: perspectiv.v1.ChangeUsernameResponse.profile:type_name -> perspectiv.v1.Profile
-	15, // 9: perspectiv.v1.ChangeUsernameResponse.next_username_change_at:type_name -> google.protobuf.Timestamp
+	17, // 9: perspectiv.v1.ChangeUsernameResponse.next_username_change_at:type_name -> google.protobuf.Timestamp
 	3,  // 10: perspectiv.v1.UserService.GetProfile:input_type -> perspectiv.v1.GetProfileRequest
 	5,  // 11: perspectiv.v1.UserService.UpdateProfile:input_type -> perspectiv.v1.UpdateProfileRequest
 	7,  // 12: perspectiv.v1.UserService.ChangeUsername:input_type -> perspectiv.v1.ChangeUsernameRequest
 	9,  // 13: perspectiv.v1.UserService.BlockUser:input_type -> perspectiv.v1.BlockUserRequest
 	11, // 14: perspectiv.v1.UserService.UnblockUser:input_type -> perspectiv.v1.UnblockUserRequest
 	13, // 15: perspectiv.v1.UserService.DeleteAccount:input_type -> perspectiv.v1.DeleteAccountRequest
-	4,  // 16: perspectiv.v1.UserService.GetProfile:output_type -> perspectiv.v1.GetProfileResponse
-	6,  // 17: perspectiv.v1.UserService.UpdateProfile:output_type -> perspectiv.v1.UpdateProfileResponse
-	8,  // 18: perspectiv.v1.UserService.ChangeUsername:output_type -> perspectiv.v1.ChangeUsernameResponse
-	10, // 19: perspectiv.v1.UserService.BlockUser:output_type -> perspectiv.v1.BlockUserResponse
-	12, // 20: perspectiv.v1.UserService.UnblockUser:output_type -> perspectiv.v1.UnblockUserResponse
-	14, // 21: perspectiv.v1.UserService.DeleteAccount:output_type -> perspectiv.v1.DeleteAccountResponse
-	16, // [16:22] is the sub-list for method output_type
-	10, // [10:16] is the sub-list for method input_type
+	15, // 16: perspectiv.v1.UserService.ExportMyData:input_type -> perspectiv.v1.ExportMyDataRequest
+	4,  // 17: perspectiv.v1.UserService.GetProfile:output_type -> perspectiv.v1.GetProfileResponse
+	6,  // 18: perspectiv.v1.UserService.UpdateProfile:output_type -> perspectiv.v1.UpdateProfileResponse
+	8,  // 19: perspectiv.v1.UserService.ChangeUsername:output_type -> perspectiv.v1.ChangeUsernameResponse
+	10, // 20: perspectiv.v1.UserService.BlockUser:output_type -> perspectiv.v1.BlockUserResponse
+	12, // 21: perspectiv.v1.UserService.UnblockUser:output_type -> perspectiv.v1.UnblockUserResponse
+	14, // 22: perspectiv.v1.UserService.DeleteAccount:output_type -> perspectiv.v1.DeleteAccountResponse
+	16, // 23: perspectiv.v1.UserService.ExportMyData:output_type -> perspectiv.v1.ExportMyDataResponse
+	17, // [17:24] is the sub-list for method output_type
+	10, // [10:17] is the sub-list for method input_type
 	10, // [10:10] is the sub-list for extension type_name
 	10, // [10:10] is the sub-list for extension extendee
 	0,  // [0:10] is the sub-list for field type_name
@@ -978,7 +1069,7 @@ func file_perspectiv_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_user_proto_rawDesc), len(file_perspectiv_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
