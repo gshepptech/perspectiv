@@ -259,9 +259,10 @@ func nameCleared(t *testing.T, e *env, w world) {
 	t.Helper()
 	var name *string
 	var namedBy *uuid.UUID
-	e.scan(`SELECT name, named_by FROM lores WHERE id = $1`, []any{w.lore}, &name, &namedBy)
-	if name != nil || namedBy != nil {
-		t.Fatalf("lore name %v by %v, want both cleared", name, namedBy)
+	var cleared *time.Time
+	e.scan(`SELECT name, named_by, name_cleared_at FROM lores WHERE id = $1`, []any{w.lore}, &name, &namedBy, &cleared)
+	if name != nil || namedBy != nil || cleared == nil {
+		t.Fatalf("lore name %v by %v cleared %v, want name cleared and the clear recorded", name, namedBy, cleared)
 	}
 }
 

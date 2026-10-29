@@ -88,6 +88,7 @@ type Invite struct {
 	InviterID     uuid.UUID
 	CharacterID   *uuid.UUID
 	CreatedAt     time.Time
+	Signups       int32
 }
 
 type LoginAttempt struct {
@@ -98,16 +99,17 @@ type LoginAttempt struct {
 }
 
 type Lore struct {
-	ID          uuid.UUID
-	ArcID       uuid.UUID
-	Status      string
-	MemberCount int32
-	Upvotes     int32
-	RankScore   float64
-	ComputedAt  *time.Time
-	CreatedAt   time.Time
-	Name        *string
-	NamedBy     *uuid.UUID
+	ID            uuid.UUID
+	ArcID         uuid.UUID
+	Status        string
+	MemberCount   int32
+	Upvotes       int32
+	RankScore     float64
+	ComputedAt    *time.Time
+	CreatedAt     time.Time
+	Name          *string
+	NamedBy       *uuid.UUID
+	NameClearedAt *time.Time
 }
 
 type LoreMember struct {

@@ -941,6 +941,18 @@ func (q *Queries) LockPerspectives(ctx context.Context, ids []uuid.UUID) ([]Lock
 	return items, nil
 }
 
+const loreNameClearedAt = `-- name: LoreNameClearedAt :one
+SELECT name_cleared_at FROM lores WHERE id = $1::uuid
+`
+
+// When a moderator last cleared the lore's name; NULL when never.
+func (q *Queries) LoreNameClearedAt(ctx context.Context, id uuid.UUID) (pgtype.Timestamptz, error) {
+	row := q.db.QueryRow(ctx, loreNameClearedAt, id)
+	var name_cleared_at pgtype.Timestamptz
+	err := row.Scan(&name_cleared_at)
+	return name_cleared_at, err
+}
+
 const markArcLoreDirty = `-- name: MarkArcLoreDirty :exec
 UPDATE arcs SET lore_dirty_at = now() WHERE id = $1
 `

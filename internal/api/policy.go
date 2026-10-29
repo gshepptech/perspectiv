@@ -48,6 +48,8 @@ const (
 	LimitVote    = "vote"
 	LimitReact   = "react"
 	LimitReport  = "report"
+	LimitPost    = "post"
+	LimitSearch  = "search"
 )
 
 // Routes maps every Connect procedure to its policy. A procedure missing here
@@ -85,7 +87,7 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.PlaceService/GetEpic":          {Access: Public},
 	"/perspectiv.v1.PlaceService/FollowPlace":      {Access: User},
 	"/perspectiv.v1.PlaceService/ListFollowing":    {Access: User},
-	"/perspectiv.v1.PlaceService/SearchCharacters": {Access: Public},
+	"/perspectiv.v1.PlaceService/SearchCharacters": {Access: Public, RateLimit: LimitSearch},
 
 	"/perspectiv.v1.ArcService/GetArc":             {Access: Public},
 	"/perspectiv.v1.ArcService/ListArcSection":     {Access: Public},
@@ -107,8 +109,8 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.LoreService/ListClaims":     {Access: User},
 	"/perspectiv.v1.LoreService/GetLore":        {Access: Public},
 	"/perspectiv.v1.LoreService/ListLorePosts":  {Access: Public},
-	"/perspectiv.v1.LoreService/AddLorePost":    {Access: User, Verified: true},
-	"/perspectiv.v1.LoreService/NameLore":       {Access: User, Verified: true},
+	"/perspectiv.v1.LoreService/AddLorePost":    {Access: User, Verified: true, RateLimit: LimitPost},
+	"/perspectiv.v1.LoreService/NameLore":       {Access: User, Verified: true, RateLimit: LimitPost},
 
 	"/perspectiv.v1.VoteService/Vote":       {Access: User, Verified: true, RateLimit: LimitVote},
 	"/perspectiv.v1.VoteService/VoteRemove": {Access: User, Verified: true, RateLimit: LimitVote},

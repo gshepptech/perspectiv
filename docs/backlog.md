@@ -12,8 +12,9 @@ moves to Done in the same commit as the work, with what was verified.
 
 3. **Download my data.** A settings action that returns the account's own
    data (profile, stories, characters, claims, thread posts, follows) as JSON.
-4. **Review findings.** Fix what the security and accessibility reviews of
-   the post-build features confirm.
+4. **Accessibility review findings.** Focus lost after actions, claim
+   dialog wording, unannounced results and errors, small navigation targets,
+   duplicate button names, and the heading order after publishing.
 5. **Hour and day listings.** A place page lists an hour arc ("Dryer number
    six · 23:00") apart from its day; group an hour under its day.
 6. **Installable on phones.** A web app manifest and icons, so "Add to home
@@ -32,6 +33,13 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Security review fixes: a member's invite link admits at most 5 sign-ups
+  and only while its story is readable; thread posts and lore names are rate
+  limited (30 an hour); a moderator's name clear locks renaming for 7 days;
+  waitlist code notes carry masked addresses; admin denials log method and
+  reason; description search is rate limited and has a trigram index.
+  Verified by TestMemberInviteLimits, TestNameLore, TestResolveActions,
+  TestWaitlistInvite and the policy tests.
 - Sign-up abuse, offline: a honeypot field on sign-up and the waitlist (a
   filled one is answered as a success and stores nothing), and 2,311 common
   passwords of 10+ characters from SecLists (MIT) refused by sign-up and

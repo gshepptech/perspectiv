@@ -11,9 +11,10 @@ Reading is always public. Writing needs an account, and while
 `SIGNUP_MODE` is `invite` (production's setting during the beta, and the
 default when unset) an account needs an access code:
 
-- **A member's invite link.** Every "Invite who was there" link admits the
-  people it is sent to, while its sender is in good standing. The beta grows
-  from people who were really at the same place.
+- **A member's invite link.** Every "Invite who was there" link admits up
+  to five people, while its sender is in good standing and the story it
+  shares is still readable. The beta grows from people who were really at the
+  same place, without one link opening it to everyone.
 - **A beta code** an admin issues for a launch, a campus or a person: a use
   limit, an optional expiry, and revocable. Accounts it admitted keep access.
 - **The waitlist.** Anyone without a code leaves an email and, optionally,
@@ -55,7 +56,7 @@ ends the beta without a code change.
 | Accept or reject a claim | The author of the character's perspective |
 | Vote to remove from a lore | A member of the same lore, once the lore has four or more members |
 | Post in a lore's thread | A member of the lore, or anyone with a perspective in the arc |
-| Name a lore | A member of the lore; the latest name wins and shows who set it |
+| Name a lore | A member of the lore; the latest name wins and shows who set it. After a moderator clears a name, nobody can rename the lore for 7 days |
 | Follow a place | Anyone signed in; a new story at the place or anywhere under it lands in their inbox (and email, if they keep it on) |
 | Report a perspective, place, user, thread post or lore name | A verified account; an admin hides the post or perspective, hides the place, suspends the user, or clears the name |
 

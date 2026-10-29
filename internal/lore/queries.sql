@@ -259,6 +259,10 @@ SELECT EXISTS (
       AND p.deleted_at IS NULL AND p.hidden_at IS NULL
 )::boolean AS is_member;
 
+-- name: LoreNameClearedAt :one
+-- When a moderator last cleared the lore's name; NULL when never.
+SELECT name_cleared_at FROM lores WHERE id = sqlc.arg(id)::uuid;
+
 -- name: SetLoreName :exec
 UPDATE lores SET name = sqlc.arg(name)::text, named_by = sqlc.arg(named_by)::uuid
 WHERE id = sqlc.arg(id)::uuid;

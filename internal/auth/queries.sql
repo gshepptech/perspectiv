@@ -140,12 +140,18 @@ WHERE code = sqlc.arg(code)::text
   AND uses < max_uses
 RETURNING code;
 
--- name: MemberInviteLive :one
--- Whether an invite link code belongs to a member in good standing.
-SELECT EXISTS (
-    SELECT 1 FROM invites i JOIN users u ON u.id = i.inviter_id
-    WHERE i.code = sqlc.arg(code)::text AND u.deleted_at IS NULL AND u.suspended_at IS NULL
-)::boolean AS live;
+-- name: UseMemberInvite :one
+-- Admits one more sign-up on a member's invite link while it is live: the
+-- inviter is in good standing, the shared story is still readable, and the
+-- link has admitted fewer than max_signups. No row when it cannot.
+UPDATE invites i SET signups = i.signups + 1
+FROM users u, perspectives p
+WHERE i.code = sqlc.arg(code)::text
+  AND u.id = i.inviter_id AND u.deleted_at IS NULL AND u.suspended_at IS NULL
+  AND p.id = i.perspective_id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+  AND i.signups < sqlc.arg(max_signups)::integer
+RETURNING i.code;
 
 -- name: ActorStanding :one
 -- The stored role and standing of a caller, for admin checks that must not

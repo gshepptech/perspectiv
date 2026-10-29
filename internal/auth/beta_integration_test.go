@@ -4,6 +4,7 @@ package auth_test
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strings"
 	"testing"
@@ -203,6 +204,16 @@ func TestWaitlistInvite(t *testing.T) {
 		t.Fatalf("still waiting = %v", res.Msg.GetEntries())
 	}
 
+	// The code's note names the person only by the masked address.
+	codes, err := admin.ListAccessCodes(ctx, connect.NewRequest(&perspectivv1.ListAccessCodesRequest{}))
+	if err != nil {
+		t.Fatalf("ListAccessCodes: %v", err)
+	}
+	for _, c := range codes.Msg.GetCodes() {
+		if strings.Contains(strings.ToLower(c.GetNote()), "pat@example.test") {
+			t.Fatalf("code note %q carries the full address", c.GetNote())
+		}
+	}
 	code := inv.Msg.GetEntry().GetCode()
 	if err := e.signUpWith("pat", code); err != nil {
 		t.Fatalf("SignUp with waitlist code: %v", err)
@@ -275,4 +286,32 @@ func TestHoneypot(t *testing.T) {
 	if mails := e.emailJobs(emailOf("botty")); len(mails) != 0 {
 		t.Fatalf("honeypot sent %d emails", len(mails))
 	}
+}
+
+// A member's invite link admits at most five accounts, and none once the
+// shared story is hidden.
+func TestMemberInviteLimits(t *testing.T) {
+	t.Parallel()
+	open, e, _, member := betaEnvs(t)
+	place := open.id(`INSERT INTO places (kind, name, timezone, source) VALUES ('PLACE_KIND_STATE', 'Cap State', 'America/New_York', 'PLACE_SOURCE_USER') RETURNING id`)
+	arcID := open.id(`INSERT INTO arcs (place_id, local_date, title, created_by) VALUES ($1, '2026-10-01', 'Cap night', $2) RETURNING id`, place, member)
+	story := func() uuid.UUID {
+		return open.id(`INSERT INTO perspectives (arc_id, author_id, genre, status, lore_status, published_at)
+			VALUES ($1, $2, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now()) RETURNING id`, arcID, member)
+	}
+	p := story()
+	open.exec(`INSERT INTO invites (code, perspective_id, inviter_id) VALUES ('capcode123', $1, $2)`, p, member)
+	for i := range 5 {
+		if err := e.signUpWith(fmt.Sprintf("capped%d", i), "capcode123"); err != nil {
+			t.Fatalf("sign-up %d with the invite: %v", i+1, err)
+		}
+	}
+	wantCode(t, e.signUpWith("capped5", "capcode123"), connect.CodePermissionDenied)
+
+	// A second link on a story a moderator hid admits nobody.
+	other := open.id(`INSERT INTO arcs (place_id, local_date, title, created_by) VALUES ($1, '2026-10-02', 'Hidden night', $2) RETURNING id`, place, member)
+	hidden := open.id(`INSERT INTO perspectives (arc_id, author_id, genre, status, lore_status, published_at, hidden_at)
+		VALUES ($1, $2, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now(), now()) RETURNING id`, other, member)
+	open.exec(`INSERT INTO invites (code, perspective_id, inviter_id) VALUES ('hidcode123', $1, $2)`, hidden, member)
+	wantCode(t, e.signUpWith("fromhidden", "hidcode123"), connect.CodePermissionDenied)
 }

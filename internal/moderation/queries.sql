@@ -78,7 +78,7 @@ UPDATE places SET hidden_at = coalesce(hidden_at, now()) WHERE id = @id::uuid;
 UPDATE lore_posts SET hidden_at = coalesce(hidden_at, now()) WHERE id = @id::uuid;
 
 -- name: ClearLoreName :execrows
-UPDATE lores SET name = NULL, named_by = NULL WHERE id = @id::uuid;
+UPDATE lores SET name = NULL, named_by = NULL, name_cleared_at = now() WHERE id = @id::uuid;
 
 -- name: SuspendUser :execrows
 UPDATE users SET suspended_at = coalesce(suspended_at, now()) WHERE id = @id::uuid;

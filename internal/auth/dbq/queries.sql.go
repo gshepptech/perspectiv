@@ -582,21 +582,6 @@ func (q *Queries) MarkWaitlistInvited(ctx context.Context, arg MarkWaitlistInvit
 	return i, err
 }
 
-const memberInviteLive = `-- name: MemberInviteLive :one
-SELECT EXISTS (
-    SELECT 1 FROM invites i JOIN users u ON u.id = i.inviter_id
-    WHERE i.code = $1::text AND u.deleted_at IS NULL AND u.suspended_at IS NULL
-)::boolean AS live
-`
-
-// Whether an invite link code belongs to a member in good standing.
-func (q *Queries) MemberInviteLive(ctx context.Context, code string) (bool, error) {
-	row := q.db.QueryRow(ctx, memberInviteLive, code)
-	var live bool
-	err := row.Scan(&live)
-	return live, err
-}
-
 const retireEmailTokens = `-- name: RetireEmailTokens :exec
 UPDATE email_tokens SET used_at = now()
 WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL
@@ -722,6 +707,32 @@ func (q *Queries) UseAccessCode(ctx context.Context, code string) (string, error
 	var code_2 string
 	err := row.Scan(&code_2)
 	return code_2, err
+}
+
+const useMemberInvite = `-- name: UseMemberInvite :one
+UPDATE invites i SET signups = i.signups + 1
+FROM users u, perspectives p
+WHERE i.code = $1::text
+  AND u.id = i.inviter_id AND u.deleted_at IS NULL AND u.suspended_at IS NULL
+  AND p.id = i.perspective_id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+  AND i.signups < $2::integer
+RETURNING i.code
+`
+
+type UseMemberInviteParams struct {
+	Code       string
+	MaxSignups int32
+}
+
+// Admits one more sign-up on a member's invite link while it is live: the
+// inviter is in good standing, the shared story is still readable, and the
+// link has admitted fewer than max_signups. No row when it cannot.
+func (q *Queries) UseMemberInvite(ctx context.Context, arg UseMemberInviteParams) (string, error) {
+	row := q.db.QueryRow(ctx, useMemberInvite, arg.Code, arg.MaxSignups)
+	var code string
+	err := row.Scan(&code)
+	return code, err
 }
 
 const writeStanding = `-- name: WriteStanding :one

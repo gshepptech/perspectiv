@@ -13,7 +13,7 @@ import (
 )
 
 const clearLoreName = `-- name: ClearLoreName :execrows
-UPDATE lores SET name = NULL, named_by = NULL WHERE id = $1::uuid
+UPDATE lores SET name = NULL, named_by = NULL, name_cleared_at = now() WHERE id = $1::uuid
 `
 
 func (q *Queries) ClearLoreName(ctx context.Context, id uuid.UUID) (int64, error) {

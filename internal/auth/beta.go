@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
+	"perspectiv/gen/perspectiv/v1/perspectivv1connect"
 	"perspectiv/internal/api/apiutil"
 	"perspectiv/internal/auth/dbq"
 	"perspectiv/internal/jobs"
@@ -40,6 +41,10 @@ const (
 	maxCodeUses      = 10000
 	maxCodeDays      = 365
 	waitlistCodeDays = 30
+	// maxInviteSignups is how many accounts one member's invite link can
+	// admit while sign-up is invite-only: enough for the people who were
+	// there, not enough to open the beta to the internet.
+	maxInviteSignups = 5
 )
 
 var codePattern = regexp.MustCompile(`^[a-z0-9-]{4,32}$`)
@@ -71,14 +76,14 @@ func (s *Service) admit(ctx context.Context, q *dbq.Queries, raw string) (*strin
 	case !errors.Is(err, pgx.ErrNoRows):
 		return nil, apiutil.Internal(fmt.Errorf("use access code: %w", err))
 	}
-	live, err := q.MemberInviteLive(ctx, code)
-	if err != nil {
-		return nil, apiutil.Internal(fmt.Errorf("check invite code: %w", err))
-	}
-	if !live {
+	used, err = q.UseMemberInvite(ctx, dbq.UseMemberInviteParams{Code: code, MaxSignups: maxInviteSignups})
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
 		return nil, refused
+	case err != nil:
+		return nil, apiutil.Internal(fmt.Errorf("use invite code: %w", err))
 	}
-	joined := "invite:" + code
+	joined := "invite:" + used
 	return &joined, nil
 }
 
@@ -108,26 +113,37 @@ func (s *Service) JoinWaitlist(ctx context.Context, email, note, honeypot string
 }
 
 // requireAdmin re-reads the caller's stored role: the interceptor checked the
-// token's, and a token minted before a demotion or suspension must not
-// outlive it.
-func (s *Service) requireAdmin(ctx context.Context, caller uuid.UUID) error {
+// token's, and a token minted before a demotion, suspension or deletion must
+// not outlive it. Every refusal writes the authz_denied line the interceptor
+// writes, with the method and the reason.
+func (s *Service) requireAdmin(ctx context.Context, caller uuid.UUID, method string) error {
 	a, err := s.q.ActorStanding(ctx, caller)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return apiutil.PermissionDenied("admin only")
-	}
-	if err != nil {
+	reason := ""
+	role := perspectivv1.Role_ROLE_UNSPECIFIED
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		reason = "account_missing"
+	case err != nil:
 		return apiutil.Internal(fmt.Errorf("read caller: %w", err))
+	case a.DeletedAt != nil:
+		reason = "account_deleted"
+	default:
+		if role, err = roleFromDB(a.Role); err != nil {
+			return apiutil.Internal(err)
+		}
+		switch {
+		case role != perspectivv1.Role_ROLE_ADMIN:
+			reason = "role"
+		case a.SuspendedAt != nil:
+			reason = "suspended"
+		}
 	}
-	role, err := roleFromDB(a.Role)
-	if err != nil {
-		return apiutil.Internal(err)
+	if reason == "" {
+		return nil
 	}
-	if role != perspectivv1.Role_ROLE_ADMIN || a.SuspendedAt != nil || a.DeletedAt != nil {
-		s.log.Warn().Str("event", "authz_denied").Str("sub", caller.String()).Str("required", "admin").
-			Str("role", role.String()).Msg("request denied")
-		return apiutil.PermissionDenied("admin only")
-	}
-	return nil
+	s.log.Warn().Str("event", "authz_denied").Str("sub", caller.String()).Str("method", method).
+		Str("required", "admin").Str("role", role.String()).Str("reason", reason).Msg("request denied")
+	return apiutil.PermissionDenied("admin only")
 }
 
 // AccessCodeInput asks for one beta code.
@@ -153,7 +169,7 @@ func generatedCode() (string, error) {
 
 // CreateAccessCode issues a beta code for an admin.
 func (s *Service) CreateAccessCode(ctx context.Context, admin uuid.UUID, in AccessCodeInput) (dbq.InsertAccessCodeRow, error) {
-	if err := s.requireAdmin(ctx, admin); err != nil {
+	if err := s.requireAdmin(ctx, admin, perspectivv1connect.AuthServiceCreateAccessCodeProcedure); err != nil {
 		return dbq.InsertAccessCodeRow{}, err
 	}
 	code := normalizeCode(in.Code)
@@ -202,7 +218,7 @@ type codeCursor struct {
 
 // ListAccessCodes pages the beta codes, newest first.
 func (s *Service) ListAccessCodes(ctx context.Context, admin uuid.UUID, page apiutil.PageToken) ([]dbq.ListAccessCodesRow, string, error) {
-	if err := s.requireAdmin(ctx, admin); err != nil {
+	if err := s.requireAdmin(ctx, admin, perspectivv1connect.AuthServiceListAccessCodesProcedure); err != nil {
 		return nil, "", err
 	}
 	p := dbq.ListAccessCodesParams{Lim: page.Limit + 1}
@@ -228,7 +244,7 @@ func (s *Service) ListAccessCodes(ctx context.Context, admin uuid.UUID, page api
 // RevokeAccessCode stops a code admitting anyone more; accounts it already
 // admitted keep their access.
 func (s *Service) RevokeAccessCode(ctx context.Context, admin uuid.UUID, code string) (dbq.RevokeAccessCodeRow, error) {
-	if err := s.requireAdmin(ctx, admin); err != nil {
+	if err := s.requireAdmin(ctx, admin, perspectivv1connect.AuthServiceRevokeAccessCodeProcedure); err != nil {
 		return dbq.RevokeAccessCodeRow{}, err
 	}
 	row, err := s.q.RevokeAccessCode(ctx, normalizeCode(code))
@@ -250,7 +266,7 @@ type waitCursor struct {
 
 // ListWaitlist pages the waitlist, oldest first.
 func (s *Service) ListWaitlist(ctx context.Context, admin uuid.UUID, waitingOnly bool, page apiutil.PageToken) ([]dbq.Waitlist, string, error) {
-	if err := s.requireAdmin(ctx, admin); err != nil {
+	if err := s.requireAdmin(ctx, admin, perspectivv1connect.AuthServiceListWaitlistProcedure); err != nil {
 		return nil, "", err
 	}
 	p := dbq.ListWaitlistParams{WaitingOnly: waitingOnly, Lim: page.Limit + 1}
@@ -277,7 +293,7 @@ func (s *Service) ListWaitlist(ctx context.Context, admin uuid.UUID, waitingOnly
 // in 30 days and emails it, in one transaction. Inviting someone already
 // invited sends the same code again.
 func (s *Service) InviteFromWaitlist(ctx context.Context, admin, id uuid.UUID) (dbq.Waitlist, error) {
-	if err := s.requireAdmin(ctx, admin); err != nil {
+	if err := s.requireAdmin(ctx, admin, perspectivv1connect.AuthServiceInviteFromWaitlistProcedure); err != nil {
 		return dbq.Waitlist{}, err
 	}
 	var out dbq.Waitlist
@@ -300,7 +316,7 @@ func (s *Service) InviteFromWaitlist(ctx context.Context, admin, id uuid.UUID) (
 			code = "wl-" + strings.TrimPrefix(code, "beta-")
 			expires := time.Now().Add(waitlistCodeDays * 24 * time.Hour)
 			if _, err := q.InsertAccessCode(ctx, dbq.InsertAccessCodeParams{
-				Code: code, Note: "waitlist: " + w.Email, MaxUses: 1, CreatedBy: admin, ExpiresAt: &expires,
+				Code: code, Note: "waitlist: " + maskEmail(w.Email), MaxUses: 1, CreatedBy: admin, ExpiresAt: &expires,
 			}); err != nil {
 				return apiutil.Internal(fmt.Errorf("insert waitlist code: %w", err))
 			}

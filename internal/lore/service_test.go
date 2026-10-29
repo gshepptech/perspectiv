@@ -1409,6 +1409,15 @@ func TestNameLore(t *testing.T) {
 		t.Fatalf("lore name = %q by %v", l.GetName(), l.GetNamedBy())
 	}
 
+	// A moderator's clear locks naming for a week.
+	w.exec(`UPDATE lores SET name = NULL, named_by = NULL, name_cleared_at = now() WHERE id = $1`, loreID)
+	_, err = name(a.user, "Put straight back")
+	wantCode(t, err, connect.CodeFailedPrecondition)
+	w.exec(`UPDATE lores SET name_cleared_at = now() - interval '8 days' WHERE id = $1`, loreID)
+	if got, err := name(a.user, "A fair new name"); err != nil || got != "A fair new name" {
+		t.Fatalf("after the lock = %q, %v", got, err)
+	}
+
 	w.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, w.place)
 	_, err = name(a.user, "After hiding")
 	wantCode(t, err, connect.CodeNotFound)

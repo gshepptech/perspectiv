@@ -42,6 +42,8 @@ type rateRule struct {
 //	vote            60 per hour      per user, 180 per IP
 //	react          120 per hour      per user, 360 per IP
 //	report          10 per hour      per user, 30 per IP
+//	post            30 per hour      per user, 90 per IP (thread posts, lore names)
+//	search         600 per hour      per user, 600 per IP (description search, typed live)
 //	password_reset   3 reset emails per hour per account
 var rateRules = map[string]rateRule{
 	api.LimitSignup:    {perUser: 10, perIP: 10, windowSecs: hour},
@@ -51,6 +53,8 @@ var rateRules = map[string]rateRule{
 	api.LimitVote:      {perUser: 60, perIP: 180, windowSecs: hour},
 	api.LimitReact:     {perUser: 120, perIP: 360, windowSecs: hour},
 	api.LimitReport:    {perUser: 10, perIP: 30, windowSecs: hour},
+	api.LimitPost:      {perUser: 30, perIP: 90, windowSecs: hour},
+	api.LimitSearch:    {perUser: 600, perIP: 600, windowSecs: hour},
 	LimitPasswordReset: {perUser: 3, perIP: 10, windowSecs: hour},
 }
 

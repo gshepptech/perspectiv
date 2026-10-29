@@ -56,8 +56,8 @@ func TestRoutePolicies(t *testing.T) {
 		"/perspectiv.v1.PerspectiveService/Publish":      api.LimitPublish,
 		"/perspectiv.v1.PerspectiveService/Update":       "",
 		"/perspectiv.v1.PerspectiveService/CreateInvite": "",
-		"/perspectiv.v1.LoreService/AddLorePost":         "",
-		"/perspectiv.v1.LoreService/NameLore":            "",
+		"/perspectiv.v1.LoreService/AddLorePost":         api.LimitPost,
+		"/perspectiv.v1.LoreService/NameLore":            api.LimitPost,
 		"/perspectiv.v1.ArcService/RetitleHourArc":       "",
 		"/perspectiv.v1.LoreService/ResolveClaim":        "",
 		"/perspectiv.v1.LoreService/ClaimCharacter":      api.LimitClaim,
@@ -83,6 +83,9 @@ func TestRoutePolicies(t *testing.T) {
 		// Joining the waitlist shares sign-up's budget: both create rows for
 		// anyone who asks.
 		"/perspectiv.v1.AuthService/JoinWaitlist": api.LimitSignup,
+		// Searching descriptions is public and scans text; it is bounded per
+		// address like the other public writes.
+		"/perspectiv.v1.PlaceService/SearchCharacters": api.LimitSearch,
 	}
 	for p, limit := range verified {
 		if limit != "" {
