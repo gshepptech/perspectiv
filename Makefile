@@ -167,7 +167,9 @@ endif
 
 test-integration: $(GOTESTSUM) $(WEB_DIST) ## Integration tier: real postgres:18-alpine through testcontainers
 	@mkdir -p $(COVER_DIR) $(REPORT_DIR)
-	$(GOTESTSUM) --format pkgname --junitfile $(REPORT_DIR)/integration.xml -- \
+	@# The JSON event log keeps every test's full output, a race report
+	@# included, which the summary and the JUnit file drop.
+	$(GOTESTSUM) --format pkgname --junitfile $(REPORT_DIR)/integration.xml --jsonfile $(REPORT_DIR)/integration.json -- \
 		-race -count=1 -tags integration -coverprofile=$(COVER_DIR)/integration.out ./...
 
 coverage-floors: ## Enforce per-package coverage floors over the unit and integration profiles
