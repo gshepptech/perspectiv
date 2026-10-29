@@ -5,11 +5,6 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing
 
-6. **Installable on phones.** A web app manifest and icons, so "Add to home
-   screen" gives a real app icon and name.
-
-## Next
-
 7. **Notification digest.** An optional daily email instead of one email per
    event, for people who follow busy places.
 
@@ -27,6 +22,10 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Installable on phones: an app icon (the book mark on ink blue) as SVG,
+  Apple touch, 192, 512 and maskable PNGs, a web app manifest served as
+  application/manifest+json, and light and dark theme colours. There was no
+  favicon at all before. Verified by TestSPA and the built bundle.
 - Hour and day listings, decided: an hour arc is where its stories live and
   the day page leads with its hours, so place listings keep listing the hour
   arc. Folding hours into days would rework the ranked and newest keysets

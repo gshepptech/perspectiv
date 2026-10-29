@@ -164,9 +164,10 @@ func TestAbout(t *testing.T) {
 func TestSPA(t *testing.T) {
 	t.Parallel()
 	static := fstest.MapFS{
-		"index.html":      {Data: []byte("<!doctype html><title>app</title>")},
-		"assets/app-1.js": {Data: []byte("console.log(1)")},
-		"favicon.svg":     {Data: []byte("<svg/>")},
+		"index.html":           {Data: []byte("<!doctype html><title>app</title>")},
+		"assets/app-1.js":      {Data: []byte("console.log(1)")},
+		"favicon.svg":          {Data: []byte("<svg/>")},
+		"manifest.webmanifest": {Data: []byte(`{"name":"Perspectiv"}`)},
 	}
 	h := api.NewRouter(api.RouterConfig{Log: zerolog.Nop(), Static: static})
 
@@ -176,12 +177,14 @@ func TestSPA(t *testing.T) {
 		wantCode  int
 		wantBody  string
 		wantCache string
+		wantType  string
 	}{
 		{name: "root serves index", path: "/", wantCode: 200, wantBody: "<title>app</title>", wantCache: "no-cache"},
 		{name: "client route falls back to index", path: "/places/123", wantCode: 200, wantBody: "<title>app</title>", wantCache: "no-cache"},
 		{name: "index.html itself", path: "/index.html", wantCode: 200, wantBody: "<title>app</title>"},
 		{name: "hashed asset is immutable", path: "/assets/app-1.js", wantCode: 200, wantBody: "console.log(1)", wantCache: "public, max-age=31536000, immutable"},
 		{name: "root file", path: "/favicon.svg", wantCode: 200, wantBody: "<svg/>"},
+		{name: "web app manifest", path: "/manifest.webmanifest", wantCode: 200, wantBody: `"Perspectiv"`, wantType: "application/manifest+json"},
 		{name: "missing asset is 404, not index", path: "/assets/app-0.js", wantCode: 404},
 		{name: "unknown api path is 404, not index", path: "/api/perspectiv.v1.Nope/Nope", wantCode: 404},
 		{name: "traversal stays inside the bundle", path: "/../../etc/passwd", wantCode: 200, wantBody: "<title>app</title>"},
@@ -195,6 +198,9 @@ func TestSPA(t *testing.T) {
 			}
 			if !strings.Contains(body, tc.wantBody) {
 				t.Fatalf("body = %q, want it to contain %q", body, tc.wantBody)
+			}
+			if tc.wantType != "" && resp.Header.Get("Content-Type") != tc.wantType {
+				t.Fatalf("Content-Type = %q, want %q", resp.Header.Get("Content-Type"), tc.wantType)
 			}
 			if tc.wantCache != "" && resp.Header.Get("Cache-Control") != tc.wantCache {
 				t.Fatalf("Cache-Control = %q, want %q", resp.Header.Get("Cache-Control"), tc.wantCache)

@@ -225,6 +225,11 @@ func spaHandler(static fs.FS, preview Previewer) http.HandlerFunc {
 			if strings.HasPrefix(name, "assets/") {
 				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			}
+			// Go's type table has no entry for the web app manifest; without
+			// one it would be sniffed as text and browsers may refuse it.
+			if path.Ext(name) == ".webmanifest" {
+				w.Header().Set("Content-Type", "application/manifest+json")
+			}
 			http.ServeFileFS(w, r, static, name) //nolint:gosec // name is cleaned and confined to the embedded bundle.
 		case err != nil && !errors.Is(err, fs.ErrNotExist):
 			http.Error(w, "internal error", http.StatusInternalServerError)

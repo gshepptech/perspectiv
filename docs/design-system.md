@@ -229,6 +229,15 @@ Two tabs, **Codes** and **Waitlist**, built on the report queue's patterns:
 - **Waitlist:** people waiting first, each with a masked address, note and
   date, and "Send invite". Invited people show when and with which code.
 
+## App icon
+
+The mark is the header's open book (lucide `BookOpen`) in `paper` on an
+`accent` ink-blue square: `web/public/icon.svg` for tabs, PNGs at 180 (Apple
+touch), 192 and 512, and a 512 maskable icon with the book inside the safe
+zone. `manifest.webmanifest` installs Perspectiv standalone with `paper` as
+its background and theme colour, and the page's `theme-color` follows the
+light and dark themes.
+
 ## Legal and trust pages
 
 `/terms`, `/privacy` and `/guidelines` are public reading pages: a title, a
