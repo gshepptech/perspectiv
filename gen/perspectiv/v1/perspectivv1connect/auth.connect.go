@@ -49,6 +49,27 @@ const (
 	// AuthServiceResetPasswordProcedure is the fully-qualified name of the AuthService's ResetPassword
 	// RPC.
 	AuthServiceResetPasswordProcedure = "/perspectiv.v1.AuthService/ResetPassword"
+	// AuthServiceGetSignUpInfoProcedure is the fully-qualified name of the AuthService's GetSignUpInfo
+	// RPC.
+	AuthServiceGetSignUpInfoProcedure = "/perspectiv.v1.AuthService/GetSignUpInfo"
+	// AuthServiceJoinWaitlistProcedure is the fully-qualified name of the AuthService's JoinWaitlist
+	// RPC.
+	AuthServiceJoinWaitlistProcedure = "/perspectiv.v1.AuthService/JoinWaitlist"
+	// AuthServiceCreateAccessCodeProcedure is the fully-qualified name of the AuthService's
+	// CreateAccessCode RPC.
+	AuthServiceCreateAccessCodeProcedure = "/perspectiv.v1.AuthService/CreateAccessCode"
+	// AuthServiceListAccessCodesProcedure is the fully-qualified name of the AuthService's
+	// ListAccessCodes RPC.
+	AuthServiceListAccessCodesProcedure = "/perspectiv.v1.AuthService/ListAccessCodes"
+	// AuthServiceRevokeAccessCodeProcedure is the fully-qualified name of the AuthService's
+	// RevokeAccessCode RPC.
+	AuthServiceRevokeAccessCodeProcedure = "/perspectiv.v1.AuthService/RevokeAccessCode"
+	// AuthServiceListWaitlistProcedure is the fully-qualified name of the AuthService's ListWaitlist
+	// RPC.
+	AuthServiceListWaitlistProcedure = "/perspectiv.v1.AuthService/ListWaitlist"
+	// AuthServiceInviteFromWaitlistProcedure is the fully-qualified name of the AuthService's
+	// InviteFromWaitlist RPC.
+	AuthServiceInviteFromWaitlistProcedure = "/perspectiv.v1.AuthService/InviteFromWaitlist"
 )
 
 // AuthServiceClient is a client for the perspectiv.v1.AuthService service.
@@ -61,6 +82,21 @@ type AuthServiceClient interface {
 	VerifyEmail(context.Context, *connect.Request[v1.VerifyEmailRequest]) (*connect.Response[v1.VerifyEmailResponse], error)
 	RequestPasswordReset(context.Context, *connect.Request[v1.RequestPasswordResetRequest]) (*connect.Response[v1.RequestPasswordResetResponse], error)
 	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
+	// Public. Whether signing up needs an access code (the invite-only beta).
+	GetSignUpInfo(context.Context, *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error)
+	// Public. Asks for a place in the beta. Always answers OK, whether or not
+	// the address is already on the list, so it reveals nothing about others.
+	JoinWaitlist(context.Context, *connect.Request[v1.JoinWaitlistRequest]) (*connect.Response[v1.JoinWaitlistResponse], error)
+	// Admin. Issues a beta access code.
+	CreateAccessCode(context.Context, *connect.Request[v1.CreateAccessCodeRequest]) (*connect.Response[v1.CreateAccessCodeResponse], error)
+	// Admin. Beta access codes, newest first.
+	ListAccessCodes(context.Context, *connect.Request[v1.ListAccessCodesRequest]) (*connect.Response[v1.ListAccessCodesResponse], error)
+	// Admin. Stops a code admitting anyone more.
+	RevokeAccessCode(context.Context, *connect.Request[v1.RevokeAccessCodeRequest]) (*connect.Response[v1.RevokeAccessCodeResponse], error)
+	// Admin. The waitlist, oldest first.
+	ListWaitlist(context.Context, *connect.Request[v1.ListWaitlistRequest]) (*connect.Response[v1.ListWaitlistResponse], error)
+	// Admin. Issues a waiting person a single-use code and emails it.
+	InviteFromWaitlist(context.Context, *connect.Request[v1.InviteFromWaitlistRequest]) (*connect.Response[v1.InviteFromWaitlistResponse], error)
 }
 
 // NewAuthServiceClient constructs a client for the perspectiv.v1.AuthService service. By default,
@@ -116,6 +152,48 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
 			connect.WithClientOptions(opts...),
 		),
+		getSignUpInfo: connect.NewClient[v1.GetSignUpInfoRequest, v1.GetSignUpInfoResponse](
+			httpClient,
+			baseURL+AuthServiceGetSignUpInfoProcedure,
+			connect.WithSchema(authServiceMethods.ByName("GetSignUpInfo")),
+			connect.WithClientOptions(opts...),
+		),
+		joinWaitlist: connect.NewClient[v1.JoinWaitlistRequest, v1.JoinWaitlistResponse](
+			httpClient,
+			baseURL+AuthServiceJoinWaitlistProcedure,
+			connect.WithSchema(authServiceMethods.ByName("JoinWaitlist")),
+			connect.WithClientOptions(opts...),
+		),
+		createAccessCode: connect.NewClient[v1.CreateAccessCodeRequest, v1.CreateAccessCodeResponse](
+			httpClient,
+			baseURL+AuthServiceCreateAccessCodeProcedure,
+			connect.WithSchema(authServiceMethods.ByName("CreateAccessCode")),
+			connect.WithClientOptions(opts...),
+		),
+		listAccessCodes: connect.NewClient[v1.ListAccessCodesRequest, v1.ListAccessCodesResponse](
+			httpClient,
+			baseURL+AuthServiceListAccessCodesProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListAccessCodes")),
+			connect.WithClientOptions(opts...),
+		),
+		revokeAccessCode: connect.NewClient[v1.RevokeAccessCodeRequest, v1.RevokeAccessCodeResponse](
+			httpClient,
+			baseURL+AuthServiceRevokeAccessCodeProcedure,
+			connect.WithSchema(authServiceMethods.ByName("RevokeAccessCode")),
+			connect.WithClientOptions(opts...),
+		),
+		listWaitlist: connect.NewClient[v1.ListWaitlistRequest, v1.ListWaitlistResponse](
+			httpClient,
+			baseURL+AuthServiceListWaitlistProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListWaitlist")),
+			connect.WithClientOptions(opts...),
+		),
+		inviteFromWaitlist: connect.NewClient[v1.InviteFromWaitlistRequest, v1.InviteFromWaitlistResponse](
+			httpClient,
+			baseURL+AuthServiceInviteFromWaitlistProcedure,
+			connect.WithSchema(authServiceMethods.ByName("InviteFromWaitlist")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -128,6 +206,13 @@ type authServiceClient struct {
 	verifyEmail          *connect.Client[v1.VerifyEmailRequest, v1.VerifyEmailResponse]
 	requestPasswordReset *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
 	resetPassword        *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
+	getSignUpInfo        *connect.Client[v1.GetSignUpInfoRequest, v1.GetSignUpInfoResponse]
+	joinWaitlist         *connect.Client[v1.JoinWaitlistRequest, v1.JoinWaitlistResponse]
+	createAccessCode     *connect.Client[v1.CreateAccessCodeRequest, v1.CreateAccessCodeResponse]
+	listAccessCodes      *connect.Client[v1.ListAccessCodesRequest, v1.ListAccessCodesResponse]
+	revokeAccessCode     *connect.Client[v1.RevokeAccessCodeRequest, v1.RevokeAccessCodeResponse]
+	listWaitlist         *connect.Client[v1.ListWaitlistRequest, v1.ListWaitlistResponse]
+	inviteFromWaitlist   *connect.Client[v1.InviteFromWaitlistRequest, v1.InviteFromWaitlistResponse]
 }
 
 // SignUp calls perspectiv.v1.AuthService.SignUp.
@@ -165,6 +250,41 @@ func (c *authServiceClient) ResetPassword(ctx context.Context, req *connect.Requ
 	return c.resetPassword.CallUnary(ctx, req)
 }
 
+// GetSignUpInfo calls perspectiv.v1.AuthService.GetSignUpInfo.
+func (c *authServiceClient) GetSignUpInfo(ctx context.Context, req *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error) {
+	return c.getSignUpInfo.CallUnary(ctx, req)
+}
+
+// JoinWaitlist calls perspectiv.v1.AuthService.JoinWaitlist.
+func (c *authServiceClient) JoinWaitlist(ctx context.Context, req *connect.Request[v1.JoinWaitlistRequest]) (*connect.Response[v1.JoinWaitlistResponse], error) {
+	return c.joinWaitlist.CallUnary(ctx, req)
+}
+
+// CreateAccessCode calls perspectiv.v1.AuthService.CreateAccessCode.
+func (c *authServiceClient) CreateAccessCode(ctx context.Context, req *connect.Request[v1.CreateAccessCodeRequest]) (*connect.Response[v1.CreateAccessCodeResponse], error) {
+	return c.createAccessCode.CallUnary(ctx, req)
+}
+
+// ListAccessCodes calls perspectiv.v1.AuthService.ListAccessCodes.
+func (c *authServiceClient) ListAccessCodes(ctx context.Context, req *connect.Request[v1.ListAccessCodesRequest]) (*connect.Response[v1.ListAccessCodesResponse], error) {
+	return c.listAccessCodes.CallUnary(ctx, req)
+}
+
+// RevokeAccessCode calls perspectiv.v1.AuthService.RevokeAccessCode.
+func (c *authServiceClient) RevokeAccessCode(ctx context.Context, req *connect.Request[v1.RevokeAccessCodeRequest]) (*connect.Response[v1.RevokeAccessCodeResponse], error) {
+	return c.revokeAccessCode.CallUnary(ctx, req)
+}
+
+// ListWaitlist calls perspectiv.v1.AuthService.ListWaitlist.
+func (c *authServiceClient) ListWaitlist(ctx context.Context, req *connect.Request[v1.ListWaitlistRequest]) (*connect.Response[v1.ListWaitlistResponse], error) {
+	return c.listWaitlist.CallUnary(ctx, req)
+}
+
+// InviteFromWaitlist calls perspectiv.v1.AuthService.InviteFromWaitlist.
+func (c *authServiceClient) InviteFromWaitlist(ctx context.Context, req *connect.Request[v1.InviteFromWaitlistRequest]) (*connect.Response[v1.InviteFromWaitlistResponse], error) {
+	return c.inviteFromWaitlist.CallUnary(ctx, req)
+}
+
 // AuthServiceHandler is an implementation of the perspectiv.v1.AuthService service.
 type AuthServiceHandler interface {
 	SignUp(context.Context, *connect.Request[v1.SignUpRequest]) (*connect.Response[v1.SignUpResponse], error)
@@ -175,6 +295,21 @@ type AuthServiceHandler interface {
 	VerifyEmail(context.Context, *connect.Request[v1.VerifyEmailRequest]) (*connect.Response[v1.VerifyEmailResponse], error)
 	RequestPasswordReset(context.Context, *connect.Request[v1.RequestPasswordResetRequest]) (*connect.Response[v1.RequestPasswordResetResponse], error)
 	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
+	// Public. Whether signing up needs an access code (the invite-only beta).
+	GetSignUpInfo(context.Context, *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error)
+	// Public. Asks for a place in the beta. Always answers OK, whether or not
+	// the address is already on the list, so it reveals nothing about others.
+	JoinWaitlist(context.Context, *connect.Request[v1.JoinWaitlistRequest]) (*connect.Response[v1.JoinWaitlistResponse], error)
+	// Admin. Issues a beta access code.
+	CreateAccessCode(context.Context, *connect.Request[v1.CreateAccessCodeRequest]) (*connect.Response[v1.CreateAccessCodeResponse], error)
+	// Admin. Beta access codes, newest first.
+	ListAccessCodes(context.Context, *connect.Request[v1.ListAccessCodesRequest]) (*connect.Response[v1.ListAccessCodesResponse], error)
+	// Admin. Stops a code admitting anyone more.
+	RevokeAccessCode(context.Context, *connect.Request[v1.RevokeAccessCodeRequest]) (*connect.Response[v1.RevokeAccessCodeResponse], error)
+	// Admin. The waitlist, oldest first.
+	ListWaitlist(context.Context, *connect.Request[v1.ListWaitlistRequest]) (*connect.Response[v1.ListWaitlistResponse], error)
+	// Admin. Issues a waiting person a single-use code and emails it.
+	InviteFromWaitlist(context.Context, *connect.Request[v1.InviteFromWaitlistRequest]) (*connect.Response[v1.InviteFromWaitlistResponse], error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -226,6 +361,48 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceGetSignUpInfoHandler := connect.NewUnaryHandler(
+		AuthServiceGetSignUpInfoProcedure,
+		svc.GetSignUpInfo,
+		connect.WithSchema(authServiceMethods.ByName("GetSignUpInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceJoinWaitlistHandler := connect.NewUnaryHandler(
+		AuthServiceJoinWaitlistProcedure,
+		svc.JoinWaitlist,
+		connect.WithSchema(authServiceMethods.ByName("JoinWaitlist")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceCreateAccessCodeHandler := connect.NewUnaryHandler(
+		AuthServiceCreateAccessCodeProcedure,
+		svc.CreateAccessCode,
+		connect.WithSchema(authServiceMethods.ByName("CreateAccessCode")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceListAccessCodesHandler := connect.NewUnaryHandler(
+		AuthServiceListAccessCodesProcedure,
+		svc.ListAccessCodes,
+		connect.WithSchema(authServiceMethods.ByName("ListAccessCodes")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceRevokeAccessCodeHandler := connect.NewUnaryHandler(
+		AuthServiceRevokeAccessCodeProcedure,
+		svc.RevokeAccessCode,
+		connect.WithSchema(authServiceMethods.ByName("RevokeAccessCode")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceListWaitlistHandler := connect.NewUnaryHandler(
+		AuthServiceListWaitlistProcedure,
+		svc.ListWaitlist,
+		connect.WithSchema(authServiceMethods.ByName("ListWaitlist")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceInviteFromWaitlistHandler := connect.NewUnaryHandler(
+		AuthServiceInviteFromWaitlistProcedure,
+		svc.InviteFromWaitlist,
+		connect.WithSchema(authServiceMethods.ByName("InviteFromWaitlist")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceSignUpProcedure:
@@ -242,6 +419,20 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceRequestPasswordResetHandler.ServeHTTP(w, r)
 		case AuthServiceResetPasswordProcedure:
 			authServiceResetPasswordHandler.ServeHTTP(w, r)
+		case AuthServiceGetSignUpInfoProcedure:
+			authServiceGetSignUpInfoHandler.ServeHTTP(w, r)
+		case AuthServiceJoinWaitlistProcedure:
+			authServiceJoinWaitlistHandler.ServeHTTP(w, r)
+		case AuthServiceCreateAccessCodeProcedure:
+			authServiceCreateAccessCodeHandler.ServeHTTP(w, r)
+		case AuthServiceListAccessCodesProcedure:
+			authServiceListAccessCodesHandler.ServeHTTP(w, r)
+		case AuthServiceRevokeAccessCodeProcedure:
+			authServiceRevokeAccessCodeHandler.ServeHTTP(w, r)
+		case AuthServiceListWaitlistProcedure:
+			authServiceListWaitlistHandler.ServeHTTP(w, r)
+		case AuthServiceInviteFromWaitlistProcedure:
+			authServiceInviteFromWaitlistHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -277,4 +468,32 @@ func (UnimplementedAuthServiceHandler) RequestPasswordReset(context.Context, *co
 
 func (UnimplementedAuthServiceHandler) ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.ResetPassword is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) GetSignUpInfo(context.Context, *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.GetSignUpInfo is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) JoinWaitlist(context.Context, *connect.Request[v1.JoinWaitlistRequest]) (*connect.Response[v1.JoinWaitlistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.JoinWaitlist is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) CreateAccessCode(context.Context, *connect.Request[v1.CreateAccessCodeRequest]) (*connect.Response[v1.CreateAccessCodeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.CreateAccessCode is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListAccessCodes(context.Context, *connect.Request[v1.ListAccessCodesRequest]) (*connect.Response[v1.ListAccessCodesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.ListAccessCodes is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) RevokeAccessCode(context.Context, *connect.Request[v1.RevokeAccessCodeRequest]) (*connect.Response[v1.RevokeAccessCodeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.RevokeAccessCode is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListWaitlist(context.Context, *connect.Request[v1.ListWaitlistRequest]) (*connect.Response[v1.ListWaitlistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.ListWaitlist is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) InviteFromWaitlist(context.Context, *connect.Request[v1.InviteFromWaitlistRequest]) (*connect.Response[v1.InviteFromWaitlistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.InviteFromWaitlist is not implemented"))
 }

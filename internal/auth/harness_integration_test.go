@@ -80,6 +80,12 @@ func newEnv(t *testing.T) *env {
 // restarts the server: a fresh process with fresh memory, same Postgres.
 func newEnvOn(t *testing.T, pool *pgxpool.Pool) *env {
 	t.Helper()
+	return newEnvMode(t, pool, auth.SignUpOpen)
+}
+
+// newEnvMode is newEnvOn with the given sign-up mode.
+func newEnvMode(t *testing.T, pool *pgxpool.Pool, mode auth.SignUpMode) *env {
+	t.Helper()
 	logs := &syncBuffer{}
 	log := zerolog.New(logs)
 	river, err := jobs.NewClient(pool, log, metrics.New(prometheus.NewRegistry()), nil, nil)
@@ -92,6 +98,7 @@ func newEnvOn(t *testing.T, pool *pgxpool.Pool) *env {
 		PublicBaseURL: baseURL,
 		CookieSecure:  true,
 		BcryptCost:    bcrypt.MinCost,
+		SignUpMode:    mode,
 	}, log)
 	if err != nil {
 		t.Fatalf("auth.NewService: %v", err)

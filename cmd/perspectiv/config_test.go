@@ -51,6 +51,10 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if cfg.RankInterval != 60*time.Second || cfg.CanonMinMembers != 4 || cfg.ExpiryWindow != 168*time.Hour {
 		t.Errorf("defaults: rank %v canon %d expiry %v", cfg.RankInterval, cfg.CanonMinMembers, cfg.ExpiryWindow)
 	}
+	// Unset, sign-up fails closed: invite-only.
+	if cfg.SignUpMode != "invite" {
+		t.Errorf("default sign-up mode = %q, want invite", cfg.SignUpMode)
+	}
 }
 
 func TestLoadConfigRoles(t *testing.T) {
@@ -99,6 +103,8 @@ func TestLoadConfigPerRoleRequirements(t *testing.T) {
 		{"bad rank interval", with(validEnv(), "RANK_INTERVAL", "soon"), "RANK_INTERVAL"},
 		{"zero rank interval", with(validEnv(), "RANK_INTERVAL", "0s"), "RANK_INTERVAL"},
 		{"bad canon minimum", with(validEnv(), "CANON_MIN_MEMBERS", "0"), "CANON_MIN_MEMBERS"},
+		{"unknown sign-up mode", with(validEnv(), "SIGNUP_MODE", "closed"), "SIGNUP_MODE"},
+		{"open sign-up", with(validEnv(), "SIGNUP_MODE", "open"), ""},
 		{"bad expiry window", with(validEnv(), "EXPIRY_WINDOW", "-1h"), "EXPIRY_WINDOW"},
 		{"bad cookie flag", with(validEnv(), "COOKIE_SECURE", "maybe"), "COOKIE_SECURE"},
 		{"bad migrate flag", with(validEnv(), "MIGRATE_ON_START", "yes please"), "MIGRATE_ON_START"},

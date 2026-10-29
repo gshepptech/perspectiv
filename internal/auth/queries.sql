@@ -1,6 +1,6 @@
 -- name: InsertUser :one
-INSERT INTO users (email, password_hash, username, age_confirmed_at)
-VALUES (sqlc.arg(email), sqlc.arg(password_hash), sqlc.arg(username), now())
+INSERT INTO users (email, password_hash, username, age_confirmed_at, joined_with)
+VALUES (sqlc.arg(email), sqlc.arg(password_hash), sqlc.arg(username), now(), sqlc.narg(joined_with))
 RETURNING id;
 
 -- name: GetUserByEmail :one
@@ -129,3 +129,67 @@ RETURNING c.count, c.window_start;
 -- name: DeleteStaleRateWindows :exec
 DELETE FROM rate_limit_counters
 WHERE action = sqlc.arg(action) AND subject = sqlc.arg(subject) AND window_start < sqlc.arg(current_window);
+
+-- name: UseAccessCode :one
+-- Admits one more account on a beta code that is live: not revoked, not
+-- expired and not used up. No row when it cannot.
+UPDATE access_codes SET uses = uses + 1
+WHERE code = sqlc.arg(code)::text
+  AND revoked_at IS NULL
+  AND (expires_at IS NULL OR expires_at > now())
+  AND uses < max_uses
+RETURNING code;
+
+-- name: MemberInviteLive :one
+-- Whether an invite link code belongs to a member in good standing.
+SELECT EXISTS (
+    SELECT 1 FROM invites i JOIN users u ON u.id = i.inviter_id
+    WHERE i.code = sqlc.arg(code)::text AND u.deleted_at IS NULL AND u.suspended_at IS NULL
+)::boolean AS live;
+
+-- name: ActorStanding :one
+-- The stored role and standing of a caller, for admin checks that must not
+-- trust an access token minted before a change.
+SELECT role, suspended_at, deleted_at FROM users WHERE id = sqlc.arg(id)::uuid;
+
+-- name: InsertAccessCode :one
+INSERT INTO access_codes (code, note, max_uses, created_by, expires_at)
+VALUES (sqlc.arg(code)::text, sqlc.arg(note)::text, sqlc.arg(max_uses)::integer, sqlc.arg(created_by)::uuid, sqlc.narg(expires_at))
+RETURNING code, note, max_uses, uses, created_at, expires_at, revoked_at;
+
+-- name: ListAccessCodes :many
+-- Newest first, keyset-paginated on (created_at, code).
+SELECT code, note, max_uses, uses, created_at, expires_at, revoked_at
+FROM access_codes
+WHERE sqlc.narg(after_created)::timestamptz IS NULL
+   OR (created_at, code) < (sqlc.narg(after_created)::timestamptz, sqlc.narg(after_code)::text)
+ORDER BY created_at DESC, code DESC
+LIMIT sqlc.arg(lim)::integer;
+
+-- name: RevokeAccessCode :one
+UPDATE access_codes SET revoked_at = coalesce(revoked_at, now())
+WHERE code = sqlc.arg(code)::text
+RETURNING code, note, max_uses, uses, created_at, expires_at, revoked_at;
+
+-- name: JoinWaitlist :exec
+-- A second request from the same address is a no-op.
+INSERT INTO waitlist (email, note) VALUES (sqlc.arg(email)::text, sqlc.arg(note)::text)
+ON CONFLICT (lower(email)) DO NOTHING;
+
+-- name: ListWaitlist :many
+-- Oldest first, keyset-paginated on (created_at, id).
+SELECT id, email, note, created_at, invited_at, code
+FROM waitlist
+WHERE (NOT sqlc.arg(waiting_only)::boolean OR invited_at IS NULL)
+  AND (sqlc.narg(after_created)::timestamptz IS NULL
+       OR (created_at, id) > (sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
+ORDER BY created_at, id
+LIMIT sqlc.arg(lim)::integer;
+
+-- name: LockWaitlistEntry :one
+SELECT id, email, note, created_at, invited_at, code FROM waitlist WHERE id = sqlc.arg(id)::uuid FOR UPDATE;
+
+-- name: MarkWaitlistInvited :one
+UPDATE waitlist SET invited_at = now(), code = sqlc.arg(code)::text
+WHERE id = sqlc.arg(id)::uuid
+RETURNING id, email, note, created_at, invited_at, code;

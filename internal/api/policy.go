@@ -58,6 +58,13 @@ const (
 var Routes = map[string]Policy{
 	"/perspectiv.v1.AuthService/SignUp":               {Access: Public, RateLimit: LimitSignup},
 	"/perspectiv.v1.AuthService/Login":                {Access: Public, RateLimit: LimitLogin},
+	"/perspectiv.v1.AuthService/GetSignUpInfo":        {Access: Public},
+	"/perspectiv.v1.AuthService/JoinWaitlist":         {Access: Public, RateLimit: LimitSignup},
+	"/perspectiv.v1.AuthService/CreateAccessCode":     {Access: Admin},
+	"/perspectiv.v1.AuthService/ListAccessCodes":      {Access: Admin},
+	"/perspectiv.v1.AuthService/RevokeAccessCode":     {Access: Admin},
+	"/perspectiv.v1.AuthService/ListWaitlist":         {Access: Admin},
+	"/perspectiv.v1.AuthService/InviteFromWaitlist":   {Access: Admin},
 	"/perspectiv.v1.AuthService/Logout":               {Access: Public},
 	"/perspectiv.v1.AuthService/Refresh":              {Access: Public},
 	"/perspectiv.v1.AuthService/VerifyEmail":          {Access: Public},

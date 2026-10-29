@@ -64,11 +64,17 @@ type Config struct {
 	CookieSecure bool
 	// BcryptCost is the password hash cost; 0 selects DefaultBcryptCost.
 	BcryptCost int
+	// SignUpMode is open or invite; there is no default, so a deployment
+	// states which it runs.
+	SignUpMode SignUpMode
 }
 
 func (c Config) validate() error {
 	if len(c.JWTSecret) < MinJWTSecretBytes {
 		return fmt.Errorf("auth: JWT secret must be at least %d bytes", MinJWTSecretBytes)
+	}
+	if c.SignUpMode != SignUpOpen && c.SignUpMode != SignUpInvite {
+		return fmt.Errorf("auth: sign-up mode %q must be open or invite", c.SignUpMode)
 	}
 	u, err := url.Parse(c.PublicBaseURL)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
@@ -152,6 +158,8 @@ type SignUpInput struct {
 	Password     string
 	Username     string
 	AgeConfirmed bool
+	// AccessCode admits the account while sign-up is invite-only.
+	AccessCode string
 }
 
 // SignUp creates an unverified account and, in the same transaction, a
@@ -181,7 +189,13 @@ func (s *Service) SignUp(ctx context.Context, in SignUpInput) (uuid.UUID, error)
 	}
 	var id uuid.UUID
 	err = s.inTx(ctx, func(q *dbq.Queries, tx pgx.Tx) error {
-		id, err = q.InsertUser(ctx, dbq.InsertUserParams{Email: email, PasswordHash: hash, Username: in.Username})
+		// The code is checked before the account exists, so a refused
+		// sign-up reveals nothing about which emails or usernames are taken.
+		joined, err := s.admit(ctx, q, in.AccessCode)
+		if err != nil {
+			return err
+		}
+		id, err = q.InsertUser(ctx, dbq.InsertUserParams{Email: email, PasswordHash: hash, Username: in.Username, JoinedWith: joined})
 		if err != nil {
 			return signUpConflict(err)
 		}

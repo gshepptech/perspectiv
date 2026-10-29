@@ -335,6 +335,8 @@ func TestProductionConfig(t *testing.T) {
 		"MIGRATE_ON_START": "false",
 		"MAIL_PROVIDER":    "resend",
 		"MAIL_FROM":        "Perspectiv <no-reply@perspectiv.example>",
+		// The beta: production starts invite-only.
+		"SIGNUP_MODE": "invite",
 	}
 	for k, v := range want {
 		if vals[k] != v {

@@ -34,6 +34,9 @@ app:
     smtpAddr: ""
   rankInterval: 60s
   canonMinMembers: 4
+  # invite: signing up needs a beta code or a member's invite link (the
+  # beta); open: anyone may sign up. Reading is public either way.
+  signupMode: invite
   expiryWindow: 168h
   logLevel: info
   # Empty disables trace export.

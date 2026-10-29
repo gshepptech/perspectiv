@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/auth.proto.
  */
 export const file_perspectiv_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChhwZXJzcGVjdGl2L3YxL2F1dGgucHJvdG8SDXBlcnNwZWN0aXYudjEiawoLU2Vzc2lvblVzZXISDwoHdXNlcl9pZBgBIAEoCRIQCgh1c2VybmFtZRgCIAEoCRIhCgRyb2xlGAMgASgOMhMucGVyc3BlY3Rpdi52MS5Sb2xlEhYKDmVtYWlsX3ZlcmlmaWVkGAQgASgIIlkKDVNpZ25VcFJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSFQoNYWdlX2NvbmZpcm1lZBgEIAEoCCIhCg5TaWduVXBSZXNwb25zZRIPCgd1c2VyX2lkGAEgASgJIi8KDExvZ2luUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCSKMAQoNTG9naW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSOwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBHVzZXIYAyABKAsyGi5wZXJzcGVjdGl2LnYxLlNlc3Npb25Vc2VyIg8KDUxvZ291dFJlcXVlc3QiEAoOTG9nb3V0UmVzcG9uc2UiEAoOUmVmcmVzaFJlcXVlc3QijgEKD1JlZnJlc2hSZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSOwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBHVzZXIYAyABKAsyGi5wZXJzcGVjdGl2LnYxLlNlc3Npb25Vc2VyIiMKElZlcmlmeUVtYWlsUmVxdWVzdBINCgV0b2tlbhgBIAEoCSIVChNWZXJpZnlFbWFpbFJlc3BvbnNlIiwKG1JlcXVlc3RQYXNzd29yZFJlc2V0UmVxdWVzdBINCgVlbWFpbBgBIAEoCSIeChxSZXF1ZXN0UGFzc3dvcmRSZXNldFJlc3BvbnNlIjsKFFJlc2V0UGFzc3dvcmRSZXF1ZXN0Eg0KBXRva2VuGAEgASgJEhQKDG5ld19wYXNzd29yZBgCIAEoCSIXChVSZXNldFBhc3N3b3JkUmVzcG9uc2UyzAQKC0F1dGhTZXJ2aWNlEkUKBlNpZ25VcBIcLnBlcnNwZWN0aXYudjEuU2lnblVwUmVxdWVzdBodLnBlcnNwZWN0aXYudjEuU2lnblVwUmVzcG9uc2USQgoFTG9naW4SGy5wZXJzcGVjdGl2LnYxLkxvZ2luUmVxdWVzdBocLnBlcnNwZWN0aXYudjEuTG9naW5SZXNwb25zZRJFCgZMb2dvdXQSHC5wZXJzcGVjdGl2LnYxLkxvZ291dFJlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLkxvZ291dFJlc3BvbnNlEkgKB1JlZnJlc2gSHS5wZXJzcGVjdGl2LnYxLlJlZnJlc2hSZXF1ZXN0Gh4ucGVyc3BlY3Rpdi52MS5SZWZyZXNoUmVzcG9uc2USVAoLVmVyaWZ5RW1haWwSIS5wZXJzcGVjdGl2LnYxLlZlcmlmeUVtYWlsUmVxdWVzdBoiLnBlcnNwZWN0aXYudjEuVmVyaWZ5RW1haWxSZXNwb25zZRJvChRSZXF1ZXN0UGFzc3dvcmRSZXNldBIqLnBlcnNwZWN0aXYudjEuUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXF1ZXN0GisucGVyc3BlY3Rpdi52MS5SZXF1ZXN0UGFzc3dvcmRSZXNldFJlc3BvbnNlEloKDVJlc2V0UGFzc3dvcmQSIy5wZXJzcGVjdGl2LnYxLlJlc2V0UGFzc3dvcmRSZXF1ZXN0GiQucGVyc3BlY3Rpdi52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2VCngEKEWNvbS5wZXJzcGVjdGl2LnYxQglBdXRoUHJvdG9QAVopcGVyc3BlY3Rpdi9nZW4vcGVyc3BlY3Rpdi92MTtwZXJzcGVjdGl2djGiAgNQWFiqAg1QZXJzcGVjdGl2LlYxygINUGVyc3BlY3RpdlxWMeICGVBlcnNwZWN0aXZcVjFcR1BCTWV0YWRhdGHqAg5QZXJzcGVjdGl2OjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_perspectiv_v1_enums]);
+  fileDesc("ChhwZXJzcGVjdGl2L3YxL2F1dGgucHJvdG8SDXBlcnNwZWN0aXYudjEiawoLU2Vzc2lvblVzZXISDwoHdXNlcl9pZBgBIAEoCRIQCgh1c2VybmFtZRgCIAEoCRIhCgRyb2xlGAMgASgOMhMucGVyc3BlY3Rpdi52MS5Sb2xlEhYKDmVtYWlsX3ZlcmlmaWVkGAQgASgIIm4KDVNpZ25VcFJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSFQoNYWdlX2NvbmZpcm1lZBgEIAEoCBITCgthY2Nlc3NfY29kZRgFIAEoCSIhCg5TaWduVXBSZXNwb25zZRIPCgd1c2VyX2lkGAEgASgJIi8KDExvZ2luUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCSKMAQoNTG9naW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSOwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBHVzZXIYAyABKAsyGi5wZXJzcGVjdGl2LnYxLlNlc3Npb25Vc2VyIg8KDUxvZ291dFJlcXVlc3QiEAoOTG9nb3V0UmVzcG9uc2UiEAoOUmVmcmVzaFJlcXVlc3QijgEKD1JlZnJlc2hSZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSOwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBHVzZXIYAyABKAsyGi5wZXJzcGVjdGl2LnYxLlNlc3Npb25Vc2VyIiMKElZlcmlmeUVtYWlsUmVxdWVzdBINCgV0b2tlbhgBIAEoCSIVChNWZXJpZnlFbWFpbFJlc3BvbnNlIiwKG1JlcXVlc3RQYXNzd29yZFJlc2V0UmVxdWVzdBINCgVlbWFpbBgBIAEoCSIeChxSZXF1ZXN0UGFzc3dvcmRSZXNldFJlc3BvbnNlIjsKFFJlc2V0UGFzc3dvcmRSZXF1ZXN0Eg0KBXRva2VuGAEgASgJEhQKDG5ld19wYXNzd29yZBgCIAEoCSIXChVSZXNldFBhc3N3b3JkUmVzcG9uc2UiFgoUR2V0U2lnblVwSW5mb1JlcXVlc3QiLAoVR2V0U2lnblVwSW5mb1Jlc3BvbnNlEhMKC2ludml0ZV9vbmx5GAEgASgIIjIKE0pvaW5XYWl0bGlzdFJlcXVlc3QSDQoFZW1haWwYASABKAkSDAoEbm90ZRgCIAEoCSIWChRKb2luV2FpdGxpc3RSZXNwb25zZSK5AQoKQWNjZXNzQ29kZRIMCgRjb2RlGAEgASgJEgwKBG5vdGUYAiABKAkSEAoIbWF4X3VzZXMYAyABKAUSDAoEdXNlcxgEIAEoBRIuCgpjcmVhdGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpleHBpcmVzX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIPCgdyZXZva2VkGAcgASgIImAKF0NyZWF0ZUFjY2Vzc0NvZGVSZXF1ZXN0EgwKBGNvZGUYASABKAkSDAoEbm90ZRgCIAEoCRIQCghtYXhfdXNlcxgDIAEoBRIXCg9leHBpcmVzX2luX2RheXMYBCABKAUiQwoYQ3JlYXRlQWNjZXNzQ29kZVJlc3BvbnNlEicKBGNvZGUYASABKAsyGS5wZXJzcGVjdGl2LnYxLkFjY2Vzc0NvZGUiPwoWTGlzdEFjY2Vzc0NvZGVzUmVxdWVzdBISCgpwYWdlX3Rva2VuGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBSJcChdMaXN0QWNjZXNzQ29kZXNSZXNwb25zZRIoCgVjb2RlcxgBIAMoCzIZLnBlcnNwZWN0aXYudjEuQWNjZXNzQ29kZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiJwoXUmV2b2tlQWNjZXNzQ29kZVJlcXVlc3QSDAoEY29kZRgBIAEoCSJDChhSZXZva2VBY2Nlc3NDb2RlUmVzcG9uc2USJwoEY29kZRgBIAEoCzIZLnBlcnNwZWN0aXYudjEuQWNjZXNzQ29kZSKrAQoNV2FpdGxpc3RFbnRyeRIKCgJpZBgBIAEoCRISCgplbWFpbF9oaW50GAIgASgJEgwKBG5vdGUYAyABKAkSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKaW52aXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEY29kZRgGIAEoCSJSChNMaXN0V2FpdGxpc3RSZXF1ZXN0EhQKDHdhaXRpbmdfb25seRgBIAEoCBISCgpwYWdlX3Rva2VuGAIgASgJEhEKCXBhZ2Vfc2l6ZRgDIAEoBSJeChRMaXN0V2FpdGxpc3RSZXNwb25zZRItCgdlbnRyaWVzGAEgAygLMhwucGVyc3BlY3Rpdi52MS5XYWl0bGlzdEVudHJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSInChlJbnZpdGVGcm9tV2FpdGxpc3RSZXF1ZXN0EgoKAmlkGAEgASgJIkkKGkludml0ZUZyb21XYWl0bGlzdFJlc3BvbnNlEisKBWVudHJ5GAEgASgLMhwucGVyc3BlY3Rpdi52MS5XYWl0bGlzdEVudHJ5MvEJCgtBdXRoU2VydmljZRJFCgZTaWduVXASHC5wZXJzcGVjdGl2LnYxLlNpZ25VcFJlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLlNpZ25VcFJlc3BvbnNlEkIKBUxvZ2luEhsucGVyc3BlY3Rpdi52MS5Mb2dpblJlcXVlc3QaHC5wZXJzcGVjdGl2LnYxLkxvZ2luUmVzcG9uc2USRQoGTG9nb3V0EhwucGVyc3BlY3Rpdi52MS5Mb2dvdXRSZXF1ZXN0Gh0ucGVyc3BlY3Rpdi52MS5Mb2dvdXRSZXNwb25zZRJICgdSZWZyZXNoEh0ucGVyc3BlY3Rpdi52MS5SZWZyZXNoUmVxdWVzdBoeLnBlcnNwZWN0aXYudjEuUmVmcmVzaFJlc3BvbnNlElQKC1ZlcmlmeUVtYWlsEiEucGVyc3BlY3Rpdi52MS5WZXJpZnlFbWFpbFJlcXVlc3QaIi5wZXJzcGVjdGl2LnYxLlZlcmlmeUVtYWlsUmVzcG9uc2USbwoUUmVxdWVzdFBhc3N3b3JkUmVzZXQSKi5wZXJzcGVjdGl2LnYxLlJlcXVlc3RQYXNzd29yZFJlc2V0UmVxdWVzdBorLnBlcnNwZWN0aXYudjEuUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXNwb25zZRJaCg1SZXNldFBhc3N3b3JkEiMucGVyc3BlY3Rpdi52MS5SZXNldFBhc3N3b3JkUmVxdWVzdBokLnBlcnNwZWN0aXYudjEuUmVzZXRQYXNzd29yZFJlc3BvbnNlEloKDUdldFNpZ25VcEluZm8SIy5wZXJzcGVjdGl2LnYxLkdldFNpZ25VcEluZm9SZXF1ZXN0GiQucGVyc3BlY3Rpdi52MS5HZXRTaWduVXBJbmZvUmVzcG9uc2USVwoMSm9pbldhaXRsaXN0EiIucGVyc3BlY3Rpdi52MS5Kb2luV2FpdGxpc3RSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5Kb2luV2FpdGxpc3RSZXNwb25zZRJjChBDcmVhdGVBY2Nlc3NDb2RlEiYucGVyc3BlY3Rpdi52MS5DcmVhdGVBY2Nlc3NDb2RlUmVxdWVzdBonLnBlcnNwZWN0aXYudjEuQ3JlYXRlQWNjZXNzQ29kZVJlc3BvbnNlEmAKD0xpc3RBY2Nlc3NDb2RlcxIlLnBlcnNwZWN0aXYudjEuTGlzdEFjY2Vzc0NvZGVzUmVxdWVzdBomLnBlcnNwZWN0aXYudjEuTGlzdEFjY2Vzc0NvZGVzUmVzcG9uc2USYwoQUmV2b2tlQWNjZXNzQ29kZRImLnBlcnNwZWN0aXYudjEuUmV2b2tlQWNjZXNzQ29kZVJlcXVlc3QaJy5wZXJzcGVjdGl2LnYxLlJldm9rZUFjY2Vzc0NvZGVSZXNwb25zZRJXCgxMaXN0V2FpdGxpc3QSIi5wZXJzcGVjdGl2LnYxLkxpc3RXYWl0bGlzdFJlcXVlc3QaIy5wZXJzcGVjdGl2LnYxLkxpc3RXYWl0bGlzdFJlc3BvbnNlEmkKEkludml0ZUZyb21XYWl0bGlzdBIoLnBlcnNwZWN0aXYudjEuSW52aXRlRnJvbVdhaXRsaXN0UmVxdWVzdBopLnBlcnNwZWN0aXYudjEuSW52aXRlRnJvbVdhaXRsaXN0UmVzcG9uc2VCngEKEWNvbS5wZXJzcGVjdGl2LnYxQglBdXRoUHJvdG9QAVopcGVyc3BlY3Rpdi9nZW4vcGVyc3BlY3Rpdi92MTtwZXJzcGVjdGl2djGiAgNQWFiqAg1QZXJzcGVjdGl2LlYxygINUGVyc3BlY3RpdlxWMeICGVBlcnNwZWN0aXZcVjFcR1BCTWV0YWRhdGHqAg5QZXJzcGVjdGl2OjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_perspectiv_v1_enums]);
 
 /**
  * SessionUser is the signed-in caller as the web app's session sees it.
@@ -75,6 +75,14 @@ export type SignUpRequest = Message<"perspectiv.v1.SignUpRequest"> & {
    * @generated from field: bool age_confirmed = 4;
    */
   ageConfirmed: boolean;
+
+  /**
+   * While sign-up is invite-only: a beta access code, or the code of a
+   * member's invite link. Ignored while sign-up is open.
+   *
+   * @generated from field: string access_code = 5;
+   */
+  accessCode: string;
 };
 
 /**
@@ -314,6 +322,398 @@ export const ResetPasswordResponseSchema: GenMessage<ResetPasswordResponse> = /*
   messageDesc(file_perspectiv_v1_auth, 14);
 
 /**
+ * @generated from message perspectiv.v1.GetSignUpInfoRequest
+ */
+export type GetSignUpInfoRequest = Message<"perspectiv.v1.GetSignUpInfoRequest"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.GetSignUpInfoRequest.
+ * Use `create(GetSignUpInfoRequestSchema)` to create a new message.
+ */
+export const GetSignUpInfoRequestSchema: GenMessage<GetSignUpInfoRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 15);
+
+/**
+ * @generated from message perspectiv.v1.GetSignUpInfoResponse
+ */
+export type GetSignUpInfoResponse = Message<"perspectiv.v1.GetSignUpInfoResponse"> & {
+  /**
+   * True while signing up needs an access code.
+   *
+   * @generated from field: bool invite_only = 1;
+   */
+  inviteOnly: boolean;
+};
+
+/**
+ * Describes the message perspectiv.v1.GetSignUpInfoResponse.
+ * Use `create(GetSignUpInfoResponseSchema)` to create a new message.
+ */
+export const GetSignUpInfoResponseSchema: GenMessage<GetSignUpInfoResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 16);
+
+/**
+ * @generated from message perspectiv.v1.JoinWaitlistRequest
+ */
+export type JoinWaitlistRequest = Message<"perspectiv.v1.JoinWaitlistRequest"> & {
+  /**
+   * @generated from field: string email = 1;
+   */
+  email: string;
+
+  /**
+   * Optional, up to 300 characters: where they would write about.
+   *
+   * @generated from field: string note = 2;
+   */
+  note: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.JoinWaitlistRequest.
+ * Use `create(JoinWaitlistRequestSchema)` to create a new message.
+ */
+export const JoinWaitlistRequestSchema: GenMessage<JoinWaitlistRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 17);
+
+/**
+ * @generated from message perspectiv.v1.JoinWaitlistResponse
+ */
+export type JoinWaitlistResponse = Message<"perspectiv.v1.JoinWaitlistResponse"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.JoinWaitlistResponse.
+ * Use `create(JoinWaitlistResponseSchema)` to create a new message.
+ */
+export const JoinWaitlistResponseSchema: GenMessage<JoinWaitlistResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 18);
+
+/**
+ * AccessCode is one beta access code.
+ *
+ * @generated from message perspectiv.v1.AccessCode
+ */
+export type AccessCode = Message<"perspectiv.v1.AccessCode"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+
+  /**
+   * @generated from field: string note = 2;
+   */
+  note: string;
+
+  /**
+   * @generated from field: int32 max_uses = 3;
+   */
+  maxUses: number;
+
+  /**
+   * @generated from field: int32 uses = 4;
+   */
+  uses: number;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 5;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * Unset when the code does not expire.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 6;
+   */
+  expiresAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: bool revoked = 7;
+   */
+  revoked: boolean;
+};
+
+/**
+ * Describes the message perspectiv.v1.AccessCode.
+ * Use `create(AccessCodeSchema)` to create a new message.
+ */
+export const AccessCodeSchema: GenMessage<AccessCode> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 19);
+
+/**
+ * @generated from message perspectiv.v1.CreateAccessCodeRequest
+ */
+export type CreateAccessCodeRequest = Message<"perspectiv.v1.CreateAccessCodeRequest"> & {
+  /**
+   * Lower-case letters, digits and dashes, 4 to 32; empty generates one.
+   *
+   * @generated from field: string code = 1;
+   */
+  code: string;
+
+  /**
+   * Up to 200 characters: who it is for.
+   *
+   * @generated from field: string note = 2;
+   */
+  note: string;
+
+  /**
+   * 1 to 10,000.
+   *
+   * @generated from field: int32 max_uses = 3;
+   */
+  maxUses: number;
+
+  /**
+   * 0 never expires; up to 365.
+   *
+   * @generated from field: int32 expires_in_days = 4;
+   */
+  expiresInDays: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.CreateAccessCodeRequest.
+ * Use `create(CreateAccessCodeRequestSchema)` to create a new message.
+ */
+export const CreateAccessCodeRequestSchema: GenMessage<CreateAccessCodeRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 20);
+
+/**
+ * @generated from message perspectiv.v1.CreateAccessCodeResponse
+ */
+export type CreateAccessCodeResponse = Message<"perspectiv.v1.CreateAccessCodeResponse"> & {
+  /**
+   * @generated from field: perspectiv.v1.AccessCode code = 1;
+   */
+  code?: AccessCode | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.CreateAccessCodeResponse.
+ * Use `create(CreateAccessCodeResponseSchema)` to create a new message.
+ */
+export const CreateAccessCodeResponseSchema: GenMessage<CreateAccessCodeResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 21);
+
+/**
+ * @generated from message perspectiv.v1.ListAccessCodesRequest
+ */
+export type ListAccessCodesRequest = Message<"perspectiv.v1.ListAccessCodesRequest"> & {
+  /**
+   * @generated from field: string page_token = 1;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: int32 page_size = 2;
+   */
+  pageSize: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListAccessCodesRequest.
+ * Use `create(ListAccessCodesRequestSchema)` to create a new message.
+ */
+export const ListAccessCodesRequestSchema: GenMessage<ListAccessCodesRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 22);
+
+/**
+ * @generated from message perspectiv.v1.ListAccessCodesResponse
+ */
+export type ListAccessCodesResponse = Message<"perspectiv.v1.ListAccessCodesResponse"> & {
+  /**
+   * @generated from field: repeated perspectiv.v1.AccessCode codes = 1;
+   */
+  codes: AccessCode[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListAccessCodesResponse.
+ * Use `create(ListAccessCodesResponseSchema)` to create a new message.
+ */
+export const ListAccessCodesResponseSchema: GenMessage<ListAccessCodesResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 23);
+
+/**
+ * @generated from message perspectiv.v1.RevokeAccessCodeRequest
+ */
+export type RevokeAccessCodeRequest = Message<"perspectiv.v1.RevokeAccessCodeRequest"> & {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.RevokeAccessCodeRequest.
+ * Use `create(RevokeAccessCodeRequestSchema)` to create a new message.
+ */
+export const RevokeAccessCodeRequestSchema: GenMessage<RevokeAccessCodeRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 24);
+
+/**
+ * @generated from message perspectiv.v1.RevokeAccessCodeResponse
+ */
+export type RevokeAccessCodeResponse = Message<"perspectiv.v1.RevokeAccessCodeResponse"> & {
+  /**
+   * @generated from field: perspectiv.v1.AccessCode code = 1;
+   */
+  code?: AccessCode | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.RevokeAccessCodeResponse.
+ * Use `create(RevokeAccessCodeResponseSchema)` to create a new message.
+ */
+export const RevokeAccessCodeResponseSchema: GenMessage<RevokeAccessCodeResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 25);
+
+/**
+ * WaitlistEntry is one person asking to join.
+ *
+ * @generated from message perspectiv.v1.WaitlistEntry
+ */
+export type WaitlistEntry = Message<"perspectiv.v1.WaitlistEntry"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The address masked ("pa•••@example.test"): admins recognise people by
+   * it, and the invite itself is emailed by the server, so no full address
+   * leaves it.
+   *
+   * @generated from field: string email_hint = 2;
+   */
+  emailHint: string;
+
+  /**
+   * @generated from field: string note = 3;
+   */
+  note: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 4;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * Unset until an admin invites them.
+   *
+   * @generated from field: google.protobuf.Timestamp invited_at = 5;
+   */
+  invitedAt?: Timestamp | undefined;
+
+  /**
+   * The single-use code they were sent; empty until invited.
+   *
+   * @generated from field: string code = 6;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.WaitlistEntry.
+ * Use `create(WaitlistEntrySchema)` to create a new message.
+ */
+export const WaitlistEntrySchema: GenMessage<WaitlistEntry> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 26);
+
+/**
+ * @generated from message perspectiv.v1.ListWaitlistRequest
+ */
+export type ListWaitlistRequest = Message<"perspectiv.v1.ListWaitlistRequest"> & {
+  /**
+   * True lists only people not yet invited.
+   *
+   * @generated from field: bool waiting_only = 1;
+   */
+  waitingOnly: boolean;
+
+  /**
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: int32 page_size = 3;
+   */
+  pageSize: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListWaitlistRequest.
+ * Use `create(ListWaitlistRequestSchema)` to create a new message.
+ */
+export const ListWaitlistRequestSchema: GenMessage<ListWaitlistRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 27);
+
+/**
+ * @generated from message perspectiv.v1.ListWaitlistResponse
+ */
+export type ListWaitlistResponse = Message<"perspectiv.v1.ListWaitlistResponse"> & {
+  /**
+   * @generated from field: repeated perspectiv.v1.WaitlistEntry entries = 1;
+   */
+  entries: WaitlistEntry[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListWaitlistResponse.
+ * Use `create(ListWaitlistResponseSchema)` to create a new message.
+ */
+export const ListWaitlistResponseSchema: GenMessage<ListWaitlistResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 28);
+
+/**
+ * @generated from message perspectiv.v1.InviteFromWaitlistRequest
+ */
+export type InviteFromWaitlistRequest = Message<"perspectiv.v1.InviteFromWaitlistRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.InviteFromWaitlistRequest.
+ * Use `create(InviteFromWaitlistRequestSchema)` to create a new message.
+ */
+export const InviteFromWaitlistRequestSchema: GenMessage<InviteFromWaitlistRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 29);
+
+/**
+ * @generated from message perspectiv.v1.InviteFromWaitlistResponse
+ */
+export type InviteFromWaitlistResponse = Message<"perspectiv.v1.InviteFromWaitlistResponse"> & {
+  /**
+   * @generated from field: perspectiv.v1.WaitlistEntry entry = 1;
+   */
+  entry?: WaitlistEntry | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.InviteFromWaitlistResponse.
+ * Use `create(InviteFromWaitlistResponseSchema)` to create a new message.
+ */
+export const InviteFromWaitlistResponseSchema: GenMessage<InviteFromWaitlistResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 30);
+
+/**
  * AuthService signs users up and in. The access token is returned in the body
  * for the browser to hold in memory; the refresh token travels only as an
  * HttpOnly cookie and never appears in a message.
@@ -378,6 +778,77 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof ResetPasswordRequestSchema;
     output: typeof ResetPasswordResponseSchema;
+  },
+  /**
+   * Public. Whether signing up needs an access code (the invite-only beta).
+   *
+   * @generated from rpc perspectiv.v1.AuthService.GetSignUpInfo
+   */
+  getSignUpInfo: {
+    methodKind: "unary";
+    input: typeof GetSignUpInfoRequestSchema;
+    output: typeof GetSignUpInfoResponseSchema;
+  },
+  /**
+   * Public. Asks for a place in the beta. Always answers OK, whether or not
+   * the address is already on the list, so it reveals nothing about others.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.JoinWaitlist
+   */
+  joinWaitlist: {
+    methodKind: "unary";
+    input: typeof JoinWaitlistRequestSchema;
+    output: typeof JoinWaitlistResponseSchema;
+  },
+  /**
+   * Admin. Issues a beta access code.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.CreateAccessCode
+   */
+  createAccessCode: {
+    methodKind: "unary";
+    input: typeof CreateAccessCodeRequestSchema;
+    output: typeof CreateAccessCodeResponseSchema;
+  },
+  /**
+   * Admin. Beta access codes, newest first.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.ListAccessCodes
+   */
+  listAccessCodes: {
+    methodKind: "unary";
+    input: typeof ListAccessCodesRequestSchema;
+    output: typeof ListAccessCodesResponseSchema;
+  },
+  /**
+   * Admin. Stops a code admitting anyone more.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.RevokeAccessCode
+   */
+  revokeAccessCode: {
+    methodKind: "unary";
+    input: typeof RevokeAccessCodeRequestSchema;
+    output: typeof RevokeAccessCodeResponseSchema;
+  },
+  /**
+   * Admin. The waitlist, oldest first.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.ListWaitlist
+   */
+  listWaitlist: {
+    methodKind: "unary";
+    input: typeof ListWaitlistRequestSchema;
+    output: typeof ListWaitlistResponseSchema;
+  },
+  /**
+   * Admin. Issues a waiting person a single-use code and emails it.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.InviteFromWaitlist
+   */
+  inviteFromWaitlist: {
+    methodKind: "unary";
+    input: typeof InviteFromWaitlistRequestSchema;
+    output: typeof InviteFromWaitlistResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_auth, 0);

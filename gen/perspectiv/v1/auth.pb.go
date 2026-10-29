@@ -97,7 +97,10 @@ type SignUpRequest struct {
 	Password string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	Username string                 `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
 	// The 18-or-over confirmation; false is rejected.
-	AgeConfirmed  bool `protobuf:"varint,4,opt,name=age_confirmed,json=ageConfirmed,proto3" json:"age_confirmed,omitempty"`
+	AgeConfirmed bool `protobuf:"varint,4,opt,name=age_confirmed,json=ageConfirmed,proto3" json:"age_confirmed,omitempty"`
+	// While sign-up is invite-only: a beta access code, or the code of a
+	// member's invite link. Ignored while sign-up is open.
+	AccessCode    string `protobuf:"bytes,5,opt,name=access_code,json=accessCode,proto3" json:"access_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -158,6 +161,13 @@ func (x *SignUpRequest) GetAgeConfirmed() bool {
 		return x.AgeConfirmed
 	}
 	return false
+}
+
+func (x *SignUpRequest) GetAccessCode() string {
+	if x != nil {
+		return x.AccessCode
+	}
+	return ""
 }
 
 type SignUpResponse struct {
@@ -733,6 +743,869 @@ func (*ResetPasswordResponse) Descriptor() ([]byte, []int) {
 	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{14}
 }
 
+type GetSignUpInfoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSignUpInfoRequest) Reset() {
+	*x = GetSignUpInfoRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSignUpInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSignUpInfoRequest) ProtoMessage() {}
+
+func (x *GetSignUpInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSignUpInfoRequest.ProtoReflect.Descriptor instead.
+func (*GetSignUpInfoRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{15}
+}
+
+type GetSignUpInfoResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// True while signing up needs an access code.
+	InviteOnly    bool `protobuf:"varint,1,opt,name=invite_only,json=inviteOnly,proto3" json:"invite_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSignUpInfoResponse) Reset() {
+	*x = GetSignUpInfoResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSignUpInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSignUpInfoResponse) ProtoMessage() {}
+
+func (x *GetSignUpInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSignUpInfoResponse.ProtoReflect.Descriptor instead.
+func (*GetSignUpInfoResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetSignUpInfoResponse) GetInviteOnly() bool {
+	if x != nil {
+		return x.InviteOnly
+	}
+	return false
+}
+
+type JoinWaitlistRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Email string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	// Optional, up to 300 characters: where they would write about.
+	Note          string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinWaitlistRequest) Reset() {
+	*x = JoinWaitlistRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinWaitlistRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinWaitlistRequest) ProtoMessage() {}
+
+func (x *JoinWaitlistRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinWaitlistRequest.ProtoReflect.Descriptor instead.
+func (*JoinWaitlistRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *JoinWaitlistRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *JoinWaitlistRequest) GetNote() string {
+	if x != nil {
+		return x.Note
+	}
+	return ""
+}
+
+type JoinWaitlistResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JoinWaitlistResponse) Reset() {
+	*x = JoinWaitlistResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JoinWaitlistResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JoinWaitlistResponse) ProtoMessage() {}
+
+func (x *JoinWaitlistResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JoinWaitlistResponse.ProtoReflect.Descriptor instead.
+func (*JoinWaitlistResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{18}
+}
+
+// AccessCode is one beta access code.
+type AccessCode struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Code      string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	Note      string                 `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
+	MaxUses   int32                  `protobuf:"varint,3,opt,name=max_uses,json=maxUses,proto3" json:"max_uses,omitempty"`
+	Uses      int32                  `protobuf:"varint,4,opt,name=uses,proto3" json:"uses,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Unset when the code does not expire.
+	ExpiresAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Revoked       bool                   `protobuf:"varint,7,opt,name=revoked,proto3" json:"revoked,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccessCode) Reset() {
+	*x = AccessCode{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccessCode) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccessCode) ProtoMessage() {}
+
+func (x *AccessCode) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccessCode.ProtoReflect.Descriptor instead.
+func (*AccessCode) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *AccessCode) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *AccessCode) GetNote() string {
+	if x != nil {
+		return x.Note
+	}
+	return ""
+}
+
+func (x *AccessCode) GetMaxUses() int32 {
+	if x != nil {
+		return x.MaxUses
+	}
+	return 0
+}
+
+func (x *AccessCode) GetUses() int32 {
+	if x != nil {
+		return x.Uses
+	}
+	return 0
+}
+
+func (x *AccessCode) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *AccessCode) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return nil
+}
+
+func (x *AccessCode) GetRevoked() bool {
+	if x != nil {
+		return x.Revoked
+	}
+	return false
+}
+
+type CreateAccessCodeRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Lower-case letters, digits and dashes, 4 to 32; empty generates one.
+	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	// Up to 200 characters: who it is for.
+	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
+	// 1 to 10,000.
+	MaxUses int32 `protobuf:"varint,3,opt,name=max_uses,json=maxUses,proto3" json:"max_uses,omitempty"`
+	// 0 never expires; up to 365.
+	ExpiresInDays int32 `protobuf:"varint,4,opt,name=expires_in_days,json=expiresInDays,proto3" json:"expires_in_days,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAccessCodeRequest) Reset() {
+	*x = CreateAccessCodeRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAccessCodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAccessCodeRequest) ProtoMessage() {}
+
+func (x *CreateAccessCodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAccessCodeRequest.ProtoReflect.Descriptor instead.
+func (*CreateAccessCodeRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *CreateAccessCodeRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+func (x *CreateAccessCodeRequest) GetNote() string {
+	if x != nil {
+		return x.Note
+	}
+	return ""
+}
+
+func (x *CreateAccessCodeRequest) GetMaxUses() int32 {
+	if x != nil {
+		return x.MaxUses
+	}
+	return 0
+}
+
+func (x *CreateAccessCodeRequest) GetExpiresInDays() int32 {
+	if x != nil {
+		return x.ExpiresInDays
+	}
+	return 0
+}
+
+type CreateAccessCodeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          *AccessCode            `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateAccessCodeResponse) Reset() {
+	*x = CreateAccessCodeResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAccessCodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAccessCodeResponse) ProtoMessage() {}
+
+func (x *CreateAccessCodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAccessCodeResponse.ProtoReflect.Descriptor instead.
+func (*CreateAccessCodeResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CreateAccessCodeResponse) GetCode() *AccessCode {
+	if x != nil {
+		return x.Code
+	}
+	return nil
+}
+
+type ListAccessCodesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageToken     string                 `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccessCodesRequest) Reset() {
+	*x = ListAccessCodesRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccessCodesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccessCodesRequest) ProtoMessage() {}
+
+func (x *ListAccessCodesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccessCodesRequest.ProtoReflect.Descriptor instead.
+func (*ListAccessCodesRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListAccessCodesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListAccessCodesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type ListAccessCodesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Codes         []*AccessCode          `protobuf:"bytes,1,rep,name=codes,proto3" json:"codes,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccessCodesResponse) Reset() {
+	*x = ListAccessCodesResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccessCodesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccessCodesResponse) ProtoMessage() {}
+
+func (x *ListAccessCodesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccessCodesResponse.ProtoReflect.Descriptor instead.
+func (*ListAccessCodesResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ListAccessCodesResponse) GetCodes() []*AccessCode {
+	if x != nil {
+		return x.Codes
+	}
+	return nil
+}
+
+func (x *ListAccessCodesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type RevokeAccessCodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeAccessCodeRequest) Reset() {
+	*x = RevokeAccessCodeRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeAccessCodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeAccessCodeRequest) ProtoMessage() {}
+
+func (x *RevokeAccessCodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeAccessCodeRequest.ProtoReflect.Descriptor instead.
+func (*RevokeAccessCodeRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *RevokeAccessCodeRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type RevokeAccessCodeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          *AccessCode            `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeAccessCodeResponse) Reset() {
+	*x = RevokeAccessCodeResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeAccessCodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeAccessCodeResponse) ProtoMessage() {}
+
+func (x *RevokeAccessCodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeAccessCodeResponse.ProtoReflect.Descriptor instead.
+func (*RevokeAccessCodeResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *RevokeAccessCodeResponse) GetCode() *AccessCode {
+	if x != nil {
+		return x.Code
+	}
+	return nil
+}
+
+// WaitlistEntry is one person asking to join.
+type WaitlistEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// The address masked ("pa•••@example.test"): admins recognise people by
+	// it, and the invite itself is emailed by the server, so no full address
+	// leaves it.
+	EmailHint string                 `protobuf:"bytes,2,opt,name=email_hint,json=emailHint,proto3" json:"email_hint,omitempty"`
+	Note      string                 `protobuf:"bytes,3,opt,name=note,proto3" json:"note,omitempty"`
+	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Unset until an admin invites them.
+	InvitedAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=invited_at,json=invitedAt,proto3" json:"invited_at,omitempty"`
+	// The single-use code they were sent; empty until invited.
+	Code          string `protobuf:"bytes,6,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WaitlistEntry) Reset() {
+	*x = WaitlistEntry{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WaitlistEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WaitlistEntry) ProtoMessage() {}
+
+func (x *WaitlistEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WaitlistEntry.ProtoReflect.Descriptor instead.
+func (*WaitlistEntry) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *WaitlistEntry) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *WaitlistEntry) GetEmailHint() string {
+	if x != nil {
+		return x.EmailHint
+	}
+	return ""
+}
+
+func (x *WaitlistEntry) GetNote() string {
+	if x != nil {
+		return x.Note
+	}
+	return ""
+}
+
+func (x *WaitlistEntry) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *WaitlistEntry) GetInvitedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.InvitedAt
+	}
+	return nil
+}
+
+func (x *WaitlistEntry) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type ListWaitlistRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// True lists only people not yet invited.
+	WaitingOnly   bool   `protobuf:"varint,1,opt,name=waiting_only,json=waitingOnly,proto3" json:"waiting_only,omitempty"`
+	PageToken     string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWaitlistRequest) Reset() {
+	*x = ListWaitlistRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWaitlistRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWaitlistRequest) ProtoMessage() {}
+
+func (x *ListWaitlistRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWaitlistRequest.ProtoReflect.Descriptor instead.
+func (*ListWaitlistRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ListWaitlistRequest) GetWaitingOnly() bool {
+	if x != nil {
+		return x.WaitingOnly
+	}
+	return false
+}
+
+func (x *ListWaitlistRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListWaitlistRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type ListWaitlistResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*WaitlistEntry       `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWaitlistResponse) Reset() {
+	*x = ListWaitlistResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWaitlistResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWaitlistResponse) ProtoMessage() {}
+
+func (x *ListWaitlistResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWaitlistResponse.ProtoReflect.Descriptor instead.
+func (*ListWaitlistResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *ListWaitlistResponse) GetEntries() []*WaitlistEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *ListWaitlistResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type InviteFromWaitlistRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InviteFromWaitlistRequest) Reset() {
+	*x = InviteFromWaitlistRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InviteFromWaitlistRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InviteFromWaitlistRequest) ProtoMessage() {}
+
+func (x *InviteFromWaitlistRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InviteFromWaitlistRequest.ProtoReflect.Descriptor instead.
+func (*InviteFromWaitlistRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *InviteFromWaitlistRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type InviteFromWaitlistResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entry         *WaitlistEntry         `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InviteFromWaitlistResponse) Reset() {
+	*x = InviteFromWaitlistResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InviteFromWaitlistResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InviteFromWaitlistResponse) ProtoMessage() {}
+
+func (x *InviteFromWaitlistResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InviteFromWaitlistResponse.ProtoReflect.Descriptor instead.
+func (*InviteFromWaitlistResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *InviteFromWaitlistResponse) GetEntry() *WaitlistEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
 var File_perspectiv_v1_auth_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_auth_proto_rawDesc = "" +
@@ -742,12 +1615,14 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12'\n" +
 	"\x04role\x18\x03 \x01(\x0e2\x13.perspectiv.v1.RoleR\x04role\x12%\n" +
-	"\x0eemail_verified\x18\x04 \x01(\bR\remailVerified\"\x82\x01\n" +
+	"\x0eemail_verified\x18\x04 \x01(\bR\remailVerified\"\xa3\x01\n" +
 	"\rSignUpRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x1a\n" +
 	"\busername\x18\x03 \x01(\tR\busername\x12#\n" +
-	"\rage_confirmed\x18\x04 \x01(\bR\fageConfirmed\")\n" +
+	"\rage_confirmed\x18\x04 \x01(\bR\fageConfirmed\x12\x1f\n" +
+	"\vaccess_code\x18\x05 \x01(\tR\n" +
+	"accessCode\")\n" +
 	"\x0eSignUpResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
@@ -773,7 +1648,66 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\x14ResetPasswordRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"\x17\n" +
-	"\x15ResetPasswordResponse2\xcc\x04\n" +
+	"\x15ResetPasswordResponse\"\x16\n" +
+	"\x14GetSignUpInfoRequest\"8\n" +
+	"\x15GetSignUpInfoResponse\x12\x1f\n" +
+	"\vinvite_only\x18\x01 \x01(\bR\n" +
+	"inviteOnly\"?\n" +
+	"\x13JoinWaitlistRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
+	"\x04note\x18\x02 \x01(\tR\x04note\"\x16\n" +
+	"\x14JoinWaitlistResponse\"\xf3\x01\n" +
+	"\n" +
+	"AccessCode\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
+	"\x04note\x18\x02 \x01(\tR\x04note\x12\x19\n" +
+	"\bmax_uses\x18\x03 \x01(\x05R\amaxUses\x12\x12\n" +
+	"\x04uses\x18\x04 \x01(\x05R\x04uses\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12\x18\n" +
+	"\arevoked\x18\a \x01(\bR\arevoked\"\x84\x01\n" +
+	"\x17CreateAccessCodeRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
+	"\x04note\x18\x02 \x01(\tR\x04note\x12\x19\n" +
+	"\bmax_uses\x18\x03 \x01(\x05R\amaxUses\x12&\n" +
+	"\x0fexpires_in_days\x18\x04 \x01(\x05R\rexpiresInDays\"I\n" +
+	"\x18CreateAccessCodeResponse\x12-\n" +
+	"\x04code\x18\x01 \x01(\v2\x19.perspectiv.v1.AccessCodeR\x04code\"T\n" +
+	"\x16ListAccessCodesRequest\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"r\n" +
+	"\x17ListAccessCodesResponse\x12/\n" +
+	"\x05codes\x18\x01 \x03(\v2\x19.perspectiv.v1.AccessCodeR\x05codes\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"-\n" +
+	"\x17RevokeAccessCodeRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"I\n" +
+	"\x18RevokeAccessCodeResponse\x12-\n" +
+	"\x04code\x18\x01 \x01(\v2\x19.perspectiv.v1.AccessCodeR\x04code\"\xdc\x01\n" +
+	"\rWaitlistEntry\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"email_hint\x18\x02 \x01(\tR\temailHint\x12\x12\n" +
+	"\x04note\x18\x03 \x01(\tR\x04note\x129\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"invited_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tinvitedAt\x12\x12\n" +
+	"\x04code\x18\x06 \x01(\tR\x04code\"t\n" +
+	"\x13ListWaitlistRequest\x12!\n" +
+	"\fwaiting_only\x18\x01 \x01(\bR\vwaitingOnly\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"v\n" +
+	"\x14ListWaitlistResponse\x126\n" +
+	"\aentries\x18\x01 \x03(\v2\x1c.perspectiv.v1.WaitlistEntryR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"+\n" +
+	"\x19InviteFromWaitlistRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"P\n" +
+	"\x1aInviteFromWaitlistResponse\x122\n" +
+	"\x05entry\x18\x01 \x01(\v2\x1c.perspectiv.v1.WaitlistEntryR\x05entry2\xf1\t\n" +
 	"\vAuthService\x12E\n" +
 	"\x06SignUp\x12\x1c.perspectiv.v1.SignUpRequest\x1a\x1d.perspectiv.v1.SignUpResponse\x12B\n" +
 	"\x05Login\x12\x1b.perspectiv.v1.LoginRequest\x1a\x1c.perspectiv.v1.LoginResponse\x12E\n" +
@@ -781,7 +1715,14 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\aRefresh\x12\x1d.perspectiv.v1.RefreshRequest\x1a\x1e.perspectiv.v1.RefreshResponse\x12T\n" +
 	"\vVerifyEmail\x12!.perspectiv.v1.VerifyEmailRequest\x1a\".perspectiv.v1.VerifyEmailResponse\x12o\n" +
 	"\x14RequestPasswordReset\x12*.perspectiv.v1.RequestPasswordResetRequest\x1a+.perspectiv.v1.RequestPasswordResetResponse\x12Z\n" +
-	"\rResetPassword\x12#.perspectiv.v1.ResetPasswordRequest\x1a$.perspectiv.v1.ResetPasswordResponseB\x9e\x01\n" +
+	"\rResetPassword\x12#.perspectiv.v1.ResetPasswordRequest\x1a$.perspectiv.v1.ResetPasswordResponse\x12Z\n" +
+	"\rGetSignUpInfo\x12#.perspectiv.v1.GetSignUpInfoRequest\x1a$.perspectiv.v1.GetSignUpInfoResponse\x12W\n" +
+	"\fJoinWaitlist\x12\".perspectiv.v1.JoinWaitlistRequest\x1a#.perspectiv.v1.JoinWaitlistResponse\x12c\n" +
+	"\x10CreateAccessCode\x12&.perspectiv.v1.CreateAccessCodeRequest\x1a'.perspectiv.v1.CreateAccessCodeResponse\x12`\n" +
+	"\x0fListAccessCodes\x12%.perspectiv.v1.ListAccessCodesRequest\x1a&.perspectiv.v1.ListAccessCodesResponse\x12c\n" +
+	"\x10RevokeAccessCode\x12&.perspectiv.v1.RevokeAccessCodeRequest\x1a'.perspectiv.v1.RevokeAccessCodeResponse\x12W\n" +
+	"\fListWaitlist\x12\".perspectiv.v1.ListWaitlistRequest\x1a#.perspectiv.v1.ListWaitlistResponse\x12i\n" +
+	"\x12InviteFromWaitlist\x12(.perspectiv.v1.InviteFromWaitlistRequest\x1a).perspectiv.v1.InviteFromWaitlistResponseB\x9e\x01\n" +
 	"\x11com.perspectiv.v1B\tAuthProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -796,7 +1737,7 @@ func file_perspectiv_v1_auth_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_auth_proto_rawDescData
 }
 
-var file_perspectiv_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_perspectiv_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_perspectiv_v1_auth_proto_goTypes = []any{
 	(*SessionUser)(nil),                  // 0: perspectiv.v1.SessionUser
 	(*SignUpRequest)(nil),                // 1: perspectiv.v1.SignUpRequest
@@ -813,34 +1754,73 @@ var file_perspectiv_v1_auth_proto_goTypes = []any{
 	(*RequestPasswordResetResponse)(nil), // 12: perspectiv.v1.RequestPasswordResetResponse
 	(*ResetPasswordRequest)(nil),         // 13: perspectiv.v1.ResetPasswordRequest
 	(*ResetPasswordResponse)(nil),        // 14: perspectiv.v1.ResetPasswordResponse
-	(Role)(0),                            // 15: perspectiv.v1.Role
-	(*timestamppb.Timestamp)(nil),        // 16: google.protobuf.Timestamp
+	(*GetSignUpInfoRequest)(nil),         // 15: perspectiv.v1.GetSignUpInfoRequest
+	(*GetSignUpInfoResponse)(nil),        // 16: perspectiv.v1.GetSignUpInfoResponse
+	(*JoinWaitlistRequest)(nil),          // 17: perspectiv.v1.JoinWaitlistRequest
+	(*JoinWaitlistResponse)(nil),         // 18: perspectiv.v1.JoinWaitlistResponse
+	(*AccessCode)(nil),                   // 19: perspectiv.v1.AccessCode
+	(*CreateAccessCodeRequest)(nil),      // 20: perspectiv.v1.CreateAccessCodeRequest
+	(*CreateAccessCodeResponse)(nil),     // 21: perspectiv.v1.CreateAccessCodeResponse
+	(*ListAccessCodesRequest)(nil),       // 22: perspectiv.v1.ListAccessCodesRequest
+	(*ListAccessCodesResponse)(nil),      // 23: perspectiv.v1.ListAccessCodesResponse
+	(*RevokeAccessCodeRequest)(nil),      // 24: perspectiv.v1.RevokeAccessCodeRequest
+	(*RevokeAccessCodeResponse)(nil),     // 25: perspectiv.v1.RevokeAccessCodeResponse
+	(*WaitlistEntry)(nil),                // 26: perspectiv.v1.WaitlistEntry
+	(*ListWaitlistRequest)(nil),          // 27: perspectiv.v1.ListWaitlistRequest
+	(*ListWaitlistResponse)(nil),         // 28: perspectiv.v1.ListWaitlistResponse
+	(*InviteFromWaitlistRequest)(nil),    // 29: perspectiv.v1.InviteFromWaitlistRequest
+	(*InviteFromWaitlistResponse)(nil),   // 30: perspectiv.v1.InviteFromWaitlistResponse
+	(Role)(0),                            // 31: perspectiv.v1.Role
+	(*timestamppb.Timestamp)(nil),        // 32: google.protobuf.Timestamp
 }
 var file_perspectiv_v1_auth_proto_depIdxs = []int32{
-	15, // 0: perspectiv.v1.SessionUser.role:type_name -> perspectiv.v1.Role
-	16, // 1: perspectiv.v1.LoginResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	31, // 0: perspectiv.v1.SessionUser.role:type_name -> perspectiv.v1.Role
+	32, // 1: perspectiv.v1.LoginResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: perspectiv.v1.LoginResponse.user:type_name -> perspectiv.v1.SessionUser
-	16, // 3: perspectiv.v1.RefreshResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	32, // 3: perspectiv.v1.RefreshResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: perspectiv.v1.RefreshResponse.user:type_name -> perspectiv.v1.SessionUser
-	1,  // 5: perspectiv.v1.AuthService.SignUp:input_type -> perspectiv.v1.SignUpRequest
-	3,  // 6: perspectiv.v1.AuthService.Login:input_type -> perspectiv.v1.LoginRequest
-	5,  // 7: perspectiv.v1.AuthService.Logout:input_type -> perspectiv.v1.LogoutRequest
-	7,  // 8: perspectiv.v1.AuthService.Refresh:input_type -> perspectiv.v1.RefreshRequest
-	9,  // 9: perspectiv.v1.AuthService.VerifyEmail:input_type -> perspectiv.v1.VerifyEmailRequest
-	11, // 10: perspectiv.v1.AuthService.RequestPasswordReset:input_type -> perspectiv.v1.RequestPasswordResetRequest
-	13, // 11: perspectiv.v1.AuthService.ResetPassword:input_type -> perspectiv.v1.ResetPasswordRequest
-	2,  // 12: perspectiv.v1.AuthService.SignUp:output_type -> perspectiv.v1.SignUpResponse
-	4,  // 13: perspectiv.v1.AuthService.Login:output_type -> perspectiv.v1.LoginResponse
-	6,  // 14: perspectiv.v1.AuthService.Logout:output_type -> perspectiv.v1.LogoutResponse
-	8,  // 15: perspectiv.v1.AuthService.Refresh:output_type -> perspectiv.v1.RefreshResponse
-	10, // 16: perspectiv.v1.AuthService.VerifyEmail:output_type -> perspectiv.v1.VerifyEmailResponse
-	12, // 17: perspectiv.v1.AuthService.RequestPasswordReset:output_type -> perspectiv.v1.RequestPasswordResetResponse
-	14, // 18: perspectiv.v1.AuthService.ResetPassword:output_type -> perspectiv.v1.ResetPasswordResponse
-	12, // [12:19] is the sub-list for method output_type
-	5,  // [5:12] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	32, // 5: perspectiv.v1.AccessCode.created_at:type_name -> google.protobuf.Timestamp
+	32, // 6: perspectiv.v1.AccessCode.expires_at:type_name -> google.protobuf.Timestamp
+	19, // 7: perspectiv.v1.CreateAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
+	19, // 8: perspectiv.v1.ListAccessCodesResponse.codes:type_name -> perspectiv.v1.AccessCode
+	19, // 9: perspectiv.v1.RevokeAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
+	32, // 10: perspectiv.v1.WaitlistEntry.created_at:type_name -> google.protobuf.Timestamp
+	32, // 11: perspectiv.v1.WaitlistEntry.invited_at:type_name -> google.protobuf.Timestamp
+	26, // 12: perspectiv.v1.ListWaitlistResponse.entries:type_name -> perspectiv.v1.WaitlistEntry
+	26, // 13: perspectiv.v1.InviteFromWaitlistResponse.entry:type_name -> perspectiv.v1.WaitlistEntry
+	1,  // 14: perspectiv.v1.AuthService.SignUp:input_type -> perspectiv.v1.SignUpRequest
+	3,  // 15: perspectiv.v1.AuthService.Login:input_type -> perspectiv.v1.LoginRequest
+	5,  // 16: perspectiv.v1.AuthService.Logout:input_type -> perspectiv.v1.LogoutRequest
+	7,  // 17: perspectiv.v1.AuthService.Refresh:input_type -> perspectiv.v1.RefreshRequest
+	9,  // 18: perspectiv.v1.AuthService.VerifyEmail:input_type -> perspectiv.v1.VerifyEmailRequest
+	11, // 19: perspectiv.v1.AuthService.RequestPasswordReset:input_type -> perspectiv.v1.RequestPasswordResetRequest
+	13, // 20: perspectiv.v1.AuthService.ResetPassword:input_type -> perspectiv.v1.ResetPasswordRequest
+	15, // 21: perspectiv.v1.AuthService.GetSignUpInfo:input_type -> perspectiv.v1.GetSignUpInfoRequest
+	17, // 22: perspectiv.v1.AuthService.JoinWaitlist:input_type -> perspectiv.v1.JoinWaitlistRequest
+	20, // 23: perspectiv.v1.AuthService.CreateAccessCode:input_type -> perspectiv.v1.CreateAccessCodeRequest
+	22, // 24: perspectiv.v1.AuthService.ListAccessCodes:input_type -> perspectiv.v1.ListAccessCodesRequest
+	24, // 25: perspectiv.v1.AuthService.RevokeAccessCode:input_type -> perspectiv.v1.RevokeAccessCodeRequest
+	27, // 26: perspectiv.v1.AuthService.ListWaitlist:input_type -> perspectiv.v1.ListWaitlistRequest
+	29, // 27: perspectiv.v1.AuthService.InviteFromWaitlist:input_type -> perspectiv.v1.InviteFromWaitlistRequest
+	2,  // 28: perspectiv.v1.AuthService.SignUp:output_type -> perspectiv.v1.SignUpResponse
+	4,  // 29: perspectiv.v1.AuthService.Login:output_type -> perspectiv.v1.LoginResponse
+	6,  // 30: perspectiv.v1.AuthService.Logout:output_type -> perspectiv.v1.LogoutResponse
+	8,  // 31: perspectiv.v1.AuthService.Refresh:output_type -> perspectiv.v1.RefreshResponse
+	10, // 32: perspectiv.v1.AuthService.VerifyEmail:output_type -> perspectiv.v1.VerifyEmailResponse
+	12, // 33: perspectiv.v1.AuthService.RequestPasswordReset:output_type -> perspectiv.v1.RequestPasswordResetResponse
+	14, // 34: perspectiv.v1.AuthService.ResetPassword:output_type -> perspectiv.v1.ResetPasswordResponse
+	16, // 35: perspectiv.v1.AuthService.GetSignUpInfo:output_type -> perspectiv.v1.GetSignUpInfoResponse
+	18, // 36: perspectiv.v1.AuthService.JoinWaitlist:output_type -> perspectiv.v1.JoinWaitlistResponse
+	21, // 37: perspectiv.v1.AuthService.CreateAccessCode:output_type -> perspectiv.v1.CreateAccessCodeResponse
+	23, // 38: perspectiv.v1.AuthService.ListAccessCodes:output_type -> perspectiv.v1.ListAccessCodesResponse
+	25, // 39: perspectiv.v1.AuthService.RevokeAccessCode:output_type -> perspectiv.v1.RevokeAccessCodeResponse
+	28, // 40: perspectiv.v1.AuthService.ListWaitlist:output_type -> perspectiv.v1.ListWaitlistResponse
+	30, // 41: perspectiv.v1.AuthService.InviteFromWaitlist:output_type -> perspectiv.v1.InviteFromWaitlistResponse
+	28, // [28:42] is the sub-list for method output_type
+	14, // [14:28] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_auth_proto_init() }
@@ -855,7 +1835,7 @@ func file_perspectiv_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_auth_proto_rawDesc), len(file_perspectiv_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

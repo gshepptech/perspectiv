@@ -240,6 +240,7 @@ func (a *app) addAPI(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, enq *jo
 		JWTSecret:     cfg.JWTSecret,
 		PublicBaseURL: cfg.PublicBaseURL,
 		CookieSecure:  cfg.CookieSecure,
+		SignUpMode:    auth.SignUpMode(cfg.SignUpMode),
 	}, log)
 	if err != nil {
 		return err

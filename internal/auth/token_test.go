@@ -149,10 +149,13 @@ func TestConfigValidate(t *testing.T) {
 		cfg     Config
 		wantErr bool
 	}{
-		{name: "valid", cfg: Config{JWTSecret: testSecret, PublicBaseURL: "https://perspectiv.example"}},
-		{name: "short secret", cfg: Config{JWTSecret: "short", PublicBaseURL: "https://perspectiv.example"}, wantErr: true},
-		{name: "no base url", cfg: Config{JWTSecret: testSecret}, wantErr: true},
-		{name: "relative base url", cfg: Config{JWTSecret: testSecret, PublicBaseURL: "/app"}, wantErr: true},
+		{name: "valid", cfg: Config{JWTSecret: testSecret, PublicBaseURL: "https://perspectiv.example", SignUpMode: SignUpOpen}},
+		{name: "invite-only", cfg: Config{JWTSecret: testSecret, PublicBaseURL: "https://perspectiv.example", SignUpMode: SignUpInvite}},
+		{name: "short secret", cfg: Config{JWTSecret: "short", PublicBaseURL: "https://perspectiv.example", SignUpMode: SignUpOpen}, wantErr: true},
+		{name: "no base url", cfg: Config{JWTSecret: testSecret, SignUpMode: SignUpOpen}, wantErr: true},
+		{name: "relative base url", cfg: Config{JWTSecret: testSecret, PublicBaseURL: "/app", SignUpMode: SignUpOpen}, wantErr: true},
+		{name: "no sign-up mode", cfg: Config{JWTSecret: testSecret, PublicBaseURL: "https://perspectiv.example"}, wantErr: true},
+		{name: "unknown sign-up mode", cfg: Config{JWTSecret: testSecret, PublicBaseURL: "https://perspectiv.example", SignUpMode: "closed"}, wantErr: true},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

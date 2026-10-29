@@ -42,6 +42,9 @@ type config struct {
 	MigrateOnStart  bool
 	LogLevel        string
 	OTLPEndpoint    string
+	// SignUpMode is open or invite (the beta). It defaults to invite, so a
+	// deployment that leaves it unset admits nobody without a code.
+	SignUpMode string
 }
 
 // runsAPI reports whether this process serves the Connect API and the SPA.
@@ -72,6 +75,7 @@ func loadConfig(getenv func(string) string) (config, error) {
 		AvatarDir:     getenv("AVATAR_DIR"),
 		LogLevel:      getenv("LOG_LEVEL"),
 		OTLPEndpoint:  getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+		SignUpMode:    orDefault(getenv("SIGNUP_MODE"), string(auth.SignUpInvite)),
 	}
 	c.CookieSecure = parseBool(getenv, "COOKIE_SECURE", true, &errs)
 	c.MigrateOnStart = parseBool(getenv, "MIGRATE_ON_START", false, &errs)
@@ -83,6 +87,9 @@ func loadConfig(getenv func(string) string) (config, error) {
 	case roleAPI, roleWorker, roleAll:
 	default:
 		errs = append(errs, fmt.Errorf("ROLE %q must be api, worker or all", c.Role))
+	}
+	if c.SignUpMode != string(auth.SignUpOpen) && c.SignUpMode != string(auth.SignUpInvite) {
+		errs = append(errs, fmt.Errorf("SIGNUP_MODE %q must be open or invite", c.SignUpMode))
 	}
 	if c.DatabaseURL == "" {
 		errs = append(errs, errors.New("DATABASE_URL is required"))

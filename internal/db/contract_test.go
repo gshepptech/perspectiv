@@ -139,7 +139,8 @@ func TestEnumValues(t *testing.T) {
 // AddLorePost a lore's thread, NameLore a lore's name, and FollowPlace and
 // ListFollowing the places a user follows.
 var services = map[string][]string{
-	"AuthService":        {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword"},
+	"AuthService": {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword",
+		"GetSignUpInfo", "JoinWaitlist", "CreateAccessCode", "ListAccessCodes", "RevokeAccessCode", "ListWaitlist", "InviteFromWaitlist"},
 	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount"},
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters"},
 	"ArcService":         {"GetArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},
@@ -206,12 +207,18 @@ func emailFieldsReachable(m protoreflect.MessageDescriptor, path string, seen ma
 }
 
 // TestNoResponseCarriesAnEmailExceptTheCallersOwnAccount covers FR-003 and
-// OT-004 at the wire contract: the only email field reachable from any RPC
-// response is Account.email, and Account is reachable only from the
-// caller's own profile.
+// OT-004 at the wire contract: the only full email field reachable from any
+// RPC response is Account.email, and Account is reachable only from the
+// caller's own profile. The admin waitlist carries masked hints only.
 func TestNoResponseCarriesAnEmailExceptTheCallersOwnAccount(t *testing.T) {
 	t.Parallel()
-	allowed := []string{"UserService.GetProfile:GetProfileResponse.account.email"}
+	allowed := []string{
+		// The waitlist reaches admins only, and only as a masked hint
+		// ("pa•••@example.test"): no full address leaves the server.
+		"AuthService.InviteFromWaitlist:InviteFromWaitlistResponse.entry.email_hint",
+		"AuthService.ListWaitlist:ListWaitlistResponse.entries.email_hint",
+		"UserService.GetProfile:GetProfileResponse.account.email",
+	}
 	var got []string
 	for name := range services {
 		sd := service(t, name)

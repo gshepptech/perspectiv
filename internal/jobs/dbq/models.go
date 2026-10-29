@@ -9,6 +9,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AccessCode struct {
+	Code      string
+	Note      string
+	MaxUses   int32
+	Uses      int32
+	CreatedBy *uuid.UUID
+	CreatedAt pgtype.Timestamptz
+	ExpiresAt pgtype.Timestamptz
+	RevokedAt pgtype.Timestamptz
+}
+
 type Arc struct {
 	ID          uuid.UUID
 	PlaceID     uuid.UUID
@@ -258,10 +269,20 @@ type User struct {
 	SuspendedAt       pgtype.Timestamptz
 	DeletedAt         pgtype.Timestamptz
 	CreatedAt         pgtype.Timestamptz
+	JoinedWith        pgtype.Text
 }
 
 type Vote struct {
 	PerspectiveID uuid.UUID
 	UserID        uuid.UUID
 	CreatedAt     pgtype.Timestamptz
+}
+
+type Waitlist struct {
+	ID        uuid.UUID
+	Email     string
+	Note      string
+	CreatedAt pgtype.Timestamptz
+	InvitedAt pgtype.Timestamptz
+	Code      pgtype.Text
 }

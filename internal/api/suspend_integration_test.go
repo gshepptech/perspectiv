@@ -55,6 +55,7 @@ func newGateServer(t *testing.T) *gateServer {
 		PublicBaseURL: "https://perspectiv.example",
 		CookieSecure:  true,
 		BcryptCost:    bcrypt.MinCost,
+		SignUpMode:    auth.SignUpOpen,
 	}, log)
 	if err != nil {
 		t.Fatalf("auth.NewService: %v", err)

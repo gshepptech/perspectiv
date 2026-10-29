@@ -12,6 +12,25 @@ import (
 	"github.com/google/uuid"
 )
 
+const actorStanding = `-- name: ActorStanding :one
+SELECT role, suspended_at, deleted_at FROM users WHERE id = $1::uuid
+`
+
+type ActorStandingRow struct {
+	Role        string
+	SuspendedAt *time.Time
+	DeletedAt   *time.Time
+}
+
+// The stored role and standing of a caller, for admin checks that must not
+// trust an access token minted before a change.
+func (q *Queries) ActorStanding(ctx context.Context, id uuid.UUID) (ActorStandingRow, error) {
+	row := q.db.QueryRow(ctx, actorStanding, id)
+	var i ActorStandingRow
+	err := row.Scan(&i.Role, &i.SuspendedAt, &i.DeletedAt)
+	return i, err
+}
+
 const consumeEmailToken = `-- name: ConsumeEmailToken :one
 UPDATE email_tokens et
 SET used_at = now()
@@ -226,6 +245,51 @@ func (q *Queries) HitRateLimit(ctx context.Context, arg HitRateLimitParams) (Hit
 	return i, err
 }
 
+const insertAccessCode = `-- name: InsertAccessCode :one
+INSERT INTO access_codes (code, note, max_uses, created_by, expires_at)
+VALUES ($1::text, $2::text, $3::integer, $4::uuid, $5)
+RETURNING code, note, max_uses, uses, created_at, expires_at, revoked_at
+`
+
+type InsertAccessCodeParams struct {
+	Code      string
+	Note      string
+	MaxUses   int32
+	CreatedBy uuid.UUID
+	ExpiresAt *time.Time
+}
+
+type InsertAccessCodeRow struct {
+	Code      string
+	Note      string
+	MaxUses   int32
+	Uses      int32
+	CreatedAt time.Time
+	ExpiresAt *time.Time
+	RevokedAt *time.Time
+}
+
+func (q *Queries) InsertAccessCode(ctx context.Context, arg InsertAccessCodeParams) (InsertAccessCodeRow, error) {
+	row := q.db.QueryRow(ctx, insertAccessCode,
+		arg.Code,
+		arg.Note,
+		arg.MaxUses,
+		arg.CreatedBy,
+		arg.ExpiresAt,
+	)
+	var i InsertAccessCodeRow
+	err := row.Scan(
+		&i.Code,
+		&i.Note,
+		&i.MaxUses,
+		&i.Uses,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+	)
+	return i, err
+}
+
 const insertEmailToken = `-- name: InsertEmailToken :exec
 INSERT INTO email_tokens (user_id, purpose, token_hash, expires_at)
 VALUES ($1, $2, $3, $4)
@@ -302,8 +366,8 @@ func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (u
 }
 
 const insertUser = `-- name: InsertUser :one
-INSERT INTO users (email, password_hash, username, age_confirmed_at)
-VALUES ($1, $2, $3, now())
+INSERT INTO users (email, password_hash, username, age_confirmed_at, joined_with)
+VALUES ($1, $2, $3, now(), $4)
 RETURNING id
 `
 
@@ -311,13 +375,139 @@ type InsertUserParams struct {
 	Email        string
 	PasswordHash string
 	Username     string
+	JoinedWith   *string
 }
 
 func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, insertUser, arg.Email, arg.PasswordHash, arg.Username)
+	row := q.db.QueryRow(ctx, insertUser,
+		arg.Email,
+		arg.PasswordHash,
+		arg.Username,
+		arg.JoinedWith,
+	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const joinWaitlist = `-- name: JoinWaitlist :exec
+INSERT INTO waitlist (email, note) VALUES ($1::text, $2::text)
+ON CONFLICT (lower(email)) DO NOTHING
+`
+
+type JoinWaitlistParams struct {
+	Email string
+	Note  string
+}
+
+// A second request from the same address is a no-op.
+func (q *Queries) JoinWaitlist(ctx context.Context, arg JoinWaitlistParams) error {
+	_, err := q.db.Exec(ctx, joinWaitlist, arg.Email, arg.Note)
+	return err
+}
+
+const listAccessCodes = `-- name: ListAccessCodes :many
+SELECT code, note, max_uses, uses, created_at, expires_at, revoked_at
+FROM access_codes
+WHERE $1::timestamptz IS NULL
+   OR (created_at, code) < ($1::timestamptz, $2::text)
+ORDER BY created_at DESC, code DESC
+LIMIT $3::integer
+`
+
+type ListAccessCodesParams struct {
+	AfterCreated *time.Time
+	AfterCode    *string
+	Lim          int32
+}
+
+type ListAccessCodesRow struct {
+	Code      string
+	Note      string
+	MaxUses   int32
+	Uses      int32
+	CreatedAt time.Time
+	ExpiresAt *time.Time
+	RevokedAt *time.Time
+}
+
+// Newest first, keyset-paginated on (created_at, code).
+func (q *Queries) ListAccessCodes(ctx context.Context, arg ListAccessCodesParams) ([]ListAccessCodesRow, error) {
+	rows, err := q.db.Query(ctx, listAccessCodes, arg.AfterCreated, arg.AfterCode, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAccessCodesRow
+	for rows.Next() {
+		var i ListAccessCodesRow
+		if err := rows.Scan(
+			&i.Code,
+			&i.Note,
+			&i.MaxUses,
+			&i.Uses,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+			&i.RevokedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWaitlist = `-- name: ListWaitlist :many
+SELECT id, email, note, created_at, invited_at, code
+FROM waitlist
+WHERE (NOT $1::boolean OR invited_at IS NULL)
+  AND ($2::timestamptz IS NULL
+       OR (created_at, id) > ($2::timestamptz, $3::uuid))
+ORDER BY created_at, id
+LIMIT $4::integer
+`
+
+type ListWaitlistParams struct {
+	WaitingOnly  bool
+	AfterCreated *time.Time
+	AfterID      *uuid.UUID
+	Lim          int32
+}
+
+// Oldest first, keyset-paginated on (created_at, id).
+func (q *Queries) ListWaitlist(ctx context.Context, arg ListWaitlistParams) ([]Waitlist, error) {
+	rows, err := q.db.Query(ctx, listWaitlist,
+		arg.WaitingOnly,
+		arg.AfterCreated,
+		arg.AfterID,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Waitlist
+	for rows.Next() {
+		var i Waitlist
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.Note,
+			&i.CreatedAt,
+			&i.InvitedAt,
+			&i.Code,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const lockLoginAttempts = `-- name: LockLoginAttempts :exec
@@ -329,6 +519,24 @@ SELECT pg_advisory_xact_lock(hashtextextended('perspectiv.login:' || $1::uuid::t
 func (q *Queries) LockLoginAttempts(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, lockLoginAttempts, userID)
 	return err
+}
+
+const lockWaitlistEntry = `-- name: LockWaitlistEntry :one
+SELECT id, email, note, created_at, invited_at, code FROM waitlist WHERE id = $1::uuid FOR UPDATE
+`
+
+func (q *Queries) LockWaitlistEntry(ctx context.Context, id uuid.UUID) (Waitlist, error) {
+	row := q.db.QueryRow(ctx, lockWaitlistEntry, id)
+	var i Waitlist
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Note,
+		&i.CreatedAt,
+		&i.InvitedAt,
+		&i.Code,
+	)
+	return i, err
 }
 
 const markEmailVerified = `-- name: MarkEmailVerified :exec
@@ -349,6 +557,46 @@ func (q *Queries) MarkRefreshTokenRotated(ctx context.Context, id uuid.UUID) err
 	return err
 }
 
+const markWaitlistInvited = `-- name: MarkWaitlistInvited :one
+UPDATE waitlist SET invited_at = now(), code = $1::text
+WHERE id = $2::uuid
+RETURNING id, email, note, created_at, invited_at, code
+`
+
+type MarkWaitlistInvitedParams struct {
+	Code string
+	ID   uuid.UUID
+}
+
+func (q *Queries) MarkWaitlistInvited(ctx context.Context, arg MarkWaitlistInvitedParams) (Waitlist, error) {
+	row := q.db.QueryRow(ctx, markWaitlistInvited, arg.Code, arg.ID)
+	var i Waitlist
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Note,
+		&i.CreatedAt,
+		&i.InvitedAt,
+		&i.Code,
+	)
+	return i, err
+}
+
+const memberInviteLive = `-- name: MemberInviteLive :one
+SELECT EXISTS (
+    SELECT 1 FROM invites i JOIN users u ON u.id = i.inviter_id
+    WHERE i.code = $1::text AND u.deleted_at IS NULL AND u.suspended_at IS NULL
+)::boolean AS live
+`
+
+// Whether an invite link code belongs to a member in good standing.
+func (q *Queries) MemberInviteLive(ctx context.Context, code string) (bool, error) {
+	row := q.db.QueryRow(ctx, memberInviteLive, code)
+	var live bool
+	err := row.Scan(&live)
+	return live, err
+}
+
 const retireEmailTokens = `-- name: RetireEmailTokens :exec
 UPDATE email_tokens SET used_at = now()
 WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL
@@ -363,6 +611,37 @@ type RetireEmailTokensParams struct {
 func (q *Queries) RetireEmailTokens(ctx context.Context, arg RetireEmailTokensParams) error {
 	_, err := q.db.Exec(ctx, retireEmailTokens, arg.UserID, arg.Purpose)
 	return err
+}
+
+const revokeAccessCode = `-- name: RevokeAccessCode :one
+UPDATE access_codes SET revoked_at = coalesce(revoked_at, now())
+WHERE code = $1::text
+RETURNING code, note, max_uses, uses, created_at, expires_at, revoked_at
+`
+
+type RevokeAccessCodeRow struct {
+	Code      string
+	Note      string
+	MaxUses   int32
+	Uses      int32
+	CreatedAt time.Time
+	ExpiresAt *time.Time
+	RevokedAt *time.Time
+}
+
+func (q *Queries) RevokeAccessCode(ctx context.Context, code string) (RevokeAccessCodeRow, error) {
+	row := q.db.QueryRow(ctx, revokeAccessCode, code)
+	var i RevokeAccessCodeRow
+	err := row.Scan(
+		&i.Code,
+		&i.Note,
+		&i.MaxUses,
+		&i.Uses,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+	)
+	return i, err
 }
 
 const revokeSession = `-- name: RevokeSession :exec
@@ -425,6 +704,24 @@ type UpdatePasswordHashParams struct {
 func (q *Queries) UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) error {
 	_, err := q.db.Exec(ctx, updatePasswordHash, arg.ID, arg.PasswordHash)
 	return err
+}
+
+const useAccessCode = `-- name: UseAccessCode :one
+UPDATE access_codes SET uses = uses + 1
+WHERE code = $1::text
+  AND revoked_at IS NULL
+  AND (expires_at IS NULL OR expires_at > now())
+  AND uses < max_uses
+RETURNING code
+`
+
+// Admits one more account on a beta code that is live: not revoked, not
+// expired and not used up. No row when it cannot.
+func (q *Queries) UseAccessCode(ctx context.Context, code string) (string, error) {
+	row := q.db.QueryRow(ctx, useAccessCode, code)
+	var code_2 string
+	err := row.Scan(&code_2)
+	return code_2, err
 }
 
 const writeStanding = `-- name: WriteStanding :one

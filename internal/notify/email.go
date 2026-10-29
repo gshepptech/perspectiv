@@ -131,6 +131,11 @@ func (w *emailWorker) render(a jobs.EmailArgs) (mailer.Message, error) {
 			"Reset your password",
 			"Someone asked to reset the password for this Perspectiv account. If it was not you, ignore this email.",
 			"Choose a new password")
+	case jobs.TemplateBetaInvite:
+		c, err = w.accountContent(a.Data, "/signup",
+			"You're invited to Perspectiv",
+			"A place in the Perspectiv beta is yours. Perspectiv is where people who were at the same place on the same day each write what they saw, and find the strangers who were in their story.",
+			"Create your account")
 	case jobs.TemplateNotification:
 		c, err = w.notificationContent(a.Data)
 	default:

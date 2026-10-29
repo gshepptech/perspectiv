@@ -21,6 +21,9 @@ const (
 	TemplateVerifyEmail   = "verify_email"
 	TemplatePasswordReset = "password_reset"
 	TemplateNotification  = "notification"
+	// TemplateBetaInvite invites someone from the waitlist; Data carries the
+	// sign-up link with their access code.
+	TemplateBetaInvite = "beta_invite"
 )
 
 // ExpiryArgs schedules the PENDING to SOLO check for one perspective.

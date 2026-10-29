@@ -14,6 +14,7 @@ data:
   SMTP_ADDR: {{ .Values.app.mail.smtpAddr | quote }}
   RANK_INTERVAL: {{ .Values.app.rankInterval | quote }}
   CANON_MIN_MEMBERS: {{ .Values.app.canonMinMembers | quote }}
+  SIGNUP_MODE: {{ .Values.app.signupMode | quote }}
   EXPIRY_WINDOW: {{ .Values.app.expiryWindow | quote }}
   AVATAR_DIR: /var/lib/perspectiv/avatars
   # Migrations run in the migration Job, never on pod start.

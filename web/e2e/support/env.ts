@@ -156,6 +156,9 @@ export function stack(): Stack {
       RANK_INTERVAL: `${rankIntervalSeconds(env)}s`,
       // The journey builds exactly the 4-member lore the canon rule needs.
       CANON_MIN_MEMBERS: "4",
+      // The journeys sign their accounts up directly; the beta gate has its
+      // own unit and integration tests.
+      SIGNUP_MODE: "open",
       EXPIRY_WINDOW: "168h",
       AVATAR_DIR: join(workDir, "avatars"),
       MIGRATE_ON_START: "false",
