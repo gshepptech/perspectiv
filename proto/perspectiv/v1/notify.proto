@@ -66,13 +66,19 @@ message GetPreferencesRequest {}
 message GetPreferencesResponse {
   // One entry per kind, in enum order.
   repeated Preference preferences = 1;
+  // True sends the email-on kinds as one daily summary instead of one email
+  // each.
+  bool email_digest = 2;
 }
 
 message UpdatePreferencesRequest {
   // Kinds not listed keep their current toggles.
   repeated Preference preferences = 1;
+  // Unset keeps the current setting.
+  optional bool email_digest = 2;
 }
 
 message UpdatePreferencesResponse {
   repeated Preference preferences = 1;
+  bool email_digest = 2;
 }

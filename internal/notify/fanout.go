@@ -33,6 +33,7 @@ func (FanoutArgs) Kind() string { return "notify" }
 func AddWorkers(w *river.Workers, pool *pgxpool.Pool, m mailer.Mailer, met *metrics.Metrics, log zerolog.Logger, publicBaseURL string) {
 	river.AddWorker(w, NewFanoutWorker(pool, log))
 	river.AddWorker(w, NewEmailWorker(m, met, log, publicBaseURL))
+	river.AddWorker(w, NewDigestWorker(pool, log))
 }
 
 type fanoutWorker struct {
@@ -368,12 +369,26 @@ func deliver(ctx context.Context, q *dbq.Queries, tx pgx.Tx, enq *jobs.Enqueuer,
 			}
 		}
 		if r.EmailOn {
-			if err := enq.EmailTx(ctx, tx, jobs.EmailArgs{
-				To: r.Email, Template: jobs.TemplateNotification, Data: data,
-			}); err != nil {
+			if err := deliverEmail(ctx, q, tx, enq, r, data); err != nil {
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+// deliverEmail emails one recipient about the event, or, when they take a
+// daily summary, adds it to their next one.
+func deliverEmail(ctx context.Context, q *dbq.Queries, tx pgx.Tx, enq *jobs.Enqueuer, r dbq.RecipientsRow, data map[string]string) error {
+	if !r.EmailDigest {
+		return enq.EmailTx(ctx, tx, jobs.EmailArgs{To: r.Email, Template: jobs.TemplateNotification, Data: data})
+	}
+	item, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	if err := q.InsertDigestItem(ctx, dbq.InsertDigestItemParams{UserID: r.ID, Data: item}); err != nil {
+		return fmt.Errorf("insert digest item: %w", err)
 	}
 	return nil
 }

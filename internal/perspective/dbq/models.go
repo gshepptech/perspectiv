@@ -72,6 +72,13 @@ type Claim struct {
 	ResolvedAt            *time.Time
 }
 
+type DigestItem struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Data      []byte
+	CreatedAt time.Time
+}
+
 type EmailToken struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
@@ -274,6 +281,8 @@ type User struct {
 	DeletedAt         *time.Time
 	CreatedAt         time.Time
 	JoinedWith        *string
+	EmailDigest       bool
+	DigestSentAt      *time.Time
 }
 
 type Vote struct {

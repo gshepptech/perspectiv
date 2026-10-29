@@ -41,7 +41,7 @@ export function Component() {
       </p>
       <h2>Your choices</h2>
       <ul>
-        <li>Turn each kind of notification and email on or off in Settings.</li>
+        <li>Turn each kind of notification and email on or off in Settings, or have your email come as one daily summary.</li>
         <li>Edit or delete anything you wrote.</li>
         <li>Download everything we keep about your account, as one file, from Settings.</li>
         <li>

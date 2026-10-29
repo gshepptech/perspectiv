@@ -67,6 +67,17 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 		notInHTML   []string
 	}{
 		{
+			name: "a digest lists each event with its own link, and links the inbox",
+			args: jobs.EmailArgs{To: "ben@example.test", Template: jobs.TemplateDigest, Data: map[string]string{
+				"count": "2",
+				"items": `[{"kind":"NOTIFICATION_KIND_CLAIM_RECEIVED","path":"/claims","actor":"otter","arc_title":"Rainy Tuesday"},` +
+					`{"kind":"NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE","path":"/perspectives/p-1","actor":"wren","arc_title":"Rainy Tuesday"}]`,
+			}},
+			wantSubject: "Your day on Perspectiv: 2 updates",
+			wantText:    []string{"- otter says they are in your story", baseURL + "/claims", "- wren wrote about Rainy Tuesday", baseURL + "/perspectives/p-1", baseURL + "/inbox"},
+			wantHTML:    []string{"<li><a href=\"" + baseURL + "/claims\">otter says they are in your story</a></li>", baseURL + "/inbox"},
+		},
+		{
 			name:        "verification link built from a token (AC-043)",
 			args:        jobs.EmailArgs{To: "new@example.test", Template: jobs.TemplateVerifyEmail, Data: map[string]string{"token": "tok-123"}},
 			wantSubject: "Verify your email",

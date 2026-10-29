@@ -145,6 +145,11 @@ there remember most, and each card opens its place page.
 
 ## Places
 
+**Daily summary.** Anyone can switch their email to one daily summary in
+Settings: each email-worthy event waits in the summary instead of arriving
+on its own, and the summary goes out at most once a day. The inbox is
+unchanged.
+
 **Were you in someone's story?** Every place page has a search over the
 descriptions nobody has claimed in stories at the place or anywhere under
 it, on any day ("gold paint", "red umbrella"). Each match links straight to

@@ -218,7 +218,8 @@ describe("SettingsPage notification toggles", () => {
       expect(await within(region).findByRole("checkbox", { name: `${label}: in app` })).toBeChecked();
       expect(within(region).getByRole("checkbox", { name: `${label}: email` })).toBeChecked();
     }
-    expect(within(region).getAllByRole("checkbox")).toHaveLength(labels.length * 2);
+    // Two per kind, and the daily-summary switch.
+    expect(within(region).getAllByRole("checkbox")).toHaveLength(labels.length * 2 + 1);
   });
 
   it("turns one toggle off from the keyboard and keeps the server's answer", async () => {
@@ -321,5 +322,19 @@ describe("SettingsPage your data", () => {
     expect(click).toHaveBeenCalledTimes(1);
     expect(await created[0]?.text()).toBe('{"account":{"username":"wren"}}');
     click.mockRestore();
+  });
+});
+
+describe("SettingsPage daily summary", () => {
+  it("turns the email digest on and keeps the server's answer", async () => {
+    const { api, user } = settings({
+      "NotifyService/UpdatePreferences": (body) => ok({ preferences: [], emailDigest: body.emailDigest === true }),
+    });
+    const region = await screen.findByRole("region", { name: "Notifications" });
+    const box = await within(region).findByRole("checkbox", { name: /Send my emails as one daily summary/ });
+    expect(box).not.toBeChecked();
+    await user.click(box);
+    await waitFor(() => expect(box).toBeChecked());
+    expect(api.sent("NotifyService/UpdatePreferences")).toEqual([{ emailDigest: true }]);
   });
 });

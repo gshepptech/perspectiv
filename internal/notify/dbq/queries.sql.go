@@ -121,6 +121,43 @@ func (q *Queries) CountUnread(ctx context.Context, userID uuid.UUID) (int32, err
 	return unread, err
 }
 
+const digestDue = `-- name: DigestDue :many
+SELECT u.id, u.email
+FROM users u
+WHERE u.email_digest AND u.deleted_at IS NULL
+  AND (u.digest_sent_at IS NULL OR u.digest_sent_at < now() - interval '23 hours')
+  AND EXISTS (SELECT 1 FROM digest_items d WHERE d.user_id = u.id)
+ORDER BY u.digest_sent_at NULLS FIRST, u.id
+LIMIT $1::integer
+`
+
+type DigestDueRow struct {
+	ID    uuid.UUID
+	Email string
+}
+
+// Accounts with digest items whose last digest went out more than 23 hours
+// ago (or never), at most lim of them per pass.
+func (q *Queries) DigestDue(ctx context.Context, lim int32) ([]DigestDueRow, error) {
+	rows, err := q.db.Query(ctx, digestDue, lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DigestDueRow
+	for rows.Next() {
+		var i DigestDueRow
+		if err := rows.Scan(&i.ID, &i.Email); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const followersOfArcPlaces = `-- name: FollowersOfArcPlaces :many
 SELECT DISTINCT f.user_id
 FROM arcs a
@@ -153,6 +190,31 @@ func (q *Queries) FollowersOfArcPlaces(ctx context.Context, id uuid.UUID) ([]uui
 		return nil, err
 	}
 	return items, nil
+}
+
+const getEmailDigest = `-- name: GetEmailDigest :one
+SELECT email_digest FROM users WHERE id = $1::uuid
+`
+
+func (q *Queries) GetEmailDigest(ctx context.Context, userID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, getEmailDigest, userID)
+	var email_digest bool
+	err := row.Scan(&email_digest)
+	return email_digest, err
+}
+
+const insertDigestItem = `-- name: InsertDigestItem :exec
+INSERT INTO digest_items (user_id, data) VALUES ($1::uuid, $2::jsonb)
+`
+
+type InsertDigestItemParams struct {
+	UserID uuid.UUID
+	Data   []byte
+}
+
+func (q *Queries) InsertDigestItem(ctx context.Context, arg InsertDigestItemParams) error {
+	_, err := q.db.Exec(ctx, insertDigestItem, arg.UserID, arg.Data)
+	return err
 }
 
 const insertNotification = `-- name: InsertNotification :exec
@@ -363,6 +425,15 @@ func (q *Queries) MarkAllRead(ctx context.Context, userID uuid.UUID) error {
 	return err
 }
 
+const markDigestSent = `-- name: MarkDigestSent :exec
+UPDATE users SET digest_sent_at = now() WHERE id = $1::uuid
+`
+
+func (q *Queries) MarkDigestSent(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, markDigestSent, userID)
+	return err
+}
+
 const markRead = `-- name: MarkRead :exec
 UPDATE notifications
 SET read_at = now()
@@ -414,7 +485,8 @@ func (q *Queries) PerspectiveFacts(ctx context.Context, id uuid.UUID) (Perspecti
 const recipients = `-- name: Recipients :many
 SELECT u.id, u.email,
        COALESCE(np.in_app, true)::boolean AS in_app,
-       COALESCE(np.email, true)::boolean  AS email_on
+       COALESCE(np.email, true)::boolean  AS email_on,
+       u.email_digest
 FROM users u
 LEFT JOIN notification_preferences np
        ON np.user_id = u.id AND np.kind = $1::text
@@ -434,10 +506,11 @@ type RecipientsParams struct {
 }
 
 type RecipientsRow struct {
-	ID      uuid.UUID
-	Email   string
-	InApp   bool
-	EmailOn bool
+	ID          uuid.UUID
+	Email       string
+	InApp       bool
+	EmailOn     bool
+	EmailDigest bool
 }
 
 // Candidates who still have an account, are not the actor, and have not
@@ -457,6 +530,7 @@ func (q *Queries) Recipients(ctx context.Context, arg RecipientsParams) ([]Recip
 			&i.Email,
 			&i.InApp,
 			&i.EmailOn,
+			&i.EmailDigest,
 		); err != nil {
 			return nil, err
 		}
@@ -477,6 +551,54 @@ func (q *Queries) ReportReporter(ctx context.Context, id uuid.UUID) (uuid.UUID, 
 	var reporter_id uuid.UUID
 	err := row.Scan(&reporter_id)
 	return reporter_id, err
+}
+
+const setEmailDigest = `-- name: SetEmailDigest :exec
+UPDATE users SET email_digest = $1::boolean WHERE id = $2::uuid
+`
+
+type SetEmailDigestParams struct {
+	Digest bool
+	UserID uuid.UUID
+}
+
+func (q *Queries) SetEmailDigest(ctx context.Context, arg SetEmailDigestParams) error {
+	_, err := q.db.Exec(ctx, setEmailDigest, arg.Digest, arg.UserID)
+	return err
+}
+
+const takeDigestItems = `-- name: TakeDigestItems :many
+WITH taken AS (
+    DELETE FROM digest_items WHERE user_id = $1::uuid
+    RETURNING data, created_at
+)
+SELECT data, created_at FROM taken ORDER BY created_at
+`
+
+type TakeDigestItemsRow struct {
+	Data      []byte
+	CreatedAt time.Time
+}
+
+// Removes and returns an account's digest items, oldest first.
+func (q *Queries) TakeDigestItems(ctx context.Context, userID uuid.UUID) ([]TakeDigestItemsRow, error) {
+	rows, err := q.db.Query(ctx, takeDigestItems, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TakeDigestItemsRow
+	for rows.Next() {
+		var i TakeDigestItemsRow
+		if err := rows.Scan(&i.Data, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const upsertPreference = `-- name: UpsertPreference :exec

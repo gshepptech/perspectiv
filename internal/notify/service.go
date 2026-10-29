@@ -234,3 +234,21 @@ func (s *Service) UpdatePreferences(ctx context.Context, userID uuid.UUID, prefs
 	}
 	return out, nil
 }
+
+// EmailDigest reports whether the user takes email as one daily summary.
+func (s *Service) EmailDigest(ctx context.Context, userID uuid.UUID) (bool, error) {
+	on, err := dbq.New(s.pool).GetEmailDigest(ctx, userID)
+	if err != nil {
+		return false, apiutil.Internal(fmt.Errorf("read digest setting: %w", err))
+	}
+	return on, nil
+}
+
+// SetEmailDigest turns the daily summary on or off. Items already waiting
+// still go out in the next summary.
+func (s *Service) SetEmailDigest(ctx context.Context, userID uuid.UUID, on bool) error {
+	if err := dbq.New(s.pool).SetEmailDigest(ctx, dbq.SetEmailDigestParams{UserID: userID, Digest: on}); err != nil {
+		return apiutil.Internal(fmt.Errorf("store digest setting: %w", err))
+	}
+	return nil
+}

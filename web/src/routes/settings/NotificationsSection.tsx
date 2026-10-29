@@ -13,7 +13,7 @@ import { Section } from "./Section";
 type Toggles = { kind: NotificationKind; inApp: boolean; email: boolean };
 
 /**
- * An in-app and an email toggle for each of the six kinds. A change is saved
+ * An in-app and an email toggle for each kind, and the daily-summary switch. A change is saved
  * at once, one kind per request; while it is in flight the box shows the new
  * value, and if the save fails it falls back to what the server holds.
  * A kind the server did not list is shown on, the documented default.
@@ -29,6 +29,18 @@ export function NotificationsSection() {
       );
     },
   });
+
+  // The daily summary: email for the kinds whose email box is ticked
+  // arrives once a day in one message instead of one email each.
+  const digest = useMutation({
+    mutationFn: (on: boolean) => clients.notify.updatePreferences({ emailDigest: on }),
+    onSuccess: (res) => {
+      queryClient.setQueryData<GetPreferencesResponse>(preferencesKey, (old) =>
+        old ? { ...old, emailDigest: res.emailDigest } : old,
+      );
+    },
+  });
+  const digestOn = digest.isPending ? digest.variables : (prefs.data?.emailDigest ?? false);
 
   function toggles(kind: NotificationKind): Toggles {
     if (update.isPending && update.variables.kind === kind) return update.variables;
@@ -94,8 +106,22 @@ export function NotificationsSection() {
           </table>
         </div>
       )}
+      {prefs.isSuccess && (
+        <label className="mt-4 grid grid-cols-[auto_1fr] items-start gap-x-3">
+          <input
+            type="checkbox"
+            checked={digestOn}
+            onChange={(e) => digest.mutate(e.target.checked)}
+            className="mt-0.5 size-5 accent-accent"
+          />
+          <span>
+            Send my emails as one daily summary
+            <span className="block text-sm text-ink-muted">Instead of an email for each, once a day at most.</span>
+          </span>
+        </label>
+      )}
       <div className="mt-2">
-        <FormAlert message={update.isError ? errorMessage(update.error) : null} />
+        <FormAlert message={update.isError ? errorMessage(update.error) : digest.isError ? errorMessage(digest.error) : null} />
       </div>
     </Section>
   );

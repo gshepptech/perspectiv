@@ -5,8 +5,7 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing
 
-7. **Notification digest.** An optional daily email instead of one email per
-   event, for people who follow busy places.
+Nothing: the pre-beta list is done. What remains waits on the owner.
 
 ## Waiting on a decision or an event
 
@@ -22,6 +21,11 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Notification digest: "Send my emails as one daily summary" in Settings.
+  While on, each email-worthy event becomes a digest item; an hourly job
+  sends each digest account one summary of its items at most once a day
+  (one line and link per event) and clears them. Verified by TestDigest,
+  TestDigestSetting, the digest render test and the settings test.
 - Installable on phones: an app icon (the book mark on ink blue) as SVG,
   Apple touch, 192, 512 and maskable PNGs, a web app manifest served as
   application/manifest+json, and light and dark theme colours. There was no

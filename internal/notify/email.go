@@ -3,6 +3,7 @@ package notify
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -136,6 +137,8 @@ func (w *emailWorker) render(a jobs.EmailArgs) (mailer.Message, error) {
 			"You're invited to Perspectiv",
 			"A place in the Perspectiv beta is yours. Perspectiv is where people who were at the same place on the same day each write what they saw, and find the strangers who were in their story.",
 			"Create your account")
+	case jobs.TemplateDigest:
+		c, err = w.digestContent(a.Data)
 	case jobs.TemplateNotification:
 		c, err = w.notificationContent(a.Data)
 	default:
@@ -148,14 +151,21 @@ func (w *emailWorker) render(a jobs.EmailArgs) (mailer.Message, error) {
 }
 
 // content is what every email shows: a subject, a paragraph, one link and an
-// optional footer.
+// optional footer. A digest also lists its items, each with its own link.
 type content struct {
 	Subject, Body, Action, Link, Footer string
+	Items                               []digestLine
+}
+
+// digestLine is one event in a digest: what happened and where to see it.
+type digestLine struct {
+	Text, Link string
 }
 
 var htmlBody = template.Must(template.New("email").Parse(
 	`<!doctype html><html><body style="font-family:Georgia,serif;color:#1d1b18;line-height:1.5">` +
-		`<p>{{.Body}}</p><p><a href="{{.Link}}">{{.Action}}</a></p>` +
+		`<p>{{.Body}}</p>{{if .Items}}<ul>{{range .Items}}<li><a href="{{.Link}}">{{.Text}}</a></li>{{end}}</ul>{{end}}` +
+		`<p><a href="{{.Link}}">{{.Action}}</a></p>` +
 		`<p style="font-size:13px;color:#5b564e">Or paste this link into your browser: {{.Link}}</p>` +
 		`{{if .Footer}}<p style="font-size:13px;color:#5b564e">{{.Footer}}</p>{{end}}</body></html>`))
 
@@ -164,7 +174,14 @@ func (c content) message(to string) (mailer.Message, error) {
 	if err := htmlBody.Execute(&html, c); err != nil {
 		return mailer.Message{}, err
 	}
-	text := c.Body + "\n\n" + c.Action + ": " + c.Link + "\n"
+	text := c.Body + "\n\n"
+	for _, it := range c.Items {
+		text += "- " + it.Text + "\n  " + it.Link + "\n"
+	}
+	if len(c.Items) > 0 {
+		text += "\n"
+	}
+	text += c.Action + ": " + c.Link + "\n"
 	if c.Footer != "" {
 		text += "\n" + c.Footer + "\n"
 	}
@@ -237,5 +254,37 @@ func (w *emailWorker) notificationContent(data map[string]string) (content, erro
 		Action:  "Open Perspectiv",
 		Link:    w.baseURL + path,
 		Footer:  "Choose which emails you get at " + w.baseURL + "/settings",
+	}, nil
+}
+
+// digestContent builds the daily summary: one line per event, worded as its
+// own email's subject, each linking where the event happened.
+func (w *emailWorker) digestContent(data map[string]string) (content, error) {
+	var items []map[string]string
+	if err := json.Unmarshal([]byte(data[dataItems]), &items); err != nil {
+		return content{}, fmt.Errorf("digest items: %w", err)
+	}
+	if len(items) == 0 {
+		return content{}, errors.New("digest has no items")
+	}
+	lines := make([]digestLine, 0, len(items))
+	for _, item := range items {
+		c, err := w.notificationContent(item)
+		if err != nil {
+			return content{}, err
+		}
+		lines = append(lines, digestLine{Text: c.Subject, Link: c.Link})
+	}
+	subject := "Your day on Perspectiv: 1 update"
+	if len(lines) != 1 {
+		subject = fmt.Sprintf("Your day on Perspectiv: %d updates", len(lines))
+	}
+	return content{
+		Subject: subject,
+		Body:    "Here is what happened since your last summary.",
+		Items:   lines,
+		Action:  "Open your inbox",
+		Link:    w.baseURL + "/inbox",
+		Footer:  "You get one summary a day instead of an email for each. Change it at " + w.baseURL + "/settings",
 	}, nil
 }

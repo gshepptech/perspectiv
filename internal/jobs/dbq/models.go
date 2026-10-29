@@ -70,6 +70,13 @@ type Claim struct {
 	ResolvedAt            pgtype.Timestamptz
 }
 
+type DigestItem struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Data      []byte
+	CreatedAt pgtype.Timestamptz
+}
+
 type EmailToken struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
@@ -272,6 +279,8 @@ type User struct {
 	DeletedAt         pgtype.Timestamptz
 	CreatedAt         pgtype.Timestamptz
 	JoinedWith        pgtype.Text
+	EmailDigest       bool
+	DigestSentAt      pgtype.Timestamptz
 }
 
 type Vote struct {

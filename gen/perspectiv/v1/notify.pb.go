@@ -467,7 +467,10 @@ func (*GetPreferencesRequest) Descriptor() ([]byte, []int) {
 type GetPreferencesResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// One entry per kind, in enum order.
-	Preferences   []*Preference `protobuf:"bytes,1,rep,name=preferences,proto3" json:"preferences,omitempty"`
+	Preferences []*Preference `protobuf:"bytes,1,rep,name=preferences,proto3" json:"preferences,omitempty"`
+	// True sends the email-on kinds as one daily summary instead of one email
+	// each.
+	EmailDigest   bool `protobuf:"varint,2,opt,name=email_digest,json=emailDigest,proto3" json:"email_digest,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -509,10 +512,19 @@ func (x *GetPreferencesResponse) GetPreferences() []*Preference {
 	return nil
 }
 
+func (x *GetPreferencesResponse) GetEmailDigest() bool {
+	if x != nil {
+		return x.EmailDigest
+	}
+	return false
+}
+
 type UpdatePreferencesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Kinds not listed keep their current toggles.
-	Preferences   []*Preference `protobuf:"bytes,1,rep,name=preferences,proto3" json:"preferences,omitempty"`
+	Preferences []*Preference `protobuf:"bytes,1,rep,name=preferences,proto3" json:"preferences,omitempty"`
+	// Unset keeps the current setting.
+	EmailDigest   *bool `protobuf:"varint,2,opt,name=email_digest,json=emailDigest,proto3,oneof" json:"email_digest,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -554,9 +566,17 @@ func (x *UpdatePreferencesRequest) GetPreferences() []*Preference {
 	return nil
 }
 
+func (x *UpdatePreferencesRequest) GetEmailDigest() bool {
+	if x != nil && x.EmailDigest != nil {
+		return *x.EmailDigest
+	}
+	return false
+}
+
 type UpdatePreferencesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Preferences   []*Preference          `protobuf:"bytes,1,rep,name=preferences,proto3" json:"preferences,omitempty"`
+	EmailDigest   bool                   `protobuf:"varint,2,opt,name=email_digest,json=emailDigest,proto3" json:"email_digest,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -598,6 +618,13 @@ func (x *UpdatePreferencesResponse) GetPreferences() []*Preference {
 	return nil
 }
 
+func (x *UpdatePreferencesResponse) GetEmailDigest() bool {
+	if x != nil {
+		return x.EmailDigest
+	}
+	return false
+}
+
 var File_perspectiv_v1_notify_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_notify_proto_rawDesc = "" +
@@ -637,13 +664,17 @@ const file_perspectiv_v1_notify_proto_rawDesc = "" +
 	"\x03all\x18\x02 \x01(\bR\x03all\"5\n" +
 	"\x10MarkReadResponse\x12!\n" +
 	"\funread_count\x18\x01 \x01(\x05R\vunreadCount\"\x17\n" +
-	"\x15GetPreferencesRequest\"U\n" +
+	"\x15GetPreferencesRequest\"x\n" +
 	"\x16GetPreferencesResponse\x12;\n" +
-	"\vpreferences\x18\x01 \x03(\v2\x19.perspectiv.v1.PreferenceR\vpreferences\"W\n" +
+	"\vpreferences\x18\x01 \x03(\v2\x19.perspectiv.v1.PreferenceR\vpreferences\x12!\n" +
+	"\femail_digest\x18\x02 \x01(\bR\vemailDigest\"\x90\x01\n" +
 	"\x18UpdatePreferencesRequest\x12;\n" +
-	"\vpreferences\x18\x01 \x03(\v2\x19.perspectiv.v1.PreferenceR\vpreferences\"X\n" +
+	"\vpreferences\x18\x01 \x03(\v2\x19.perspectiv.v1.PreferenceR\vpreferences\x12&\n" +
+	"\femail_digest\x18\x02 \x01(\bH\x00R\vemailDigest\x88\x01\x01B\x0f\n" +
+	"\r_email_digest\"{\n" +
 	"\x19UpdatePreferencesResponse\x12;\n" +
-	"\vpreferences\x18\x01 \x03(\v2\x19.perspectiv.v1.PreferenceR\vpreferences2\xf3\x02\n" +
+	"\vpreferences\x18\x01 \x03(\v2\x19.perspectiv.v1.PreferenceR\vpreferences\x12!\n" +
+	"\femail_digest\x18\x02 \x01(\bR\vemailDigest2\xf3\x02\n" +
 	"\rNotifyService\x12N\n" +
 	"\tListInbox\x12\x1f.perspectiv.v1.ListInboxRequest\x1a .perspectiv.v1.ListInboxResponse\x12K\n" +
 	"\bMarkRead\x12\x1e.perspectiv.v1.MarkReadRequest\x1a\x1f.perspectiv.v1.MarkReadResponse\x12]\n" +
@@ -711,6 +742,7 @@ func file_perspectiv_v1_notify_proto_init() {
 	}
 	file_perspectiv_v1_enums_proto_init()
 	file_perspectiv_v1_user_proto_init()
+	file_perspectiv_v1_notify_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

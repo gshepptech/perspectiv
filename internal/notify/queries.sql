@@ -110,7 +110,8 @@ SELECT reporter_id FROM reports WHERE id = $1;
 -- means both on). actor_id is NULL for a system event.
 SELECT u.id, u.email,
        COALESCE(np.in_app, true)::boolean AS in_app,
-       COALESCE(np.email, true)::boolean  AS email_on
+       COALESCE(np.email, true)::boolean  AS email_on,
+       u.email_digest
 FROM users u
 LEFT JOIN notification_preferences np
        ON np.user_id = u.id AND np.kind = sqlc.arg(kind)::text
@@ -168,3 +169,34 @@ WHERE a.id = $1
         SELECT p.author_id FROM perspectives p
         WHERE p.arc_id = a.id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND p.deleted_at IS NULL AND p.hidden_at IS NULL);
+
+-- name: InsertDigestItem :exec
+INSERT INTO digest_items (user_id, data) VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(data)::jsonb);
+
+-- name: DigestDue :many
+-- Accounts with digest items whose last digest went out more than 23 hours
+-- ago (or never), at most lim of them per pass.
+SELECT u.id, u.email
+FROM users u
+WHERE u.email_digest AND u.deleted_at IS NULL
+  AND (u.digest_sent_at IS NULL OR u.digest_sent_at < now() - interval '23 hours')
+  AND EXISTS (SELECT 1 FROM digest_items d WHERE d.user_id = u.id)
+ORDER BY u.digest_sent_at NULLS FIRST, u.id
+LIMIT sqlc.arg(lim)::integer;
+
+-- name: TakeDigestItems :many
+-- Removes and returns an account's digest items, oldest first.
+WITH taken AS (
+    DELETE FROM digest_items WHERE user_id = sqlc.arg(user_id)::uuid
+    RETURNING data, created_at
+)
+SELECT data, created_at FROM taken ORDER BY created_at;
+
+-- name: MarkDigestSent :exec
+UPDATE users SET digest_sent_at = now() WHERE id = sqlc.arg(user_id)::uuid;
+
+-- name: GetEmailDigest :one
+SELECT email_digest FROM users WHERE id = sqlc.arg(user_id)::uuid;
+
+-- name: SetEmailDigest :exec
+UPDATE users SET email_digest = sqlc.arg(digest)::boolean WHERE id = sqlc.arg(user_id)::uuid;

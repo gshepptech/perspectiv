@@ -91,7 +91,11 @@ func (h *Handler) GetPreferences(ctx context.Context, _ *connect.Request[perspec
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	return connect.NewResponse(&perspectivv1.GetPreferencesResponse{Preferences: preferencesToProto(prefs)}), nil
+	digest, err := h.svc.EmailDigest(ctx, me)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.GetPreferencesResponse{Preferences: preferencesToProto(prefs), EmailDigest: digest}), nil
 }
 
 func (h *Handler) UpdatePreferences(ctx context.Context, req *connect.Request[perspectivv1.UpdatePreferencesRequest]) (*connect.Response[perspectivv1.UpdatePreferencesResponse], error) {
@@ -107,7 +111,16 @@ func (h *Handler) UpdatePreferences(ctx context.Context, req *connect.Request[pe
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	return connect.NewResponse(&perspectivv1.UpdatePreferencesResponse{Preferences: preferencesToProto(prefs)}), nil
+	if req.Msg.EmailDigest != nil {
+		if err := h.svc.SetEmailDigest(ctx, me, req.Msg.GetEmailDigest()); err != nil {
+			return nil, apiutil.ToConnect(err)
+		}
+	}
+	digest, err := h.svc.EmailDigest(ctx, me)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.UpdatePreferencesResponse{Preferences: preferencesToProto(prefs), EmailDigest: digest}), nil
 }
 
 func notificationToProto(n Notification) *perspectivv1.Notification {

@@ -24,6 +24,9 @@ const (
 	// TemplateBetaInvite invites someone from the waitlist; Data carries the
 	// sign-up link with their access code.
 	TemplateBetaInvite = "beta_invite"
+	// TemplateDigest is a daily summary; Data carries the notification items
+	// as a JSON list and their count.
+	TemplateDigest = "digest"
 )
 
 // ExpiryArgs schedules the PENDING to SOLO check for one perspective.
