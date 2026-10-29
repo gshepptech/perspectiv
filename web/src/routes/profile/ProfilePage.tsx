@@ -4,7 +4,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Crown } from "lucide-react";
 import { Link, useParams } from "react-router";
 
-import { formatDay, loreStatusLabel } from "@/components/reader/format";
+import { formatDayBeside, loreStatusLabel } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import type { Profile } from "@/gen/perspectiv/v1/user_pb";
@@ -66,7 +66,7 @@ const PAGE_SIZE = 20;
 
 function WritingRow({ p }: { p: Perspective }) {
   const title = p.arcTitle || "Untitled";
-  const where = [p.place?.name, formatDay(p.localDate, p.hour), loreStatusLabel(p.loreStatus)].filter(Boolean).join(" · ");
+  const where = [p.place?.name, formatDayBeside(p.arcTitle, p.localDate, p.hour), loreStatusLabel(p.loreStatus)].filter(Boolean).join(" · ");
   return (
     <li className="py-2">
       <Link to={`/perspectives/${encodeURIComponent(p.id)}`} className="flex min-h-11 min-w-0 flex-col justify-center">

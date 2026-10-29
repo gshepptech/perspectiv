@@ -8,7 +8,7 @@ import { PerspectiveActions, type ViewerRights } from "@/components/actions/Pers
 import { ReportDialog } from "@/components/actions/ReportDialog";
 import { perspectiveQuery } from "@/components/actions/queries";
 import { AuthorLink } from "@/components/reader/AuthorLink";
-import { formatDay, genreLabel } from "@/components/reader/format";
+import { formatDayBeside, genreLabel } from "@/components/reader/format";
 import { Genre, LoreStanding, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { Lore } from "@/gen/perspectiv/v1/lore_pb";
 import { type Perspective, PerspectiveSummarySchema } from "@/gen/perspectiv/v1/perspective_pb";
@@ -181,7 +181,7 @@ export function Component() {
           {title}
         </h1>
         <p className="mt-2 text-ink-muted">
-          {[lore.name ? dayTitle : "", first?.place?.name, first ? formatDay(first.localDate, first.hour) : ""].filter(Boolean).join(" · ")}
+          {[lore.name ? dayTitle : "", first?.place?.name, first ? formatDayBeside(dayTitle, first.localDate, first.hour) : ""].filter(Boolean).join(" · ")}
         </p>
         {lore.name && lore.namedBy && (
           <p className="mt-1 text-sm text-ink-muted">

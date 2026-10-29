@@ -5,13 +5,11 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing
 
-5. **Hour and day listings.** A place page lists an hour arc ("Dryer number
-   six · 23:00") apart from its day; group an hour under its day.
+6. **Installable on phones.** A web app manifest and icons, so "Add to home
+   screen" gives a real app icon and name.
 
 ## Next
 
-6. **Installable on phones.** A web app manifest and icons, so "Add to home
-   screen" gives a real app icon and name.
 7. **Notification digest.** An optional daily email instead of one email per
    event, for people who follow busy places.
 
@@ -29,6 +27,12 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Hour and day listings, decided: an hour arc is where its stories live and
+  the day page leads with its hours, so place listings keep listing the hour
+  arc. Folding hours into days would rework the ranked and newest keysets
+  for little gain. The real defect, the hour said twice ("… · 23:00" and
+  "October 11, 2026, 23:00"), is fixed everywhere a title sits beside its
+  date (formatDayBeside). Verified by its unit test and the route tests.
 - Download my data: ExportMyData (5 an hour) returns one JSON document built
   in Postgres with the account, stories with parts and characters, claims
   both ways, votes, reactions, thread posts, lores named, follows, blocks,

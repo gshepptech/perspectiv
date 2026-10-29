@@ -3,7 +3,7 @@ import { Plus, Search } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
-import { formatDay, placeChain } from "@/components/reader/format";
+import { formatDayBeside, placeChain } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
@@ -118,7 +118,7 @@ function MineRow({ p }: { p: Perspective }) {
   const isDraft = p.status === PerspectiveStatus.DRAFT;
   const title = p.arcTitle || p.titleIfNewArc || "Untitled";
   const edit = `/compose?perspectiveId=${encodeURIComponent(p.id)}`;
-  const where = [p.place?.name, formatDay(p.localDate, p.hour)].filter(Boolean).join(" · ");
+  const where = [p.place?.name, formatDayBeside(p.arcTitle || p.titleIfNewArc, p.localDate, p.hour)].filter(Boolean).join(" · ");
   return (
     <li className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 py-2">
       <Link to={isDraft ? edit : `/perspectives/${encodeURIComponent(p.id)}`} className="flex min-h-11 min-w-0 flex-col justify-center">

@@ -10,7 +10,7 @@ import { PerspectiveActions } from "@/components/actions/PerspectiveActions";
 import { useStoryRights } from "@/components/actions/rights";
 import { OpenCharacters } from "@/routes/arc/OpenCharacters";
 import { perspectiveQuery } from "@/components/actions/queries";
-import { formatDay, genreLabel, loreStatusLabel } from "@/components/reader/format";
+import { formatDayBeside, genreLabel, loreStatusLabel } from "@/components/reader/format";
 import { Cast } from "@/components/reader/Cast";
 import { Reader } from "@/components/reader/Reader";
 import { Button } from "@/components/ui/Button";
@@ -71,7 +71,7 @@ function Byline({ p }: { p: Perspective }) {
           {p.place.name}
         </Link>
       )}
-      <span>{formatDay(p.localDate, p.hour)}</span>
+      <span>{formatDayBeside(p.arcTitle || p.titleIfNewArc, p.localDate, p.hour)}</span>
       {genre && <span>{genre}</span>}
       {inLore ? (
         <Link to={`/lores/${p.loreId}`} className="text-accent underline underline-offset-4">

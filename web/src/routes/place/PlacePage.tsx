@@ -4,7 +4,7 @@ import { Crown, PenLine, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
-import { formatDay, genreLabel, loreStatusLabel, placeCategories, placeCategoryLabel, placeKindLabel } from "@/components/reader/format";
+import { formatDayBeside, genreLabel, loreStatusLabel, placeCategories, placeCategoryLabel, placeKindLabel } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
@@ -59,7 +59,7 @@ function ArcItem({ arc }: { arc: EpicArc }) {
           </span>
         )}
         <span className="wrap-anywhere">{arc.place?.name}</span>
-        <span>{formatDay(arc.localDate, arc.hour)}</span>
+        <span>{formatDayBeside(arc.title, arc.localDate, arc.hour)}</span>
         {arc.memberCount > 0 && <span>{arc.memberCount} in lore</span>}
         <span>
           {arc.perspectiveCount} {arc.perspectiveCount === 1 ? "perspective" : "perspectives"}
@@ -83,7 +83,7 @@ function TaleItem({ tale }: { tale: EpicTale }) {
         <span>{loreStatusLabel(tale.loreStatus)}</span>
         {tale.genre !== Genre.UNSPECIFIED && <span>{genreLabel(tale.genre)}</span>}
         <span className="wrap-anywhere">{tale.place?.name}</span>
-        <span>{formatDay(tale.localDate, tale.hour)}</span>
+        <span>{formatDayBeside(tale.arcTitle, tale.localDate, tale.hour)}</span>
         <Link to={`/arcs/${tale.arcId}`} className="wrap-anywhere text-accent underline underline-offset-4">
           {tale.arcTitle}
         </Link>

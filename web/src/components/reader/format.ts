@@ -75,6 +75,16 @@ export function formatDay(localDate: string, hour?: number): string {
   return hour === undefined ? day : `${day}, ${String(hour).padStart(2, "0")}:00`;
 }
 
+/**
+ * formatDay for a date shown beside a title: an hour arc's title already
+ * ends with its hour (" · 23:00", given when the arc is made), so the hour
+ * is left off the date rather than said twice. A retitled hour arc keeps it.
+ */
+export function formatDayBeside(title: string, localDate: string, hour?: number): string {
+  if (hour !== undefined && title.endsWith(` · ${String(hour).padStart(2, "0")}:00`)) return formatDay(localDate);
+  return formatDay(localDate, hour);
+}
+
 /** The filter chips a city's places can be narrowed by, in the order shown. */
 export const placeCategories: readonly PlaceCategory[] = [
   PlaceCategory.FOOD_AND_DRINK,

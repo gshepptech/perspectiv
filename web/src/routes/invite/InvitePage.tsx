@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, MapPin, PenLine } from "lucide-react";
 import { Link, useParams } from "react-router";
 
-import { formatDay } from "@/components/reader/format";
+import { formatDayBeside } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import type { Invite } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
@@ -81,7 +81,7 @@ export function Component() {
         </span>
         <span className="inline-flex items-center gap-1 rounded-full border border-rule bg-paper px-2.5 py-0.5 text-ink-muted">
           <CalendarDays aria-hidden size={14} />
-          {formatDay(inv.localDate, inv.hour)}
+          {formatDayBeside(inv.arcTitle, inv.localDate, inv.hour)}
         </span>
       </p>
       <figure className="mt-6 rounded-xl border border-rule bg-paper p-5 shadow-sm">
