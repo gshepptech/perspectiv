@@ -1,8 +1,9 @@
+import { Code, ConnectError } from "@connectrpc/connect";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button";
@@ -13,8 +14,11 @@ import { clients } from "@/lib/connect";
 import { AuthHeading, AuthPanel, FormAlert, linkClass } from "./AuthPanel";
 import { errorMessage } from "./errors";
 import { emailSchema, passwordSchema, usernameSchema } from "./rules";
+import { Waitlist } from "./Waitlist";
 
 const schema = z.object({
+  // Required only while sign-up is invite-only; checked on submit.
+  accessCode: z.string(),
   email: emailSchema,
   username: usernameSchema,
   password: passwordSchema,
@@ -23,6 +27,16 @@ const schema = z.object({
   ageConfirmed: z.boolean().refine((v) => v, { error: "You must be 18 or over to sign up." }),
 });
 type Values = z.infer<typeof schema>;
+
+/**
+ * A refused sign-up. During the invite-only beta the server explains a code
+ * it would not take; that refusal is shown as written.
+ */
+function signUpError(err: unknown): string {
+  const e = ConnectError.from(err);
+  if (e.code === Code.PermissionDenied && e.rawMessage) return e.rawMessage;
+  return errorMessage(err);
+}
 
 /** The rules a new member agrees to, shown above the age confirmation. */
 function Terms() {
@@ -65,12 +79,25 @@ function CheckEmail({ email }: { email: string }) {
 }
 
 export function Component() {
+  const [params] = useSearchParams();
+  const info = useQuery({
+    queryKey: ["auth", "getSignUpInfo"],
+    queryFn: ({ signal }) => clients.auth.getSignUpInfo({}, { signal }),
+  });
+  const inviteOnly = info.data?.inviteOnly ?? false;
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", username: "", password: "", ageConfirmed: false },
+    defaultValues: { accessCode: params.get("code") ?? "", email: "", username: "", password: "", ageConfirmed: false },
   });
   const signUp = useMutation({
-    mutationFn: (values: Values) => clients.auth.signUp(values),
+    mutationFn: (values: Values) => clients.auth.signUp({ ...values, accessCode: inviteOnly ? values.accessCode.trim() : "" }),
+  });
+  const submit = form.handleSubmit((v) => {
+    if (inviteOnly && v.accessCode.trim() === "") {
+      form.setError("accessCode", { message: "Enter your invite code." }, { shouldFocus: true });
+      return;
+    }
+    signUp.mutate(v);
   });
 
   if (signUp.isSuccess) return <CheckEmail email={signUp.variables.email} />;
@@ -78,8 +105,25 @@ export function Component() {
   return (
     <AuthPanel>
       <AuthHeading>Sign up</AuthHeading>
+      {inviteOnly && <p className="mt-2 text-ink-muted">Perspectiv is in an invite-only beta. Anyone can read; writing needs an account.</p>}
       <Form {...form}>
-        <form noValidate className="mt-6 grid gap-4" onSubmit={form.handleSubmit((v) => signUp.mutate(v))}>
+        <form noValidate className="mt-6 grid gap-4" onSubmit={submit}>
+          {inviteOnly && (
+            <FormField
+              control={form.control}
+              name="accessCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Invite code</FormLabel>
+                  <FormControl>
+                    <Input autoComplete="off" autoCapitalize="none" spellCheck={false} {...field} />
+                  </FormControl>
+                  <FormDescription>From a member's invite link or a beta invite.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="email"
@@ -145,12 +189,13 @@ export function Component() {
               </FormItem>
             )}
           />
-          <FormAlert message={signUp.error ? errorMessage(signUp.error) : null} />
+          <FormAlert message={signUp.error ? signUpError(signUp.error) : null} />
           <Button type="submit" disabled={signUp.isPending}>
             Sign up
           </Button>
         </form>
       </Form>
+      {inviteOnly && <Waitlist />}
       <p className="mt-6 text-sm text-ink-muted">
         Already a member?{" "}
         <Link to="/login" className={linkClass}>

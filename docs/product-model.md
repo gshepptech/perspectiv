@@ -5,6 +5,24 @@ how an arc, its lores and its canon are shown. This file records decisions;
 the code implements them, and where the two disagree the code is the bug.
 `docs/design-system.md` owns how things look.
 
+## Signing up and the beta
+
+Reading is always public. Writing needs an account, and while
+`SIGNUP_MODE` is `invite` (production's setting during the beta, and the
+default when unset) an account needs an access code:
+
+- **A member's invite link.** Every "Invite who was there" link admits the
+  people it is sent to, while its sender is in good standing. The beta grows
+  from people who were really at the same place.
+- **A beta code** an admin issues for a launch, a campus or a person: a use
+  limit, an optional expiry, and revocable. Accounts it admitted keep access.
+- **The waitlist.** Anyone without a code leaves an email and, optionally,
+  where they would write about. An admin's invite sends them a single-use code
+  that lasts 30 days.
+
+Each account records which code let it in. Turning `SIGNUP_MODE` to `open`
+ends the beta without a code change.
+
 ## Words
 
 - **Arc**: one place on one day (or one hour of it). Everyone who was there
@@ -27,6 +45,9 @@ the code implements them, and where the two disagree the code is the bug.
 | Action | Who |
 |---|---|
 | Read anything public | Anyone, signed in or not |
+| Sign up | Anyone 18 or over while sign-up is open; during the invite-only beta, anyone with a live beta code or a member's invite link |
+| Join the waitlist | Anyone, while sign-up is invite-only |
+| Issue, revoke and send beta invites | Admins |
 | React with an emoji | Anyone signed in |
 | Write a perspective | A verified account, once per arc |
 | Upvote a perspective | Someone with a perspective in the same arc |

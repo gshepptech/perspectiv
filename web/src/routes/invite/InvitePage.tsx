@@ -7,6 +7,7 @@ import { formatDay } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import type { Invite } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
+import { useSession } from "@/lib/session";
 
 /** The composer, opened at the invite's place and day with the invite's code. */
 function writeHref(inv: Invite): string {
@@ -40,6 +41,7 @@ function Gone() {
  */
 export function Component() {
   const { code = "" } = useParams();
+  const session = useSession();
   const query = useQuery({
     queryKey: ["perspective", "getInvite", { code }],
     queryFn: ({ signal }) => clients.perspective.getInvite({ code }, { signal }),
@@ -99,6 +101,14 @@ export function Component() {
           Read the whole story first
         </Link>
       </div>
+      {!session && (
+        <p className="mt-4">
+          New here?{" "}
+          <Link to={`/signup?code=${encodeURIComponent(inv.code)}`} className="font-medium text-accent underline underline-offset-4">
+            Sign up with this invite
+          </Link>
+        </p>
+      )}
       <p className="mt-4 text-sm text-ink-muted">
         {inv.characterLabel
           ? `After you write, claim “${inv.characterLabel}” on ${who}’s story and the two of you link up.`

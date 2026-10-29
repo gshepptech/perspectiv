@@ -1,4 +1,4 @@
-import { BookOpen, Inbox, LogOut, PenLine, Settings, ShieldAlert, Users } from "lucide-react";
+import { BookOpen, Inbox, LogOut, PenLine, Settings, KeyRound, ShieldAlert, Users } from "lucide-react";
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from "react-router";
 
 import { Button } from "@/components/ui/Button";
@@ -50,6 +50,11 @@ function AccountMenu({ username, isAdmin }: { username: string; isAdmin: boolean
         {isAdmin && (
           <DropdownMenuItem onSelect={() => void navigate("/admin/reports")}>
             <ShieldAlert aria-hidden size={16} /> Reports
+          </DropdownMenuItem>
+        )}
+        {isAdmin && (
+          <DropdownMenuItem onSelect={() => void navigate("/admin/access")}>
+            <KeyRound aria-hidden size={16} /> Beta access
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />

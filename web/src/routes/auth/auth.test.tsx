@@ -240,3 +240,58 @@ describe("ResetPasswordPage", () => {
     expectFitsPhone(view.container);
   });
 });
+
+describe("sign up during the invite-only beta", () => {
+  const beta = { "AuthService/GetSignUpInfo": () => ok({ inviteOnly: true }) };
+
+  async function fillRest(user: ReturnType<typeof renderRoute>["user"]) {
+    await user.type(screen.getByLabelText("Email"), "wren@example.com");
+    await user.type(screen.getByLabelText("Username"), "wren_writes");
+    await user.type(screen.getByLabelText("Password"), "a long enough secret");
+    await user.click(screen.getByRole("checkbox", { name: /I am 18 or over/ }));
+  }
+
+  it("asks for the invite code from the link and sends it", async () => {
+    const { api, user } = renderRoute("/signup?code=ucf-launch", { ...beta, "AuthService/SignUp": () => ok({ userId: "u-1" }) });
+    const code = await screen.findByRole("textbox", { name: "Invite code" });
+    expect(code).toHaveValue("ucf-launch");
+    expect(screen.getByText(/invite-only beta/)).toBeInTheDocument();
+    await fillRest(user);
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    expect(await screen.findByRole("heading", { name: "Check your email" })).toBeInTheDocument();
+    expect(api.sent("AuthService/SignUp")[0]).toMatchObject({ accessCode: "ucf-launch", username: "wren_writes" });
+  });
+
+  it("will not send without a code, and shows the server's reason for a bad one", async () => {
+    const { api, user } = renderRoute("/signup", {
+      ...beta,
+      "AuthService/SignUp": () => fail("permission_denied", "Perspectiv is invite-only for now: that code is not valid. Join the waitlist and we will email you."),
+    });
+    await screen.findByRole("textbox", { name: "Invite code" });
+    await fillRest(user);
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    expect(await screen.findByText("Enter your invite code.")).toBeInTheDocument();
+    expect(api.sent("AuthService/SignUp")).toHaveLength(0);
+    await user.type(screen.getByRole("textbox", { name: "Invite code" }), "nope");
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("that code is not valid");
+  });
+
+  it("lets someone without a code join the waitlist", async () => {
+    const { api, user } = renderRoute("/signup", { ...beta, "AuthService/JoinWaitlist": () => ok({}) });
+    await user.click(await screen.findByRole("button", { name: "Join the waitlist" }));
+    const panel = screen.getByRole("region", { name: "Join the waitlist" });
+    await user.type(within(panel).getByLabelText("Email"), "pat@example.com");
+    await user.type(within(panel).getByLabelText(/Where would you write about/), "  UCF games  ");
+    await user.click(within(panel).getByRole("button", { name: "Request an invite" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("You're on the list.");
+    expect(api.sent("AuthService/JoinWaitlist")).toEqual([{ email: "pat@example.com", note: "UCF games" }]);
+  });
+
+  it("shows none of this while sign-up is open", async () => {
+    renderRoute("/signup", { "AuthService/GetSignUpInfo": () => ok({ inviteOnly: false }) });
+    await screen.findByLabelText("Email");
+    expect(screen.queryByRole("textbox", { name: "Invite code" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Join the waitlist" })).toBeNull();
+  });
+});

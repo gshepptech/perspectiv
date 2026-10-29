@@ -32,6 +32,14 @@ describe("invite page", () => {
     expect(calls("PerspectiveService/GetInvite")).toEqual([{ code: "abcdefgh23" }]);
   });
 
+  it("offers a newcomer sign-up with this invite's code", async () => {
+    renderApp("/i/abcdefgh23", { "PerspectiveService/GetInvite": () => ({ body: { invite } }) });
+    expect(await screen.findByRole("link", { name: "Sign up with this invite" })).toHaveAttribute(
+      "href",
+      `/signup?code=${invite.code}`,
+    );
+  });
+
   it("asks plainly when no character is named", async () => {
     renderApp("/i/abcdefgh23", { "PerspectiveService/GetInvite": () => ({ body: { invite: { ...invite, characterLabel: "" } } }) });
     expect(await screen.findByRole("heading", { level: 1, name: "Were you there too?" })).toBeInTheDocument();

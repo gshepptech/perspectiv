@@ -37,6 +37,7 @@ export const pages: readonly Page[] = [
   { path: "/compose", module: "compose/ComposePage", signedIn: true },
   { path: "/claims", module: "claims/ClaimsPage", signedIn: true },
   { path: "/admin/reports", module: "admin/ReportsPage", signedIn: true },
+  { path: "/admin/access", module: "admin/AccessPage", signedIn: true },
   { path: "/login", module: "auth/LoginPage" },
   { path: "/signup", module: "auth/SignUpPage" },
   { path: "/verify-email", module: "auth/VerifyEmailPage" },

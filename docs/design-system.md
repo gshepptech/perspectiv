@@ -200,6 +200,35 @@ lore page.
   `status` line.
 - The list of places inside follows it.
 
+## Sign-up during the beta
+
+While sign-up is invite-only (the server says so through GetSignUpInfo):
+
+- The sign-up form gains an **Invite code** field first, filled from the
+  link's `?code=` and still editable, with the help line "From a member's
+  invite link or a beta invite."
+- Under the form, a quiet line: "No invite? Join the waitlist." It reveals a
+  short form in place (email, and an optional "Where would you write about?"
+  of up to 300 characters). On success the form is replaced by a `status`
+  line: "You're on the list. We'll email you when there's a place." It says
+  the same whether or not the address was already listed.
+- The invite page offers a signed-out visitor "New here? Sign up with this
+  invite", carrying the invite's code to the sign-up form.
+- While sign-up is open none of this shows.
+
+## Admin: beta access
+
+`/admin/access`, reached from the account menu ("Beta access") for admins.
+Two tabs, **Codes** and **Waitlist**, built on the report queue's patterns:
+
+- **Codes:** a create form (code, blank to generate; note; uses, default 1;
+  expires in days, blank for never) above a list, newest first. Each code
+  shows its uses ("3 of 25 used"), note, expiry and standing (Live, Used up,
+  Expired, Revoked; words, not colour alone), a "Copy invite link" button
+  that copies `/signup?code=…`, and "Revoke" for live codes.
+- **Waitlist:** people waiting first, each with a masked address, note and
+  date, and "Send invite". Invited people show when and with which code.
+
 ## Landing (the front door)
 
 The landing page is the one surface that has to sell the idea to someone who

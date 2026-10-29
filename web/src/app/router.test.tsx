@@ -55,6 +55,7 @@ const contract: [string, string][] = [
   ["/compose?placeId=p-1&date=2026-10-01&hour=14", "compose/ComposePage"],
   ["/claims", "claims/ClaimsPage"],
   ["/admin/reports", "admin/ReportsPage"],
+  ["/admin/access", "admin/AccessPage"],
   ["/login", "auth/LoginPage"],
   ["/signup", "auth/SignUpPage"],
   ["/verify-email?token=t", "auth/VerifyEmailPage"],
@@ -90,7 +91,7 @@ describe("signed-out reading and writing", () => {
     });
   }
 
-  const writePaths = ["/compose?placeId=p-1&date=2026-10-01", "/claims", "/admin/reports", "/settings", "/inbox"];
+  const writePaths = ["/compose?placeId=p-1&date=2026-10-01", "/claims", "/admin/reports", "/admin/access", "/settings", "/inbox"];
   for (const path of writePaths) {
     it(`${path} redirects a signed-out visitor to login with next`, async () => {
       const { router } = renderAt(path);
