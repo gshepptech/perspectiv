@@ -19,7 +19,7 @@ for (const account of allAccounts()) {
     await page.getByLabel("Email").fill(account.email);
     await page.getByLabel("Username").fill(account.username);
     await page.getByLabel("Password").fill(account.password);
-    await page.getByLabel("I am 18 or over, and I agree to the rules above.").check();
+    await page.getByLabel(/^I am 18 or over/).check();
     await page.getByRole("button", { name: "Sign up" }).click();
     await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
 
