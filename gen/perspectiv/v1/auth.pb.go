@@ -100,7 +100,11 @@ type SignUpRequest struct {
 	AgeConfirmed bool `protobuf:"varint,4,opt,name=age_confirmed,json=ageConfirmed,proto3" json:"age_confirmed,omitempty"`
 	// While sign-up is invite-only: a beta access code, or the code of a
 	// member's invite link. Ignored while sign-up is open.
-	AccessCode    string `protobuf:"bytes,5,opt,name=access_code,json=accessCode,proto3" json:"access_code,omitempty"`
+	AccessCode string `protobuf:"bytes,5,opt,name=access_code,json=accessCode,proto3" json:"access_code,omitempty"`
+	// A field the form hides from people. A value means an automated
+	// form-filler: the request is answered as if it worked and no account is
+	// made.
+	Website       string `protobuf:"bytes,6,opt,name=website,proto3" json:"website,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -166,6 +170,13 @@ func (x *SignUpRequest) GetAgeConfirmed() bool {
 func (x *SignUpRequest) GetAccessCode() string {
 	if x != nil {
 		return x.AccessCode
+	}
+	return ""
+}
+
+func (x *SignUpRequest) GetWebsite() string {
+	if x != nil {
+		return x.Website
 	}
 	return ""
 }
@@ -828,7 +839,9 @@ type JoinWaitlistRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Email string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	// Optional, up to 300 characters: where they would write about.
-	Note          string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
+	Note string `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
+	// The hidden honeypot, as on SignUpRequest: a value stores nothing.
+	Website       string `protobuf:"bytes,3,opt,name=website,proto3" json:"website,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -873,6 +886,13 @@ func (x *JoinWaitlistRequest) GetEmail() string {
 func (x *JoinWaitlistRequest) GetNote() string {
 	if x != nil {
 		return x.Note
+	}
+	return ""
+}
+
+func (x *JoinWaitlistRequest) GetWebsite() string {
+	if x != nil {
+		return x.Website
 	}
 	return ""
 }
@@ -1615,14 +1635,15 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12'\n" +
 	"\x04role\x18\x03 \x01(\x0e2\x13.perspectiv.v1.RoleR\x04role\x12%\n" +
-	"\x0eemail_verified\x18\x04 \x01(\bR\remailVerified\"\xa3\x01\n" +
+	"\x0eemail_verified\x18\x04 \x01(\bR\remailVerified\"\xbd\x01\n" +
 	"\rSignUpRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x1a\n" +
 	"\busername\x18\x03 \x01(\tR\busername\x12#\n" +
 	"\rage_confirmed\x18\x04 \x01(\bR\fageConfirmed\x12\x1f\n" +
 	"\vaccess_code\x18\x05 \x01(\tR\n" +
-	"accessCode\")\n" +
+	"accessCode\x12\x18\n" +
+	"\awebsite\x18\x06 \x01(\tR\awebsite\")\n" +
 	"\x0eSignUpResponse\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
@@ -1652,10 +1673,11 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\x14GetSignUpInfoRequest\"8\n" +
 	"\x15GetSignUpInfoResponse\x12\x1f\n" +
 	"\vinvite_only\x18\x01 \x01(\bR\n" +
-	"inviteOnly\"?\n" +
+	"inviteOnly\"Y\n" +
 	"\x13JoinWaitlistRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x12\n" +
-	"\x04note\x18\x02 \x01(\tR\x04note\"\x16\n" +
+	"\x04note\x18\x02 \x01(\tR\x04note\x12\x18\n" +
+	"\awebsite\x18\x03 \x01(\tR\awebsite\"\x16\n" +
 	"\x14JoinWaitlistResponse\"\xf3\x01\n" +
 	"\n" +
 	"AccessCode\x12\x12\n" +

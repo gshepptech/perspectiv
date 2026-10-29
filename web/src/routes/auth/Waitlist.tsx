@@ -12,12 +12,14 @@ import { clients } from "@/lib/connect";
 
 import { FormAlert, linkClass } from "./AuthPanel";
 import { errorMessage } from "./errors";
+import { Honeypot } from "./Honeypot";
 import { emailSchema } from "./rules";
 
 const MAX_NOTE = 300;
 
 const schema = z.object({
   email: emailSchema,
+  website: z.string(),
   note: z.string().refine((n) => [...n.trim()].length <= MAX_NOTE, `Keep it to ${MAX_NOTE} characters.`),
 });
 type Values = z.infer<typeof schema>;
@@ -29,8 +31,8 @@ type Values = z.infer<typeof schema>;
  */
 export function Waitlist() {
   const [open, setOpen] = useState(false);
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", note: "" } });
-  const join = useMutation({ mutationFn: (v: Values) => clients.auth.joinWaitlist({ email: v.email, note: v.note.trim() }) });
+  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", note: "", website: "" } });
+  const join = useMutation({ mutationFn: (v: Values) => clients.auth.joinWaitlist({ email: v.email, note: v.note.trim(), website: v.website }) });
 
   if (join.isSuccess) {
     return (
@@ -55,7 +57,8 @@ export function Waitlist() {
         Join the waitlist
       </h2>
       <Form {...form}>
-        <form noValidate className="mt-3 grid gap-3" onSubmit={form.handleSubmit((v) => join.mutate(v))}>
+        <form noValidate className="relative mt-3 grid gap-3" onSubmit={form.handleSubmit((v) => join.mutate(v))}>
+          <Honeypot field={form.register("website")} />
           <FormField
             control={form.control}
             name="email"

@@ -160,12 +160,20 @@ type SignUpInput struct {
 	AgeConfirmed bool
 	// AccessCode admits the account while sign-up is invite-only.
 	AccessCode string
+	// Honeypot is the form field hidden from people; a value means a bot.
+	Honeypot string
 }
 
 // SignUp creates an unverified account and, in the same transaction, a
 // verification token and the job that emails its link. The account can sign
 // in at once; content writes wait for verification.
 func (s *Service) SignUp(ctx context.Context, in SignUpInput) (uuid.UUID, error) {
+	// A filled honeypot is answered like a success so the filler learns
+	// nothing; nothing is stored and no email is sent.
+	if in.Honeypot != "" {
+		s.log.Info().Str("event", "signup_honeypot").Msg("automated sign-up ignored")
+		return uuid.New(), nil
+	}
 	if !in.AgeConfirmed {
 		return uuid.Nil, apiutil.InvalidArg("you must confirm you are 18 or over")
 	}

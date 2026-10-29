@@ -85,7 +85,7 @@ func (h *Handler) SignUp(ctx context.Context, req *connect.Request[perspectivv1.
 	m := req.Msg
 	id, err := h.svc.SignUp(ctx, SignUpInput{
 		Email: m.GetEmail(), Password: m.GetPassword(), Username: m.GetUsername(), AgeConfirmed: m.GetAgeConfirmed(),
-		AccessCode: m.GetAccessCode(),
+		AccessCode: m.GetAccessCode(), Honeypot: m.GetWebsite(),
 	})
 	if err != nil {
 		return nil, apiutil.ToConnect(err)

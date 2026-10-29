@@ -87,7 +87,11 @@ func (s *Service) InviteOnly() bool { return s.cfg.SignUpMode == SignUpInvite }
 
 // JoinWaitlist records a request to join. A repeat request is a no-op, and
 // both answer the same, so the list reveals nothing about who is on it.
-func (s *Service) JoinWaitlist(ctx context.Context, email, note string) error {
+func (s *Service) JoinWaitlist(ctx context.Context, email, note, honeypot string) error {
+	if honeypot != "" {
+		s.log.Info().Str("event", "waitlist_honeypot").Msg("automated waitlist request ignored")
+		return nil
+	}
 	addr, err := validateEmail(email)
 	if err != nil {
 		return err

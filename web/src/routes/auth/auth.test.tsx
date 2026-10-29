@@ -295,3 +295,14 @@ describe("sign up during the invite-only beta", () => {
     expect(screen.queryByRole("button", { name: "Join the waitlist" })).toBeNull();
   });
 });
+
+describe("sign-up honeypot", () => {
+  it("is hidden from people: not in the accessibility tree and not in the tab order", async () => {
+    renderRoute("/signup");
+    await screen.findByLabelText("Email");
+    expect(screen.queryByRole("textbox", { name: "Website" })).toBeNull();
+    const field = document.querySelector<HTMLInputElement>('input[name="website"]');
+    expect(field).not.toBeNull();
+    expect(field?.tabIndex).toBe(-1);
+  });
+});

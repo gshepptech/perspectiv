@@ -1,10 +1,12 @@
 package auth
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"net/mail"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	"golang.org/x/crypto/bcrypt"
@@ -52,6 +54,9 @@ func ValidatePassword(password, email, username string) error {
 	}
 	if len(distinct) < minDistinctRunes {
 		return apiutil.InvalidArg("password repeats too few characters; use a longer phrase")
+	}
+	if commonPasswords()[strings.ToLower(password)] {
+		return apiutil.InvalidArg("that password is one of the most common ones; choose a phrase of your own")
 	}
 	local, _, _ := strings.Cut(email, "@")
 	for _, personal := range []string{username, email, local} {
@@ -127,3 +132,19 @@ func (p Passwords) VerifyPassword(hash, password string) (bool, error) {
 	}
 	return false, fmt.Errorf("verify password: %w", err)
 }
+
+//go:embed common_passwords.txt
+var commonPasswordList string
+
+// commonPasswords is the bundled list of common passwords as a set, built
+// once on first use. It is read-only.
+var commonPasswords = sync.OnceValue(func() map[string]bool {
+	set := map[string]bool{}
+	for _, line := range strings.Split(commonPasswordList, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "#") {
+			set[line] = true
+		}
+	}
+	return set
+})

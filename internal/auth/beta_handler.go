@@ -21,7 +21,7 @@ func (h *Handler) GetSignUpInfo(_ context.Context, _ *connect.Request[perspectiv
 
 // JoinWaitlist asks for a place in the beta.
 func (h *Handler) JoinWaitlist(ctx context.Context, req *connect.Request[perspectivv1.JoinWaitlistRequest]) (*connect.Response[perspectivv1.JoinWaitlistResponse], error) {
-	if err := h.svc.JoinWaitlist(ctx, req.Msg.GetEmail(), req.Msg.GetNote()); err != nil {
+	if err := h.svc.JoinWaitlist(ctx, req.Msg.GetEmail(), req.Msg.GetNote(), req.Msg.GetWebsite()); err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
 	return connect.NewResponse(&perspectivv1.JoinWaitlistResponse{}), nil

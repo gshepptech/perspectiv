@@ -250,3 +250,29 @@ func TestBetaAdminOnly(t *testing.T) {
 	_, err := e.authAs(adminAccess).ListWaitlist(ctx, connect.NewRequest(&perspectivv1.ListWaitlistRequest{}))
 	wantCode(t, err, connect.CodePermissionDenied)
 }
+
+// A filled honeypot on sign-up or the waitlist is answered as a success and
+// stores nothing.
+func TestHoneypot(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	ctx := context.Background()
+	res, err := e.auth().SignUp(ctx, connect.NewRequest(&perspectivv1.SignUpRequest{
+		Email: emailOf("botty"), Password: goodPassword, Username: "botty", AgeConfirmed: true, Website: "http://spam.example",
+	}))
+	if err != nil || res.Msg.GetUserId() == "" {
+		t.Fatalf("honeypot SignUp = %v, %v; want a normal-looking success", res, err)
+	}
+	if _, err := e.auth().JoinWaitlist(ctx, connect.NewRequest(&perspectivv1.JoinWaitlistRequest{Email: "bot@example.test", Website: "x"})); err != nil {
+		t.Fatalf("honeypot JoinWaitlist: %v", err)
+	}
+	if n := e.count(`SELECT count(*) FROM users WHERE username = 'botty'`); n != 0 {
+		t.Fatalf("honeypot made %d accounts", n)
+	}
+	if n := e.count(`SELECT count(*) FROM waitlist`); n != 0 {
+		t.Fatalf("honeypot listed %d addresses", n)
+	}
+	if mails := e.emailJobs(emailOf("botty")); len(mails) != 0 {
+		t.Fatalf("honeypot sent %d emails", len(mails))
+	}
+}

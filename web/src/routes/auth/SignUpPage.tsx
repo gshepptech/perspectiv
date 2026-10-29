@@ -14,11 +14,13 @@ import { clients } from "@/lib/connect";
 import { AuthHeading, AuthPanel, FormAlert, linkClass } from "./AuthPanel";
 import { errorMessage } from "./errors";
 import { emailSchema, passwordSchema, usernameSchema } from "./rules";
+import { Honeypot } from "./Honeypot";
 import { Waitlist } from "./Waitlist";
 
 const schema = z.object({
   // Required only while sign-up is invite-only; checked on submit.
   accessCode: z.string(),
+  website: z.string(),
   email: emailSchema,
   username: usernameSchema,
   password: passwordSchema,
@@ -87,7 +89,7 @@ export function Component() {
   const inviteOnly = info.data?.inviteOnly ?? false;
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { accessCode: params.get("code") ?? "", email: "", username: "", password: "", ageConfirmed: false },
+    defaultValues: { accessCode: params.get("code") ?? "", website: "", email: "", username: "", password: "", ageConfirmed: false },
   });
   const signUp = useMutation({
     mutationFn: (values: Values) => clients.auth.signUp({ ...values, accessCode: inviteOnly ? values.accessCode.trim() : "" }),
@@ -107,7 +109,8 @@ export function Component() {
       <AuthHeading>Sign up</AuthHeading>
       {inviteOnly && <p className="mt-2 text-ink-muted">Perspectiv is in an invite-only beta. Anyone can read; writing needs an account.</p>}
       <Form {...form}>
-        <form noValidate className="mt-6 grid gap-4" onSubmit={submit}>
+        <form noValidate className="relative mt-6 grid gap-4" onSubmit={submit}>
+          <Honeypot field={form.register("website")} />
           {inviteOnly && (
             <FormField
               control={form.control}

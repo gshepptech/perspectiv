@@ -51,6 +51,10 @@ message SignUpRequest {
   // While sign-up is invite-only: a beta access code, or the code of a
   // member's invite link. Ignored while sign-up is open.
   string access_code = 5;
+  // A field the form hides from people. A value means an automated
+  // form-filler: the request is answered as if it worked and no account is
+  // made.
+  string website = 6;
 }
 
 message SignUpResponse {
@@ -111,6 +115,8 @@ message JoinWaitlistRequest {
   string email = 1;
   // Optional, up to 300 characters: where they would write about.
   string note = 2;
+  // The hidden honeypot, as on SignUpRequest: a value stores nothing.
+  string website = 3;
 }
 
 message JoinWaitlistResponse {}
