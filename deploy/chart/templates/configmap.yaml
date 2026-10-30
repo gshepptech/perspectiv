@@ -14,6 +14,7 @@ data:
   SMTP_ADDR: {{ .Values.app.mail.smtpAddr | quote }}
   RANK_INTERVAL: {{ .Values.app.rankInterval | quote }}
   CANON_MIN_MEMBERS: {{ .Values.app.canonMinMembers | quote }}
+  DB_MAX_CONNS: {{ .Values.app.dbMaxConns | quote }}
   SIGNUP_MODE: {{ .Values.app.signupMode | quote }}
   EXPIRY_WINDOW: {{ .Values.app.expiryWindow | quote }}
   AVATAR_DIR: /var/lib/perspectiv/avatars

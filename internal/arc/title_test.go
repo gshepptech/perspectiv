@@ -133,3 +133,15 @@ func TestNotAfterToday(t *testing.T) {
 		})
 	}
 }
+
+func TestExcerptEndsAtAWord(t *testing.T) {
+	t.Parallel()
+	long := strings.Repeat("hoodie ", 60)
+	got := excerpt(long)
+	if !strings.HasSuffix(got, "hoodie…") || len([]rune(got)) > excerptLen+1 {
+		t.Fatalf("excerpt = %q, want whole words and an ellipsis", got)
+	}
+	if excerpt("Short.") != "Short." {
+		t.Fatal("a short opening was changed")
+	}
+}

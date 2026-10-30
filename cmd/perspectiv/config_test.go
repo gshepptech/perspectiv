@@ -48,8 +48,8 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if cfg.HTTPAddr != ":8080" || cfg.SMTPAddr != "localhost:1025" || !cfg.CookieSecure || cfg.MigrateOnStart {
 		t.Errorf("defaults: addr %q smtp %q cookieSecure %v migrateOnStart %v", cfg.HTTPAddr, cfg.SMTPAddr, cfg.CookieSecure, cfg.MigrateOnStart)
 	}
-	if cfg.RankInterval != 60*time.Second || cfg.CanonMinMembers != 4 || cfg.ExpiryWindow != 168*time.Hour {
-		t.Errorf("defaults: rank %v canon %d expiry %v", cfg.RankInterval, cfg.CanonMinMembers, cfg.ExpiryWindow)
+	if cfg.RankInterval != 60*time.Second || cfg.CanonMinMembers != 4 || cfg.ExpiryWindow != 168*time.Hour || cfg.DBMaxConns != 25 {
+		t.Errorf("defaults: rank %v canon %d expiry %v pool %d", cfg.RankInterval, cfg.CanonMinMembers, cfg.ExpiryWindow, cfg.DBMaxConns)
 	}
 	// Unset, sign-up fails closed: invite-only.
 	if cfg.SignUpMode != "invite" {
@@ -104,6 +104,9 @@ func TestLoadConfigPerRoleRequirements(t *testing.T) {
 		{"bad rank interval", with(validEnv(), "RANK_INTERVAL", "soon"), "RANK_INTERVAL"},
 		{"zero rank interval", with(validEnv(), "RANK_INTERVAL", "0s"), "RANK_INTERVAL"},
 		{"bad canon minimum", with(validEnv(), "CANON_MIN_MEMBERS", "0"), "CANON_MIN_MEMBERS"},
+		{"bad pool size", with(validEnv(), "DB_MAX_CONNS", "none"), "DB_MAX_CONNS"},
+		{"zero pool size", with(validEnv(), "DB_MAX_CONNS", "0"), "DB_MAX_CONNS"},
+		{"pool size", with(validEnv(), "DB_MAX_CONNS", "40"), ""},
 		{"unknown sign-up mode", with(validEnv(), "SIGNUP_MODE", "closed"), "SIGNUP_MODE"},
 		{"open sign-up", with(validEnv(), "SIGNUP_MODE", "open"), ""},
 		{"bad expiry window", with(validEnv(), "EXPIRY_WINDOW", "-1h"), "EXPIRY_WINDOW"},

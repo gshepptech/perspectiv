@@ -12,7 +12,9 @@ export type Blocked = "claim" | "upvote" | "react";
 
 const why: Record<Blocked, string> = {
   claim: "To say this was you, write your side of this day first. Your story and theirs link once they accept.",
-  upvote: "Only people who wrote about this day can upvote its stories. Write your side first.",
+  // Most readers were not there, so the rule is said first and writing is
+  // offered only to someone who was.
+  upvote: "Only people who wrote about this day can upvote its stories, so the people who were there choose its canon.",
   // Any member may react, so only a signed-out reader is ever told this.
   react: "To react to a story, sign in or create an account.",
 };
@@ -51,7 +53,14 @@ export function JoinFirst({
     <div id={id} ref={panel} tabIndex={-1} className="w-full rounded-md border border-rule bg-surface p-4 text-sm text-ink">
       <p>{why[reason]}</p>
       <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-        {session ? (
+        {session && reason === "upvote" ? (
+          <>
+            <span>Were you there?</span>{" "}
+            <Link to={composeHref({ placeId: p.place?.id ?? "", localDate: p.localDate, hour: p.hour }, back)} className={linkClass}>
+              Write your side
+            </Link>
+          </>
+        ) : session ? (
           <Button asChild size="sm" className="min-h-11">
             <Link to={composeHref({ placeId: p.place?.id ?? "", localDate: p.localDate, hour: p.hour }, back)}>
               <PenLine aria-hidden size={16} />

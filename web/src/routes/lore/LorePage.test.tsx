@@ -73,7 +73,25 @@ describe("lore page", () => {
     const thread = screen.getByRole("region", { name: "Thread" });
     expect(await within(thread).findByText("That was the best night.")).toBeInTheDocument();
     expect(within(thread).getByText("In this lore")).toBeInTheDocument();
-    expect(within(thread).getByText("Write your perspective in this arc to join the thread.")).toBeInTheDocument();
+    expect(within(thread).getByText("Anyone can read this thread. Only the people who wrote about this day can post in it.")).toBeInTheDocument();
+    expect(within(thread).queryByText(/Write your/)).toBeNull();
+    expect(document.title).toBe("Open mic night · Perspectiv");
+    // A tag opens the claimant's own story, which is in this lore.
+    const wrens = screen.getByRole("article", { name: "wren's perspective" });
+    expect(await within(wrens).findByRole("link", { name: "otter’s story" })).toHaveAttribute("href", "/perspectives/p-otter");
+  });
+
+  it("calls an hour arc's canon the canon of this hour, and says only its writers post", async () => {
+    polyfillRadix();
+    renderApp("/lores/lore-1", {
+      ...handlers(),
+      "ArcService/GetArc": () => ({ body: { arc: { id: "arc-1", title: "Open mic night · 21:00", hour: 21 } } }),
+    });
+    expect(await screen.findByText("Canon of this hour")).toBeInTheDocument();
+    expect(screen.queryByText("Canon of the day")).toBeNull();
+    const thread = screen.getByRole("region", { name: "Thread" });
+    expect(await within(thread).findByText("Nobody has posted yet.")).toBeInTheDocument();
+    expect(within(thread).getByText("Anyone can read this thread. Only the people who wrote about this hour can post in it.")).toBeInTheDocument();
   });
 
   it("lets someone with a perspective in the arc post to the thread", async () => {

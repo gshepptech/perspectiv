@@ -61,6 +61,10 @@ type fanoutWorker struct {
 //     event with no actor.
 //   - report resolved: the reporter. The resolving admin is not the actor: a
 //     moderation outcome is always delivered and never names the moderator.
+//   - new story at a followed place: the followers of the arc's place or any
+//     place above it, except the arc's authors.
+//   - new story by a followed writer: the author's followers with no block
+//     either way, except the arc's authors and the place followers above.
 //
 // For every kind the actor never hears about their own action, a recipient
 // who has blocked the actor hears nothing from them, and a deleted account
@@ -137,6 +141,8 @@ func resolve(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, boo
 		ev, ok, err = resolveInviteAnswered(ctx, q, a)
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE:
 		ev, ok, err = resolveFollowedPlaceStory(ctx, q, a)
+	case perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER:
+		ev, ok, err = resolveFollowedWriterStory(ctx, q, a)
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_UNSPECIFIED:
 		return event{}, false, nil
 	default:
@@ -315,6 +321,30 @@ func resolveFollowedPlaceStory(ctx context.Context, q *dbq.Queries, a jobs.Notif
 	followers, err := q.FollowersOfArcPlaces(ctx, *p.ArcID)
 	if err != nil {
 		return event{}, false, fmt.Errorf("followers of arc places: %w", err)
+	}
+	actor := ref(p.AuthorID)
+	return event{
+		actor:      actor,
+		showActor:  true,
+		candidates: followers,
+		path:       "/perspectives/" + a.PerspectiveID.String(),
+		payload:    Payload{ActorID: actor, ArcID: p.ArcID, PerspectiveID: ref(a.PerspectiveID)},
+	}, true, nil
+}
+
+// resolveFollowedWriterStory tells the followers of a story's author that
+// they wrote it. FollowersOfWriter leaves out anyone with a block either way
+// and anyone who hears of the story as a place follower or an arc author, so
+// one story makes one notification per person.
+func resolveFollowedWriterStory(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, bool, error) {
+	p, ok, err := visiblePerspective(ctx, q, a.PerspectiveID)
+	if !ok || err != nil {
+		return event{}, false, err
+	}
+	// visiblePerspective only returns a perspective that is in an arc.
+	followers, err := q.FollowersOfWriter(ctx, dbq.FollowersOfWriterParams{ArcID: *p.ArcID, AuthorID: p.AuthorID})
+	if err != nil {
+		return event{}, false, fmt.Errorf("followers of writer: %w", err)
 	}
 	actor := ref(p.AuthorID)
 	return event{

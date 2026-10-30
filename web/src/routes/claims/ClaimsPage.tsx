@@ -14,6 +14,7 @@ import { ClaimDirection, ClaimStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Claim } from "@/gen/perspectiv/v1/lore_pb";
 import { clients } from "@/lib/connect";
 import { useShowMore } from "@/lib/showMore";
+import { useDocumentTitle } from "@/lib/title";
 
 const claimsKey = ["lore", "listClaims"] as const;
 
@@ -247,6 +248,7 @@ function ClaimList({ direction }: { direction: ClaimDirection }) {
  * appear here, never an email or a real name.
  */
 export function Component() {
+  useDocumentTitle("Requests");
   const [tab, setTab] = useState("incoming");
   return (
     <section aria-labelledby="claims-title" className="mx-auto grid w-full max-w-measure min-w-0 gap-4">

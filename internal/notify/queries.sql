@@ -173,6 +173,29 @@ WHERE a.id = $1
         WHERE p.arc_id = a.id AND p.author_id = f.user_id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND p.deleted_at IS NULL AND p.hidden_at IS NULL);
 
+-- name: FollowersOfWriter :many
+-- People who follow the author and have no block with them either way,
+-- except those who already hear of this story another way: anyone who wrote
+-- in the arc (NEW_PERSPECTIVE_IN_ARC) and anyone who follows the arc's place
+-- or a place above it (NEW_STORY_AT_FOLLOWED_PLACE). One story makes one
+-- notification per person.
+SELECT f.follower_id
+FROM user_follows f
+JOIN arcs a ON a.id = sqlc.arg(arc_id)::uuid
+WHERE f.followee_id = sqlc.arg(author_id)::uuid
+  AND NOT EXISTS (
+        SELECT 1 FROM blocks b
+        WHERE (b.blocker_id = f.follower_id AND b.blocked_id = f.followee_id)
+           OR (b.blocker_id = f.followee_id AND b.blocked_id = f.follower_id))
+  AND NOT EXISTS (
+        SELECT 1 FROM perspectives p
+        WHERE p.arc_id = a.id AND p.author_id = f.follower_id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND p.deleted_at IS NULL AND p.hidden_at IS NULL)
+  AND NOT EXISTS (
+        SELECT 1 FROM place_follows pf
+        WHERE pf.user_id = f.follower_id AND pf.place_id = ANY(a.place_path))
+ORDER BY f.follower_id;
+
 -- name: InsertDigestItem :exec
 INSERT INTO digest_items (user_id, data) VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(data)::jsonb);
 

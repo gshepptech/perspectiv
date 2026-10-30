@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/signal"
 	"syscall"
@@ -50,7 +51,7 @@ const usage = `usage:
 Environment: ROLE, DATABASE_URL, HTTP_ADDR, PUBLIC_BASE_URL, JWT_SECRET,
 COOKIE_SECURE, MAIL_PROVIDER, SMTP_ADDR, RESEND_API_KEY, MAIL_FROM,
 RANK_INTERVAL, CANON_MIN_MEMBERS, EXPIRY_WINDOW, AVATAR_DIR, MIGRATE_ON_START,
-LOG_LEVEL, OTEL_EXPORTER_OTLP_ENDPOINT.
+DB_MAX_CONNS, LOG_LEVEL, OTEL_EXPORTER_OTLP_ENDPOINT.
 `
 
 // run is the whole program; main only supplies the process's arguments,
@@ -110,7 +111,7 @@ func withPool(ctx context.Context, getenv func(string) string, stderr io.Writer,
 		return exitUsage
 	}
 	log := logging.New(stderr, getenv("LOG_LEVEL"))
-	pool, err := openPool(ctx, dsn, log)
+	pool, err := openPool(ctx, dsn, 0, log)
 	if err != nil {
 		log.Error().Err(err).Msg("database unavailable")
 		return exitUsage
@@ -119,15 +120,19 @@ func withPool(ctx context.Context, getenv func(string) string, stderr io.Writer,
 	return fn(pool, log)
 }
 
-// openPool builds the pgx pool with the composite query tracer. pgxpool
-// connects lazily, so an unreachable database surfaces on first use.
-func openPool(ctx context.Context, dsn string, log zerolog.Logger) (*pgxpool.Pool, error) {
+// openPool builds the pgx pool with the composite query tracer, capped at
+// maxConns when it is positive (a one-shot subcommand keeps pgx's default).
+// pgxpool connects lazily, so an unreachable database surfaces on first use.
+func openPool(ctx context.Context, dsn string, maxConns int, log zerolog.Logger) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
 		// The parse error can echo the password; never log it.
 		return nil, errors.New("DATABASE_URL is not a valid connection string")
 	}
 	cfg.ConnConfig.Tracer = telemetry.PoolTracer(log)
+	if maxConns > 0 {
+		cfg.MaxConns = int32(min(maxConns, math.MaxInt32)) //nolint:gosec // G115: clamped to int32 range just above
+	}
 	// pgx reuses prepared statements, and from a statement's sixth run
 	// PostgreSQL may switch to a generic plan that ignores the arguments. The
 	// listings filter with "argument IS NULL OR ..." and their row counts swing

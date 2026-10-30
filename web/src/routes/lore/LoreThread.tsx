@@ -8,6 +8,7 @@ import { z } from "zod";
 import { actionError } from "@/components/actions/errors";
 import { ReportDialog } from "@/components/actions/ReportDialog";
 import { AuthorLink } from "@/components/reader/AuthorLink";
+import type { ArcSpan } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
@@ -32,7 +33,7 @@ const when = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", 
  * read it; someone with a perspective in the arc can post. The server
  * enforces who may post; hiding the form is usability only.
  */
-export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boolean }) {
+export function LoreThread({ loreId, canPost, span = "day" }: { loreId: string; canPost: boolean; span?: ArcSpan }) {
   const client = useQueryClient();
   const session = useSession();
   const headingId = useId();
@@ -67,7 +68,7 @@ export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boole
         </p>
       )}
       {posts.isSuccess && items.length === 0 && (
-        <p className="mt-3 text-ink-muted">Nobody has said anything yet. Were you there? Start the conversation.</p>
+        <p className="mt-3 text-ink-muted">{canPost ? "Nobody has said anything yet. Start the conversation." : "Nobody has posted yet."}</p>
       )}
       {items.length > 0 && (
         <ol ref={more.list} aria-label="Posts" className="mt-4 grid gap-4">
@@ -128,7 +129,7 @@ export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boole
           </Button>
         </form>
       ) : (
-        <p className="mt-6 text-sm text-ink-muted">Write your perspective in this arc to join the thread.</p>
+        <p className="mt-6 text-sm text-ink-muted">Anyone can read this thread. Only the people who wrote about this {span} can post in it.</p>
       )}
     </section>
   );

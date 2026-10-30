@@ -14,7 +14,7 @@ export function Component() {
         </li>
         <li>
           <strong>What you do here:</strong> your stories and drafts, the characters in them, your claims, upvotes, reactions,
-          thread posts, lore names, the places you follow, people you block, and reports you file.
+          thread posts, lore names, the places and writers you follow, people you block, and reports you file.
         </li>
         <li>
           <strong>Security records:</strong> your sign-in sessions, each with the kind of browser and system it started from

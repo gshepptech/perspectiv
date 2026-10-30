@@ -13,8 +13,9 @@ Tailwind utilities those tokens generate (`bg-paper`, `text-ink`,
 
 1. **The page is the product.** Prose gets the width, the type and the
    contrast; navigation and actions sit at the edges.
-2. **One thing per page.** A reading page shows one part of one perspective.
-   There is no infinite scroll of stories.
+2. **One thing per page.** A reading page shows one perspective: a part at a
+   time, or whole when it is short or the reader asks for it. There is no
+   infinite scroll of stories.
 3. **Paper, not glass.** Flat surfaces separated by hairline rules. No
    gradients, no shadows deeper than a 1px border, no blur.
 4. **Calm motion.** Nothing on a reading surface moves unless the reader asked
@@ -118,6 +119,45 @@ an icon beside it.
   linkable and the browser back button returns to the previous part.
 - After a page change focus moves to the part's heading so a screen reader
   starts reading the new part.
+- **Whole story on one page.** A story under 600 words in all shows every
+  part on one page, each under its own "Part N" heading (none for a one-part
+  story), with no paging controls. A longer story offers a toggle button under
+  the byline, "Read all parts on one page" (`aria-pressed`, 44px tall). The
+  choice is kept per viewer in `localStorage`, read and written inside
+  try/catch, so a blocked store only means paging. Paging keeps `?part=` and
+  the arrow keys; on one page the arrow keys do nothing, and an address with
+  `?part=N` moves focus to part N's heading.
+- **More from this day.** Once the reader is on the last part, or reading the
+  whole story on one page, a section follows the story and its actions:
+  "More from this day" ("More from this hour" on an hour arc). It holds the
+  story's lore when it is in one (a link to the lore, its stories and its
+  thread), up to five other readable stories of the same arc as rows (the
+  author on a `text-sm` line, the opening in the serif face clamped to two
+  lines, the whole row one link at least 44px tall), and a link back to the
+  day. It reads the arc's first pages from `GetArc` and nothing else.
+
+## Story page
+
+- **Standing in plain words.** The byline names the story's standing: "In a
+  lore", "Canon of this day" ("Canon of this hour" on an hour arc) when its
+  lore is the arc's canon, "Waiting for a link", "A tale (no linked stories)"
+  or "A tale (voted out of its lore)". A story in a lore links to it ("In a
+  lore: read the lore"). One `text-sm` `ink-muted` line under the byline says
+  what the standing means and ends with a "How this day works" link to the arc
+  page (`/arcs/:id#arc-how`), which scrolls to that section and moves focus to
+  its heading.
+- **Cast tags open the claimant's story.** An accepted claim's tag links to
+  the claimant's own story of that day when the arc's first pages include it
+  (link named "otter's story"); otherwise it links to their profile.
+
+## Page titles
+
+Every route sets `document.title` through one hook, `useDocumentTitle` in
+`web/src/lib/title.ts`, as "<what the page shows> · Perspectiv": a story is
+"<arc title> by <author>", an arc its title, a place its name, a lore its
+name or its day's title, a profile the username, and a fixed page its heading
+("Settings", "Inbox", "Requests", "Sign in"). Leaving a page puts back
+"Perspectiv", which the front page keeps.
 
 ## Motion
 
@@ -185,7 +225,13 @@ lore page.
   ("knightsfan_04, paintedknight and 3 others"), its counts, then its stories as
   compact rows, then one link to the lore page ("Open the lore: cast, full
   stories and thread"). The canon block comes first and is marked pinned; a
-  contender block carries its progress toward canon.
+  contender block carries its progress toward canon. On an hour arc the canon
+  is "Canon of this hour", never "of the day", here and on the lore page.
+- **How this day works, on phones.** Below `lg` the sidebar falls under every
+  story, so one `text-sm` line under the header says it in brief ("The canon
+  is the lore of 4 or more linked stories that the people who were here
+  favour most.") with a "How this day works" link that scrolls to the full
+  section and moves focus to its heading. From `lg` the line is hidden.
 - **Story row:** a vote rail on the left (the upvote button and its count),
   then the author, genre and part count on one `text-sm` line, then the opening
   of the story in the serif face clamped to two lines, then "Read". The row is
@@ -209,8 +255,10 @@ lore page.
   actions instead of a dialog or a silent redirect: "To say this was you,
   write your side of this day first. Your story and theirs link once they
   accept." (for upvote: "Only people who wrote about this day can upvote
-  its stories. Write your side first."), then a primary "Write your side"
-  link to the composer for that place and day, or, signed out, "Sign in"
+  its stories, so the people who were there choose its canon."). For a
+  claim, a primary "Write your side" link to the composer for that place and
+  day follows; for an upvote only a plain "Were you there? Write your side"
+  text link, since most readers were not. Signed out, both show "Sign in"
   and "Create an account" links that return to the story. Arriving from
   "That was me" opens the claim note at once and moves focus to it. After
   publishing from that link the writer lands back on the story with the
@@ -270,6 +318,23 @@ than "Store") and how many stories it holds, so friends pick the same entry.
   listing", the details field is required and is labelled "Which listing
   is it the same as?" with the hint "Paste its link or name it."
 
+## Place page epic
+
+Each day in the Ranked and Newest tabs is a row like a tale's: the day's
+title as the link, the opening of its canon's first story (or its first story)
+in the serif face clamped to two lines, then a `text-sm` line: "Canon" and
+a crown when the day has one, the place, the day, how many are in lore and
+the story count. The canon lore's name is not shown: `EpicArc`
+does not carry it.
+
+## Profile
+
+Each perspective row is one link at least 44px tall. It leads with where and
+when (place and day, `ink`, medium weight), then the day's title in the serif
+face, then the story's own opening (its first part, clamped to two lines),
+then its standing in `text-sm`, so a writer's stories are told apart even when
+their days share a title.
+
 ## Place page sidebar
 
 - **Were you in someone's story?** First in the sidebar: a search field
@@ -315,6 +380,30 @@ Each device is a row: its browser and system, then "This device" in
 other row has its own "Sign out" whose accessible name adds the device and
 when it signed in ("Sign out Chrome on macOS, signed in Oct 3, 2026"), so
 two rows for the same browser are told apart.
+
+## Following writers
+
+- **Profile toggle.** Another member's profile carries a "Follow" toggle
+  under the username, the same button as the place page's: ghost with a
+  bell when off, `secondary` with a crossed bell reading "Following" when
+  on, `aria-pressed` either way, and its accessible name adds the writer
+  ("Follow wren"). A signed-out reader who presses it is sent to sign in.
+  Beside it a `text-sm` `ink-muted` line counts followers ("1 follower",
+  "12 followers"); the count shows to everyone, the toggle only on someone
+  else's live profile, never on your own or a deleted one. A refusal (a
+  block either way) is a `role="alert"` line in `error` under the toggle.
+- **Settings: Writers you follow.** A section headed "Writers you follow"
+  sits just above "Blocked users": one line of help ("A new story by a
+  writer you follow lands in your inbox."), then one row per writer, newest
+  follow first, each row the avatar (32px, round, only when set) and the
+  username as a link to their profile, and an "Unfollow" `secondary` `sm`
+  button on the right whose accessible name adds the writer ("Unfollow
+  wren"). Unfollowing removes the row once the server confirms. With none,
+  the section says "You do not follow any writers yet." Rows keep the 44px
+  target and wrap long usernames at 375px.
+- **Inbox.** A followed writer's story reads "*writer* wrote a new story in
+  *day*." and opens the story; its settings toggle is "A new story by a
+  writer you follow".
 
 ## Sign-up during the beta
 
@@ -452,6 +541,11 @@ are writing, each of which opens its place page.
   from `lg`. The section is left out when no place has a story.
 - **Places you follow** (signed in, when there are any) sits above "Where
   people are writing": one pill per place with a bell icon, linking to it.
+  A place with stories published at it or below in the last seven days
+  carries the count after its name ("Springfield · 3 new", the count in
+  bold accent), and those places come first, most new first. When any are
+  new, a line under the heading totals them ("5 new stories this week");
+  counts stop at 100 and show as "100+".
   A place page carries a "Follow" toggle beside "Write about this place",
   `aria-pressed`, reading "Following" with a filled style when on.
 - **Returning members** do not see the visitor hero, the example or the
@@ -469,5 +563,8 @@ are writing, each of which opens its place page.
 ## Voice
 
 Interface copy is plain and short: "Publish", "Claim character", "Vote to
-remove". Book words appear where they are true (part, page, chapter of an arc)
+remove". Canon is chosen by the people who wrote about the day, never by
+"readers": only they can upvote or post in a lore's thread (A-012). Copy says
+so ("the lore the people who were there favour most"), and a reader who
+cannot vote or post is told who can instead of being urged to write. Book words appear where they are true (part, page, chapter of an arc)
 and nowhere else.

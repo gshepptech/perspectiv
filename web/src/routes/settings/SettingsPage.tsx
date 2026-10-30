@@ -3,12 +3,14 @@ import { useEffect, useRef } from "react";
 import { CircleAlert, CircleCheck } from "lucide-react";
 
 import type { Account } from "@/gen/perspectiv/v1/user_pb";
+import { useDocumentTitle } from "@/lib/title";
 import { FormAlert } from "@/routes/auth/AuthPanel";
 import { errorMessage } from "@/routes/auth/errors";
 
 import { BlocksSection } from "./BlocksSection";
 import { DataSection } from "./DataSection";
 import { DeleteAccountSection } from "./DeleteAccountSection";
+import { FollowedWritersSection } from "./FollowedWritersSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { ProfileSection } from "./ProfileSection";
 import { myProfileQuery } from "./queries";
@@ -46,6 +48,7 @@ function AccountSection({ account }: { account: Account }) {
 }
 
 export function Component() {
+  useDocumentTitle("Settings");
   const me = useQuery(myProfileQuery);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => heading.current?.focus(), []);
@@ -71,6 +74,7 @@ export function Component() {
           <UsernameSection profile={me.data.profile} account={me.data.account} />
           <SecuritySection email={me.data.account.email} />
           <NotificationsSection />
+          <FollowedWritersSection />
           <BlocksSection blocked={me.data.account.blocked} />
           <Section title="Your data">
             <DataSection username={me.data.profile.username} />

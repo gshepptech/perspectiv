@@ -266,6 +266,8 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
           blocked: [user("u-bl1"), user("u-bl2")],
         },
       };
+    case "UserService/ListFollowedWriters":
+      return { writers: [user("u-fw1"), user("u-fw2")].map((w) => ({ ...w, avatarUrl: "/avatars/fw.png", followedAt: ts })) };
     case "AuthService/GetSignUpInfo":
       return { inviteOnly: false };
     case "AuthService/ListSessions":
@@ -289,6 +291,7 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
           "REPORT_RESOLVED",
           "INVITE_ANSWERED",
           "NEW_STORY_AT_FOLLOWED_PLACE",
+          "NEW_STORY_BY_FOLLOWED_WRITER",
         ].map((k, i) => ({ kind: `NOTIFICATION_KIND_${k}`, inApp: true, email: i % 2 === 0 })),
         emailDigest: true,
       };
@@ -304,6 +307,7 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
           "REPORT_RESOLVED",
           "INVITE_ANSWERED",
           "NEW_STORY_AT_FOLLOWED_PLACE",
+          "NEW_STORY_BY_FOLLOWED_WRITER",
         ].map((k, i) => ({
           id: `n${i}`,
           kind: `NOTIFICATION_KIND_${k}`,

@@ -23,10 +23,17 @@ const (
 	mailResend = "resend"
 )
 
+// defaultDBMaxConns sizes each process's pool. The API and the worker
+// together stay well under PostgreSQL's 100 connections at one replica each.
+const defaultDBMaxConns = 25
+
 // config is the server's settings. Only this package reads the environment.
 type config struct {
-	Role            string
-	DatabaseURL     string
+	Role        string
+	DatabaseURL string
+	// DBMaxConns caps this process's pool. pgx's own default is one per
+	// CPU (at least four), which a load test filled at 20 readers.
+	DBMaxConns      int
 	HTTPAddr        string
 	PublicBaseURL   string
 	JWTSecret       string
@@ -82,6 +89,7 @@ func loadConfig(getenv func(string) string) (config, error) {
 	c.RankInterval = parseDuration(getenv, "RANK_INTERVAL", 60*time.Second, &errs)
 	c.ExpiryWindow = parseDuration(getenv, "EXPIRY_WINDOW", 168*time.Hour, &errs)
 	c.CanonMinMembers = parsePositiveInt(getenv, "CANON_MIN_MEMBERS", 4, &errs)
+	c.DBMaxConns = parsePositiveInt(getenv, "DB_MAX_CONNS", defaultDBMaxConns, &errs)
 
 	switch c.Role {
 	case roleAPI, roleWorker, roleAll:

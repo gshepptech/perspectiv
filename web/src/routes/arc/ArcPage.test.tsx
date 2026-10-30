@@ -195,7 +195,7 @@ describe("participation", () => {
     await open("/arcs/arc-day", () => ({ body: res }), { signedIn: true });
     const write = await screen.findByRole("link", { name: "Write your perspective" });
     expect(write).toHaveAttribute("href", "/compose?placeId=pl-store&date=2026-10-01");
-    expect(screen.getByText(/Only people with a perspective here can upvote/)).toBeInTheDocument();
+    expect(screen.getByText(/Only people who wrote about this day can upvote, claim characters or post in a lore's thread/)).toBeInTheDocument();
   });
 
   it("links a participant to their own perspective instead", async () => {
@@ -325,5 +325,55 @@ describe("is this you?", () => {
     });
     await screen.findByRole("heading", { level: 1 });
     await waitFor(() => expect(screen.queryByRole("region", { name: "Is this you?" })).toBeNull());
+  });
+});
+
+describe("how the day works, said truthfully", () => {
+  it("never says readers choose the canon, and titles the tab after the day", async () => {
+    await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
+    await screen.findByRole("heading", { level: 1, name: "Closing night at Moonbean" });
+    expect(document.body).not.toHaveTextContent(/readers favour/);
+    expect(screen.getByRole("complementary", { name: "How this day works" })).toHaveTextContent(
+      "The lore the people who wrote here favour most, with 4 or more people, becomes the canon of this day.",
+    );
+    expect(screen.getByText(/Anyone can read\. Only people who wrote about this day can upvote, claim characters or post/)).toBeInTheDocument();
+    expect(document.title).toBe("Closing night at Moonbean · Perspectiv");
+  });
+
+  it("calls an hour arc's canon the canon of this hour", async () => {
+    const res = dayArcResponse();
+    await open("/arcs/arc-h15", () => ({
+      body: { ...res, arc: arc({ id: "arc-h15", hour: 15, parentArcId: "arc-day", title: "The afternoon rush" }), hours: [] },
+    }));
+    const canon = await screen.findByRole("region", { name: "Canon" });
+    expect(within(canon).getByText("Canon of this hour")).toBeInTheDocument();
+    expect(screen.queryByText(/of the day/)).toBeNull();
+    expect(screen.getByRole("heading", { level: 2, name: "How this hour works" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Contenders" })).toHaveTextContent(
+      "One takes the canon when the people who wrote about this hour favour it more.",
+    );
+  });
+
+  it("says how a day without a canon gets one, per hour on an hour arc", async () => {
+    await open("/arcs/arc-h9", () => ({
+      body: { arc: arc({ id: "arc-h9", hour: 9, parentArcId: "arc-day", title: "The morning queue", canonLoreId: "" }), sublores: [], tales: [], hours: [] },
+    }));
+    expect(await screen.findByText(/that the people who wrote about this hour favour most becomes the canon of this hour\./)).toBeInTheDocument();
+  });
+
+  it("on a phone, says the gist near the top and moves to the full explainer on request", async () => {
+    const user = userEvent.setup();
+    await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
+    const gist = await screen.findByText(/^The canon is the lore of 4 or more linked stories that the people who were here favour most\./);
+    expect(gist).toHaveClass("lg:hidden");
+    // It comes before the first story.
+    expect(before(gist, screen.getByRole("region", { name: "Canon" }))).toBe(true);
+    await user.click(within(gist).getByRole("link", { name: "How this day works" }));
+    expect(screen.getByRole("heading", { level: 2, name: "How this day works" })).toHaveFocus();
+  });
+
+  it("lands on the explainer from a story's \"How this day works\" link", async () => {
+    await open("/arcs/arc-day#arc-how", () => ({ body: dayArcResponse() }));
+    await waitFor(() => expect(screen.getByRole("heading", { level: 2, name: "How this day works" })).toHaveFocus());
   });
 });

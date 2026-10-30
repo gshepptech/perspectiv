@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/user.proto.
  */
 export const file_perspectiv_v1_user: GenFile = /*@__PURE__*/
-  fileDesc("ChhwZXJzcGVjdGl2L3YxL3VzZXIucHJvdG8SDXBlcnNwZWN0aXYudjEiLAoHVXNlclJlZhIPCgd1c2VyX2lkGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJIskBCgdQcm9maWxlEg8KB3VzZXJfaWQYASABKAkSEAoIdXNlcm5hbWUYAiABKAkSCwoDYmlvGAMgASgJEhIKCmF2YXRhcl91cmwYBCABKAkSLQoJam9pbmVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCglzdXNwZW5kZWQYBiABKAgSDwoHZGVsZXRlZBgHIAEoCBITCgtjYW5vbl9jb3VudBgIIAEoBRISCgpsb3JlX2NvdW50GAkgASgFIvIBCgdBY2NvdW50Eg0KBWVtYWlsGAEgASgJEhYKDmVtYWlsX3ZlcmlmaWVkGAIgASgIEiEKBHJvbGUYAyABKA4yEy5wZXJzcGVjdGl2LnYxLlJvbGUSNwoTdXNlcm5hbWVfY2hhbmdlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASOwoXbmV4dF91c2VybmFtZV9jaGFuZ2VfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEicKB2Jsb2NrZWQYBiADKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYiNgoRR2V0UHJvZmlsZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIQCgh1c2VybmFtZRgCIAEoCSJmChJHZXRQcm9maWxlUmVzcG9uc2USJwoHcHJvZmlsZRgBIAEoCzIWLnBlcnNwZWN0aXYudjEuUHJvZmlsZRInCgdhY2NvdW50GAIgASgLMhYucGVyc3BlY3Rpdi52MS5BY2NvdW50ImYKFFVwZGF0ZVByb2ZpbGVSZXF1ZXN0EgsKA2JpbxgBIAEoCRIOCgZhdmF0YXIYAiABKAwSGwoTYXZhdGFyX2NvbnRlbnRfdHlwZRgDIAEoCRIUCgxjbGVhcl9hdmF0YXIYBCABKAgiQAoVVXBkYXRlUHJvZmlsZVJlc3BvbnNlEicKB3Byb2ZpbGUYASABKAsyFi5wZXJzcGVjdGl2LnYxLlByb2ZpbGUiKQoVQ2hhbmdlVXNlcm5hbWVSZXF1ZXN0EhAKCHVzZXJuYW1lGAEgASgJIn4KFkNoYW5nZVVzZXJuYW1lUmVzcG9uc2USJwoHcHJvZmlsZRgBIAEoCzIWLnBlcnNwZWN0aXYudjEuUHJvZmlsZRI7ChduZXh0X3VzZXJuYW1lX2NoYW5nZV9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiIwoQQmxvY2tVc2VyUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIhMKEUJsb2NrVXNlclJlc3BvbnNlIiUKElVuYmxvY2tVc2VyUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIhUKE1VuYmxvY2tVc2VyUmVzcG9uc2UiKAoURGVsZXRlQWNjb3VudFJlcXVlc3QSEAoIcGFzc3dvcmQYASABKAkiFwoVRGVsZXRlQWNjb3VudFJlc3BvbnNlIhUKE0V4cG9ydE15RGF0YVJlcXVlc3QiJAoURXhwb3J0TXlEYXRhUmVzcG9uc2USDAoEanNvbhgBIAEoCTL2BAoLVXNlclNlcnZpY2USUQoKR2V0UHJvZmlsZRIgLnBlcnNwZWN0aXYudjEuR2V0UHJvZmlsZVJlcXVlc3QaIS5wZXJzcGVjdGl2LnYxLkdldFByb2ZpbGVSZXNwb25zZRJaCg1VcGRhdGVQcm9maWxlEiMucGVyc3BlY3Rpdi52MS5VcGRhdGVQcm9maWxlUmVxdWVzdBokLnBlcnNwZWN0aXYudjEuVXBkYXRlUHJvZmlsZVJlc3BvbnNlEl0KDkNoYW5nZVVzZXJuYW1lEiQucGVyc3BlY3Rpdi52MS5DaGFuZ2VVc2VybmFtZVJlcXVlc3QaJS5wZXJzcGVjdGl2LnYxLkNoYW5nZVVzZXJuYW1lUmVzcG9uc2USTgoJQmxvY2tVc2VyEh8ucGVyc3BlY3Rpdi52MS5CbG9ja1VzZXJSZXF1ZXN0GiAucGVyc3BlY3Rpdi52MS5CbG9ja1VzZXJSZXNwb25zZRJUCgtVbmJsb2NrVXNlchIhLnBlcnNwZWN0aXYudjEuVW5ibG9ja1VzZXJSZXF1ZXN0GiIucGVyc3BlY3Rpdi52MS5VbmJsb2NrVXNlclJlc3BvbnNlEloKDURlbGV0ZUFjY291bnQSIy5wZXJzcGVjdGl2LnYxLkRlbGV0ZUFjY291bnRSZXF1ZXN0GiQucGVyc3BlY3Rpdi52MS5EZWxldGVBY2NvdW50UmVzcG9uc2USVwoMRXhwb3J0TXlEYXRhEiIucGVyc3BlY3Rpdi52MS5FeHBvcnRNeURhdGFSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5FeHBvcnRNeURhdGFSZXNwb25zZUKeAQoRY29tLnBlcnNwZWN0aXYudjFCCVVzZXJQcm90b1ABWilwZXJzcGVjdGl2L2dlbi9wZXJzcGVjdGl2L3YxO3BlcnNwZWN0aXZ2MaICA1BYWKoCDVBlcnNwZWN0aXYuVjHKAg1QZXJzcGVjdGl2XFYx4gIZUGVyc3BlY3RpdlxWMVxHUEJNZXRhZGF0YeoCDlBlcnNwZWN0aXY6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_perspectiv_v1_enums]);
+  fileDesc("ChhwZXJzcGVjdGl2L3YxL3VzZXIucHJvdG8SDXBlcnNwZWN0aXYudjEiLAoHVXNlclJlZhIPCgd1c2VyX2lkGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJIskBCgdQcm9maWxlEg8KB3VzZXJfaWQYASABKAkSEAoIdXNlcm5hbWUYAiABKAkSCwoDYmlvGAMgASgJEhIKCmF2YXRhcl91cmwYBCABKAkSLQoJam9pbmVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCglzdXNwZW5kZWQYBiABKAgSDwoHZGVsZXRlZBgHIAEoCBITCgtjYW5vbl9jb3VudBgIIAEoBRISCgpsb3JlX2NvdW50GAkgASgFIvIBCgdBY2NvdW50Eg0KBWVtYWlsGAEgASgJEhYKDmVtYWlsX3ZlcmlmaWVkGAIgASgIEiEKBHJvbGUYAyABKA4yEy5wZXJzcGVjdGl2LnYxLlJvbGUSNwoTdXNlcm5hbWVfY2hhbmdlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASOwoXbmV4dF91c2VybmFtZV9jaGFuZ2VfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEicKB2Jsb2NrZWQYBiADKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYiNgoRR2V0UHJvZmlsZVJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIQCgh1c2VybmFtZRgCIAEoCSKMAQoSR2V0UHJvZmlsZVJlc3BvbnNlEicKB3Byb2ZpbGUYASABKAsyFi5wZXJzcGVjdGl2LnYxLlByb2ZpbGUSJwoHYWNjb3VudBgCIAEoCzIWLnBlcnNwZWN0aXYudjEuQWNjb3VudBIRCglmb2xsb3dpbmcYAyABKAgSEQoJZm9sbG93ZXJzGAQgASgFImYKFFVwZGF0ZVByb2ZpbGVSZXF1ZXN0EgsKA2JpbxgBIAEoCRIOCgZhdmF0YXIYAiABKAwSGwoTYXZhdGFyX2NvbnRlbnRfdHlwZRgDIAEoCRIUCgxjbGVhcl9hdmF0YXIYBCABKAgiQAoVVXBkYXRlUHJvZmlsZVJlc3BvbnNlEicKB3Byb2ZpbGUYASABKAsyFi5wZXJzcGVjdGl2LnYxLlByb2ZpbGUiKQoVQ2hhbmdlVXNlcm5hbWVSZXF1ZXN0EhAKCHVzZXJuYW1lGAEgASgJIn4KFkNoYW5nZVVzZXJuYW1lUmVzcG9uc2USJwoHcHJvZmlsZRgBIAEoCzIWLnBlcnNwZWN0aXYudjEuUHJvZmlsZRI7ChduZXh0X3VzZXJuYW1lX2NoYW5nZV9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiIwoQQmxvY2tVc2VyUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIhMKEUJsb2NrVXNlclJlc3BvbnNlIiUKElVuYmxvY2tVc2VyUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIhUKE1VuYmxvY2tVc2VyUmVzcG9uc2UiKAoURGVsZXRlQWNjb3VudFJlcXVlc3QSEAoIcGFzc3dvcmQYASABKAkiFwoVRGVsZXRlQWNjb3VudFJlc3BvbnNlIhUKE0V4cG9ydE15RGF0YVJlcXVlc3QiJAoURXhwb3J0TXlEYXRhUmVzcG9uc2USDAoEanNvbhgBIAEoCSIxChFGb2xsb3dVc2VyUmVxdWVzdBIQCgh1c2VybmFtZRgBIAEoCRIKCgJvbhgCIAEoCCInChJGb2xsb3dVc2VyUmVzcG9uc2USEQoJZm9sbG93aW5nGAEgASgIIhwKGkxpc3RGb2xsb3dlZFdyaXRlcnNSZXF1ZXN0IngKDkZvbGxvd2VkV3JpdGVyEg8KB3VzZXJfaWQYASABKAkSEAoIdXNlcm5hbWUYAiABKAkSEgoKYXZhdGFyX3VybBgDIAEoCRIvCgtmb2xsb3dlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiTQobTGlzdEZvbGxvd2VkV3JpdGVyc1Jlc3BvbnNlEi4KB3dyaXRlcnMYASADKAsyHS5wZXJzcGVjdGl2LnYxLkZvbGxvd2VkV3JpdGVyMrcGCgtVc2VyU2VydmljZRJRCgpHZXRQcm9maWxlEiAucGVyc3BlY3Rpdi52MS5HZXRQcm9maWxlUmVxdWVzdBohLnBlcnNwZWN0aXYudjEuR2V0UHJvZmlsZVJlc3BvbnNlEloKDVVwZGF0ZVByb2ZpbGUSIy5wZXJzcGVjdGl2LnYxLlVwZGF0ZVByb2ZpbGVSZXF1ZXN0GiQucGVyc3BlY3Rpdi52MS5VcGRhdGVQcm9maWxlUmVzcG9uc2USXQoOQ2hhbmdlVXNlcm5hbWUSJC5wZXJzcGVjdGl2LnYxLkNoYW5nZVVzZXJuYW1lUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuQ2hhbmdlVXNlcm5hbWVSZXNwb25zZRJOCglCbG9ja1VzZXISHy5wZXJzcGVjdGl2LnYxLkJsb2NrVXNlclJlcXVlc3QaIC5wZXJzcGVjdGl2LnYxLkJsb2NrVXNlclJlc3BvbnNlElQKC1VuYmxvY2tVc2VyEiEucGVyc3BlY3Rpdi52MS5VbmJsb2NrVXNlclJlcXVlc3QaIi5wZXJzcGVjdGl2LnYxLlVuYmxvY2tVc2VyUmVzcG9uc2USWgoNRGVsZXRlQWNjb3VudBIjLnBlcnNwZWN0aXYudjEuRGVsZXRlQWNjb3VudFJlcXVlc3QaJC5wZXJzcGVjdGl2LnYxLkRlbGV0ZUFjY291bnRSZXNwb25zZRJXCgxFeHBvcnRNeURhdGESIi5wZXJzcGVjdGl2LnYxLkV4cG9ydE15RGF0YVJlcXVlc3QaIy5wZXJzcGVjdGl2LnYxLkV4cG9ydE15RGF0YVJlc3BvbnNlElEKCkZvbGxvd1VzZXISIC5wZXJzcGVjdGl2LnYxLkZvbGxvd1VzZXJSZXF1ZXN0GiEucGVyc3BlY3Rpdi52MS5Gb2xsb3dVc2VyUmVzcG9uc2USbAoTTGlzdEZvbGxvd2VkV3JpdGVycxIpLnBlcnNwZWN0aXYudjEuTGlzdEZvbGxvd2VkV3JpdGVyc1JlcXVlc3QaKi5wZXJzcGVjdGl2LnYxLkxpc3RGb2xsb3dlZFdyaXRlcnNSZXNwb25zZUKeAQoRY29tLnBlcnNwZWN0aXYudjFCCVVzZXJQcm90b1ABWilwZXJzcGVjdGl2L2dlbi9wZXJzcGVjdGl2L3YxO3BlcnNwZWN0aXZ2MaICA1BYWKoCDVBlcnNwZWN0aXYuVjHKAg1QZXJzcGVjdGl2XFYx4gIZUGVyc3BlY3RpdlxWMVxHUEJNZXRhZGF0YeoCDlBlcnNwZWN0aXY6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_perspectiv_v1_enums]);
 
 /**
  * UserRef is how one user appears to another: an id and a chosen username,
@@ -201,6 +201,21 @@ export type GetProfileResponse = Message<"perspectiv.v1.GetProfileResponse"> & {
    * @generated from field: perspectiv.v1.Account account = 2;
    */
   account?: Account | undefined;
+
+  /**
+   * True when the signed-in caller follows this writer; false when signed
+   * out, for the caller's own profile and for a deleted account.
+   *
+   * @generated from field: bool following = 3;
+   */
+  following: boolean;
+
+  /**
+   * How many accounts follow this writer; 0 for a deleted account.
+   *
+   * @generated from field: int32 followers = 4;
+   */
+  followers: number;
 };
 
 /**
@@ -416,7 +431,8 @@ export type ExportMyDataResponse = Message<"perspectiv.v1.ExportMyDataResponse">
   /**
    * A JSON object: the account, its stories with parts and characters,
    * claims made and received, votes, reactions, thread posts, lores named,
-   * follows, blocks, reports filed, invites sent and notification settings.
+   * places and writers followed, blocks, reports filed, invites sent and
+   * notification settings.
    *
    * @generated from field: string json = 1;
    */
@@ -429,6 +445,119 @@ export type ExportMyDataResponse = Message<"perspectiv.v1.ExportMyDataResponse">
  */
 export const ExportMyDataResponseSchema: GenMessage<ExportMyDataResponse> = /*@__PURE__*/
   messageDesc(file_perspectiv_v1_user, 16);
+
+/**
+ * @generated from message perspectiv.v1.FollowUserRequest
+ */
+export type FollowUserRequest = Message<"perspectiv.v1.FollowUserRequest"> & {
+  /**
+   * The writer to follow or unfollow, matched in any case.
+   *
+   * @generated from field: string username = 1;
+   */
+  username: string;
+
+  /**
+   * True follows, false unfollows. Either is a no-op when already so.
+   *
+   * @generated from field: bool on = 2;
+   */
+  on: boolean;
+};
+
+/**
+ * Describes the message perspectiv.v1.FollowUserRequest.
+ * Use `create(FollowUserRequestSchema)` to create a new message.
+ */
+export const FollowUserRequestSchema: GenMessage<FollowUserRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_user, 17);
+
+/**
+ * @generated from message perspectiv.v1.FollowUserResponse
+ */
+export type FollowUserResponse = Message<"perspectiv.v1.FollowUserResponse"> & {
+  /**
+   * @generated from field: bool following = 1;
+   */
+  following: boolean;
+};
+
+/**
+ * Describes the message perspectiv.v1.FollowUserResponse.
+ * Use `create(FollowUserResponseSchema)` to create a new message.
+ */
+export const FollowUserResponseSchema: GenMessage<FollowUserResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_user, 18);
+
+/**
+ * @generated from message perspectiv.v1.ListFollowedWritersRequest
+ */
+export type ListFollowedWritersRequest = Message<"perspectiv.v1.ListFollowedWritersRequest"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.ListFollowedWritersRequest.
+ * Use `create(ListFollowedWritersRequestSchema)` to create a new message.
+ */
+export const ListFollowedWritersRequestSchema: GenMessage<ListFollowedWritersRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_user, 19);
+
+/**
+ * FollowedWriter is a writer the caller follows, shown as GetProfile shows
+ * them.
+ *
+ * @generated from message perspectiv.v1.FollowedWriter
+ */
+export type FollowedWriter = Message<"perspectiv.v1.FollowedWriter"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string username = 2;
+   */
+  username: string;
+
+  /**
+   * Relative URL of the avatar image; empty when none is set.
+   *
+   * @generated from field: string avatar_url = 3;
+   */
+  avatarUrl: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp followed_at = 4;
+   */
+  followedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.FollowedWriter.
+ * Use `create(FollowedWriterSchema)` to create a new message.
+ */
+export const FollowedWriterSchema: GenMessage<FollowedWriter> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_user, 20);
+
+/**
+ * @generated from message perspectiv.v1.ListFollowedWritersResponse
+ */
+export type ListFollowedWritersResponse = Message<"perspectiv.v1.ListFollowedWritersResponse"> & {
+  /**
+   * At most 100 writers, most recently followed first. Deleted accounts are
+   * left out.
+   *
+   * @generated from field: repeated perspectiv.v1.FollowedWriter writers = 1;
+   */
+  writers: FollowedWriter[];
+};
+
+/**
+ * Describes the message perspectiv.v1.ListFollowedWritersResponse.
+ * Use `create(ListFollowedWritersResponseSchema)` to create a new message.
+ */
+export const ListFollowedWritersResponseSchema: GenMessage<ListFollowedWritersResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_user, 21);
 
 /**
  * UserService manages the caller's profile, username, blocks and account.
@@ -502,6 +631,27 @@ export const UserService: GenService<{
     methodKind: "unary";
     input: typeof ExportMyDataRequestSchema;
     output: typeof ExportMyDataResponseSchema;
+  },
+  /**
+   * Follows or unfollows a writer: each new story they publish lands in the
+   * follower's inbox. Either is a no-op when already so.
+   *
+   * @generated from rpc perspectiv.v1.UserService.FollowUser
+   */
+  followUser: {
+    methodKind: "unary";
+    input: typeof FollowUserRequestSchema;
+    output: typeof FollowUserResponseSchema;
+  },
+  /**
+   * The writers the caller follows.
+   *
+   * @generated from rpc perspectiv.v1.UserService.ListFollowedWriters
+   */
+  listFollowedWriters: {
+    methodKind: "unary";
+    input: typeof ListFollowedWritersRequestSchema;
+    output: typeof ListFollowedWritersResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_user, 0);

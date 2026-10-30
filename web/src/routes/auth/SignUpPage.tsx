@@ -11,6 +11,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/Input";
 import { clients } from "@/lib/connect";
 import { signIn } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 
 import { AuthHeading, AuthPanel, FormAlert, linkClass } from "./AuthPanel";
 import { errorMessage } from "./errors";
@@ -92,6 +93,7 @@ function CheckEmail({ email, next }: { email: string; next: string }) {
 }
 
 export function Component() {
+  useDocumentTitle("Sign up");
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
   const info = useQuery({

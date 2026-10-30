@@ -634,7 +634,7 @@ func TestGetEpicTales(t *testing.T) {
 	s := tales[1]
 	if s.GetArcTitle() != "City arc" || s.GetAuthor().GetUserId() != author.String() || s.GetAuthor().GetUsername() == "" ||
 		s.GetGenre() != perspectivv1.Genre_GENRE_MYSTERY || s.GetLoreStatus() != perspectivv1.LoreStatus_LORE_STATUS_SOLO ||
-		s.GetPlace().GetId() != h.city.String() || s.GetLocalDate() != "2026-10-01" || len([]rune(s.GetExcerpt())) != 200 {
+		s.GetPlace().GetId() != h.city.String() || s.GetLocalDate() != "2026-10-01" || len([]rune(s.GetExcerpt())) > 201 || !strings.HasSuffix(s.GetExcerpt(), "…") {
 		t.Fatalf("solo tale = %v", s)
 	}
 	if tales[0].GetLoreStatus() != perspectivv1.LoreStatus_LORE_STATUS_REMOVED || tales[0].GetPlace().GetId() != h.store.String() {
@@ -927,5 +927,55 @@ func TestSearchCountsSkipHiddenPlaces(t *testing.T) {
 	h.hide(stand)
 	if n := count(); n != 0 {
 		t.Fatalf("stories after hiding the stand = %d, want 0", n)
+	}
+}
+
+// TestFollowingNewThisWeek covers "what's new" for followed places: each
+// counts the readable stories published at it and below in the last week,
+// and the places with new stories come first.
+func TestFollowingNewThisWeek(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	c := client(t, h.pool)
+	ctx := context.Background()
+	me := h.user(true)
+	for _, p := range []uuid.UUID{h.city, h.otherCity} {
+		if _, err := c.FollowPlace(ctx, as(me, &perspectivv1.FollowPlaceRequest{PlaceId: p.String(), On: true})); err != nil {
+			t.Fatalf("follow: %v", err)
+		}
+	}
+	now := time.Now()
+	by := h.user(true)
+	story := func(placeID uuid.UUID, at time.Time) uuid.UUID {
+		a := h.arc(placeID, at.Format(time.DateOnly), "Day "+uuid.NewString()[:4], by, at)
+		return h.perspective(a, h.user(true), perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_SOLO, at, "text")
+	}
+	story(h.store, now.Add(-24*time.Hour))   // below the city: counts
+	story(h.city, now.Add(-2*time.Hour))     // at the city: counts
+	story(h.city, now.Add(-10*24*time.Hour)) // too old
+	hidden := story(h.city, now.Add(-3*24*time.Hour))
+	h.exec(`UPDATE perspectives SET hidden_at = now() WHERE id = $1`, hidden)
+
+	res, err := c.ListFollowing(ctx, as(me, &perspectivv1.ListFollowingRequest{}))
+	if err != nil {
+		t.Fatalf("ListFollowing: %v", err)
+	}
+	got := map[string]int32{}
+	for _, p := range res.Msg.GetPlaces() {
+		got[p.GetName()] = p.GetNewThisWeek()
+	}
+	// The other city was followed last, so only its zero count keeps it second.
+	if n := names(res.Msg.GetPlaces()); !slices.Equal(n, []string{"Springfield", "Chicago"}) || got["Springfield"] != 2 || got["Chicago"] != 0 {
+		t.Fatalf("following = %q, new this week = %v; want Springfield 2 first", n, got)
+	}
+
+	// A hidden venue's stories stop counting for the city above it.
+	h.hide(h.mall)
+	res, err = c.ListFollowing(ctx, as(me, &perspectivv1.ListFollowingRequest{}))
+	if err != nil {
+		t.Fatalf("ListFollowing: %v", err)
+	}
+	if n := res.Msg.GetPlaces()[0].GetNewThisWeek(); n != 1 {
+		t.Fatalf("after hiding the mall, Springfield new = %d, want 1", n)
 	}
 }

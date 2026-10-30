@@ -251,6 +251,33 @@ describe("landing page (AC-006, OT-036)", () => {
     expect(screen.getByRole("searchbox", { name: "Search places" })).toBeInTheDocument();
   });
 
+  it("puts followed places with new stories first and counts them", async () => {
+    renderApp(
+      "/",
+      {
+        "PlaceService/ListChildren": () => ({ body: states }),
+        "PerspectiveService/ListMine": () => ({ body: { perspectives: [] } }),
+        "NotifyService/ListInbox": () => ({ body: { unreadCount: 0 } }),
+        "LoreService/ListClaims": () => ({ body: { claims: [] } }),
+        "PlaceService/ListFollowing": () => ({
+          body: {
+            places: [
+              { ...springfield, newThisWeek: 3 },
+              { id: "pl-books", kind: "PLACE_KIND_STORE", name: "Corner Books", newThisWeek: 1 },
+              { id: "ci-chi", kind: "PLACE_KIND_CITY", name: "Chicago" },
+            ],
+          },
+        }),
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    const nav = await screen.findByRole("navigation", { name: "Places you follow" });
+    expect(nav).toHaveTextContent("4 new stories this week");
+    const links = within(nav).getAllByRole("link");
+    expect(links.map((l) => l.textContent)).toEqual(["Springfield· 3 new", "Corner Books· 1 new", "Chicago"]);
+    expect(links[0]).toHaveAttribute("href", "/places/ci-spr");
+  });
+
   it("offers to add a place that search does not find", async () => {
     const user = userEvent.setup();
     landing(() => ({ body: { places: [] } }));

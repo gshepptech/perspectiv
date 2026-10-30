@@ -237,6 +237,7 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, caller uuid.UUID, in
 	for _, kind := range []perspectivv1.NotificationKind{
 		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC,
 		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE,
+		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER,
 	} {
 		if err := s.enq.NotifyTx(ctx, tx, jobs.NotifyArgs{Kind: kind, ActorID: caller, ArcID: arcID, PerspectiveID: id}); err != nil {
 			return uuid.Nil, uuid.Nil, apiutil.Internal(err)

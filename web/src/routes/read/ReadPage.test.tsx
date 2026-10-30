@@ -8,7 +8,13 @@ import { dayArcResponse, perspective as arcPerspective } from "@/routes/arc/fixt
 
 import { renderApp } from "./renderApp.testutil";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
+
+/** A paragraph of `n` words, enough to make a story long enough to page. */
+const filler = (n: number) => Array.from({ length: n }, (_, i) => `word${i}`).join(" ");
 
 const perspective = {
   id: "p-1",
@@ -21,10 +27,11 @@ const perspective = {
   loreId: "lore-1",
   place: { id: "so-bk", kind: "PLACE_KIND_STORE", name: "Prairie Books" },
   localDate: "2026-01-14",
+  // Over 600 words in all, so it reads a part per page.
   parts: [
-    { position: 1, body: "The doors opened at nine." },
-    { position: 2, body: "I followed him past the fountain." },
-    { position: 3, body: "He bought nothing." },
+    { position: 1, body: `The doors opened at nine.\n\n${filler(210)}` },
+    { position: 2, body: `I followed him past the fountain.\n\n${filler(210)}` },
+    { position: 3, body: `He bought nothing.\n\n${filler(210)}` },
   ],
   publishedAt: "2026-01-14T22:00:00Z",
 };
@@ -45,7 +52,9 @@ describe("read page (US-007, OT-033, OT-036)", () => {
     expect(screen.getByText(/Mystery/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to the arc" })).toHaveAttribute("href", "/arcs/arc-1");
     // A story in a lore links to the lore, where the stories it is linked with are.
-    expect(screen.getByRole("link", { name: "In lore: read the lore" })).toHaveAttribute("href", "/lores/lore-1");
+    expect(screen.getByRole("link", { name: "In a lore: read the lore" })).toHaveAttribute("href", "/lores/lore-1");
+    // The tab says what is being read, for a link shared anywhere.
+    expect(document.title).toBe("The night the fountain froze by wren · Perspectiv");
     expect(screen.getByRole("link", { name: "Sign in" })).toBeInTheDocument();
     expect(calls("PerspectiveService/Get")).toEqual([{ perspectiveId: "p-1" }]);
     expect(document.querySelector("canvas")).toBeNull();
@@ -227,3 +236,129 @@ describe("inviting who was there", () => {
   });
 });
 
+
+describe("reading a story to its end", () => {
+  /** wren's short story in the day arc the arc fixtures describe, in its canon. */
+  const short = {
+    ...perspective,
+    id: "p-wren",
+    arcId: "arc-day",
+    loreId: "lore-canon",
+    parts: [
+      { position: 1, body: "The doors opened at nine." },
+      { position: 2, body: "I followed him past the fountain." },
+      { position: 3, body: "He bought nothing." },
+    ],
+    characters: [
+      { id: "c-1", position: 1, label: "the man in the green coat", hasAcceptedClaim: true, claimedBy: { userId: "u-otter", username: "otter" } },
+      { id: "c-2", position: 2, label: "a woman nobody knew", hasAcceptedClaim: true, claimedBy: { userId: "u-stranger", username: "stranger" } },
+    ],
+  };
+  const withArc = (p: object) => ({
+    "PerspectiveService/Get": () => ({ body: { perspective: p } }),
+    "ArcService/GetArc": () => ({ body: dayArcResponse() }),
+  });
+
+  it("shows a short story whole on one page, without paging", async () => {
+    renderApp("/perspectives/p-wren", withArc(short));
+    expect(await screen.findByText("The doors opened at nine.")).toBeInTheDocument();
+    expect(screen.getByText("I followed him past the fountain.")).toBeInTheDocument();
+    expect(screen.getByText("He bought nothing.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Part 3" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next part" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Read all parts on one page" })).toBeNull();
+  });
+
+  it("after the story, offers its lore, the day's other stories and the way back to the day", async () => {
+    renderApp("/perspectives/p-wren", withArc(short));
+    const more = await screen.findByRole("region", { name: "More from this day" });
+    expect(await within(more).findByRole("link", { name: /^Read the canon: who was who, every story and the thread/ })).toHaveAttribute(
+      "href",
+      "/lores/lore-canon",
+    );
+    const others = await within(more).findByRole("list", { name: "Other stories from this day" });
+    const rows = within(others).getAllByRole("link");
+    // Five at most, in the arc page's order, never the story just read.
+    expect(rows.map((r) => r.getAttribute("href"))).toEqual([
+      "/perspectives/p-otter",
+      "/perspectives/p-heron",
+      "/perspectives/p-lark",
+      "/perspectives/p-moth",
+      "/perspectives/p-finch",
+    ]);
+    expect(rows[0]).toHaveTextContent("otterCanon text by otter");
+    expect(within(more).getByRole("link", { name: "Back to the day: every story and lore" })).toHaveAttribute("href", "/arcs/arc-day");
+  });
+
+  it("names the story's standing in plain words, with the way to how the day works", async () => {
+    renderApp("/perspectives/p-wren", withArc(short));
+    expect(await screen.findByRole("link", { name: "Canon of this day: read the lore" })).toHaveAttribute("href", "/lores/lore-canon");
+    const note = screen.getByText(/^Its lore is the canon: the lore the people who wrote about this day favour most\./);
+    expect(within(note).getByRole("link", { name: "How this day works" })).toHaveAttribute("href", "/arcs/arc-day#arc-how");
+  });
+
+  it("opens a tagged person's own story of the day from the cast, and their profile when the day does not show it", async () => {
+    renderApp("/perspectives/p-wren", withArc(short));
+    const cast = await screen.findByRole("list", { name: "Cast" });
+    expect(await within(cast).findByRole("link", { name: "otter’s story" })).toHaveAttribute("href", "/perspectives/p-otter");
+    expect(within(cast).getByRole("link", { name: "stranger" })).toHaveAttribute("href", "/users/stranger");
+  });
+
+  it("keeps the end of a long story until its last part", async () => {
+    const user = userEvent.setup();
+    renderApp("/perspectives/p-wren", withArc({ ...short, parts: perspective.parts }));
+    await screen.findByText("Part 1 of 3");
+    expect(screen.queryByRole("region", { name: "More from this day" })).toBeNull();
+    await user.keyboard("{ArrowRight}");
+    await screen.findByText("Part 2 of 3");
+    expect(screen.queryByRole("region", { name: "More from this day" })).toBeNull();
+    await user.keyboard("{ArrowRight}");
+    await screen.findByText("Part 3 of 3");
+    expect(await screen.findByRole("region", { name: "More from this day" })).toBeInTheDocument();
+  });
+
+  it("lets a long story be read on one page, remembers it, and keeps ?part= when paging again", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderApp("/perspectives/p-1?part=2", { "PerspectiveService/Get": () => ({ body: { perspective } }) });
+    await screen.findByText("I followed him past the fountain.");
+    const toggle = screen.getByRole("button", { name: "Read all parts on one page" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("The doors opened at nine.")).toBeInTheDocument();
+    expect(screen.getByText("He bought nothing.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next part" })).toBeNull();
+    // The part the reader was on is where they stay.
+    expect(screen.getByRole("heading", { level: 2, name: "Part 2" })).toHaveFocus();
+    expect(localStorage.getItem("perspectiv.reader.whole")).toBe("1");
+    expect(screen.getByRole("region", { name: "More from this day" })).toBeInTheDocument();
+    unmount();
+
+    // The next story opens whole too; switching back pages at the address's part.
+    const { router } = renderApp("/perspectives/p-1?part=3", { "PerspectiveService/Get": () => ({ body: { perspective } }) });
+    const again = await screen.findByRole("button", { name: "Read all parts on one page" });
+    expect(again).toHaveAttribute("aria-pressed", "true");
+    await user.click(again);
+    expect(await screen.findByText("Part 3 of 3")).toBeInTheDocument();
+    expect(screen.queryByText("The doors opened at nine.")).toBeNull();
+    expect(localStorage.getItem("perspectiv.reader.whole")).toBe("0");
+    await user.click(screen.getByRole("button", { name: "Previous part" }));
+    expect(await screen.findByText("Part 2 of 3")).toBeInTheDocument();
+    expect(router.state.location.search).toBe("?part=2");
+  });
+
+  it("pages as usual when the browser blocks storage", async () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    const user = userEvent.setup();
+    readPage("/perspectives/p-1");
+    expect(await screen.findByText("Part 1 of 3")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Read all parts on one page" }));
+    expect(screen.getByText("He bought nothing.")).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+});

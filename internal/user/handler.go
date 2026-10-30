@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -68,7 +69,9 @@ func (h *Handler) GetProfile(ctx context.Context, req *connect.Request[perspecti
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	return connect.NewResponse(&perspectivv1.GetProfileResponse{Profile: profileToProto(p), Account: accountToProto(acct)}), nil
+	return connect.NewResponse(&perspectivv1.GetProfileResponse{
+		Profile: profileToProto(p), Account: accountToProto(acct), Following: p.Following, Followers: p.Followers,
+	}), nil
 }
 
 func (h *Handler) UpdateProfile(ctx context.Context, req *connect.Request[perspectivv1.UpdateProfileRequest]) (*connect.Response[perspectivv1.UpdateProfileResponse], error) {
@@ -201,4 +204,40 @@ func (h *Handler) ExportMyData(ctx context.Context, _ *connect.Request[perspecti
 		return nil, apiutil.ToConnect(err)
 	}
 	return connect.NewResponse(&perspectivv1.ExportMyDataResponse{Json: doc}), nil
+}
+
+// FollowUser follows or unfollows a writer for the caller.
+func (h *Handler) FollowUser(ctx context.Context, req *connect.Request[perspectivv1.FollowUserRequest]) (*connect.Response[perspectivv1.FollowUserResponse], error) {
+	caller, err := callerID(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	name := strings.TrimSpace(req.Msg.GetUsername())
+	if name == "" {
+		return nil, apiutil.ToConnect(apiutil.InvalidArg("username is required"))
+	}
+	following, err := h.svc.FollowUser(ctx, caller, name, req.Msg.GetOn())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.FollowUserResponse{Following: following}), nil
+}
+
+// ListFollowedWriters lists the writers the caller follows.
+func (h *Handler) ListFollowedWriters(ctx context.Context, _ *connect.Request[perspectivv1.ListFollowedWritersRequest]) (*connect.Response[perspectivv1.ListFollowedWritersResponse], error) {
+	caller, err := callerID(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	ws, err := h.svc.ListFollowedWriters(ctx, caller)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	out := make([]*perspectivv1.FollowedWriter, 0, len(ws))
+	for _, w := range ws {
+		out = append(out, &perspectivv1.FollowedWriter{
+			UserId: w.UserID.String(), Username: w.Username, AvatarUrl: w.AvatarURL, FollowedAt: timestamppb.New(w.FollowedAt),
+		})
+	}
+	return connect.NewResponse(&perspectivv1.ListFollowedWritersResponse{Writers: out}), nil
 }

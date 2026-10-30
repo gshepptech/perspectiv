@@ -6,6 +6,7 @@ import { Link, useLocation, useSearchParams } from "react-router";
 import type { Place } from "@/gen/perspectiv/v1/place_pb";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
+import { useDocumentTitle } from "@/lib/title";
 
 import { blankValues, valuesFromPerspective } from "./composeForm";
 import { Composer } from "./Composer";
@@ -116,6 +117,7 @@ function Existing({ perspectiveId, ...shared }: Shared & { perspectiveId: string
  * wanted to claim a character in.
  */
 export function Component() {
+  useDocumentTitle("Write a perspective");
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const perspectiveId = params.get("perspectiveId") ?? "";

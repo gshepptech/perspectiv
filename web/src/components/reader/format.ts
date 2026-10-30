@@ -76,6 +76,50 @@ export function loreStatusLabel(status: LoreStatus): string {
   }
 }
 
+/** "day" or "hour": what an arc covers, for copy that names it ("Canon of this hour"). */
+export type ArcSpan = "day" | "hour";
+
+export function arcSpan(hour: number | undefined): ArcSpan {
+  return hour === undefined ? "day" : "hour";
+}
+
+/**
+ * A story's standing in plain words, for the byline of its own page.
+ * `canon` is true when its lore is the arc's canon.
+ */
+export function storyStanding(status: LoreStatus, canon: boolean, span: ArcSpan): string {
+  switch (status) {
+    case LoreStatus.IN_LORE:
+      return canon ? `Canon of this ${span}` : "In a lore";
+    case LoreStatus.PENDING:
+      return "Waiting for a link";
+    case LoreStatus.SOLO:
+      return "A tale (no linked stories)";
+    case LoreStatus.REMOVED:
+      return "A tale (voted out of its lore)";
+    case LoreStatus.UNSPECIFIED:
+      return "";
+  }
+}
+
+/** What a story's standing means, in one line under its byline. */
+export function storyStandingNote(status: LoreStatus, canon: boolean, span: ArcSpan): string {
+  switch (status) {
+    case LoreStatus.IN_LORE:
+      return canon
+        ? `Its lore is the canon: the lore the people who wrote about this ${span} favour most.`
+        : "Its writer and others found each other in their stories, which links them as a lore.";
+    case LoreStatus.PENDING:
+      return `This story joins a lore when someone it describes claims their character, or when its author claims a character in another story from that ${span}.`;
+    case LoreStatus.SOLO:
+      return "Nobody linked to it within a week of publishing, so it stands alone.";
+    case LoreStatus.REMOVED:
+      return "The people in its lore voted it out, so it stands alone.";
+    case LoreStatus.UNSPECIFIED:
+      return "";
+  }
+}
+
 /**
  * A place-local day (YYYY-MM-DD) and optional hour as the reader sees it,
  * "October 1, 2026" or "October 1, 2026, 14:00". The day is the place's own

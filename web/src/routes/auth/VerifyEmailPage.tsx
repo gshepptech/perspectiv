@@ -3,6 +3,7 @@ import { Link, useLoaderData, type LoaderFunctionArgs } from "react-router";
 
 import { clients } from "@/lib/connect";
 import { currentSession, refreshSession } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 
 import { readAfterVerify } from "./afterVerify";
 import { AuthHeading, AuthPanel, linkClass } from "./AuthPanel";
@@ -41,6 +42,7 @@ function through(to: string): string {
 }
 
 export function Component() {
+  useDocumentTitle("Verify your email");
   const { verified, next } = useLoaderData<Result>();
   if (verified) {
     return (

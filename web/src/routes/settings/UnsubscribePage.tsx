@@ -5,6 +5,7 @@ import { Link, useSearchParams } from "react-router";
 
 import { Button } from "@/components/ui/Button";
 import { clients } from "@/lib/connect";
+import { useDocumentTitle } from "@/lib/title";
 import { AuthHeading, AuthPanel, FormAlert, linkClass } from "@/routes/auth/AuthPanel";
 import { errorMessage } from "@/routes/auth/errors";
 
@@ -48,6 +49,7 @@ function Invalid() {
  * nothing. Mail clients use the one-click endpoint instead.
  */
 export function Component() {
+  useDocumentTitle("Unsubscribe");
   const [params] = useSearchParams();
   const userId = params.get("u") ?? "";
   const token = params.get("t") ?? "";

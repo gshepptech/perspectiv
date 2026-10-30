@@ -3,6 +3,7 @@ import { Link, useLoaderData, type LoaderFunctionArgs } from "react-router";
 
 import { clients } from "@/lib/connect";
 import { currentSession, refreshSession } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 
 import { AuthHeading, AuthPanel, linkClass } from "./AuthPanel";
 
@@ -33,6 +34,7 @@ export async function loader({ request }: LoaderFunctionArgs): Promise<Result> {
 }
 
 export function Component() {
+  useDocumentTitle("Confirm your new email");
   const result = useLoaderData<Result>();
   const signedIn = currentSession() !== null;
   if (result === "changed") {

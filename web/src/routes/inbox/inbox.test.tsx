@@ -8,6 +8,7 @@ import { resetSessionForTests } from "@/lib/session";
 import { expectFitsPhone, ok, fail, preloadAccountRoutes, renderRoute, type Handlers } from "@/routes/auth/harness.testutil";
 
 import { describeNotification } from "./describe";
+import { notificationKinds } from "./kinds";
 
 preloadAccountRoutes();
 beforeEach(() => resetSessionForTests());
@@ -213,5 +214,19 @@ describe("a new story at a followed place", () => {
       perspectiveId: "p-1",
     });
     expect(describeNotification(n)).toEqual({ text: "otter wrote a new story in Fourth quarter, at a place you follow.", to: "/perspectives/p-1" });
+  });
+});
+
+describe("a new story by a followed writer", () => {
+  it("names the writer and the arc, opens the story, and has its own settings label", () => {
+    const n = create(NotificationSchema, {
+      kind: NotificationKind.NEW_STORY_BY_FOLLOWED_WRITER,
+      actor: { userId: "u-1", username: "otter" },
+      arcTitle: "Fourth quarter",
+      arcId: "arc-1",
+      perspectiveId: "p-1",
+    });
+    expect(describeNotification(n)).toEqual({ text: "otter wrote a new story in Fourth quarter.", to: "/perspectives/p-1" });
+    expect(notificationKinds.at(-1)).toEqual({ kind: NotificationKind.NEW_STORY_BY_FOLLOWED_WRITER, label: "A new story by a writer you follow" });
   });
 });

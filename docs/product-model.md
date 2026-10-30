@@ -36,8 +36,8 @@ ends the beta without a code change.
   or rejects it.
 - **Lore**: perspectives linked by accepted claims. Two stories that see
   each other are a lore.
-- **Canon**: the lore readers favour most, once it has at least four
-  members. One per arc. Every other lore is a **contender**.
+- **Canon**: the lore the people who wrote about the day favour most (only
+  they can upvote), once it has at least four members. One per arc. Every other lore is a **contender**.
 - **Tale**: a perspective nobody linked to within seven days, or one voted
   out of its lore. It stays readable; it just stands alone.
 
@@ -58,6 +58,7 @@ ends the beta without a code change.
 | Post in a lore's thread | A member of the lore, or anyone with a perspective in the arc |
 | Name a lore | A member of the lore; the latest name wins and shows who set it. After a moderator clears a name, nobody can rename the lore for 7 days |
 | Follow a place | Anyone signed in; a new story at the place or anywhere under it lands in their inbox (and email, if they keep it on) |
+| Follow a writer | Anyone signed in, not themself, and never across a block either way; each new story by the writer lands in their inbox (and email, if they keep it on) |
 | Report a perspective, place, user, thread post or lore name | A verified account; an admin hides the post or perspective, hides the place, suspends the user, or clears the name |
 
 Claiming is never required. A story that links to nobody is still
@@ -79,7 +80,8 @@ never the same one again.
 
 **Character tags.** Once a claim is accepted, the character carries the
 claimant's name everywhere it is shown: "the guy in the yellow raincoat ·
-otter". The tag links to their profile. A pending claim shows as "claim
+otter". The tag links to their own story of that day when the page knows it,
+otherwise to their profile. A pending claim shows as "claim
 pending" to the two people involved and to nobody else.
 
 **Claim states on a story.** Each character shows one of: open (you can
@@ -162,6 +164,15 @@ anywhere under it, notifies the follower once, however many of its
 ancestors they follow. People who already wrote in that day's arc hear of it
 as a new perspective in their arc instead. The front page lists the places
 a reader follows.
+
+Anyone signed in can also follow a **writer** from their profile, which
+shows how many people follow them. Each new story the writer publishes
+notifies their followers, except anyone already told of that story as a
+place follower or as someone who wrote in the arc: one story, one
+notification per person. Blocking someone ends any follow between the two
+of you, both ways, and neither can follow the other while the block
+stands. Settings lists the writers a member follows, each with an
+Unfollow, and "Download my data" includes them.
 
 A place carries the **category group** the place data gave it (Food and
 drink, Nightlife, Shopping, Outdoors and parks, Arts and venues, Sports,

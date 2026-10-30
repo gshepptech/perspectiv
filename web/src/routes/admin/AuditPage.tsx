@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { AuditAction, Role } from "@/gen/perspectiv/v1/enums_pb";
 import { useSession } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 
 import { AuditList } from "./AuditList";
 import { auditActionLabel, auditActions } from "./labels";
@@ -21,6 +22,7 @@ function actionFrom(value: string | null): AuditAction {
  * filter lives in the address so a filtered view is linkable.
  */
 export function Component() {
+  useDocumentTitle("Audit log");
   const session = useSession();
   const [params, setParams] = useSearchParams();
   const action = actionFrom(params.get("action"));

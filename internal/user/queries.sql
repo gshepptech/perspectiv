@@ -57,6 +57,62 @@ WHERE b.blocker_id = sqlc.arg(blocker_id)
 ORDER BY b.created_at DESC, u.id
 LIMIT sqlc.arg(max_rows);
 
+-- name: LockPair :exec
+-- Serialises follows and blocks between two accounts for the rest of the
+-- transaction, in either order, so a follow cannot slip in beside a block
+-- that is committing at the same moment.
+SELECT pg_advisory_xact_lock(hashtextextended(
+    least(sqlc.arg(a)::uuid, sqlc.arg(b)::uuid)::text || greatest(sqlc.arg(a)::uuid, sqlc.arg(b)::uuid)::text, 0));
+
+-- name: BlockedEitherWay :one
+SELECT EXISTS (
+    SELECT 1 FROM blocks
+    WHERE (blocker_id = sqlc.arg(a)::uuid AND blocked_id = sqlc.arg(b)::uuid)
+       OR (blocker_id = sqlc.arg(b)::uuid AND blocked_id = sqlc.arg(a)::uuid)
+)::boolean AS blocked;
+
+-- name: DeleteFollowsBetween :exec
+-- Removes a follow between two accounts in both directions.
+DELETE FROM user_follows
+WHERE (follower_id = sqlc.arg(a)::uuid AND followee_id = sqlc.arg(b)::uuid)
+   OR (follower_id = sqlc.arg(b)::uuid AND followee_id = sqlc.arg(a)::uuid);
+
+-- name: DeleteFollowsOf :exec
+-- Removes every follow an account made or received.
+DELETE FROM user_follows WHERE follower_id = sqlc.arg(user_id)::uuid OR followee_id = sqlc.arg(user_id)::uuid;
+
+-- name: FollowUser :exec
+INSERT INTO user_follows (follower_id, followee_id)
+VALUES (sqlc.arg(follower_id)::uuid, sqlc.arg(followee_id)::uuid)
+ON CONFLICT (follower_id, followee_id) DO NOTHING;
+
+-- name: UnfollowUser :exec
+DELETE FROM user_follows
+WHERE follower_id = sqlc.arg(follower_id)::uuid AND followee_id = sqlc.arg(followee_id)::uuid;
+
+-- name: IsFollowingUser :one
+SELECT EXISTS (
+    SELECT 1 FROM user_follows
+    WHERE follower_id = sqlc.arg(follower_id)::uuid AND followee_id = sqlc.arg(followee_id)::uuid
+)::boolean AS following;
+
+-- name: CountFollowers :one
+-- Accounts that follow the writer and are not deleted.
+SELECT count(*)::int
+FROM user_follows f
+JOIN users u ON u.id = f.follower_id
+WHERE f.followee_id = sqlc.arg(followee_id)::uuid AND u.deleted_at IS NULL;
+
+-- name: ListFollowedWriters :many
+-- The writers an account follows, most recently followed first, leaving out
+-- deleted accounts.
+SELECT u.id, u.username, u.avatar_path, f.created_at AS followed_at
+FROM user_follows f
+JOIN users u ON u.id = f.followee_id
+WHERE f.follower_id = sqlc.arg(follower_id)::uuid AND u.deleted_at IS NULL
+ORDER BY f.created_at DESC, u.id
+LIMIT sqlc.arg(max_rows)::integer;
+
 -- name: CountRecentFailedAttempts :one
 SELECT count(*)::int
 FROM login_attempts
@@ -177,6 +233,10 @@ SELECT jsonb_build_object(
   'places_followed', coalesce((
     SELECT jsonb_agg(jsonb_build_object('place_id', f.place_id, 'name', pl.name, 'since', f.created_at) ORDER BY f.created_at)
     FROM place_follows f JOIN places pl ON pl.id = f.place_id WHERE f.user_id = sqlc.arg(user_id)::uuid), '[]'::jsonb),
+  'writers_followed', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('username', coalesce(fu.username, '[deleted]'), 'since', f.created_at) ORDER BY f.created_at)
+    FROM user_follows f LEFT JOIN users fu ON fu.id = f.followee_id AND fu.deleted_at IS NULL
+    WHERE f.follower_id = sqlc.arg(user_id)::uuid), '[]'::jsonb),
   'blocked', coalesce((
     SELECT jsonb_agg(jsonb_build_object('username', coalesce(bu.username, '[deleted]'), 'since', b.created_at) ORDER BY b.created_at)
     FROM blocks b LEFT JOIN users bu ON bu.id = b.blocked_id AND bu.deleted_at IS NULL

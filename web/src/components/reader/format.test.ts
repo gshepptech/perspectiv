@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { PlaceCategory, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
+import { LoreStatus, PlaceCategory, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
 
-import { formatDayBeside, placeChain, placeLabel, storiesLabel } from "./format";
+import { formatDayBeside, placeChain, placeLabel, storiesLabel, storyStanding, storyStandingNote } from "./format";
 
 describe("formatDayBeside", () => {
   it.each([
@@ -40,5 +40,29 @@ describe("search result labels", () => {
     [100, "100+ stories"],
   ])("%i stories reads %s", (n, want) => {
     expect(storiesLabel(n)).toBe(want);
+  });
+});
+
+describe("storyStanding", () => {
+  it.each([
+    [LoreStatus.IN_LORE, false, "day", "In a lore"],
+    [LoreStatus.IN_LORE, true, "day", "Canon of this day"],
+    [LoreStatus.IN_LORE, true, "hour", "Canon of this hour"],
+    [LoreStatus.PENDING, false, "day", "Waiting for a link"],
+    [LoreStatus.SOLO, false, "day", "A tale (no linked stories)"],
+    [LoreStatus.REMOVED, false, "day", "A tale (voted out of its lore)"],
+    [LoreStatus.UNSPECIFIED, false, "day", ""],
+  ] as const)("says %s (canon %s, %s) as %j", (status, canon, span, want) => {
+    expect(storyStanding(status, canon, span)).toBe(want);
+  });
+
+  it("explains every standing a published story can have, and never credits readers with the canon", () => {
+    for (const status of [LoreStatus.IN_LORE, LoreStatus.PENDING, LoreStatus.SOLO, LoreStatus.REMOVED]) {
+      for (const canon of [false, true]) {
+        const note = storyStandingNote(status, canon, "day");
+        expect(note).not.toBe("");
+        expect(note).not.toMatch(/reader/i);
+      }
+    }
   });
 });

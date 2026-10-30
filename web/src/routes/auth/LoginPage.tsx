@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { signIn } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 
 import { AuthHeading, AuthPanel, FormAlert, linkClass } from "./AuthPanel";
 import { errorMessage } from "./errors";
@@ -26,6 +27,7 @@ const targetClass = "inline-flex min-h-11 items-center";
 export type LoginState = { signedOutEverywhere?: boolean };
 
 export function Component() {
+  useDocumentTitle("Sign in");
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const arrived = useLocation().state as LoginState | null;

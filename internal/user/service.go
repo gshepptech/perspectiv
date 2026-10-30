@@ -80,6 +80,11 @@ type Profile struct {
 	// (canon included) their readable perspectives belong to.
 	CanonCount int32
 	LoreCount  int32
+	// Followers counts the live accounts following the user. Following is
+	// whether the signed-in caller follows them; it is false for the
+	// caller's own profile. GetProfile alone sets both.
+	Followers int32
+	Following bool
 }
 
 // Account is the owner's private account state.
@@ -136,11 +141,9 @@ func (s *Service) GetProfile(ctx context.Context, caller *uuid.UUID, q ProfileQu
 	}
 	p := profileOf(u)
 	if !p.Deleted {
-		counts, err := s.q.LoreCounts(ctx, u.ID)
-		if err != nil {
-			return Profile{}, nil, apiutil.Internal(fmt.Errorf("count lores: %w", err))
+		if err := s.liveCounts(ctx, caller, &p); err != nil {
+			return Profile{}, nil, err
 		}
-		p.CanonCount, p.LoreCount = counts.CanonCount, counts.LoreCount
 	}
 	if !own {
 		return p, nil, nil
@@ -150,6 +153,17 @@ func (s *Service) GetProfile(ctx context.Context, caller *uuid.UUID, q ProfileQu
 		return Profile{}, nil, err
 	}
 	return p, acct, nil
+}
+
+// liveCounts sets a live profile's badges, its follower count and whether
+// the caller follows it.
+func (s *Service) liveCounts(ctx context.Context, caller *uuid.UUID, p *Profile) error {
+	counts, err := s.q.LoreCounts(ctx, p.UserID)
+	if err != nil {
+		return apiutil.Internal(fmt.Errorf("count lores: %w", err))
+	}
+	p.CanonCount, p.LoreCount = counts.CanonCount, counts.LoreCount
+	return s.followInfo(ctx, caller, p)
 }
 
 // errAccountGone answers a caller whose account no longer exists: their
@@ -367,8 +381,9 @@ func (s *Service) changeRefused(ctx context.Context, caller uuid.UUID) error {
 		UsernameChangeWindowDays, next.UTC().Format(time.RFC3339)))
 }
 
-// BlockUser records that the caller has blocked target. Blocking an already
-// blocked user succeeds and changes nothing.
+// BlockUser records that the caller has blocked target and, in the same
+// transaction, removes any follow between them in either direction.
+// Blocking an already blocked user succeeds and changes nothing.
 func (s *Service) BlockUser(ctx context.Context, caller, target uuid.UUID) error {
 	if caller == target {
 		return apiutil.InvalidArg("you cannot block yourself")
@@ -383,10 +398,19 @@ func (s *Service) BlockUser(ctx context.Context, caller, target uuid.UUID) error
 	if !ok {
 		return apiutil.NotFound("user not found")
 	}
-	if err := s.q.InsertBlock(ctx, dbq.InsertBlockParams{BlockerID: caller, BlockedID: target}); err != nil {
-		return apiutil.Internal(fmt.Errorf("insert block: %w", err))
-	}
-	return nil
+	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		q := s.q.WithTx(tx)
+		if err := q.LockPair(ctx, dbq.LockPairParams{A: caller, B: target}); err != nil {
+			return apiutil.Internal(fmt.Errorf("lock pair: %w", err))
+		}
+		if err := q.InsertBlock(ctx, dbq.InsertBlockParams{BlockerID: caller, BlockedID: target}); err != nil {
+			return apiutil.Internal(fmt.Errorf("insert block: %w", err))
+		}
+		if err := q.DeleteFollowsBetween(ctx, dbq.DeleteFollowsBetweenParams{A: caller, B: target}); err != nil {
+			return apiutil.Internal(fmt.Errorf("delete follows: %w", err))
+		}
+		return nil
+	})
 }
 
 // UnblockUser removes the caller's block on target. Unblocking a user who is
@@ -406,8 +430,8 @@ func (s *Service) UnblockUser(ctx context.Context, caller, target uuid.UUID) err
 // In one transaction it soft-deletes every perspective the account wrote
 // (drafts too), marks the arcs those sat in for the next rank run (which
 // dissolves their claims and recomputes lore and canon), erases the
-// account's email, username, bio, avatar and password hash, and revokes its
-// sessions and refresh tokens. The avatar file is removed after the commit.
+// account's email, username, bio, avatar and password hash, removes every
+// follow it made or received, and revokes its sessions and refresh tokens. The avatar file is removed after the commit.
 func (s *Service) DeleteAccount(ctx context.Context, caller uuid.UUID, password string) error {
 	u, err := s.q.GetUser(ctx, caller)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -457,6 +481,9 @@ func (s *Service) deleteAccountTx(ctx context.Context, q *dbq.Queries, caller uu
 		if err := q.MarkArcsLoreDirty(ctx, arcs); err != nil {
 			return "", apiutil.Internal(fmt.Errorf("mark arcs: %w", err))
 		}
+	}
+	if err := q.DeleteFollowsOf(ctx, caller); err != nil {
+		return "", apiutil.Internal(fmt.Errorf("delete follows: %w", err))
 	}
 	tag := strings.ReplaceAll(caller.String(), "-", "")
 	if err := q.AnonymizeUser(ctx, dbq.AnonymizeUserParams{

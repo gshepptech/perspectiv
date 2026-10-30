@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 
+import { useDocumentTitle } from "@/lib/title";
+
 /** When the legal pages last changed; shown on each. */
 export const LEGAL_UPDATED = "October 29, 2026";
 
 /** A legal or trust page: a title, the date it last changed, and prose at the reading measure. */
 export function LegalPage({ title, children }: { title: string; children: ReactNode }) {
+  useDocumentTitle(title);
   return (
     <article aria-labelledby="legal-title" className="mx-auto min-w-0 max-w-measure pb-16">
       <h1 id="legal-title" className="text-2xl sm:text-3xl">

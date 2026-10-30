@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
 import { clients } from "@/lib/connect";
+import { useDocumentTitle } from "@/lib/title";
 
 import { AuthHeading, AuthPanel, FormAlert, linkClass } from "./AuthPanel";
 import { errorMessage } from "./errors";
@@ -42,6 +43,7 @@ const askAgain = (
 );
 
 export function Component() {
+  useDocumentTitle("Set a new password");
   const [params] = useSearchParams();
   const token = params.get("token");
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { newPassword: "", repeat: "" } });

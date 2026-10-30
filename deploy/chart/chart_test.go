@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -497,6 +498,10 @@ func TestPostgres18OnPersistentVolume(t *testing.T) {
 	}
 	if str(sts, "spec", "persistentVolumeClaimRetentionPolicy", "whenDeleted") != "Retain" {
 		t.Error("data PVC is not retained when the StatefulSet is deleted")
+	}
+	// Shared buffers sized for the places table, not the 128MB default.
+	if args := list(pg, "args"); !slices.Contains(args, any("shared_buffers=512MB")) || !slices.Contains(args, any("effective_cache_size=1536MB")) {
+		t.Errorf("postgres args = %v, want the tuned memory settings", args)
 	}
 	if str(pg, "readinessProbe", "exec", "command", 0) != "pg_isready" {
 		t.Error("postgres readiness does not use pg_isready")

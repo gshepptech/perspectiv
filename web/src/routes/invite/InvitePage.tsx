@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import type { Invite } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 
 /** The composer, opened at the invite's place and day with the invite's code. */
 function writeHref(inv: Invite): string {
@@ -47,6 +48,8 @@ export function Component() {
     queryFn: ({ signal }) => clients.perspective.getInvite({ code }, { signal }),
     retry: false,
   });
+  const invite = query.data?.invite;
+  useDocumentTitle(query.isError ? "Invite" : invite ? `Were you there? ${invite.arcTitle || invite.place?.name || ""}` : undefined);
   if (query.isPending) {
     return (
       <p role="status" className="mx-auto max-w-measure text-ink-muted">

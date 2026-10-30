@@ -21,6 +21,11 @@ service UserService {
   // Everything Perspectiv holds about the caller's account, as one JSON
   // document ("Download my data"). Only the caller's own data.
   rpc ExportMyData(ExportMyDataRequest) returns (ExportMyDataResponse);
+  // Follows or unfollows a writer: each new story they publish lands in the
+  // follower's inbox. Either is a no-op when already so.
+  rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
+  // The writers the caller follows.
+  rpc ListFollowedWriters(ListFollowedWritersRequest) returns (ListFollowedWritersResponse);
 }
 
 // UserRef is how one user appears to another: an id and a chosen username,
@@ -74,6 +79,11 @@ message GetProfileResponse {
   Profile profile = 1;
   // Set only when the profile is the caller's own.
   Account account = 2;
+  // True when the signed-in caller follows this writer; false when signed
+  // out, for the caller's own profile and for a deleted account.
+  bool following = 3;
+  // How many accounts follow this writer; 0 for a deleted account.
+  int32 followers = 4;
 }
 
 message UpdateProfileRequest {
@@ -123,6 +133,36 @@ message ExportMyDataRequest {}
 message ExportMyDataResponse {
   // A JSON object: the account, its stories with parts and characters,
   // claims made and received, votes, reactions, thread posts, lores named,
-  // follows, blocks, reports filed, invites sent and notification settings.
+  // places and writers followed, blocks, reports filed, invites sent and
+  // notification settings.
   string json = 1;
+}
+
+message FollowUserRequest {
+  // The writer to follow or unfollow, matched in any case.
+  string username = 1;
+  // True follows, false unfollows. Either is a no-op when already so.
+  bool on = 2;
+}
+
+message FollowUserResponse {
+  bool following = 1;
+}
+
+message ListFollowedWritersRequest {}
+
+// FollowedWriter is a writer the caller follows, shown as GetProfile shows
+// them.
+message FollowedWriter {
+  string user_id = 1;
+  string username = 2;
+  // Relative URL of the avatar image; empty when none is set.
+  string avatar_url = 3;
+  google.protobuf.Timestamp followed_at = 4;
+}
+
+message ListFollowedWritersResponse {
+  // At most 100 writers, most recently followed first. Deleted accounts are
+  // left out.
+  repeated FollowedWriter writers = 1;
 }

@@ -119,6 +119,9 @@ enum NotificationKind {
   NOTIFICATION_KIND_INVITE_ANSWERED = 7;
   // Someone wrote a story at a place you follow, or anywhere under it.
   NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE = 8;
+  // A writer you follow published a new story. Not sent for a story you
+  // already hear of as NEW_STORY_AT_FOLLOWED_PLACE or NEW_PERSPECTIVE_IN_ARC.
+  NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER = 9;
 }
 
 // ReportTargetKind is what a report points at.

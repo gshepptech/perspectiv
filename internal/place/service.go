@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -371,8 +372,20 @@ func (s *Service) ListFollowing(ctx context.Context, caller uuid.UUID) ([]Place,
 		}
 		out = append(out, p)
 	}
+	recent, err := s.store.RecentStories(ctx, ids, time.Now().Add(-newStoryWindow))
+	if err != nil {
+		return nil, apiutil.Internal(err)
+	}
+	for i := range out {
+		out[i].NewThisWeek = recent[out[i].ID]
+	}
+	// What changed comes first; the rest keep the order they were followed in.
+	sort.SliceStable(out, func(i, j int) bool { return out[i].NewThisWeek > out[j].NewThisWeek })
 	return out, nil
 }
+
+// newStoryWindow is how far back a followed place's stories count as new.
+const newStoryWindow = 7 * 24 * time.Hour
 
 // Character search query bounds, in runes after trimming.
 const (

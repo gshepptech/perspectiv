@@ -10,6 +10,7 @@ import { ReportStatus, Role } from "@/gen/perspectiv/v1/enums_pb";
 import type { AdminUserView } from "@/gen/perspectiv/v1/moderation_pb";
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 import { asSentence } from "@/routes/auth/errors";
 
 import { auditKey, AuditList } from "./AuditList";
@@ -221,6 +222,7 @@ function Lookup({ query }: { query: string }) {
  * audit log link straight to a dossier.
  */
 export function Component() {
+  useDocumentTitle("Look up a user");
   const session = useSession();
   const [params, setParams] = useSearchParams();
   const query = params.get("q")?.trim() ?? "";

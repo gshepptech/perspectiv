@@ -287,6 +287,12 @@ type User struct {
 	DigestSentAt      pgtype.Timestamptz
 }
 
+type UserFollow struct {
+	FollowerID uuid.UUID
+	FolloweeID uuid.UUID
+	CreatedAt  pgtype.Timestamptz
+}
+
 type Vote struct {
 	PerspectiveID uuid.UUID
 	UserID        uuid.UUID

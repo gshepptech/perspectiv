@@ -213,6 +213,55 @@ func (q *Queries) FollowersOfArcPlaces(ctx context.Context, id uuid.UUID) ([]uui
 	return items, nil
 }
 
+const followersOfWriter = `-- name: FollowersOfWriter :many
+SELECT f.follower_id
+FROM user_follows f
+JOIN arcs a ON a.id = $1::uuid
+WHERE f.followee_id = $2::uuid
+  AND NOT EXISTS (
+        SELECT 1 FROM blocks b
+        WHERE (b.blocker_id = f.follower_id AND b.blocked_id = f.followee_id)
+           OR (b.blocker_id = f.followee_id AND b.blocked_id = f.follower_id))
+  AND NOT EXISTS (
+        SELECT 1 FROM perspectives p
+        WHERE p.arc_id = a.id AND p.author_id = f.follower_id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND p.deleted_at IS NULL AND p.hidden_at IS NULL)
+  AND NOT EXISTS (
+        SELECT 1 FROM place_follows pf
+        WHERE pf.user_id = f.follower_id AND pf.place_id = ANY(a.place_path))
+ORDER BY f.follower_id
+`
+
+type FollowersOfWriterParams struct {
+	ArcID    uuid.UUID
+	AuthorID uuid.UUID
+}
+
+// People who follow the author and have no block with them either way,
+// except those who already hear of this story another way: anyone who wrote
+// in the arc (NEW_PERSPECTIVE_IN_ARC) and anyone who follows the arc's place
+// or a place above it (NEW_STORY_AT_FOLLOWED_PLACE). One story makes one
+// notification per person.
+func (q *Queries) FollowersOfWriter(ctx context.Context, arg FollowersOfWriterParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, followersOfWriter, arg.ArcID, arg.AuthorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var follower_id uuid.UUID
+		if err := rows.Scan(&follower_id); err != nil {
+			return nil, err
+		}
+		items = append(items, follower_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getEmailDigest = `-- name: GetEmailDigest :one
 SELECT email_digest FROM users WHERE id = $1::uuid
 `

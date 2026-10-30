@@ -17,6 +17,7 @@ const KINDS = [
   "NOTIFICATION_KIND_REPORT_RESOLVED",
   "NOTIFICATION_KIND_INVITE_ANSWERED",
   "NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE",
+  "NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER",
 ];
 
 type Blocked = { userId: string; username: string };
@@ -52,6 +53,7 @@ function settings(handlers: Handlers = {}) {
       "UserService/GetProfile": (body) => (body.username ? fail("not_found") : ok(profileBody())),
       "NotifyService/GetPreferences": allOn,
       "AuthService/ListSessions": () => ok({ sessions: [laptop] }),
+      "UserService/ListFollowedWriters": () => ok({ writers: [] }),
       ...handlers,
     },
     { signedIn: true },
@@ -204,6 +206,45 @@ describe("SettingsPage blocks", () => {
   });
 });
 
+describe("SettingsPage writers you follow", () => {
+  it("lists followed writers, newest first, each linking to their profile, and unfollows one", async () => {
+    let writers = [
+      { userId: "u-5", username: "otter", avatarUrl: "/avatars/otter.png", followedAt: "2026-10-29T10:00:00Z" },
+      { userId: "u-6", username: "heron", avatarUrl: "", followedAt: "2026-10-01T10:00:00Z" },
+    ];
+    const { api, user } = settings({
+      "UserService/ListFollowedWriters": () => ok({ writers }),
+      "UserService/FollowUser": (body) => {
+        writers = writers.filter((w) => w.username !== body.username);
+        return ok({ following: false });
+      },
+    });
+    const region = await screen.findByRole("region", { name: "Writers you follow" });
+    const links = await within(region).findAllByRole("link");
+    expect(links.map((l) => [l.textContent, l.getAttribute("href")])).toEqual([
+      ["otter", "/users/otter"],
+      ["heron", "/users/heron"],
+    ]);
+    await user.click(within(region).getByRole("button", { name: "Unfollow otter" }));
+    await waitFor(() => expect(within(region).queryByText("otter")).not.toBeInTheDocument());
+    expect(within(region).getByText("heron")).toBeInTheDocument();
+    expect(api.sent("UserService/FollowUser")).toEqual([{ username: "otter" }]);
+  });
+
+  it("says when the member follows no one", async () => {
+    settings();
+    const region = await screen.findByRole("region", { name: "Writers you follow" });
+    expect(await within(region).findByText("You do not follow any writers yet.")).toBeInTheDocument();
+  });
+
+  it("sits just above Blocked users", async () => {
+    settings();
+    await screen.findByRole("region", { name: "Writers you follow" });
+    const names = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(names.indexOf("Blocked users") - names.indexOf("Writers you follow")).toBe(1);
+  });
+});
+
 describe("SettingsPage notification toggles", () => {
   it("FR-037: offers an in-app and an email toggle for each kind", async () => {
     settings();
@@ -217,6 +258,7 @@ describe("SettingsPage notification toggles", () => {
       "A report you made is resolved",
       "Someone you invited writes their side",
       "A new story at a place you follow",
+      "A new story by a writer you follow",
     ];
     for (const label of labels) {
       expect(await within(region).findByRole("checkbox", { name: `${label}: in app` })).toBeChecked();

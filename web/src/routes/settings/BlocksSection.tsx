@@ -10,7 +10,7 @@ import { useSession } from "@/lib/session";
 import { FormAlert } from "@/routes/auth/AuthPanel";
 import { errorMessage } from "@/routes/auth/errors";
 
-import { myProfileKey } from "./queries";
+import { followedWritersKey, myProfileKey } from "./queries";
 import { Section } from "./Section";
 
 class BlockRefusal extends Error {}
@@ -42,7 +42,8 @@ export function BlocksSection({ blocked }: { blocked: UserRef[] }) {
     },
     onSuccess: async () => {
       setUsername("");
-      await refresh();
+      // A block removes any follow between the two, so the followed list changes too.
+      await Promise.all([refresh(), queryClient.invalidateQueries({ queryKey: followedWritersKey })]);
     },
   });
   const unblock = useMutation({
@@ -61,7 +62,7 @@ export function BlocksSection({ blocked }: { blocked: UserRef[] }) {
     <Section title="Blocked users">
       <p className="text-sm text-ink-muted">
         A blocked user cannot claim your characters, vote on or react to your perspectives, or set off notifications to
-        you. You can both still read everything.
+        you. Blocking also ends any follow between you, both ways. You can both still read everything.
       </p>
       {blocked.length === 0 ? (
         <p className="mt-4">You have not blocked anyone.</p>

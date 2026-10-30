@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Reader } from "./Reader";
+import { Reader, SHORT_STORY_WORDS, wordCount } from "./Reader";
 
 const parts = [
   "The doors opened at nine.\n\nA man in a green coat ran for the escalator.",
@@ -178,5 +178,41 @@ describe("Reader motion (OT-034)", () => {
     expect(screen.getByText("I followed him past the fountain.")).toBeInTheDocument();
     expect(animate).not.toHaveBeenCalled();
     expect(screen.getByRole("article").className).not.toMatch(/transition|animate/);
+  });
+});
+
+describe("Reader with every part on one page", () => {
+  it("shows every part under its own heading, with no paging and inert arrow keys", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Reader title="T" parts={parts} part={1} onPartChange={onChange} whole />);
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Part 1", "Part 2", "Part 3"]);
+    expect(screen.getByText("He stopped at the bookshop and bought nothing.")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Pages" })).toBeNull();
+    await user.keyboard("{ArrowRight}");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("leaves the part heading off a one-part story", () => {
+    render(<Reader title="T" parts={["Only this."]} part={1} onPartChange={() => {}} whole />);
+    expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
+    expect(screen.getByText("Only this.")).toBeInTheDocument();
+  });
+
+  it("offers the toggle only when asked to, as a pressed or unpressed button", async () => {
+    const user = userEvent.setup();
+    const onWhole = vi.fn();
+    const { rerender } = render(<Reader title="T" parts={parts} part={1} onPartChange={() => {}} />);
+    expect(screen.queryByRole("button", { name: "Read all parts on one page" })).toBeNull();
+    rerender(<Reader title="T" parts={parts} part={1} onPartChange={() => {}} onWholeChange={onWhole} />);
+    const toggle = screen.getByRole("button", { name: "Read all parts on one page" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await user.click(toggle);
+    expect(onWhole).toHaveBeenCalledWith(true);
+  });
+
+  it("counts words across parts against the short-story limit", () => {
+    expect(wordCount(["one two", "three\n\nfour  five"])).toBe(5);
+    expect(SHORT_STORY_WORDS).toBe(600);
   });
 });

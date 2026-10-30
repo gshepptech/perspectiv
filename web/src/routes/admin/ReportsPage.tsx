@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ReportStatus, Role } from "@/gen/perspectiv/v1/enums_pb";
 import { useSession } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 
 import { resolutionMessage } from "./labels";
 import { ADMINS_ONLY, ReportList } from "./ReportList";
@@ -14,6 +15,7 @@ import type { Resolution } from "./ResolveDialog";
  * them when the signed-in user is not an admin.
  */
 export function Component() {
+  useDocumentTitle("Report queue");
   const session = useSession();
   const [tab, setTab] = useState("open");
   const [last, setLast] = useState<Resolution | null>(null);

@@ -8,6 +8,7 @@ import type { Notification } from "@/gen/perspectiv/v1/notify_pb";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { useShowMore } from "@/lib/showMore";
+import { useDocumentTitle } from "@/lib/title";
 import { FormAlert } from "@/routes/auth/AuthPanel";
 import { errorMessage } from "@/routes/auth/errors";
 
@@ -63,6 +64,7 @@ function Row({ n, onOpen }: { n: Notification; onOpen: (n: Notification) => void
  * the unread count come from the server, not from a local guess.
  */
 export function Component() {
+  useDocumentTitle("Inbox");
   const queryClient = useQueryClient();
   const [unreadOnly, setUnreadOnly] = useState(false);
   const inbox = useInfiniteQuery({

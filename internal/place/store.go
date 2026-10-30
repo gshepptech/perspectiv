@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -52,8 +54,11 @@ type Place struct {
 	Category  perspectivv1.PlaceCategory
 	// Stories counts readable stories at the place and below, up to 100;
 	// set by Search only.
-	Stories   int32
-	Ancestors []Ref
+	Stories int32
+	// NewThisWeek counts readable stories published at the place and below
+	// in the last week, up to 100; set by ListFollowing only.
+	NewThisWeek int32
+	Ancestors   []Ref
 	// sortKey is the name the children list orders and pages by; set by
 	// Children only.
 	sortKey string
@@ -466,7 +471,7 @@ func epicArcsFrom(rows []dbq.EpicArcsRankedRow) []EpicArc {
 			ID: r.ID, Title: r.Title, Place: Ref{ID: r.PlaceID, Kind: kindOf(r.PlaceKind), Name: r.PlaceName},
 			LocalDate: r.LocalDate.Time, Hour: hourOf(r.Hour), CanonLoreID: r.CanonLoreID.UUID,
 			CanonScore: r.CanonScore, MemberCount: r.MemberCount, PerspectiveCount: r.PerspectiveCount,
-			CreatedAt: r.CreatedAt.Time, City: r.CityName, Excerpt: r.Excerpt,
+			CreatedAt: r.CreatedAt.Time, City: r.CityName, Excerpt: clipExcerpt(r.Excerpt),
 		}
 	}
 	return out
@@ -522,7 +527,7 @@ func (s *Store) EpicTales(ctx context.Context, q TalesQuery) ([]EpicTale, error)
 			AuthorID: r.AuthorID, AuthorUsername: r.Username,
 			Genre:       perspectivv1.Genre(perspectivv1.Genre_value[r.Genre.String]),
 			LoreStatus:  perspectivv1.LoreStatus(perspectivv1.LoreStatus_value[r.LoreStatus.String]),
-			PublishedAt: r.PublishedAt.Time, Excerpt: r.Excerpt,
+			PublishedAt: r.PublishedAt.Time, Excerpt: clipExcerpt(r.Excerpt),
 		}
 	}
 	return out, nil
@@ -559,6 +564,20 @@ func (s *Store) FollowedPlaceIDs(ctx context.Context, userID uuid.UUID, limit in
 		return nil, fmt.Errorf("followed places: %w", err)
 	}
 	return ids, nil
+}
+
+// RecentStories counts, for each place, readable stories at it or below
+// published since the cutoff.
+func (s *Store) RecentStories(ctx context.Context, ids []uuid.UUID, since time.Time) (map[uuid.UUID]int32, error) {
+	rows, err := s.q.RecentStoriesUnder(ctx, dbq.RecentStoriesUnderParams{Ids: ids, Since: pgtype.Timestamptz{Time: since, Valid: true}})
+	if err != nil {
+		return nil, fmt.Errorf("recent stories: %w", err)
+	}
+	out := make(map[uuid.UUID]int32, len(rows))
+	for _, r := range rows {
+		out[r.PlaceID] = r.Recent
+	}
+	return out, nil
 }
 
 // FoundCharacter is one unclaimed character a character search found.
@@ -612,4 +631,26 @@ func (s *Store) SearchCharacters(ctx context.Context, placeID uuid.UUID, pattern
 		}
 	}
 	return out, nil
+}
+
+// excerptRunes is how much of a story's opening a listing quotes. The
+// queries read a little more, so a clip can tell an opening that ends there
+// from one that goes on.
+const excerptRunes = 200
+
+// clipExcerpt cuts an opening at the last word that fits and marks the cut
+// with an ellipsis, so a listing never quotes half a word.
+func clipExcerpt(s string) string {
+	r := []rune(strings.TrimSpace(s))
+	if len(r) <= excerptRunes {
+		return string(r)
+	}
+	cut := excerptRunes
+	for i := excerptRunes; i > excerptRunes/2; i-- {
+		if unicode.IsSpace(r[i]) {
+			cut = i
+			break
+		}
+	}
+	return strings.TrimRightFunc(string(r[:cut]), func(c rune) bool { return unicode.IsSpace(c) || c == ',' || c == ';' || c == ':' }) + "…"
 }

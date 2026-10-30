@@ -403,3 +403,57 @@ func TestFanoutNewStoryAtFollowedPlace(t *testing.T) {
 	s.expect(t, s.ann, "ann", nil, 0)
 	s.expect(t, s.ben, "ben", nil, 0)
 }
+
+// A new story tells its author's followers, once each: a follower who hears
+// of it as a place follower or as a writer in the arc gets only that, and a
+// follower with a block either way, or a deleted one, hears nothing.
+func TestFanoutNewStoryByFollowedWriter(t *testing.T) {
+	t.Parallel()
+	kWriter := perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER
+	kPlace := perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE
+	s := newStory(t)
+	place := s.id(`SELECT place_id FROM arcs WHERE id = $1`, s.arc)
+
+	fan, placeFan, blocker, blockedFan, goneFan, stranger := s.user("fay"), s.user("pat"), s.user("bea"), s.user("bo"), s.user("gil"), s.user("sol")
+	follow := func(follower uuid.UUID) {
+		s.exec(`INSERT INTO user_follows (follower_id, followee_id) VALUES ($1, $2)`, follower, s.ann)
+	}
+	for _, u := range []uuid.UUID{fan, placeFan, blocker, blockedFan, goneFan, s.ben} {
+		follow(u)
+	}
+	s.exec(`INSERT INTO place_follows (user_id, place_id) VALUES ($1, $2)`, placeFan, place)
+	// The fan-out still refuses a block that sits beside a follow, whichever
+	// side made it.
+	s.block(blocker, s.ann)
+	s.block(s.ann, blockedFan)
+	s.exec(`UPDATE users SET deleted_at = now() WHERE id = $1`, goneFan)
+
+	for _, k := range []perspectivv1.NotificationKind{kNewInArc, kPlace, kWriter} {
+		s.notifyNow(jobs.NotifyArgs{Kind: k, ActorID: s.ann, ArcID: s.arc, PerspectiveID: s.pAnn})
+	}
+
+	tests := []struct {
+		name  string
+		user  uuid.UUID
+		login string
+		want  []perspectivv1.NotificationKind
+	}{
+		{name: "a follower hears of it as a followed writer's story", user: fan, login: "fay", want: []perspectivv1.NotificationKind{kWriter}},
+		{name: "a follower who also follows the place hears once, as the place", user: placeFan, login: "pat", want: []perspectivv1.NotificationKind{kPlace}},
+		{name: "a follower who wrote in the arc hears once, as the arc", user: s.ben, login: "ben", want: []perspectivv1.NotificationKind{kNewInArc}},
+		{name: "a follower who blocked the writer hears nothing", user: blocker, login: "bea"},
+		{name: "a follower the writer blocked hears nothing", user: blockedFan, login: "bo"},
+		{name: "a deleted follower hears nothing", user: goneFan, login: "gil"},
+		{name: "someone who follows nobody hears nothing", user: stranger, login: "sol"},
+		{name: "the writer hears nothing of their own story", user: s.ann, login: "ann"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			rows := s.expect(t, tc.user, tc.login, tc.want, len(tc.want))
+			if len(rows) == 1 && (rows[0].payload["perspective_id"] != s.pAnn.String() || rows[0].payload["actor_id"] != s.ann.String()) {
+				t.Fatalf("payload = %v", rows[0].payload)
+			}
+		})
+	}
+}

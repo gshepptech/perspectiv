@@ -83,6 +83,7 @@ func TestEnumValues(t *testing.T) {
 				"NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "NOTIFICATION_KIND_VOTE_OUT_OPENED",
 				"NOTIFICATION_KIND_CANON_CHANGE", "NOTIFICATION_KIND_REPORT_RESOLVED",
 				"NOTIFICATION_KIND_INVITE_ANSWERED", "NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE",
+				"NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER",
 			},
 		},
 		{
@@ -151,13 +152,15 @@ func TestEnumValues(t *testing.T) {
 // ListByAuthor serves the profile's perspectives and tales (AC-023), and
 // ListArcSection the arc page's later pages (NFR-008). CreateInvite and
 // GetInvite serve the "I was there too" share link, ListLorePosts and
-// AddLorePost a lore's thread, NameLore a lore's name, and FollowPlace and
-// ListFollowing the places a user follows.
+// AddLorePost a lore's thread, NameLore a lore's name, FollowPlace and
+// ListFollowing the places a user follows, and FollowUser and
+// ListFollowedWriters the writers a user follows.
 var services = map[string][]string{
 	"AuthService": {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword",
 		"ChangePassword", "RequestEmailChange", "ConfirmEmailChange", "SignOutEverywhere", "ListSessions", "RevokeSession",
 		"GetSignUpInfo", "JoinWaitlist", "CreateAccessCode", "ListAccessCodes", "RevokeAccessCode", "ListWaitlist", "InviteFromWaitlist"},
-	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount", "ExportMyData"},
+	"UserService": {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount", "ExportMyData",
+		"FollowUser", "ListFollowedWriters"},
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters"},
 	"ArcService":         {"GetArc", "FindDayArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},
 	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite"},

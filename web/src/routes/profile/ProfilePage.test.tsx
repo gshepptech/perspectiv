@@ -73,6 +73,41 @@ describe("public profile page", () => {
     ]);
   });
 
+  it("tells stories apart by place, day and their own opening, even when their days share a title", async () => {
+    const row = (id: string, place: string, localDate: string, body: string) => ({
+      id,
+      arcId: `arc-${id}`,
+      arcTitle: "Saturday night",
+      author: { userId: "u-1", username: "wren" },
+      status: "PERSPECTIVE_STATUS_PUBLISHED",
+      loreStatus: "LORE_STATUS_IN_LORE",
+      place: { id: `pl-${id}`, kind: "PLACE_KIND_STORE", name: place },
+      localDate,
+      parts: [
+        { position: 2, body: "Later on." },
+        { position: 1, body: body },
+      ],
+    });
+    renderApp("/users/wren", {
+      "UserService/GetProfile": () => ({ body: { profile } }),
+      "PerspectiveService/ListByAuthor": () => ({
+        body: {
+          perspectives: [
+            row("p-1", "Prairie Books", "2026-01-14", "The doors opened at nine."),
+            row("p-2", "Moonbean Coffee", "2026-02-07", `The power went out ${"and stayed out ".repeat(30)}until dawn.`),
+          ],
+        },
+      }),
+    });
+    const list = await screen.findByRole("list");
+    const [first, second] = within(list).getAllByRole("link");
+    expect(first).toHaveTextContent(/^Prairie Books · January 14, 2026Saturday nightThe doors opened at nine\.In lore$/);
+    expect(second).toHaveTextContent(/^Moonbean Coffee · February 7, 2026Saturday nightThe power went out and stayed out/);
+    // A long opening is cut at a word, not mid-word.
+    expect(second?.textContent).toMatch(/ (and|stayed|out)…In lore$/);
+    expect(document.title).toBe("wren · Perspectiv");
+  });
+
   it("says when the user has published nothing", async () => {
     renderApp("/users/wren", {
       "UserService/GetProfile": () => ({ body: { profile } }),

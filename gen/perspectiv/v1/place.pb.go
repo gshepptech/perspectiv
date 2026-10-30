@@ -105,7 +105,10 @@ type Place struct {
 	Following bool `protobuf:"varint,10,opt,name=following,proto3" json:"following,omitempty"`
 	// Readable stories at the place and below, counted up to 100, so a
 	// search tells same-named entries apart. Set by SearchPlaces only.
-	Stories       int32 `protobuf:"varint,11,opt,name=stories,proto3" json:"stories,omitempty"`
+	Stories int32 `protobuf:"varint,11,opt,name=stories,proto3" json:"stories,omitempty"`
+	// Readable stories at the place and below published in the last seven
+	// days, counted up to 100. Set by ListFollowing only.
+	NewThisWeek   int32 `protobuf:"varint,12,opt,name=new_this_week,json=newThisWeek,proto3" json:"new_this_week,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -213,6 +216,13 @@ func (x *Place) GetFollowing() bool {
 func (x *Place) GetStories() int32 {
 	if x != nil {
 		return x.Stories
+	}
+	return 0
+}
+
+func (x *Place) GetNewThisWeek() int32 {
+	if x != nil {
+		return x.NewThisWeek
 	}
 	return 0
 }
@@ -1211,7 +1221,8 @@ func (*ListFollowingRequest) Descriptor() ([]byte, []int) {
 
 type ListFollowingResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// At most 100 places.
+	// At most 100 places: those with new stories this week first, most first,
+	// then the rest, most recently followed first.
 	Places        []*Place `protobuf:"bytes,1,rep,name=places,proto3" json:"places,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1471,7 +1482,7 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"\bPlaceRef\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12,\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x18.perspectiv.v1.PlaceKindR\x04kind\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\"\x8e\x03\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"\xb2\x03\n" +
 	"\x05Place\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12,\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x18.perspectiv.v1.PlaceKindR\x04kind\x12\x12\n" +
@@ -1485,7 +1496,8 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"\bcategory\x18\t \x01(\x0e2\x1c.perspectiv.v1.PlaceCategoryR\bcategory\x12\x1c\n" +
 	"\tfollowing\x18\n" +
 	" \x01(\bR\tfollowing\x12\x18\n" +
-	"\astories\x18\v \x01(\x05R\astories\"v\n" +
+	"\astories\x18\v \x01(\x05R\astories\x12\"\n" +
+	"\rnew_this_week\x18\f \x01(\x05R\vnewThisWeek\"v\n" +
 	"\x13SearchPlacesRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x1b\n" +
 	"\tparent_id\x18\x02 \x01(\tR\bparentId\x12,\n" +

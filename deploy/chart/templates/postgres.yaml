@@ -52,6 +52,13 @@ spec:
       containers:
         - name: postgres
           image: {{ .Values.postgres.image }}
+          {{- with .Values.postgres.settings }}
+          args:
+            {{- range $k, $v := . }}
+            - "-c"
+            - {{ printf "%s=%v" $k $v | quote }}
+            {{- end }}
+          {{- end }}
           env:
             - name: POSTGRES_USER
               value: perspectiv

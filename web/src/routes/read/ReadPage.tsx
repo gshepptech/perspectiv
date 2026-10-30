@@ -9,18 +9,22 @@ import { InviteDialog } from "@/components/actions/InviteDialog";
 import { PerspectiveActions } from "@/components/actions/PerspectiveActions";
 import { useStoryRights } from "@/components/actions/rights";
 import { OpenCharacters } from "@/routes/arc/OpenCharacters";
-import { perspectiveQuery } from "@/components/actions/queries";
-import { formatDayBeside, genreLabel, loreStatusLabel } from "@/components/reader/format";
+import { arcQuery, perspectiveQuery } from "@/components/actions/queries";
+import { arcSpan, formatDayBeside, genreLabel, storyStanding, storyStandingNote } from "@/components/reader/format";
 import { Cast } from "@/components/reader/Cast";
-import { Reader } from "@/components/reader/Reader";
+import { Reader, useWholeStory } from "@/components/reader/Reader";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
+import type { GetArcResponse } from "@/gen/perspectiv/v1/arc_pb";
 import { Genre, LoreStatus, PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
 import { type Perspective, PerspectiveSummarySchema } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { takeAfterPublish } from "@/routes/compose/links";
+
+import { MoreFromDay, storiesByAuthor } from "./MoreFromDay";
 
 /**
  * A deleted or hidden perspective. Its heading takes focus, so an author who
@@ -54,9 +58,14 @@ function partFrom(value: string | null, total: number): number {
   return Math.min(n, Math.max(total, 1));
 }
 
-function Byline({ p }: { p: Perspective }) {
+/** Whether the story's lore is its arc's canon; false until the arc is read. */
+function isCanon(p: Perspective, arc: GetArcResponse | undefined): boolean {
+  return p.loreId !== "" && arc?.arc?.canonLoreId === p.loreId;
+}
+
+function Byline({ p, arc }: { p: Perspective; arc: GetArcResponse | undefined }) {
   const genre = p.genre !== Genre.UNSPECIFIED ? genreLabel(p.genre) : "";
-  const standing = loreStatusLabel(p.loreStatus);
+  const standing = storyStanding(p.loreStatus, isCanon(p, arc), arcSpan(p.hour));
   // A story in a lore links to it: the lore page holds the other stories it
   // is linked with and the thread.
   const inLore = p.loreStatus === LoreStatus.IN_LORE && p.loreId !== "";
@@ -86,13 +95,22 @@ function Byline({ p }: { p: Perspective }) {
   );
 }
 
-/** What "Waiting for a link" in the byline means, said under it. */
-function WaitingForLink({ p }: { p: Perspective }) {
-  if (p.loreStatus !== LoreStatus.PENDING) return null;
+/** What the byline's standing means, in one line, with the way to the arc page's explainer. */
+function StandingNote({ p, arc }: { p: Perspective; arc: GetArcResponse | undefined }) {
+  const span = arcSpan(p.hour);
+  const note = storyStandingNote(p.loreStatus, isCanon(p, arc), span);
+  if (!note) return null;
   return (
     <p className="mt-1 text-sm text-ink-muted">
-      Waiting for a link: this story joins a lore when someone it describes claims their character, or when its author
-      claims a character in another story from that day.
+      {note}
+      {p.arcId && (
+        <>
+          {" "}
+          <Link to={`/arcs/${encodeURIComponent(p.arcId)}#arc-how`} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
+            How this {span} works
+          </Link>
+        </>
+      )}
     </p>
   );
 }
@@ -234,6 +252,21 @@ export function Component() {
   // The action bar on the arc page reads the same cache entry, so both must
   // store the same shape; perspectiveQuery owns it.
   const query = useQuery(perspectiveQuery(perspectiveId));
+  const loaded = query.data;
+  const arcId = loaded && loaded.status !== PerspectiveStatus.DRAFT && !loaded.deleted && !loaded.hidden ? loaded.arcId : "";
+  // The arc page's own read: what follows the story, whether its lore is the
+  // canon, and which story each tagged person wrote that day.
+  const arc = useQuery({ ...arcQuery(arcId), enabled: arcId !== "" });
+  const bodies = (loaded?.parts ?? []).toSorted((a, b) => a.position - b.position).map((part) => part.body);
+  const reading = useWholeStory(bodies);
+  const storyTitle = loaded ? loaded.arcTitle || loaded.titleIfNewArc || "Untitled" : "";
+  useDocumentTitle(
+    query.isError
+      ? "Perspective not found"
+      : loaded && loaded.author && !loaded.deleted && !loaded.hidden
+        ? `${storyTitle} by ${loaded.author.username}`
+        : storyTitle,
+  );
   const onPartChange = useCallback(
     (n: number) =>
       setParams((prev) => {
@@ -268,8 +301,9 @@ export function Component() {
 
   const isDraft = p.status === PerspectiveStatus.DRAFT;
   const mine = session !== null && p.author?.userId === session.userId;
-  const bodies = p.parts.toSorted((a, b) => a.position - b.position).map((part) => part.body);
-  const title = p.arcTitle || p.titleIfNewArc || "Untitled";
+  const part = partFrom(params.get("part"), bodies.length);
+  // The story's end: the last part, or every part on one page.
+  const atEnd = reading.whole || part >= bodies.length;
 
   return (
     <div className="min-w-0">
@@ -307,20 +341,23 @@ export function Component() {
         </div>
       )}
       <Reader
-        title={title}
+        title={storyTitle}
         byline={
           <>
-            <Byline p={p} />
-            <WaitingForLink p={p} />
-            <Cast characters={p.characters} className="mt-3" />
+            <Byline p={p} arc={arc.data} />
+            <StandingNote p={p} arc={arc.data} />
+            <Cast characters={p.characters} storyOf={storiesByAuthor(arc.data)} className="mt-3" />
           </>
         }
         parts={bodies}
-        part={partFrom(params.get("part"), bodies.length)}
+        part={part}
         onPartChange={onPartChange}
+        whole={reading.whole}
+        onWholeChange={reading.short ? undefined : reading.choose}
       />
       {/* Keyed by story, so a "That was me" arrival is read afresh on each one. */}
       {!isDraft && !mine && <ReaderActions key={p.id} p={p} />}
+      {!isDraft && p.arcId && atEnd && <MoreFromDay p={p} res={arc.data} />}
       {/* The moment after publishing is when a writer knows who was there;
           the list follows the story so its heading comes after the title. */}
       {justPublished && mine && !isDraft && p.arcId && (

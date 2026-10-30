@@ -1,12 +1,13 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ArrowLeft, ArrowRight, Clock, Crown, Pin, PenLine } from "lucide-react";
-import { Fragment, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router";
 
 import type { ViewerRights } from "@/components/actions/PerspectiveActions";
+import { arcQuery } from "@/components/actions/queries";
 import { ReportDialog } from "@/components/actions/ReportDialog";
-import { titleEndsWithHour } from "@/components/reader/format";
+import { arcSpan, titleEndsWithHour, type ArcSpan } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import type { Arc, ArcLore, GetArcResponse, HourArc, ListArcSectionResponse } from "@/gen/perspectiv/v1/arc_pb";
 import type { Lore } from "@/gen/perspectiv/v1/lore_pb";
@@ -15,13 +16,12 @@ import type { PerspectiveSummary } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 import { cn } from "@/lib/cn";
 import { useSession, type Session } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 import { composeHref } from "@/routes/compose/links";
 
 import { dateLabel, hourLabel } from "./labels";
 import { OpenCharacters } from "./OpenCharacters";
 import { StoryRow } from "./StoryRow";
-
-export const arcKey = (arcId: string) => ["arc", "getArc", { arcId }] as const;
 
 /** How many entries each further page of a list holds. */
 const PAGE_SIZE = 20;
@@ -140,7 +140,7 @@ const CANON_MIN_MEMBERS = 4;
  * One lore as a block: its flair, who is in it, its counts, its stories as
  * rows and the way into its own page. The canon's block is pinned first.
  */
-function LoreBlock({ l, canon, rank, rights }: { l: ArcLore; canon: boolean; rank: number; rights: ViewerRights }) {
+function LoreBlock({ l, canon, rank, rights, span }: { l: ArcLore; canon: boolean; rank: number; rights: ViewerRights; span: ArcSpan }) {
   const lore = l.lore;
   if (!lore) return null;
   const titleId = `lore-${lore.id}`;
@@ -155,7 +155,7 @@ function LoreBlock({ l, canon, rank, rights }: { l: ArcLore; canon: boolean; ran
           <>
             <span className="inline-flex items-center gap-1 font-medium text-accent">
               <Crown aria-hidden size={16} />
-              Canon of the day
+              {span === "hour" ? "Canon of this hour" : "Canon of the day"}
             </span>
             <span className="inline-flex items-center gap-1 text-ink-muted">
               <Pin aria-hidden size={14} />
@@ -192,7 +192,7 @@ function LoreBlock({ l, canon, rank, rights }: { l: ArcLore; canon: boolean; ran
   );
 }
 
-function NoCanonYet({ leader }: { leader: ArcLore | undefined }) {
+function NoCanonYet({ leader, span }: { leader: ArcLore | undefined; span: ArcSpan }) {
   const members = leader?.lore?.memberCount ?? 0;
   return (
     <section aria-labelledby="arc-canon" className="rounded-md border border-dashed border-rule px-4 py-3">
@@ -201,8 +201,8 @@ function NoCanonYet({ leader }: { leader: ArcLore | undefined }) {
         Canon
       </h2>
       <p className="mt-1 text-ink-muted">
-        No canon yet. When people find each other in their stories, the linked stories form a lore, and a lore of{" "}
-        {CANON_MIN_MEMBERS} or more that readers favour becomes the canon of the day.
+        No canon yet. When people find each other in their stories, the linked stories form a lore, and the lore of{" "}
+        {CANON_MIN_MEMBERS} or more that the people who wrote about this {span} favour most becomes the canon of this {span}.
         {leader &&
           ` The leading contender has ${members} of ${CANON_MIN_MEMBERS} members${members >= CANON_MIN_MEMBERS ? " and is waiting for the next ranking" : ""}.`}
       </p>
@@ -271,7 +271,7 @@ function HourTimeline({
 }
 
 /** Every lore but the canon that has a member, highest rank first, a page at a time. */
-function Contenders({ arcId, res, rights }: { arcId: string; res: GetArcResponse; rights: ReturnType<typeof rightsIn> }) {
+function Contenders({ arcId, res, rights, span }: { arcId: string; res: GetArcResponse; rights: ReturnType<typeof rightsIn>; span: ArcSpan }) {
   const more = useMore(arcId, ArcSection.SUBLORES, res.subloresNextPageToken, (p) => p.sublores);
   const sublores = [...res.sublores, ...more.items];
   if (sublores.length === 0) return null;
@@ -279,11 +279,11 @@ function Contenders({ arcId, res, rights }: { arcId: string; res: GetArcResponse
     <Section
       id="arc-sublores"
       title="Contenders"
-      intro="Other groups of people who found each other in their stories. One takes the canon when readers favour it more."
+      intro={`Other groups of people who found each other in their stories. One takes the canon when the people who wrote about this ${span} favour it more.`}
     >
       <div className="mt-3 grid min-w-0 gap-4">
         {sublores.map((l, i) => (
-          <LoreBlock key={l.lore?.id ?? i} l={l} canon={false} rank={i + 1} rights={rights.forLore(l)} />
+          <LoreBlock key={l.lore?.id ?? i} l={l} canon={false} rank={i + 1} rights={rights.forLore(l)} span={span} />
         ))}
       </div>
       <MoreButton label="Show more contenders" more={more} />
@@ -323,28 +323,38 @@ function counts(res: GetArcResponse): string {
   return `${stories}${more} ${stories === 1 && !more ? "story" : "stories"} · ${lores}${res.subloresNextPageToken ? "+" : ""} ${lores === 1 ? "lore" : "lores"}`;
 }
 
+/** Brings "How this day works" into view and moves focus to its heading. */
+function showHowItWorks() {
+  document.getElementById("arc-how")?.focus();
+}
+
 function HowItWorks({ arc, res, rights }: { arc: Arc; res: GetArcResponse; rights: ReturnType<typeof rightsIn> }) {
   const session = useSession();
+  const span = arcSpan(arc.hour);
   return (
     <aside aria-labelledby="arc-how" className="min-w-0 rounded-md border border-rule bg-surface p-4 text-sm">
-      <h2 id="arc-how" className="font-sans text-base font-medium">
-        How this day works
+      <h2 id="arc-how" tabIndex={-1} className="font-sans text-base font-medium">
+        How this {span} works
       </h2>
       <ol className="mt-2 grid list-decimal gap-1.5 pl-5 text-ink">
         <li>Everyone who was here writes their own side.</li>
         <li>If someone else's story describes you, open it and claim that character.</li>
         <li>Stories linked by claims become a lore, with its own thread.</li>
         <li>
-          The lore readers favour most, with {CANON_MIN_MEMBERS} or more people, becomes the canon of the day. The others stay as
-          contenders.
+          The lore the people who wrote here favour most, with {CANON_MIN_MEMBERS} or more people, becomes the canon of this {span}.
+          The others stay as contenders.
         </li>
       </ol>
       <p className="mt-3 text-ink-muted">{counts(res)}</p>
       {session && !rights.participant && (
-        <p className="mt-2 text-ink-muted">Only people with a perspective here can upvote or claim characters. Anyone signed in can react.</p>
+        <p className="mt-2 text-ink-muted">
+          Only people who wrote about this {span} can upvote, claim characters or post in a lore&apos;s thread. Anyone signed in can react.
+        </p>
       )}
       {!session && (
-        <p className="mt-2 text-ink-muted">Anyone can read. To upvote or claim a character, sign in and write your side of this day.</p>
+        <p className="mt-2 text-ink-muted">
+          Anyone can read. Only people who wrote about this {span} can upvote, claim characters or post in a lore&apos;s thread.
+        </p>
       )}
       {arc.place && (
         <div className="mt-3">
@@ -361,12 +371,18 @@ function ArcView({ res }: { res: GetArcResponse }) {
   if (!arc) return <Missing />;
   const rights = rightsIn(res, session);
   const isHour = arc.hour !== undefined;
+  const span = arcSpan(arc.hour);
   // A day whose stories were all written into its hours: the hours are the
   // page, not an empty canon.
   const hoursOnly =
     !isHour && res.hours.length > 0 && !res.canon && res.sublores.length === 0 && res.tales.length === 0 && res.unlinked.length === 0;
   // Arriving from an invite: the reader has just written their side here.
-  const invited = (useLocation().state as { invited?: boolean } | null)?.invited === true;
+  const location = useLocation();
+  const invited = (location.state as { invited?: boolean } | null)?.invited === true;
+  // A story's "How this day works" link lands on the explainer.
+  useEffect(() => {
+    if (location.hash === "#arc-how") showHowItWorks();
+  }, [location.hash]);
   return (
     <article aria-labelledby="arc-title" className="min-w-0">
       {invited && (
@@ -430,7 +446,20 @@ function ArcView({ res }: { res: GetArcResponse }) {
         </div>
       </header>
 
-      {/* Phones: the sidebar falls below every story, so the list starts here. */}
+      {/* Phones: the sidebar falls below every story, so the list and the gist of how the day works start here. */}
+      <p className="mt-4 text-sm text-ink-muted lg:hidden">
+        The canon is the lore of {CANON_MIN_MEMBERS} or more linked stories that the people who were here favour most.{" "}
+        <a
+          href="#arc-how"
+          onClick={(e) => {
+            e.preventDefault();
+            showHowItWorks();
+          }}
+          className="inline-flex min-h-11 items-center font-medium text-accent underline underline-offset-4"
+        >
+          How this {span} works
+        </a>
+      </p>
       <div className="mt-4 lg:hidden">
         <OpenCharacters arcId={arc.id} compact />
       </div>
@@ -441,13 +470,13 @@ function ArcView({ res }: { res: GetArcResponse }) {
               <h2 id="arc-canon" className="sr-only">
                 Canon
               </h2>
-              <LoreBlock l={res.canon} canon rank={0} rights={rights.forLore(res.canon)} />
+              <LoreBlock l={res.canon} canon rank={0} rights={rights.forLore(res.canon)} span={span} />
             </section>
           ) : (
-            !hoursOnly && <NoCanonYet leader={res.sublores[0]} />
+            !hoursOnly && <NoCanonYet leader={res.sublores[0]} span={span} />
           )}
           {!isHour && res.hours.length > 0 && <HourTimeline arcId={arc.id} first={res.hours} firstToken={res.hoursNextPageToken} hoursOnly={hoursOnly} />}
-          <Contenders arcId={arc.id} res={res} rights={rights} />
+          <Contenders arcId={arc.id} res={res} rights={rights} span={span} />
           <StandingAlone arcId={arc.id} res={res} rights={rights.outsideLore} />
         </div>
         <div className="grid min-w-0 content-start gap-4">
@@ -487,10 +516,8 @@ function Missing() {
  */
 export function Component() {
   const { arcId = "" } = useParams();
-  const query = useQuery({
-    queryKey: arcKey(arcId),
-    queryFn: () => clients.arc.getArc({ arcId }),
-  });
+  const query = useQuery(arcQuery(arcId));
+  useDocumentTitle(query.isError ? "Arc not found" : query.data?.arc?.title);
   if (query.isPending) {
     return (
       <p role="status" className="text-ink-muted">

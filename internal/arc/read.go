@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -519,11 +520,21 @@ func summary(arcID uuid.UUID, r perspectiveRow) (*perspectivv1.PerspectiveSummar
 	return s, nil
 }
 
+// excerpt cuts an opening at the last word that fits and marks the cut with
+// an ellipsis, so a row never quotes half a word.
 func excerpt(opening string) string {
 	if utf8.RuneCountInString(opening) <= excerptLen {
 		return opening
 	}
-	return string([]rune(opening)[:excerptLen]) + "…"
+	r := []rune(opening)
+	cut := excerptLen
+	for i := excerptLen; i > excerptLen/2; i-- {
+		if unicode.IsSpace(r[i]) {
+			cut = i
+			break
+		}
+	}
+	return strings.TrimRightFunc(string(r[:cut]), func(c rune) bool { return unicode.IsSpace(c) || c == ',' || c == ';' || c == ':' }) + "…"
 }
 
 // parseID reads an id this package wrote itself; empty is uuid.Nil.

@@ -289,6 +289,12 @@ type User struct {
 	DigestSentAt      *time.Time
 }
 
+type UserFollow struct {
+	FollowerID uuid.UUID
+	FolloweeID uuid.UUID
+	CreatedAt  time.Time
+}
+
 type Vote struct {
 	PerspectiveID uuid.UUID
 	UserID        uuid.UUID

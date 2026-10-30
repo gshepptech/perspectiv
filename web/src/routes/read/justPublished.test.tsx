@@ -138,6 +138,8 @@ describe("publishing to claim a character in someone else's story", () => {
       "ArcService/GetArc": () => ok({ arc: { id: "arc-1" }, viewer: {} }),
     });
     renderRoute("/perspectives/p-other");
-    expect(await screen.findByText(/^Waiting for a link: this story joins a lore when someone it describes claims/)).toBeInTheDocument();
+    expect(await screen.findByText("Waiting for a link")).toBeInTheDocument();
+    const note = screen.getByText(/^This story joins a lore when someone it describes claims/);
+    expect(within(note).getByRole("link", { name: "How this day works" })).toHaveAttribute("href", `/arcs/${other.arcId}#arc-how`);
   });
 });

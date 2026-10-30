@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Fragment, useEffect, useRef, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/Button";
 
@@ -13,9 +13,50 @@ export type ReaderProps = {
   /** The current part, 1-based. The caller owns it (the read route keeps it in the URL). */
   part: number;
   onPartChange: (part: number) => void;
+  /** Every part on one page, with no paging controls. */
+  whole?: boolean;
+  /** Offers the "Read all parts on one page" toggle; left out for a story short enough to show whole anyway. */
+  onWholeChange?: (whole: boolean) => void;
 };
 
 const FADE_MS = 150;
+
+/** A story under this many words in all is shown whole: paging it is more tapping than reading. */
+export const SHORT_STORY_WORDS = 600;
+
+/** Where a viewer's "Read all parts on one page" choice is kept. */
+export const WHOLE_STORY_KEY = "perspectiv.reader.whole";
+
+export function wordCount(parts: readonly string[]): number {
+  return parts.reduce((n, body) => n + body.split(/\s+/).filter(Boolean).length, 0);
+}
+
+function storedWhole(): boolean {
+  try {
+    return window.localStorage.getItem(WHOLE_STORY_KEY) === "1";
+  } catch {
+    // Storage blocked (a private window, site data off): page by default.
+    return false;
+  }
+}
+
+/**
+ * Whether a story reads whole on one page: always when it is short, else as
+ * the viewer last chose, a choice kept in this browser only.
+ */
+export function useWholeStory(parts: readonly string[]) {
+  const short = wordCount(parts) < SHORT_STORY_WORDS;
+  const [chosen, setChosen] = useState(storedWhole);
+  const choose = useCallback((next: boolean) => {
+    setChosen(next);
+    try {
+      window.localStorage.setItem(WHOLE_STORY_KEY, next ? "1" : "0");
+    } catch {
+      // The choice still holds for this page; it just is not remembered.
+    }
+  }, []);
+  return { short, whole: short || chosen, choose };
+}
 
 /**
  * A part body as paragraphs: a blank line separates paragraphs and a single
@@ -41,6 +82,23 @@ function ownsArrowKeys(target: EventTarget | null): boolean {
   return target.closest("[role='tablist'], [role='menu'], [role='listbox'], [role='radiogroup'], [role='slider'], [role='dialog']") !== null;
 }
 
+function Body({ text }: { text: string }) {
+  return (
+    <div className="prose-body mt-4">
+      {paragraphs(text).map((lines, i) => (
+        <p key={i}>
+          {lines.map((line, j) => (
+            <Fragment key={j}>
+              {j > 0 && <br />}
+              {line}
+            </Fragment>
+          ))}
+        </p>
+      ))}
+    </div>
+  );
+}
+
 function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -49,22 +107,32 @@ function prefersReducedMotion(): boolean {
  * One part of a perspective per page, as semantic HTML: an article with the
  * title, the part's paragraphs, and previous and next buttons. ArrowLeft and
  * ArrowRight page while focus is not in a field. A page change moves focus to
- * the new part's heading so a screen reader starts reading it.
+ * the new part's heading so a screen reader starts reading it. With `whole`,
+ * every part sits on one page under its own heading and nothing pages.
  *
  * The cross-fade is the Web Animations API, which the stylesheet's
  * reduced-motion rule cannot reach (it zeroes CSS durations only), so the
  * reader checks prefers-reduced-motion itself and does not animate at all
  * when it is set.
  */
-export function Reader({ title, byline, parts, part, onPartChange }: ReaderProps) {
+export function Reader({ title, byline, parts, part, onPartChange, whole = false, onWholeChange }: ReaderProps) {
   const total = parts.length;
   const current = Math.min(Math.max(part, 1), Math.max(total, 1));
   const body = parts[current - 1] ?? "";
   const headingRef = useRef<HTMLHeadingElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const shown = useRef(current);
+  const wholeHeadings = useRef<(HTMLHeadingElement | null)[]>([]);
+
+  // On one page, the part the address names (or the reader was on when they
+  // switched) is brought into view by focusing its heading.
+  useEffect(() => {
+    if (!whole || current <= 1) return;
+    wholeHeadings.current[current - 1]?.focus();
+  }, [whole, current]);
 
   useEffect(() => {
+    if (whole) return;
     if (shown.current === current) return;
     shown.current = current;
     headingRef.current?.focus();
@@ -72,9 +140,10 @@ export function Reader({ title, byline, parts, part, onPartChange }: ReaderProps
     if (page && typeof page.animate === "function" && !prefersReducedMotion()) {
       page.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS, easing: "ease-out" });
     }
-  }, [current]);
+  }, [current, whole]);
 
   useEffect(() => {
+    if (whole) return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
@@ -86,7 +155,7 @@ export function Reader({ title, byline, parts, part, onPartChange }: ReaderProps
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [current, total, onPartChange]);
+  }, [current, total, onPartChange, whole]);
 
   return (
     <article className="mx-auto w-full max-w-measure min-w-0" aria-labelledby="reader-title">
@@ -95,37 +164,59 @@ export function Reader({ title, byline, parts, part, onPartChange }: ReaderProps
           {title}
         </h1>
         {byline && <div className="mt-2 text-sm text-ink-muted">{byline}</div>}
+        {onWholeChange && (
+          <Button variant="ghost" size="sm" className="mt-2 min-h-11 px-2" aria-pressed={whole} onClick={() => onWholeChange(!whole)}>
+            <span
+              aria-hidden
+              className={`inline-block size-4 rounded-sm border ${whole ? "border-accent bg-accent" : "border-control bg-paper"}`}
+            />
+            Read all parts on one page
+          </Button>
+        )}
       </header>
-      <div ref={pageRef} className="py-6">
-        <h2 ref={headingRef} tabIndex={-1} className="font-sans text-sm font-medium tracking-wide text-ink-muted uppercase">
-          Part {current}
-        </h2>
-        <div className="prose-body mt-4">
-          {paragraphs(body).map((lines, i) => (
-            <p key={i}>
-              {lines.map((line, j) => (
-                <Fragment key={j}>
-                  {j > 0 && <br />}
-                  {line}
-                </Fragment>
-              ))}
-            </p>
+      {whole ? (
+        <div className="py-6">
+          {parts.map((text, i) => (
+            <section key={i} aria-labelledby={total > 1 ? `reader-part-${i + 1}` : undefined} className={i > 0 ? "mt-8" : undefined}>
+              {total > 1 && (
+                <h2
+                  id={`reader-part-${i + 1}`}
+                  ref={(el) => {
+                    wholeHeadings.current[i] = el;
+                  }}
+                  tabIndex={-1}
+                  className="font-sans text-sm font-medium tracking-wide text-ink-muted uppercase"
+                >
+                  Part {i + 1}
+                </h2>
+              )}
+              <Body text={text} />
+            </section>
           ))}
         </div>
-      </div>
-      <nav aria-label="Pages" className="flex items-center justify-between gap-2 border-t border-rule pt-4">
-        <Button variant="secondary" disabled={current <= 1} onClick={() => onPartChange(current - 1)} aria-label="Previous part">
-          <ChevronLeft aria-hidden size={16} />
-          <span className="hidden sm:inline">Previous</span>
-        </Button>
-        <span aria-live="polite" className="text-sm text-ink-muted">
-          Part {current} of {total}
-        </span>
-        <Button variant="secondary" disabled={current >= total} onClick={() => onPartChange(current + 1)} aria-label="Next part">
-          <span className="hidden sm:inline">Next</span>
-          <ChevronRight aria-hidden size={16} />
-        </Button>
-      </nav>
+      ) : (
+        <>
+          <div ref={pageRef} className="py-6">
+            <h2 ref={headingRef} tabIndex={-1} className="font-sans text-sm font-medium tracking-wide text-ink-muted uppercase">
+              Part {current}
+            </h2>
+            <Body text={body} />
+          </div>
+          <nav aria-label="Pages" className="flex items-center justify-between gap-2 border-t border-rule pt-4">
+            <Button variant="secondary" disabled={current <= 1} onClick={() => onPartChange(current - 1)} aria-label="Previous part">
+              <ChevronLeft aria-hidden size={16} />
+              <span className="hidden sm:inline">Previous</span>
+            </Button>
+            <span aria-live="polite" className="text-sm text-ink-muted">
+              Part {current} of {total}
+            </span>
+            <Button variant="secondary" disabled={current >= total} onClick={() => onPartChange(current + 1)} aria-label="Next part">
+              <span className="hidden sm:inline">Next</span>
+              <ChevronRight aria-hidden size={16} />
+            </Button>
+          </nav>
+        </>
+      )}
     </article>
   );
 }

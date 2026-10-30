@@ -38,6 +38,26 @@ func (q *Queries) AnonymizeUser(ctx context.Context, arg AnonymizeUserParams) er
 	return err
 }
 
+const blockedEitherWay = `-- name: BlockedEitherWay :one
+SELECT EXISTS (
+    SELECT 1 FROM blocks
+    WHERE (blocker_id = $1::uuid AND blocked_id = $2::uuid)
+       OR (blocker_id = $2::uuid AND blocked_id = $1::uuid)
+)::boolean AS blocked
+`
+
+type BlockedEitherWayParams struct {
+	A uuid.UUID
+	B uuid.UUID
+}
+
+func (q *Queries) BlockedEitherWay(ctx context.Context, arg BlockedEitherWayParams) (bool, error) {
+	row := q.db.QueryRow(ctx, blockedEitherWay, arg.A, arg.B)
+	var blocked bool
+	err := row.Scan(&blocked)
+	return blocked, err
+}
+
 const changeUsername = `-- name: ChangeUsername :one
 UPDATE users
 SET username = $1, username_changed_at = now()
@@ -63,6 +83,21 @@ func (q *Queries) ChangeUsername(ctx context.Context, arg ChangeUsernameParams) 
 	var username_changed_at *time.Time
 	err := row.Scan(&username_changed_at)
 	return username_changed_at, err
+}
+
+const countFollowers = `-- name: CountFollowers :one
+SELECT count(*)::int
+FROM user_follows f
+JOIN users u ON u.id = f.follower_id
+WHERE f.followee_id = $1::uuid AND u.deleted_at IS NULL
+`
+
+// Accounts that follow the writer and are not deleted.
+func (q *Queries) CountFollowers(ctx context.Context, followeeID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, countFollowers, followeeID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const countRecentFailedAttempts = `-- name: CountRecentFailedAttempts :one
@@ -97,6 +132,33 @@ type DeleteBlockParams struct {
 
 func (q *Queries) DeleteBlock(ctx context.Context, arg DeleteBlockParams) error {
 	_, err := q.db.Exec(ctx, deleteBlock, arg.BlockerID, arg.BlockedID)
+	return err
+}
+
+const deleteFollowsBetween = `-- name: DeleteFollowsBetween :exec
+DELETE FROM user_follows
+WHERE (follower_id = $1::uuid AND followee_id = $2::uuid)
+   OR (follower_id = $2::uuid AND followee_id = $1::uuid)
+`
+
+type DeleteFollowsBetweenParams struct {
+	A uuid.UUID
+	B uuid.UUID
+}
+
+// Removes a follow between two accounts in both directions.
+func (q *Queries) DeleteFollowsBetween(ctx context.Context, arg DeleteFollowsBetweenParams) error {
+	_, err := q.db.Exec(ctx, deleteFollowsBetween, arg.A, arg.B)
+	return err
+}
+
+const deleteFollowsOf = `-- name: DeleteFollowsOf :exec
+DELETE FROM user_follows WHERE follower_id = $1::uuid OR followee_id = $1::uuid
+`
+
+// Removes every follow an account made or received.
+func (q *Queries) DeleteFollowsOf(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteFollowsOf, userID)
 	return err
 }
 
@@ -154,6 +216,10 @@ SELECT jsonb_build_object(
   'places_followed', coalesce((
     SELECT jsonb_agg(jsonb_build_object('place_id', f.place_id, 'name', pl.name, 'since', f.created_at) ORDER BY f.created_at)
     FROM place_follows f JOIN places pl ON pl.id = f.place_id WHERE f.user_id = $1::uuid), '[]'::jsonb),
+  'writers_followed', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('username', coalesce(fu.username, '[deleted]'), 'since', f.created_at) ORDER BY f.created_at)
+    FROM user_follows f LEFT JOIN users fu ON fu.id = f.followee_id AND fu.deleted_at IS NULL
+    WHERE f.follower_id = $1::uuid), '[]'::jsonb),
   'blocked', coalesce((
     SELECT jsonb_agg(jsonb_build_object('username', coalesce(bu.username, '[deleted]'), 'since', b.created_at) ORDER BY b.created_at)
     FROM blocks b LEFT JOIN users bu ON bu.id = b.blocked_id AND bu.deleted_at IS NULL
@@ -181,6 +247,22 @@ func (q *Queries) ExportAccount(ctx context.Context, userID uuid.UUID) (string, 
 	var export string
 	err := row.Scan(&export)
 	return export, err
+}
+
+const followUser = `-- name: FollowUser :exec
+INSERT INTO user_follows (follower_id, followee_id)
+VALUES ($1::uuid, $2::uuid)
+ON CONFLICT (follower_id, followee_id) DO NOTHING
+`
+
+type FollowUserParams struct {
+	FollowerID uuid.UUID
+	FolloweeID uuid.UUID
+}
+
+func (q *Queries) FollowUser(ctx context.Context, arg FollowUserParams) error {
+	_, err := q.db.Exec(ctx, followUser, arg.FollowerID, arg.FolloweeID)
+	return err
 }
 
 const getActiveUserIDByUsername = `-- name: GetActiveUserIDByUsername :one
@@ -265,6 +347,25 @@ func (q *Queries) InsertFailedAttempt(ctx context.Context, userID uuid.UUID) err
 	return err
 }
 
+const isFollowingUser = `-- name: IsFollowingUser :one
+SELECT EXISTS (
+    SELECT 1 FROM user_follows
+    WHERE follower_id = $1::uuid AND followee_id = $2::uuid
+)::boolean AS following
+`
+
+type IsFollowingUserParams struct {
+	FollowerID uuid.UUID
+	FolloweeID uuid.UUID
+}
+
+func (q *Queries) IsFollowingUser(ctx context.Context, arg IsFollowingUserParams) (bool, error) {
+	row := q.db.QueryRow(ctx, isFollowingUser, arg.FollowerID, arg.FolloweeID)
+	var following bool
+	err := row.Scan(&following)
+	return following, err
+}
+
 const listBlocked = `-- name: ListBlocked :many
 SELECT u.id, u.username, u.deleted_at
 FROM blocks b
@@ -303,6 +404,72 @@ func (q *Queries) ListBlocked(ctx context.Context, arg ListBlockedParams) ([]Lis
 		return nil, err
 	}
 	return items, nil
+}
+
+const listFollowedWriters = `-- name: ListFollowedWriters :many
+SELECT u.id, u.username, u.avatar_path, f.created_at AS followed_at
+FROM user_follows f
+JOIN users u ON u.id = f.followee_id
+WHERE f.follower_id = $1::uuid AND u.deleted_at IS NULL
+ORDER BY f.created_at DESC, u.id
+LIMIT $2::integer
+`
+
+type ListFollowedWritersParams struct {
+	FollowerID uuid.UUID
+	MaxRows    int32
+}
+
+type ListFollowedWritersRow struct {
+	ID         uuid.UUID
+	Username   string
+	AvatarPath *string
+	FollowedAt time.Time
+}
+
+// The writers an account follows, most recently followed first, leaving out
+// deleted accounts.
+func (q *Queries) ListFollowedWriters(ctx context.Context, arg ListFollowedWritersParams) ([]ListFollowedWritersRow, error) {
+	rows, err := q.db.Query(ctx, listFollowedWriters, arg.FollowerID, arg.MaxRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListFollowedWritersRow
+	for rows.Next() {
+		var i ListFollowedWritersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.AvatarPath,
+			&i.FollowedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const lockPair = `-- name: LockPair :exec
+SELECT pg_advisory_xact_lock(hashtextextended(
+    least($1::uuid, $2::uuid)::text || greatest($1::uuid, $2::uuid)::text, 0))
+`
+
+type LockPairParams struct {
+	A uuid.UUID
+	B uuid.UUID
+}
+
+// Serialises follows and blocks between two accounts for the rest of the
+// transaction, in either order, so a follow cannot slip in beside a block
+// that is committing at the same moment.
+func (q *Queries) LockPair(ctx context.Context, arg LockPairParams) error {
+	_, err := q.db.Exec(ctx, lockPair, arg.A, arg.B)
+	return err
 }
 
 const lockUser = `-- name: LockUser :one
@@ -413,6 +580,21 @@ func (q *Queries) SoftDeletePerspectivesByAuthor(ctx context.Context, authorID u
 		return nil, err
 	}
 	return items, nil
+}
+
+const unfollowUser = `-- name: UnfollowUser :exec
+DELETE FROM user_follows
+WHERE follower_id = $1::uuid AND followee_id = $2::uuid
+`
+
+type UnfollowUserParams struct {
+	FollowerID uuid.UUID
+	FolloweeID uuid.UUID
+}
+
+func (q *Queries) UnfollowUser(ctx context.Context, arg UnfollowUserParams) error {
+	_, err := q.db.Exec(ctx, unfollowUser, arg.FollowerID, arg.FolloweeID)
+	return err
 }
 
 const updateProfile = `-- name: UpdateProfile :exec

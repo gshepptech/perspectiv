@@ -8,12 +8,13 @@ import { PerspectiveActions, type ViewerRights } from "@/components/actions/Pers
 import { ReportDialog } from "@/components/actions/ReportDialog";
 import { perspectiveQuery } from "@/components/actions/queries";
 import { AuthorLink } from "@/components/reader/AuthorLink";
-import { formatDayBeside, genreLabel } from "@/components/reader/format";
+import { arcSpan, formatDayBeside, genreLabel, type ArcSpan } from "@/components/reader/format";
 import { Genre, LoreStanding, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { Lore } from "@/gen/perspectiv/v1/lore_pb";
 import { type Perspective, PerspectiveSummarySchema } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 
 import { LoreThread } from "./LoreThread";
 import { NameLore } from "./NameLore";
@@ -57,7 +58,7 @@ function Cast({ stories, memberIds }: { stories: Perspective[]; memberIds: Set<s
   );
 }
 
-function Story({ p, rights }: { p: Perspective; rights: ViewerRights }) {
+function Story({ p, rights, storyOf }: { p: Perspective; rights: ViewerRights; storyOf: ReadonlyMap<string, string> }) {
   const parts = [...p.parts].sort((a, b) => a.position - b.position);
   const summary = create(PerspectiveSummarySchema, {
     id: p.id,
@@ -90,17 +91,17 @@ function Story({ p, rights }: { p: Perspective; rights: ViewerRights }) {
           Read it page by page
         </Link>
       </p>
-      <PerspectiveActions summary={summary} rights={rights} />
+      <PerspectiveActions summary={summary} rights={rights} storyOf={storyOf} />
     </article>
   );
 }
 
-function Standing({ lore }: { lore: Lore }) {
+function Standing({ lore, span }: { lore: Lore; span: ArcSpan }) {
   if (lore.standing === LoreStanding.CANON) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent">
         <Crown aria-hidden size={16} />
-        Canon of the day
+        {span === "hour" ? "Canon of this hour" : "Canon of the day"}
       </span>
     );
   }
@@ -136,6 +137,9 @@ export function Component() {
   const stories = useQueries({
     queries: (lore?.members ?? []).map((m) => perspectiveQuery(m.perspectiveId)),
   });
+  useDocumentTitle(
+    loreQuery.isError ? "Lore not found" : lore ? lore.name || arc.data?.arc?.title || stories.find((q) => q.data)?.data?.arcTitle || "A lore" : undefined,
+  );
 
   if (loreQuery.isPending) {
     return (
@@ -166,6 +170,9 @@ export function Component() {
   const dayTitle = arc.data?.arc?.title || first?.arcTitle || "";
   const title = lore.name || dayTitle || "A lore";
   const member = !!session && viewer?.loreId === lore.id;
+  const span = arcSpan(arc.data?.arc ? arc.data.arc.hour : first?.hour);
+  // Each member's story by their user id, so a cast tag opens the claimant's story.
+  const storyOf = new Map(lore.members.flatMap((m) => (m.user?.userId ? [[m.user.userId, m.perspectiveId] as const] : [])));
 
   return (
     <article aria-labelledby="lore-title" className="mx-auto min-w-0 max-w-3xl">
@@ -176,7 +183,7 @@ export function Component() {
         </Link>
       </p>
       <header className="mt-2">
-        <Standing lore={lore} />
+        <Standing lore={lore} span={span} />
         <h1 id="lore-title" className="mt-3 text-3xl leading-tight wrap-anywhere sm:text-4xl">
           {title}
         </h1>
@@ -218,12 +225,12 @@ export function Component() {
         </h2>
         <div className="mt-4 grid gap-6">
           {loaded.map((p) => (
-            <Story key={p.id} p={p} rights={rights} />
+            <Story key={p.id} p={p} rights={rights} storyOf={storyOf} />
           ))}
         </div>
       </section>
 
-      <LoreThread loreId={lore.id} canPost={participant} />
+      <LoreThread loreId={lore.id} canPost={participant} span={span} />
     </article>
   );
 }

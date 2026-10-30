@@ -16,6 +16,7 @@ import { Role } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
 import { useShowMore } from "@/lib/showMore";
 import { useSession } from "@/lib/session";
+import { useDocumentTitle } from "@/lib/title";
 
 const ADMINS_ONLY = "Only site admins can manage beta access.";
 const codesKey = ["auth", "listAccessCodes"] as const;
@@ -394,6 +395,7 @@ function WaitlistList() {
  * them when the signed-in user is not an admin.
  */
 export function Component() {
+  useDocumentTitle("Beta access");
   const session = useSession();
   const [tab, setTab] = useState("codes");
   const heading = useRef<HTMLHeadingElement>(null);

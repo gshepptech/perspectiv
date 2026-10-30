@@ -34,6 +34,9 @@ app:
     smtpAddr: ""
   rankInterval: 60s
   canonMinMembers: 4
+  # Connections each api or worker pod may hold. Keep the sum over every
+  # replica under postgres.settings.max_connections.
+  dbMaxConns: 25
   # invite: signing up needs a beta code or a member's invite link (the
   # beta); open: anyone may sign up. Reading is public either way.
   signupMode: invite
@@ -75,6 +78,13 @@ postgres:
   resources:
     requests: {cpu: 250m, memory: 512Mi}
     limits: {memory: 2Gi}
+  # Passed to postgres as -c flags. The defaults (128MB of shared buffers)
+  # keep less than a third of the places table in memory, so place search
+  # read from disk under load; these fit the 2Gi limit.
+  settings:
+    shared_buffers: 512MB
+    effective_cache_size: 1536MB
+    max_connections: "100"
   backup:
     enabled: true
     # Every day at 03:15 UTC, the quietest hour for a US audience.

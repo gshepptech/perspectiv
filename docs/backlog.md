@@ -20,6 +20,46 @@ Nothing in progress.
 
 ## Done
 
+- Follow a writer: a Follow toggle and follower count on a profile, a
+  "Writers you follow" list in Settings with Unfollow, and a new inbox and
+  email kind (NEW_STORY_BY_FOLLOWED_WRITER) for each new story by a followed
+  writer, sent once per story per person (a place follower or a writer in
+  the arc hears of it that way instead). Blocking removes follows both ways
+  in the block's transaction and refuses a follow across a block; deleting
+  an account removes its follows; the data export lists the writers
+  followed. Migration 28. Verified by TestFollowUser,
+  TestFollowUserRefusals, TestBlockRemovesFollows, TestListFollowedWriters,
+  TestExportMyData, TestFanoutNewStoryByFollowedWriter,
+  TestPublishSideEffects, TestEmailWorkerRendersTemplates and the web suite
+  (FollowWriter.test.tsx, settings and inbox tests).
+- Load test of the reader journey (20, 50 and 100 closed-loop readers on
+  the dev data): the pgx pool sat at its default of one connection per CPU,
+  full from 20 readers, so throughput fell as load rose. The pool is now
+  DB_MAX_CONNS (default 25, chart value app.dbMaxConns) and /metrics
+  exports its state (db_pool_acquired_conns, db_pool_empty_acquires_total,
+  db_pool_acquire_wait_seconds_total and more); the chart's Postgres gets
+  512MB of shared buffers so the places table stays in memory; and place
+  search reads prefix matches first and runs the substring scan only when
+  fewer than 100 match, so "park" takes 7 ms warm instead of 110 to 675 ms.
+  Not changed, on purpose: caching the live-session check would let a
+  revoked session keep working for the cache window (security state is read
+  from PostgreSQL every time), and GetArc keeps its single read-only
+  transaction so a page never mixes two moments. Verified by
+  TestRegisterPoolExportsPoolState, TestLoadConfig*, TestPostgres18OnPersistentVolume,
+  TestSearchPlaces and EXPLAIN ANALYZE on the dev data (trigram scan never
+  executed).
+- Reading experience, from a reader walkthrough: a followed place on the
+  front page says how many stories it gained this week ("Springfield · 3
+  new"), with the busiest first and a total under the heading; a finished
+  story ends in "More from this day" (its lore, five more of the day's
+  stories, the way back) instead of a dead end; a short story reads whole
+  on one page and a long one can; the byline names the story's standing in
+  plain words with a link to how the day works; every page titles its tab;
+  cast tags open the claimant's own story; profile and place rows show
+  each story's opening; and excerpts end at a word with an ellipsis.
+  Verified by TestFollowingNewThisWeek, TestClipExcerpt,
+  TestExcerptEndsAtAWord and the web suite.
+
 - E2E sign-up budget: each e2e account signs up from its own
   documentation-range address (the browser reaches the server over loopback
   through Vite, so the rightmost X-Forwarded-For is the one counted), so new

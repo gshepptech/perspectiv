@@ -14,6 +14,7 @@ import type { EpicArc, EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { useShowMore } from "@/lib/showMore";
+import { useDocumentTitle } from "@/lib/title";
 import { ReportDialog } from "@/components/actions/ReportDialog";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { useDebounced } from "@/routes/compose/search";
@@ -48,12 +49,18 @@ function isNotFound(err: unknown): boolean {
   return ConnectError.from(err).code === Code.NotFound;
 }
 
+/**
+ * One day in the epic: its title, the opening of its canon's first story (or
+ * its first story), then whether it has a canon and how many are in it. The
+ * canon lore's name is not in EpicArc, so the row says "Canon" alone.
+ */
 function ArcItem({ arc }: { arc: EpicArc }) {
   return (
     <li className="py-3">
       <Link to={`/arcs/${arc.arcId}`} className="inline-flex min-h-11 items-center font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">
         {arc.title}
       </Link>
+      {arc.excerpt && <p className="line-clamp-2 font-serif wrap-anywhere text-ink">{arc.excerpt}</p>}
       <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
         {arc.canonLoreId && (
           <span className="inline-flex items-center gap-1 font-medium text-ink">
@@ -332,6 +339,7 @@ export function Component() {
     queryKey: ["place", "getPlace", { placeId }],
     queryFn: ({ signal }) => clients.place.getPlace({ placeId }, { signal }),
   });
+  useDocumentTitle(placeQuery.isError ? "Place not found" : placeQuery.data?.place?.name);
 
   function update(key: "tab" | "genre", value: string, fallback: string) {
     setParams(

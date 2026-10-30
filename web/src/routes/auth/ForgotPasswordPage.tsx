@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
 import { clients } from "@/lib/connect";
+import { useDocumentTitle } from "@/lib/title";
 
 import { AuthHeading, AuthPanel, FormAlert, linkClass } from "./AuthPanel";
 import { errorMessage } from "./errors";
@@ -37,6 +38,7 @@ function Sent({ email }: { email: string }) {
 }
 
 export function Component() {
+  useDocumentTitle("Reset your password");
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "" } });
   const request = useMutation({ mutationFn: (v: Values) => clients.auth.requestPasswordReset(v) });
 

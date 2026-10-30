@@ -14,6 +14,20 @@ export function perspectiveQuery(perspectiveId: string) {
   };
 }
 
+export const arcKey = (arcId: string) => ["arc", "getArc", { arcId }] as const;
+
+/**
+ * An arc's page as the arc page reads it: the arc, its canon and the first
+ * page of every list. The story page reads the same entry for what follows
+ * the story, so the two share one request.
+ */
+export function arcQuery(arcId: string) {
+  return {
+    queryKey: arcKey(arcId),
+    queryFn: ({ signal }: { signal: AbortSignal }) => clients.arc.getArc({ arcId }, { signal }),
+  };
+}
+
 /**
  * After a write that changes a perspective's counts or lore standing, both the
  * perspective and every arc listing that shows it are stale.

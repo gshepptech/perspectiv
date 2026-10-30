@@ -426,10 +426,16 @@ func TestPublishSideEffects(t *testing.T) {
 	if d := scheduledAt.Sub(publishedAt); d < expiryWindow-time.Second || d > expiryWindow+time.Second {
 		t.Fatalf("expiry scheduled %v after publish, want %v", d, expiryWindow)
 	}
-	if n := w.count(`SELECT count(*) FROM river_job WHERE kind = 'notify'
-		AND args ->> 'PerspectiveID' = $1 AND (args ->> 'Kind')::int = $2`,
-		resp.GetPerspectiveId(), int(perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC)); n != 1 {
-		t.Fatalf("new-perspective notify jobs = %d, want 1", n)
+	for _, kind := range []perspectivv1.NotificationKind{
+		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC,
+		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE,
+		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER,
+	} {
+		if n := w.count(`SELECT count(*) FROM river_job WHERE kind = 'notify'
+			AND args ->> 'PerspectiveID' = $1 AND (args ->> 'Kind')::int = $2`,
+			resp.GetPerspectiveId(), int(kind)); n != 1 {
+			t.Fatalf("%s notify jobs = %d, want 1", kind, n)
+		}
 	}
 
 	// A refused publish enqueues nothing and counts nothing.

@@ -182,7 +182,7 @@ describe("signed-out reader on a story's page", () => {
   // Reacting needs only an account, and is explained the same way rather
   // than by leaving the page.
   for (const [label, name, why, back] of [
-    ["upvote", /^Upvote/, "Only people who wrote about this day can upvote its stories.", "%2Fperspectives%2Fp-otter"],
+    ["upvote", /^Upvote/, "Only people who wrote about this day can upvote its stories, so the people who were there choose its canon.", "%2Fperspectives%2Fp-otter"],
     ["claim", "Claim a character", "To say this was you, write your side of this day first.", "%2Fperspectives%2Fp-otter%3Fclaim%3D1"],
     ["react", /^Heart/, "To react to a story, sign in or create an account.", "%2Fperspectives%2Fp-otter"],
   ] as const) {
@@ -213,14 +213,18 @@ describe("a signed-in reader with no perspective in the arc", () => {
     return arcBody;
   };
 
-  it("is told why on Upvote, with the composer for this place and day", async () => {
+  it("is told on Upvote who may vote, with the composer offered only to someone who was there", async () => {
     const { api } = await openStory("p-otter", OTTER, {
       arcBody: outsider(),
       over: { place: { id: "pl-9", name: "Moonbean" }, localDate: "2026-10-01" },
     });
     const actions = await story();
     await userEvent.click(await within(actions).findByRole("button", { name: /^Upvote/ }));
-    expect(actions).toHaveTextContent("Only people who wrote about this day can upvote its stories. Write your side first.");
+    expect(actions).toHaveTextContent(
+      "Only people who wrote about this day can upvote its stories, so the people who were there choose its canon.",
+    );
+    expect(actions).toHaveTextContent("Were you there? Write your side");
+    expect(actions).not.toHaveTextContent("Write your side first");
     expect(within(actions).getByRole("link", { name: "Write your side" })).toHaveAttribute(
       "href",
       "/compose?placeId=pl-9&date=2026-10-01&return=%2Fperspectives%2Fp-otter",

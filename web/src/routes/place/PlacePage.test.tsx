@@ -35,6 +35,7 @@ const rankedArcs = [
     canonScore: 9.5,
     memberCount: 5,
     perspectiveCount: 7,
+    excerpt: "The fountain froze at midnight and nobody believed me.",
   },
   {
     arcId: "arc-plain",
@@ -153,6 +154,9 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     expect(items[0]).toHaveTextContent("January 14, 2026");
     expect(items[1]).toHaveTextContent("July 4, 2026, 14:00");
     expect(items[1]).not.toHaveTextContent("Canon");
+    // The day's opening lines, so a reader can tell days apart before opening one.
+    expect(within(items[0]!).getByText("The fountain froze at midnight and nobody believed me.")).toHaveClass("font-serif", "line-clamp-2");
+    expect(document.title).toBe("Springfield · Perspectiv");
     expect(calls("PlaceService/GetEpic")[0]).toEqual({ placeId: "ci-spr", tab: "EPIC_TAB_RANKED" });
   });
 

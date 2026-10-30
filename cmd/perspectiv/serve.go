@@ -83,7 +83,7 @@ func serveErr(ctx context.Context, cfg config, log zerolog.Logger) error {
 		}
 	}()
 
-	pool, err := openPool(ctx, cfg.DatabaseURL, log)
+	pool, err := openPool(ctx, cfg.DatabaseURL, cfg.DBMaxConns, log)
 	if err != nil {
 		return err
 	}
@@ -96,6 +96,7 @@ func serveErr(ctx context.Context, cfg config, log zerolog.Logger) error {
 
 	reg := metrics.NewRegistry()
 	m := metrics.New(reg)
+	metrics.RegisterPool(reg, pool)
 	app, err := build(cfg, pool, m, log)
 	if err != nil {
 		return err

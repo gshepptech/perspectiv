@@ -14,4 +14,5 @@ export const notificationKinds: readonly { kind: NotificationKind; label: string
   { kind: NotificationKind.REPORT_RESOLVED, label: "A report you made is resolved" },
   { kind: NotificationKind.INVITE_ANSWERED, label: "Someone you invited writes their side" },
   { kind: NotificationKind.NEW_STORY_AT_FOLLOWED_PLACE, label: "A new story at a place you follow" },
+  { kind: NotificationKind.NEW_STORY_BY_FOLLOWED_WRITER, label: "A new story by a writer you follow" },
 ];

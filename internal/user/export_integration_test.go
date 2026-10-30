@@ -32,6 +32,10 @@ func TestExportMyData(t *testing.T) {
 	e.exec(`INSERT INTO claims (character_id, claimant_user_id, claimant_perspective_id, status) VALUES ($1, $2, $3, 'CLAIM_STATUS_PENDING')`, waiter, me, mine)
 	e.exec(`INSERT INTO claims (character_id, claimant_user_id, claimant_perspective_id, status) VALUES ($1, $2, $3, 'CLAIM_STATUS_ACCEPTED')`, cook, other, theirs)
 	e.exec(`INSERT INTO place_follows (user_id, place_id) VALUES ($1, $2)`, me, place)
+	// The writers the member follows are theirs to export; who follows them
+	// is not.
+	fan := e.user("fanofmine")
+	e.exec(`INSERT INTO user_follows (follower_id, followee_id) VALUES ($1, $2), ($3, $1)`, me, other, fan)
 	e.exec(`INSERT INTO votes (perspective_id, user_id) VALUES ($1, $2)`, theirs, me)
 	e.draft(me)
 
@@ -63,6 +67,10 @@ func TestExportMyData(t *testing.T) {
 		PlacesFollowed []struct {
 			Name string `json:"name"`
 		} `json:"places_followed"`
+		WritersFollowed []struct {
+			Username string `json:"username"`
+			Since    string `json:"since"`
+		} `json:"writers_followed"`
 		Upvotes []struct {
 			PerspectiveID uuid.UUID `json:"perspective_id"`
 		} `json:"upvotes"`
@@ -84,6 +92,10 @@ func TestExportMyData(t *testing.T) {
 		t.Fatalf("claims received = %+v", got.ClaimsReceived)
 	case len(got.PlacesFollowed) != 1 || got.PlacesFollowed[0].Name != "Corner Deli":
 		t.Fatalf("follows = %+v", got.PlacesFollowed)
+	case len(got.WritersFollowed) != 1 || got.WritersFollowed[0].Username != "otherone" || got.WritersFollowed[0].Since == "":
+		t.Fatalf("writers followed = %+v", got.WritersFollowed)
+	case strings.Contains(doc, "fanofmine"):
+		t.Fatal("the export names who follows the member")
 	case len(got.Upvotes) != 1 || got.Upvotes[0].PerspectiveID != theirs:
 		t.Fatalf("upvotes = %+v", got.Upvotes)
 	case got.ThreadPosts == nil:

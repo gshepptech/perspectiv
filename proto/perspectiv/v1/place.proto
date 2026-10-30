@@ -59,6 +59,9 @@ message Place {
   // Readable stories at the place and below, counted up to 100, so a
   // search tells same-named entries apart. Set by SearchPlaces only.
   int32 stories = 11;
+  // Readable stories at the place and below published in the last seven
+  // days, counted up to 100. Set by ListFollowing only.
+  int32 new_this_week = 12;
 }
 
 message SearchPlacesRequest {
@@ -187,7 +190,8 @@ message FollowPlaceResponse {
 message ListFollowingRequest {}
 
 message ListFollowingResponse {
-  // At most 100 places.
+  // At most 100 places: those with new stories this week first, most first,
+  // then the rest, most recently followed first.
   repeated Place places = 1;
 }
 
