@@ -159,3 +159,11 @@ func preferencesToProto(prefs []Preference) []*perspectivv1.Preference {
 	}
 	return out
 }
+
+// Unsubscribe follows an emailed unsubscribe link; see Service.Unsubscribe.
+func (h *Handler) Unsubscribe(ctx context.Context, req *connect.Request[perspectivv1.UnsubscribeRequest]) (*connect.Response[perspectivv1.UnsubscribeResponse], error) {
+	if err := h.svc.Unsubscribe(ctx, req.Msg.GetUserId(), req.Msg.GetToken()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.UnsubscribeResponse{}), nil
+}

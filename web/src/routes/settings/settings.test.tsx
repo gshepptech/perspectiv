@@ -406,3 +406,28 @@ describe("SettingsPage daily summary", () => {
     expect(api.sent("NotifyService/UpdatePreferences")).toEqual([{ emailDigest: true }]);
   });
 });
+
+describe("UnsubscribePage", () => {
+  it("changes nothing on opening, and stops emails once asked", async () => {
+    const { api, user } = renderRoute("/unsubscribe?u=user-1&t=sig", { "NotifyService/Unsubscribe": () => ok() });
+    await screen.findByRole("heading", { name: "Stop notification emails?" });
+    expect(api.sent("NotifyService/Unsubscribe")).toHaveLength(0);
+    await user.click(screen.getByRole("button", { name: "Stop emails" }));
+    expect(await screen.findByRole("heading", { name: "You will get no more notification emails" })).toHaveFocus();
+    expect(api.sent("NotifyService/Unsubscribe")).toEqual([{ userId: "user-1", token: "sig" }]);
+  });
+
+  it("points to Settings when the link is forged or damaged", async () => {
+    const { user } = renderRoute("/unsubscribe?u=user-1&t=bad", {
+      "NotifyService/Unsubscribe": () => fail("invalid_argument", "this unsubscribe link is not valid"),
+    });
+    await user.click(await screen.findByRole("button", { name: "Stop emails" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Sign in and turn emails off in Settings.");
+  });
+
+  it("asks nothing of the server when the link is incomplete", async () => {
+    const { api } = renderRoute("/unsubscribe?u=user-1");
+    expect(await screen.findByRole("heading", { name: "This link no longer works" })).toBeInTheDocument();
+    expect(api.sent("NotifyService/Unsubscribe")).toHaveLength(0);
+  });
+});

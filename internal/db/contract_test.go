@@ -149,7 +149,7 @@ var services = map[string][]string{
 	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore"},
 	"VoteService":        {"Vote", "VoteRemove"},
 	"ReactService":       {"React"},
-	"NotifyService":      {"ListInbox", "MarkRead", "GetPreferences", "UpdatePreferences"},
+	"NotifyService":      {"ListInbox", "MarkRead", "GetPreferences", "UpdatePreferences", "Unsubscribe"},
 	"ModerationService":  {"Report", "ListReports", "Resolve"},
 }
 

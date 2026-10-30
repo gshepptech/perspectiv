@@ -200,3 +200,10 @@ SELECT email_digest FROM users WHERE id = sqlc.arg(user_id)::uuid;
 
 -- name: SetEmailDigest :exec
 UPDATE users SET email_digest = sqlc.arg(digest)::boolean WHERE id = sqlc.arg(user_id)::uuid;
+
+-- name: DisableEmail :exec
+-- Turns email off for every kind given, keeping each kind's in-app toggle
+-- (on when the kind had no row).
+INSERT INTO notification_preferences (user_id, kind, in_app, email)
+SELECT sqlc.arg(user_id)::uuid, k, true, false FROM unnest(sqlc.arg(kinds)::text[]) AS k
+ON CONFLICT (user_id, kind) DO UPDATE SET email = false;

@@ -625,6 +625,95 @@ func (x *UpdatePreferencesResponse) GetEmailDigest() bool {
 	return false
 }
 
+type UnsubscribeRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The account and the signature from the emailed unsubscribe link.
+	UserId        string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Token         string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnsubscribeRequest) Reset() {
+	*x = UnsubscribeRequest{}
+	mi := &file_perspectiv_v1_notify_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnsubscribeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnsubscribeRequest) ProtoMessage() {}
+
+func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_notify_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnsubscribeRequest.ProtoReflect.Descriptor instead.
+func (*UnsubscribeRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_notify_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UnsubscribeRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UnsubscribeRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type UnsubscribeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnsubscribeResponse) Reset() {
+	*x = UnsubscribeResponse{}
+	mi := &file_perspectiv_v1_notify_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnsubscribeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnsubscribeResponse) ProtoMessage() {}
+
+func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_notify_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnsubscribeResponse.ProtoReflect.Descriptor instead.
+func (*UnsubscribeResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_notify_proto_rawDescGZIP(), []int{11}
+}
+
 var File_perspectiv_v1_notify_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_notify_proto_rawDesc = "" +
@@ -674,12 +763,17 @@ const file_perspectiv_v1_notify_proto_rawDesc = "" +
 	"\r_email_digest\"{\n" +
 	"\x19UpdatePreferencesResponse\x12;\n" +
 	"\vpreferences\x18\x01 \x03(\v2\x19.perspectiv.v1.PreferenceR\vpreferences\x12!\n" +
-	"\femail_digest\x18\x02 \x01(\bR\vemailDigest2\xf3\x02\n" +
+	"\femail_digest\x18\x02 \x01(\bR\vemailDigest\"C\n" +
+	"\x12UnsubscribeRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05token\x18\x02 \x01(\tR\x05token\"\x15\n" +
+	"\x13UnsubscribeResponse2\xc9\x03\n" +
 	"\rNotifyService\x12N\n" +
 	"\tListInbox\x12\x1f.perspectiv.v1.ListInboxRequest\x1a .perspectiv.v1.ListInboxResponse\x12K\n" +
 	"\bMarkRead\x12\x1e.perspectiv.v1.MarkReadRequest\x1a\x1f.perspectiv.v1.MarkReadResponse\x12]\n" +
 	"\x0eGetPreferences\x12$.perspectiv.v1.GetPreferencesRequest\x1a%.perspectiv.v1.GetPreferencesResponse\x12f\n" +
-	"\x11UpdatePreferences\x12'.perspectiv.v1.UpdatePreferencesRequest\x1a(.perspectiv.v1.UpdatePreferencesResponseB\xa0\x01\n" +
+	"\x11UpdatePreferences\x12'.perspectiv.v1.UpdatePreferencesRequest\x1a(.perspectiv.v1.UpdatePreferencesResponse\x12T\n" +
+	"\vUnsubscribe\x12!.perspectiv.v1.UnsubscribeRequest\x1a\".perspectiv.v1.UnsubscribeResponseB\xa0\x01\n" +
 	"\x11com.perspectiv.v1B\vNotifyProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -694,7 +788,7 @@ func file_perspectiv_v1_notify_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_notify_proto_rawDescData
 }
 
-var file_perspectiv_v1_notify_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_perspectiv_v1_notify_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_perspectiv_v1_notify_proto_goTypes = []any{
 	(*Notification)(nil),              // 0: perspectiv.v1.Notification
 	(*Preference)(nil),                // 1: perspectiv.v1.Preference
@@ -706,16 +800,18 @@ var file_perspectiv_v1_notify_proto_goTypes = []any{
 	(*GetPreferencesResponse)(nil),    // 7: perspectiv.v1.GetPreferencesResponse
 	(*UpdatePreferencesRequest)(nil),  // 8: perspectiv.v1.UpdatePreferencesRequest
 	(*UpdatePreferencesResponse)(nil), // 9: perspectiv.v1.UpdatePreferencesResponse
-	(NotificationKind)(0),             // 10: perspectiv.v1.NotificationKind
-	(*UserRef)(nil),                   // 11: perspectiv.v1.UserRef
-	(*timestamppb.Timestamp)(nil),     // 12: google.protobuf.Timestamp
+	(*UnsubscribeRequest)(nil),        // 10: perspectiv.v1.UnsubscribeRequest
+	(*UnsubscribeResponse)(nil),       // 11: perspectiv.v1.UnsubscribeResponse
+	(NotificationKind)(0),             // 12: perspectiv.v1.NotificationKind
+	(*UserRef)(nil),                   // 13: perspectiv.v1.UserRef
+	(*timestamppb.Timestamp)(nil),     // 14: google.protobuf.Timestamp
 }
 var file_perspectiv_v1_notify_proto_depIdxs = []int32{
-	10, // 0: perspectiv.v1.Notification.kind:type_name -> perspectiv.v1.NotificationKind
-	11, // 1: perspectiv.v1.Notification.actor:type_name -> perspectiv.v1.UserRef
-	12, // 2: perspectiv.v1.Notification.created_at:type_name -> google.protobuf.Timestamp
-	12, // 3: perspectiv.v1.Notification.read_at:type_name -> google.protobuf.Timestamp
-	10, // 4: perspectiv.v1.Preference.kind:type_name -> perspectiv.v1.NotificationKind
+	12, // 0: perspectiv.v1.Notification.kind:type_name -> perspectiv.v1.NotificationKind
+	13, // 1: perspectiv.v1.Notification.actor:type_name -> perspectiv.v1.UserRef
+	14, // 2: perspectiv.v1.Notification.created_at:type_name -> google.protobuf.Timestamp
+	14, // 3: perspectiv.v1.Notification.read_at:type_name -> google.protobuf.Timestamp
+	12, // 4: perspectiv.v1.Preference.kind:type_name -> perspectiv.v1.NotificationKind
 	0,  // 5: perspectiv.v1.ListInboxResponse.notifications:type_name -> perspectiv.v1.Notification
 	1,  // 6: perspectiv.v1.GetPreferencesResponse.preferences:type_name -> perspectiv.v1.Preference
 	1,  // 7: perspectiv.v1.UpdatePreferencesRequest.preferences:type_name -> perspectiv.v1.Preference
@@ -724,12 +820,14 @@ var file_perspectiv_v1_notify_proto_depIdxs = []int32{
 	4,  // 10: perspectiv.v1.NotifyService.MarkRead:input_type -> perspectiv.v1.MarkReadRequest
 	6,  // 11: perspectiv.v1.NotifyService.GetPreferences:input_type -> perspectiv.v1.GetPreferencesRequest
 	8,  // 12: perspectiv.v1.NotifyService.UpdatePreferences:input_type -> perspectiv.v1.UpdatePreferencesRequest
-	3,  // 13: perspectiv.v1.NotifyService.ListInbox:output_type -> perspectiv.v1.ListInboxResponse
-	5,  // 14: perspectiv.v1.NotifyService.MarkRead:output_type -> perspectiv.v1.MarkReadResponse
-	7,  // 15: perspectiv.v1.NotifyService.GetPreferences:output_type -> perspectiv.v1.GetPreferencesResponse
-	9,  // 16: perspectiv.v1.NotifyService.UpdatePreferences:output_type -> perspectiv.v1.UpdatePreferencesResponse
-	13, // [13:17] is the sub-list for method output_type
-	9,  // [9:13] is the sub-list for method input_type
+	10, // 13: perspectiv.v1.NotifyService.Unsubscribe:input_type -> perspectiv.v1.UnsubscribeRequest
+	3,  // 14: perspectiv.v1.NotifyService.ListInbox:output_type -> perspectiv.v1.ListInboxResponse
+	5,  // 15: perspectiv.v1.NotifyService.MarkRead:output_type -> perspectiv.v1.MarkReadResponse
+	7,  // 16: perspectiv.v1.NotifyService.GetPreferences:output_type -> perspectiv.v1.GetPreferencesResponse
+	9,  // 17: perspectiv.v1.NotifyService.UpdatePreferences:output_type -> perspectiv.v1.UpdatePreferencesResponse
+	11, // 18: perspectiv.v1.NotifyService.Unsubscribe:output_type -> perspectiv.v1.UnsubscribeResponse
+	14, // [14:19] is the sub-list for method output_type
+	9,  // [9:14] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name
 	9,  // [9:9] is the sub-list for extension extendee
 	0,  // [0:9] is the sub-list for field type_name
@@ -749,7 +847,7 @@ func file_perspectiv_v1_notify_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_notify_proto_rawDesc), len(file_perspectiv_v1_notify_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

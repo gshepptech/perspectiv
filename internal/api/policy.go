@@ -127,6 +127,7 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.NotifyService/MarkRead":          {Access: User},
 	"/perspectiv.v1.NotifyService/GetPreferences":    {Access: User},
 	"/perspectiv.v1.NotifyService/UpdatePreferences": {Access: User},
+	"/perspectiv.v1.NotifyService/Unsubscribe":       {Access: Public},
 
 	"/perspectiv.v1.ModerationService/Report":      {Access: User, Verified: true, RateLimit: LimitReport},
 	"/perspectiv.v1.ModerationService/ListReports": {Access: Admin},

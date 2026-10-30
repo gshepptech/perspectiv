@@ -43,6 +43,9 @@ const (
 	// NotifyServiceUpdatePreferencesProcedure is the fully-qualified name of the NotifyService's
 	// UpdatePreferences RPC.
 	NotifyServiceUpdatePreferencesProcedure = "/perspectiv.v1.NotifyService/UpdatePreferences"
+	// NotifyServiceUnsubscribeProcedure is the fully-qualified name of the NotifyService's Unsubscribe
+	// RPC.
+	NotifyServiceUnsubscribeProcedure = "/perspectiv.v1.NotifyService/Unsubscribe"
 )
 
 // NotifyServiceClient is a client for the perspectiv.v1.NotifyService service.
@@ -51,6 +54,9 @@ type NotifyServiceClient interface {
 	MarkRead(context.Context, *connect.Request[v1.MarkReadRequest]) (*connect.Response[v1.MarkReadResponse], error)
 	GetPreferences(context.Context, *connect.Request[v1.GetPreferencesRequest]) (*connect.Response[v1.GetPreferencesResponse], error)
 	UpdatePreferences(context.Context, *connect.Request[v1.UpdatePreferencesRequest]) (*connect.Response[v1.UpdatePreferencesResponse], error)
+	// Public. Turns off every notification email for the account named by an
+	// unsubscribe link, without signing in. In-app notifications stay on.
+	Unsubscribe(context.Context, *connect.Request[v1.UnsubscribeRequest]) (*connect.Response[v1.UnsubscribeResponse], error)
 }
 
 // NewNotifyServiceClient constructs a client for the perspectiv.v1.NotifyService service. By
@@ -88,6 +94,12 @@ func NewNotifyServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(notifyServiceMethods.ByName("UpdatePreferences")),
 			connect.WithClientOptions(opts...),
 		),
+		unsubscribe: connect.NewClient[v1.UnsubscribeRequest, v1.UnsubscribeResponse](
+			httpClient,
+			baseURL+NotifyServiceUnsubscribeProcedure,
+			connect.WithSchema(notifyServiceMethods.ByName("Unsubscribe")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -97,6 +109,7 @@ type notifyServiceClient struct {
 	markRead          *connect.Client[v1.MarkReadRequest, v1.MarkReadResponse]
 	getPreferences    *connect.Client[v1.GetPreferencesRequest, v1.GetPreferencesResponse]
 	updatePreferences *connect.Client[v1.UpdatePreferencesRequest, v1.UpdatePreferencesResponse]
+	unsubscribe       *connect.Client[v1.UnsubscribeRequest, v1.UnsubscribeResponse]
 }
 
 // ListInbox calls perspectiv.v1.NotifyService.ListInbox.
@@ -119,12 +132,20 @@ func (c *notifyServiceClient) UpdatePreferences(ctx context.Context, req *connec
 	return c.updatePreferences.CallUnary(ctx, req)
 }
 
+// Unsubscribe calls perspectiv.v1.NotifyService.Unsubscribe.
+func (c *notifyServiceClient) Unsubscribe(ctx context.Context, req *connect.Request[v1.UnsubscribeRequest]) (*connect.Response[v1.UnsubscribeResponse], error) {
+	return c.unsubscribe.CallUnary(ctx, req)
+}
+
 // NotifyServiceHandler is an implementation of the perspectiv.v1.NotifyService service.
 type NotifyServiceHandler interface {
 	ListInbox(context.Context, *connect.Request[v1.ListInboxRequest]) (*connect.Response[v1.ListInboxResponse], error)
 	MarkRead(context.Context, *connect.Request[v1.MarkReadRequest]) (*connect.Response[v1.MarkReadResponse], error)
 	GetPreferences(context.Context, *connect.Request[v1.GetPreferencesRequest]) (*connect.Response[v1.GetPreferencesResponse], error)
 	UpdatePreferences(context.Context, *connect.Request[v1.UpdatePreferencesRequest]) (*connect.Response[v1.UpdatePreferencesResponse], error)
+	// Public. Turns off every notification email for the account named by an
+	// unsubscribe link, without signing in. In-app notifications stay on.
+	Unsubscribe(context.Context, *connect.Request[v1.UnsubscribeRequest]) (*connect.Response[v1.UnsubscribeResponse], error)
 }
 
 // NewNotifyServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -158,6 +179,12 @@ func NewNotifyServiceHandler(svc NotifyServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(notifyServiceMethods.ByName("UpdatePreferences")),
 		connect.WithHandlerOptions(opts...),
 	)
+	notifyServiceUnsubscribeHandler := connect.NewUnaryHandler(
+		NotifyServiceUnsubscribeProcedure,
+		svc.Unsubscribe,
+		connect.WithSchema(notifyServiceMethods.ByName("Unsubscribe")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.NotifyService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case NotifyServiceListInboxProcedure:
@@ -168,6 +195,8 @@ func NewNotifyServiceHandler(svc NotifyServiceHandler, opts ...connect.HandlerOp
 			notifyServiceGetPreferencesHandler.ServeHTTP(w, r)
 		case NotifyServiceUpdatePreferencesProcedure:
 			notifyServiceUpdatePreferencesHandler.ServeHTTP(w, r)
+		case NotifyServiceUnsubscribeProcedure:
+			notifyServiceUnsubscribeHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -191,4 +220,8 @@ func (UnimplementedNotifyServiceHandler) GetPreferences(context.Context, *connec
 
 func (UnimplementedNotifyServiceHandler) UpdatePreferences(context.Context, *connect.Request[v1.UpdatePreferencesRequest]) (*connect.Response[v1.UpdatePreferencesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.NotifyService.UpdatePreferences is not implemented"))
+}
+
+func (UnimplementedNotifyServiceHandler) Unsubscribe(context.Context, *connect.Request[v1.UnsubscribeRequest]) (*connect.Response[v1.UnsubscribeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.NotifyService.Unsubscribe is not implemented"))
 }

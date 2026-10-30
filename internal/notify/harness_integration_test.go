@@ -57,16 +57,16 @@ func newEnvWithMailer(t *testing.T, m mailer.Mailer) *env {
 	log := zerolog.New(io.Discard)
 	met := metrics.New(prometheus.NewRegistry())
 
-	h := notify.NewHandler(notify.NewService(pool))
+	h := notify.NewHandler(notify.NewService(pool, unsub))
 	ics := connect.WithInterceptors(api.Interceptors(log, bearerAuthn{}, allowAll{}, allowAll{})...)
 	mount := func(opts ...connect.HandlerOption) (string, http.Handler) {
 		return perspectivv1connect.NewNotifyServiceHandler(h, append(opts, ics)...)
 	}
-	srv := httptest.NewServer(api.NewRouter(api.RouterConfig{Log: log, Handlers: []api.Mount{mount}}))
+	srv := httptest.NewServer(api.NewRouter(api.RouterConfig{Log: log, Handlers: []api.Mount{mount, h.OneClickMount}}))
 	t.Cleanup(srv.Close)
 
 	workers := river.NewWorkers()
-	notify.AddWorkers(workers, pool, m, met, log, baseURL)
+	notify.AddWorkers(workers, pool, m, met, log, baseURL, unsub)
 	client, err := jobs.NewClient(pool, log, met, workers, nil)
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)

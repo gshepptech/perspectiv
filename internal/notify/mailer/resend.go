@@ -34,6 +34,7 @@ func (r *resendMailer) Send(ctx context.Context, m Message) error {
 		Subject: m.Subject,
 		Text:    m.Text,
 		Html:    m.HTML,
+		Headers: unsubscribeHeaders(m),
 	})
 	if err != nil {
 		return fmt.Errorf("resend: send: %w", err)

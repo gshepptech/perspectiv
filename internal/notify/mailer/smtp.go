@@ -106,6 +106,10 @@ func buildMIME(from string, m Message) ([]byte, error) {
 	hdr("Date", time.Now().UTC().Format(time.RFC1123Z))
 	hdr("Message-ID", messageID(from))
 	hdr("MIME-Version", "1.0")
+	if h := unsubscribeHeaders(m); h != nil {
+		hdr("List-Unsubscribe", h["List-Unsubscribe"])
+		hdr("List-Unsubscribe-Post", h["List-Unsubscribe-Post"])
+	}
 
 	if m.HTML == "" {
 		hdr("Content-Type", `text/plain; charset="utf-8"`)

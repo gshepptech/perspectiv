@@ -122,12 +122,45 @@ func TestBuildMIMERefusesHeaderInjection(t *testing.T) {
 		{name: "recipient", from: "a@example.test", msg: Message{To: "b@example.test\r\nBcc: c@example.test", Subject: "x", Text: "t"}},
 		{name: "sender", from: "a@example.test\nBcc: c@example.test", msg: Message{To: "b@example.test", Subject: "x", Text: "t"}},
 		{name: "empty body", from: "a@example.test", msg: Message{To: "b@example.test", Subject: "x"}},
+		{name: "unsubscribe URL", from: "a@example.test", msg: Message{To: "b@example.test", Subject: "x", Text: "t", Unsubscribe: "https://x.test/u\r\nBcc: c@example.test"}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			if _, err := buildMIME(tc.from, tc.msg); err == nil {
 				t.Fatal("buildMIME = nil error, want refusal")
+			}
+		})
+	}
+}
+
+// RFC 8058: the one-click URL goes out as List-Unsubscribe in angle brackets
+// with List-Unsubscribe-Post; a message without one carries neither.
+func TestBuildMIMEUnsubscribeHeaders(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, unsubscribe, wantList, wantPost string
+	}{
+		{name: "notification", unsubscribe: "https://perspectiv.test/api/email/unsubscribe?t=x&u=y",
+			wantList: "<https://perspectiv.test/api/email/unsubscribe?t=x&u=y>", wantPost: "List-Unsubscribe=One-Click"},
+		{name: "account email"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			raw, err := buildMIME("a@example.test", Message{To: "b@example.test", Subject: "x", Text: "t", Unsubscribe: tc.unsubscribe})
+			if err != nil {
+				t.Fatalf("buildMIME: %v", err)
+			}
+			msg, err := mail.ReadMessage(bytes.NewReader(raw))
+			if err != nil {
+				t.Fatalf("ReadMessage: %v", err)
+			}
+			if got := msg.Header.Get("List-Unsubscribe"); got != tc.wantList {
+				t.Errorf("List-Unsubscribe = %q, want %q", got, tc.wantList)
+			}
+			if got := msg.Header.Get("List-Unsubscribe-Post"); got != tc.wantPost {
+				t.Errorf("List-Unsubscribe-Post = %q, want %q", got, tc.wantPost)
 			}
 		})
 	}

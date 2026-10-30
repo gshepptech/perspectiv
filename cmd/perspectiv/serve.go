@@ -225,7 +225,7 @@ func build(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, log zerolog.Logge
 		workers := river.NewWorkers()
 		river.AddWorker(workers, jobs.NewExpiryWorker(pool))
 		river.AddWorker(workers, rank.NewWorker(pool, loreSvc, m, enq, cfg.CanonMinMembers))
-		notify.AddWorkers(workers, pool, newMailer(cfg), m, log, cfg.PublicBaseURL)
+		notify.AddWorkers(workers, pool, newMailer(cfg), m, log, cfg.PublicBaseURL, notify.NewUnsubscriber(cfg.JWTSecret))
 		a.worker, err = jobs.NewClient(pool, log, m, workers, []*river.PeriodicJob{rank.PeriodicJob(cfg.RankInterval), notify.DigestPeriodicJob()})
 		if err != nil {
 			return nil, err
@@ -254,6 +254,7 @@ func (a *app) addAPI(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, enq *jo
 	perspectiveSvc := perspective.NewService(pool, arcSvc, loreSvc, enq, m, cfg.ExpiryWindow)
 	a.preview = previewer{arcs: arcSvc, perspectives: perspectiveSvc, lores: loreSvc, places: placeSvc}.preview
 	chain := connect.WithInterceptors(api.Interceptors(log, authSvc, authSvc, limiter)...)
+	notifyHandler := notify.NewHandler(notify.NewService(pool, notify.NewUnsubscriber(cfg.JWTSecret)))
 
 	a.mounts = []api.Mount{
 		mount[perspectivv1connect.AuthServiceHandler](perspectivv1connect.NewAuthServiceHandler, auth.NewHandler(authSvc), chain),
@@ -269,8 +270,8 @@ func (a *app) addAPI(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, enq *jo
 			vote.NewHandler(vote.NewService(pool, loreSvc, enq)), chain),
 		mount[perspectivv1connect.ReactServiceHandler](perspectivv1connect.NewReactServiceHandler,
 			react.NewHandler(react.NewService(pool)), chain),
-		mount[perspectivv1connect.NotifyServiceHandler](perspectivv1connect.NewNotifyServiceHandler,
-			notify.NewHandler(notify.NewService(pool)), chain),
+		mount[perspectivv1connect.NotifyServiceHandler](perspectivv1connect.NewNotifyServiceHandler, notifyHandler, chain),
+		notifyHandler.OneClickMount,
 		mount[perspectivv1connect.ModerationServiceHandler](perspectivv1connect.NewModerationServiceHandler,
 			moderation.NewHandler(moderation.NewService(pool, enq, log)), chain),
 		avatars.Mount,

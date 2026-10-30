@@ -22,6 +22,21 @@ type Mailer interface {
 // optional alternative rendering.
 type Message struct {
 	To, Subject, Text, HTML string
+	// Unsubscribe, when set, is the HTTPS URL a mail client POSTs to for a
+	// one-click unsubscribe (RFC 8058), sent as List-Unsubscribe with
+	// List-Unsubscribe-Post.
+	Unsubscribe string
+}
+
+// unsubscribeHeaders are the RFC 8058 headers for m, or none.
+func unsubscribeHeaders(m Message) map[string]string {
+	if m.Unsubscribe == "" {
+		return nil
+	}
+	return map[string]string{
+		"List-Unsubscribe":      "<" + m.Unsubscribe + ">",
+		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+	}
 }
 
 // validate refuses a message that would be malformed on the wire: a missing
@@ -40,7 +55,7 @@ func validate(from string, m Message) error {
 	if m.Text == "" {
 		return errors.New("text body is required")
 	}
-	for name, v := range map[string]string{"sender": from, "recipient": m.To, "subject": m.Subject} {
+	for name, v := range map[string]string{"sender": from, "recipient": m.To, "subject": m.Subject, "unsubscribe": m.Unsubscribe} {
 		if strings.ContainsAny(v, "\r\n") {
 			return fmt.Errorf("%s contains a line break", name)
 		}

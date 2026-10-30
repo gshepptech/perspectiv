@@ -111,7 +111,7 @@ func sendDigest(ctx context.Context, q *dbq.Queries, tx pgx.Tx, enq *jobs.Enqueu
 	}
 	if err := enq.EmailTx(ctx, tx, jobs.EmailArgs{
 		To: u.Email, Template: jobs.TemplateDigest,
-		Data: map[string]string{dataItems: string(encoded), dataCount: strconv.Itoa(len(items))},
+		Data: map[string]string{dataItems: string(encoded), dataCount: strconv.Itoa(len(items)), dataUserID: u.ID.String()},
 	}); err != nil {
 		return err
 	}

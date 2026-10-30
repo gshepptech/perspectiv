@@ -12,6 +12,9 @@ service NotifyService {
   rpc MarkRead(MarkReadRequest) returns (MarkReadResponse);
   rpc GetPreferences(GetPreferencesRequest) returns (GetPreferencesResponse);
   rpc UpdatePreferences(UpdatePreferencesRequest) returns (UpdatePreferencesResponse);
+  // Public. Turns off every notification email for the account named by an
+  // unsubscribe link, without signing in. In-app notifications stay on.
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
 }
 
 // Notification is one inbox entry. The id fields that apply to its kind are
@@ -82,3 +85,11 @@ message UpdatePreferencesResponse {
   repeated Preference preferences = 1;
   bool email_digest = 2;
 }
+
+message UnsubscribeRequest {
+  // The account and the signature from the emailed unsubscribe link.
+  string user_id = 1;
+  string token = 2;
+}
+
+message UnsubscribeResponse {}

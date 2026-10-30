@@ -21,7 +21,12 @@ import (
 	"perspectiv/internal/notify/mailer"
 )
 
-const baseURL = "https://perspectiv.test"
+const (
+	baseURL     = "https://perspectiv.test"
+	recipientID = "6f1c2d3e-4a5b-4c6d-8e9f-0a1b2c3d4e5f"
+)
+
+var unsub = notify.NewUnsubscriber("a test secret long enough for the signer")
 
 // recorder is a Mailer that keeps what it was asked to send and fails with
 // err when set.
@@ -69,7 +74,8 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 		{
 			name: "a digest lists each event with its own link, and links the inbox",
 			args: jobs.EmailArgs{To: "ben@example.test", Template: jobs.TemplateDigest, Data: map[string]string{
-				"count": "2",
+				"user_id": recipientID,
+				"count":   "2",
 				"items": `[{"kind":"NOTIFICATION_KIND_CLAIM_RECEIVED","path":"/claims","actor":"otter","arc_title":"Rainy Tuesday"},` +
 					`{"kind":"NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE","path":"/perspectives/p-1","actor":"wren","arc_title":"Rainy Tuesday"}]`,
 			}},
@@ -114,12 +120,12 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 				"link": baseURL + "/forgot-password",
 			}},
 			wantSubject: "Your Perspectiv email is being changed",
-			wantText:    []string{"If it was not, reset your password now.", baseURL + "/forgot-password"},
+			wantText:    []string{"If it was not, reset your password now: that also cancels the change.", baseURL + "/forgot-password"},
 		},
 		{
 			name: "claim received names the claimant and the arc (FR-037)",
 			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
-				"kind": "NOTIFICATION_KIND_CLAIM_RECEIVED", "actor": "sam", "arc_title": "Rainy Tuesday", "path": "/claims",
+				"user_id": recipientID, "kind": "NOTIFICATION_KIND_CLAIM_RECEIVED", "actor": "sam", "arc_title": "Rainy Tuesday", "path": "/claims",
 			}},
 			wantSubject: "sam says they are in your story",
 			wantText:    []string{"Rainy Tuesday", baseURL + "/claims", baseURL + "/settings"},
@@ -127,7 +133,7 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 		{
 			name: "user content is escaped in HTML",
 			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
-				"kind": "NOTIFICATION_KIND_CANON_CHANGE", "arc_title": "<script>x</script>", "path": "/arcs/1",
+				"user_id": recipientID, "kind": "NOTIFICATION_KIND_CANON_CHANGE", "arc_title": "<script>x</script>", "path": "/arcs/1",
 			}},
 			wantSubject: "The canon changed in <script>x</script>",
 			wantHTML:    []string{"&lt;script&gt;x&lt;/script&gt;"},
@@ -136,7 +142,7 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 		{
 			name: "every kind has its own subject",
 			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
-				"kind": "NOTIFICATION_KIND_REPORT_RESOLVED", "path": "/inbox",
+				"user_id": recipientID, "kind": "NOTIFICATION_KIND_REPORT_RESOLVED", "path": "/inbox",
 			}},
 			wantSubject: "Your report was resolved",
 			wantText:    []string{baseURL + "/inbox"},
@@ -146,7 +152,7 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			rec := &recorder{}
-			w := notify.NewEmailWorker(rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL)
+			w := notify.NewEmailWorker(rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
 			if err := w.Work(context.Background(), emailJob(1, tc.args)); err != nil {
 				t.Fatalf("Work: %v", err)
 			}
@@ -194,7 +200,7 @@ func TestEmailWorkerCancelsUnrenderableJobs(t *testing.T) {
 			t.Parallel()
 			rec := &recorder{}
 			m := metrics.New(prometheus.NewRegistry())
-			w := notify.NewEmailWorker(rec, m, zerolog.New(io.Discard), baseURL)
+			w := notify.NewEmailWorker(rec, m, zerolog.New(io.Discard), baseURL, unsub)
 			err := w.Work(context.Background(), emailJob(1, tc.args))
 			var cancel *rivertype.JobCancelError
 			if !errors.As(err, &cancel) {
@@ -229,7 +235,7 @@ func TestEmailWorkerProviderFailure(t *testing.T) {
 			t.Parallel()
 			provider := errors.New("provider down")
 			m := metrics.New(prometheus.NewRegistry())
-			w := notify.NewEmailWorker(&recorder{err: provider}, m, zerolog.New(io.Discard), baseURL)
+			w := notify.NewEmailWorker(&recorder{err: provider}, m, zerolog.New(io.Discard), baseURL, unsub)
 			err := w.Work(context.Background(), emailJob(tc.attempt, args))
 			if !errors.Is(err, provider) {
 				t.Fatalf("Work = %v, want the provider error", err)
@@ -248,7 +254,7 @@ func TestEmailWorkerProviderFailure(t *testing.T) {
 // The retry schedule doubles from 30 seconds and is capped at one hour.
 func TestEmailWorkerRetrySchedule(t *testing.T) {
 	t.Parallel()
-	w := notify.NewEmailWorker(&recorder{}, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL)
+	w := notify.NewEmailWorker(&recorder{}, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
 	tests := []struct {
 		attempt int
 		want    time.Duration
@@ -270,4 +276,65 @@ func TestEmailWorkerRetrySchedule(t *testing.T) {
 	if got := w.Timeout(emailJob(1, jobs.EmailArgs{})); got <= 0 || got > time.Minute {
 		t.Errorf("Timeout = %v, want a bound under a minute", got)
 	}
+}
+
+// Notification and digest emails carry the RFC 8058 one-click header and an
+// unsubscribe page link signed for their recipient; account emails carry
+// neither, and a notification email without its recipient is not sent.
+func TestNotificationEmailsCanBeUnsubscribed(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name      string
+		args      jobs.EmailArgs
+		wantUnsub bool
+		wantErr   bool
+	}{
+		{name: "notification", wantUnsub: true, args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
+			"user_id": recipientID, "kind": "NOTIFICATION_KIND_CLAIM_ACCEPTED", "path": "/arcs/a-1",
+		}}},
+		{name: "digest", wantUnsub: true, args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateDigest, Data: map[string]string{
+			"user_id": recipientID, "count": "1", "items": `[{"kind":"NOTIFICATION_KIND_CLAIM_ACCEPTED","path":"/arcs/a-1"}]`,
+		}}},
+		{name: "password reset", args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplatePasswordReset, Data: map[string]string{"token": "r1"}}},
+		{name: "notification without its recipient", wantErr: true, args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
+			"kind": "NOTIFICATION_KIND_CLAIM_ACCEPTED", "path": "/arcs/a-1",
+		}}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			rec := &recorder{}
+			w := notify.NewEmailWorker(rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
+			err := w.Work(context.Background(), emailJob(1, tc.args))
+			if tc.wantErr {
+				if err == nil || len(rec.messages()) != 0 {
+					t.Fatalf("Work = %v with %d sent, want a refusal and nothing sent", err, len(rec.messages()))
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Work: %v", err)
+			}
+			checkUnsubscribe(t, rec.messages()[0], tc.wantUnsub)
+		})
+	}
+}
+
+// checkUnsubscribe fails unless m offers the recipient's signed unsubscribe
+// links exactly when want is set.
+func checkUnsubscribe(t *testing.T, m mailer.Message, want bool) {
+	t.Helper()
+	if !want {
+		if m.Unsubscribe != "" || strings.Contains(m.Text, "/unsubscribe") {
+			t.Fatalf("an account email offers unsubscribe: %q", m.Unsubscribe)
+		}
+		return
+	}
+	oneClick := baseURL + "/api/email/unsubscribe?t="
+	page := baseURL + "/unsubscribe?t="
+	if !strings.HasPrefix(m.Unsubscribe, oneClick) || !strings.HasSuffix(m.Unsubscribe, "&u="+recipientID) {
+		t.Fatalf("one-click URL = %q", m.Unsubscribe)
+	}
+	wantContains(t, "text", m.Text, []string{page}, true)
+	wantContains(t, "html", m.HTML, []string{"Stop these emails: " + page}, true)
 }

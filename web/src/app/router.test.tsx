@@ -65,6 +65,7 @@ const contract: [string, string][] = [
   ["/forgot-password", "auth/ForgotPasswordPage"],
   ["/reset-password?token=t", "auth/ResetPasswordPage"],
   ["/confirm-email?token=t", "auth/ConfirmEmailPage"],
+  ["/unsubscribe?u=x&t=y", "settings/UnsubscribePage"],
   ["/settings", "settings/SettingsPage"],
   ["/inbox", "inbox/InboxPage"],
 ];

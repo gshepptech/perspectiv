@@ -3,14 +3,19 @@
 What is left before a public beta, in the order it is being worked. An item
 moves to Done in the same commit as the work, with what was verified.
 
-## Doing (wave 2)
+## Doing (wave 3)
 
+12. **Moderation tools.** An audit log view and a user lookup for admins
+    (plan scoped: audit rows for every admin action, a user dossier, report
+    filters).
+13. **Migration 014 Down.** It deletes from the append-only
+    moderation_audit table, which its trigger refuses, so the rollback fails
+    once lore audit rows exist.
 
-## Next
+## Out of scope for v1
 
-11. **Search stories.** Full-text search over published stories and arc
-    titles, inside a place and everywhere.
-12. **Moderation tools.** An audit log view and a user lookup for admins.
+- Full-text search over stories: the spec leaves it out (A-057); place
+  search and character search are the ways in.
 
 ## Waiting on a decision or an event
 
@@ -23,6 +28,20 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Email unsubscribe: every notification and digest email carries an RFC
+  8058 one-click List-Unsubscribe header and a footer link to /unsubscribe,
+  signed per account (HMAC from the server secret), which turns every
+  notification email off and leaves in-app notifications as they were.
+  Account emails carry neither. Opening the page changes nothing until
+  "Stop emails" is pressed; a GET to the one-click endpoint is refused.
+  Verified by TestUnsubscribeLink, TestOneClickUnsubscribe,
+  TestNotificationEmailsCanBeUnsubscribed, TestBuildMIMEUnsubscribeHeaders
+  and the page's unit tests.
+- Account security review fixes: a pending email change is cancelled by a
+  password reset, a password change and signing out everywhere, and
+  confirming a change spends every reset and verification link sent to the
+  old address. Refusals are logged by reason, not as wrong passwords.
+  Verified by TestEmailChangeCannotTakeOver.
 - Mobile pass: twelve screens measured at 375x812. Nothing overflowed; the
   defects were tap targets. Sign up, Write your perspective, Read yours,
   story-row Read, byline links, Upvote, reacts (8px apart), Report, the

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
 
@@ -43,6 +44,7 @@ const (
 	dataLink     = "link"
 	dataToken    = "token"
 	dataKind     = "kind"
+	dataUserID   = "user_id"
 	dataActor    = "actor"
 	dataArcTitle = "arc_title"
 	dataPath     = "path"
@@ -54,6 +56,7 @@ type emailWorker struct {
 	metrics *metrics.Metrics
 	log     zerolog.Logger
 	baseURL string
+	unsub   Unsubscriber
 }
 
 // NewEmailWorker returns the worker for email jobs. It renders the job's
@@ -62,12 +65,13 @@ type emailWorker struct {
 // A provider failure never reaches the request that queued the email: the
 // request only inserted the job. The failure increments
 // email_send_failures_total and the job is retried on the schedule above.
-func NewEmailWorker(m mailer.Mailer, met *metrics.Metrics, log zerolog.Logger, publicBaseURL string) river.Worker[jobs.EmailArgs] {
+func NewEmailWorker(m mailer.Mailer, met *metrics.Metrics, log zerolog.Logger, publicBaseURL string, unsub Unsubscriber) river.Worker[jobs.EmailArgs] {
 	return &emailWorker{
 		mailer:  m,
 		metrics: met,
 		log:     log.With().Str("component", "email").Logger(),
 		baseURL: strings.TrimRight(publicBaseURL, "/"),
+		unsub:   unsub,
 	}
 }
 
@@ -145,7 +149,7 @@ func (w *emailWorker) render(a jobs.EmailArgs) (mailer.Message, error) {
 	case jobs.TemplateEmailChangeNotice:
 		c, err = w.accountContent(a.Data, "/forgot-password",
 			"Your Perspectiv email is being changed",
-			"Someone signed in to your Perspectiv account asked to change its email away from this address. If it was you, there is nothing to do. If it was not, reset your password now.",
+			"Someone signed in to your Perspectiv account asked to change its email away from this address. If it was you, there is nothing to do. If it was not, reset your password now: that also cancels the change.",
 			"Reset your password")
 	case jobs.TemplateDigest:
 		c, err = w.digestContent(a.Data)
@@ -157,7 +161,30 @@ func (w *emailWorker) render(a jobs.EmailArgs) (mailer.Message, error) {
 	if err != nil {
 		return mailer.Message{}, err
 	}
-	return c.message(a.To)
+	var unsubscribe string
+	if a.Template == jobs.TemplateDigest || a.Template == jobs.TemplateNotification {
+		// Notification email is the kind a reader can turn off, so it never
+		// goes out without a working unsubscribe link.
+		unsubscribe, err = w.withUnsubscribe(&c, a.Data)
+		if err != nil {
+			return mailer.Message{}, err
+		}
+	}
+	msg, err := c.message(a.To)
+	msg.Unsubscribe = unsubscribe
+	return msg, err
+}
+
+// withUnsubscribe adds the unsubscribe page to c's footer and returns the
+// one-click URL for the List-Unsubscribe header.
+func (w *emailWorker) withUnsubscribe(c *content, data map[string]string) (string, error) {
+	id, err := uuid.Parse(data[dataUserID])
+	if err != nil {
+		return "", errors.New("notification email without its recipient's user id")
+	}
+	q := w.unsub.query(id)
+	c.Footer += " Stop these emails: " + w.baseURL + unsubscribePage + "?" + q
+	return w.baseURL + "/api" + unsubscribeOneClick + "?" + q, nil
 }
 
 // content is what every email shows: a subject, a paragraph, one link and an

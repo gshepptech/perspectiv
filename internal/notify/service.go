@@ -24,12 +24,13 @@ const maxMarkRead = 100
 
 // Service reads and updates a user's inbox and preferences.
 type Service struct {
-	pool *pgxpool.Pool
+	pool  *pgxpool.Pool
+	unsub Unsubscriber
 }
 
-// NewService returns the notify service.
-func NewService(pool *pgxpool.Pool) *Service {
-	return &Service{pool: pool}
+// NewService returns the notify service; unsub checks unsubscribe links.
+func NewService(pool *pgxpool.Pool, unsub Unsubscriber) *Service {
+	return &Service{pool: pool, unsub: unsub}
 }
 
 // Notification is one inbox entry with its display fields resolved.

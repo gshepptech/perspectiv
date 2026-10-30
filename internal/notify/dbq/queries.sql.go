@@ -158,6 +158,24 @@ func (q *Queries) DigestDue(ctx context.Context, lim int32) ([]DigestDueRow, err
 	return items, nil
 }
 
+const disableEmail = `-- name: DisableEmail :exec
+INSERT INTO notification_preferences (user_id, kind, in_app, email)
+SELECT $1::uuid, k, true, false FROM unnest($2::text[]) AS k
+ON CONFLICT (user_id, kind) DO UPDATE SET email = false
+`
+
+type DisableEmailParams struct {
+	UserID uuid.UUID
+	Kinds  []string
+}
+
+// Turns email off for every kind given, keeping each kind's in-app toggle
+// (on when the kind had no row).
+func (q *Queries) DisableEmail(ctx context.Context, arg DisableEmailParams) error {
+	_, err := q.db.Exec(ctx, disableEmail, arg.UserID, arg.Kinds)
+	return err
+}
+
 const followersOfArcPlaces = `-- name: FollowersOfArcPlaces :many
 SELECT DISTINCT f.user_id
 FROM arcs a

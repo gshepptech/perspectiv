@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -30,9 +31,9 @@ type FanoutArgs struct {
 func (FanoutArgs) Kind() string { return "notify" }
 
 // AddWorkers registers the fan-out and email workers on w.
-func AddWorkers(w *river.Workers, pool *pgxpool.Pool, m mailer.Mailer, met *metrics.Metrics, log zerolog.Logger, publicBaseURL string) {
+func AddWorkers(w *river.Workers, pool *pgxpool.Pool, m mailer.Mailer, met *metrics.Metrics, log zerolog.Logger, publicBaseURL string, unsub Unsubscriber) {
 	river.AddWorker(w, NewFanoutWorker(pool, log))
-	river.AddWorker(w, NewEmailWorker(m, met, log, publicBaseURL))
+	river.AddWorker(w, NewEmailWorker(m, met, log, publicBaseURL, unsub))
 	river.AddWorker(w, NewDigestWorker(pool, log))
 }
 
@@ -381,7 +382,9 @@ func deliver(ctx context.Context, q *dbq.Queries, tx pgx.Tx, enq *jobs.Enqueuer,
 // daily summary, adds it to their next one.
 func deliverEmail(ctx context.Context, q *dbq.Queries, tx pgx.Tx, enq *jobs.Enqueuer, r dbq.RecipientsRow, data map[string]string) error {
 	if !r.EmailDigest {
-		return enq.EmailTx(ctx, tx, jobs.EmailArgs{To: r.Email, Template: jobs.TemplateNotification, Data: data})
+		mail := maps.Clone(data)
+		mail[dataUserID] = r.ID.String()
+		return enq.EmailTx(ctx, tx, jobs.EmailArgs{To: r.Email, Template: jobs.TemplateNotification, Data: mail})
 	}
 	item, err := json.Marshal(data)
 	if err != nil {
