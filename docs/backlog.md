@@ -5,9 +5,12 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing (wave 4)
 
-14. **Query performance.** Fix the measured slow queries from the audit at
-    beta scale (followers fan-out 112 s, place search scoped to a state,
-    lore groups, generic plans on listings, missing partial indexes).
+15. **Query performance, part 2.** The structural fixes from the beta-scale
+    audit: lore groups computed in Go from claim edges (ArcGroups, 3.7 s on a
+    large group, under the arc lock), a `places.path` array so a search
+    scoped to a state stops walking 509k descendants (1.6 s), a readable
+    story count on arcs for ListStoriedChildren, and a capped label-first
+    plan for SearchCharacters (570 ms for a rare word in a big city).
 
 ## Out of scope for v1
 
@@ -22,6 +25,16 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Query performance, part 1, from a plan audit at beta scale (225k
+  stories, 638k places, 27k followers of Florida): the new-story fan-out
+  to place followers uses NOT EXISTS (112 s to 79 ms); thread posts check
+  membership by the lore argument (300 ms to 3 ms); an arc's tales and
+  unlinked stories plan as anti-joins (150 ms to 8 ms); partial indexes for
+  hidden places, recent tales and due digests; one- and two-letter place
+  searches match name prefixes on a pattern index instead of scanning; and
+  the pool forces per-call plans, since a generic plan of a place listing
+  ran 550 ms against 12 ms. Verified by the domain integration suites and
+  migration 21 up-down-up.
 - Data retention: a daily job deletes, in batches, emailed links 7 days
   after use or expiry, sessions and their refresh tokens 30 days after they
   end, sign-in attempts after 30 days and rate-limit counters after a day,

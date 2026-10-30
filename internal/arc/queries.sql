@@ -125,7 +125,7 @@ LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
 WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
   AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND pe.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
-  AND lm.lore_id IS NULL
+  AND lm.perspective_id IS NULL  -- on the join column, so it plans as an anti-join
   AND (sqlc.narg(after_at)::timestamptz IS NULL
        OR (pe.published_at, pe.id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
 ORDER BY pe.published_at, pe.id
@@ -149,7 +149,7 @@ LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
 WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
   AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND pe.lore_status IN ('LORE_STATUS_PENDING', 'LORE_STATUS_IN_LORE')
-  AND lm.lore_id IS NULL
+  AND lm.perspective_id IS NULL  -- on the join column, so it plans as an anti-join
   AND (sqlc.narg(after_at)::timestamptz IS NULL
        OR (pe.published_at, pe.id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
 ORDER BY pe.published_at, pe.id

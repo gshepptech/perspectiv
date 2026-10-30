@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -137,14 +138,25 @@ type SearchQuery struct {
 	Candidates int32
 }
 
-// Search returns visible places whose name contains q.Text, ranked as the
+// minSubstringRunes is the shortest search matched anywhere in a name.
+const minSubstringRunes = 3
+
+// Search returns visible places whose name contains q.Text (or, under
+// minSubstringRunes characters, starts with it), ranked as the
 // SearchPlaces query documents, each with its ancestors.
 func (s *Store) Search(ctx context.Context, q SearchQuery) ([]Place, error) {
 	lit := escapeLike(q.Text)
+	contains := "%" + lit + "%"
+	if utf8.RuneCountInString(q.Text) < minSubstringRunes {
+		// The trigram index needs three characters; shorter input is matched
+		// as a name prefix, which places_name_prefix_idx serves, instead of
+		// scanning every place for the substring.
+		contains = lit + "%"
+	}
 	params := dbq.SearchPlacesParams{
 		Exact:          q.Text,
 		Prefix:         lit + "%",
-		Contains:       "%" + lit + "%",
+		Contains:       contains,
 		ResultLimit:    q.Limit,
 		CandidateLimit: q.Candidates,
 	}

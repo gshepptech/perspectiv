@@ -128,6 +128,13 @@ func openPool(ctx context.Context, dsn string, log zerolog.Logger) (*pgxpool.Poo
 		return nil, errors.New("DATABASE_URL is not a valid connection string")
 	}
 	cfg.ConnConfig.Tracer = telemetry.PoolTracer(log)
+	// pgx reuses prepared statements, and from a statement's sixth run
+	// PostgreSQL may switch to a generic plan that ignores the arguments. The
+	// listings filter with "argument IS NULL OR ..." and their row counts swing
+	// by four orders of magnitude between places, so a generic plan misjudges
+	// them badly (12 ms planned per call, 550 ms generic, measured at beta
+	// scale). Planning each call costs a few milliseconds and is always right.
+	cfg.ConnConfig.RuntimeParams["plan_cache_mode"] = "force_custom_plan"
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect to database: %w", err)

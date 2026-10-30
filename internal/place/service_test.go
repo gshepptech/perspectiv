@@ -181,7 +181,13 @@ func TestSearchPlaces(t *testing.T) {
 			req:  &perspectivv1.SearchPlacesRequest{Query: "springfield", ParentId: h.city.String()},
 			want: []string{"Springfield Coffee", "Old Springfield Diner"},
 		},
-		{name: "like wildcards are literal", req: &perspectivv1.SearchPlacesRequest{Query: "%"}, want: []string{"100% Juice"}},
+		{name: "like wildcards are literal", req: &perspectivv1.SearchPlacesRequest{Query: "0% j"}, want: []string{"100% Juice"}},
+		{name: "a lone wildcard matches only a name starting with it", req: &perspectivv1.SearchPlacesRequest{Query: "%"}, want: []string{}},
+		{
+			name: "under three letters matches name starts only",
+			req:  &perspectivv1.SearchPlacesRequest{Query: "sp"},
+			want: []string{"Springfield", "Springfield Coffee", "Springfield Outlet"},
+		},
 		{name: "no match", req: &perspectivv1.SearchPlacesRequest{Query: "zzzz"}, want: []string{}},
 	}
 	for _, tc := range tests {

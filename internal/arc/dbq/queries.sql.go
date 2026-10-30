@@ -327,7 +327,7 @@ LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
 WHERE pe.arc_id = $1::uuid
   AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND pe.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
-  AND lm.lore_id IS NULL
+  AND lm.perspective_id IS NULL  -- on the join column, so it plans as an anti-join
   AND ($2::timestamptz IS NULL
        OR (pe.published_at, pe.id) > ($2::timestamptz, $3::uuid))
 ORDER BY pe.published_at, pe.id
@@ -411,7 +411,7 @@ LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
 WHERE pe.arc_id = $1::uuid
   AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND pe.lore_status IN ('LORE_STATUS_PENDING', 'LORE_STATUS_IN_LORE')
-  AND lm.lore_id IS NULL
+  AND lm.perspective_id IS NULL  -- on the join column, so it plans as an anti-join
   AND ($2::timestamptz IS NULL
        OR (pe.published_at, pe.id) > ($2::timestamptz, $3::uuid))
 ORDER BY pe.published_at, pe.id

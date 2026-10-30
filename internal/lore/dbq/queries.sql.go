@@ -718,7 +718,7 @@ func (q *Queries) ListLoreMembers(ctx context.Context, loreID uuid.UUID) ([]List
 const listLorePosts = `-- name: ListLorePosts :many
 SELECT lp.id, lp.author_id, u.username, lp.body, lp.created_at,
        EXISTS (SELECT 1 FROM lore_members m JOIN perspectives p ON p.id = m.perspective_id
-               WHERE m.lore_id = lp.lore_id AND p.author_id = lp.author_id)::boolean AS by_member
+               WHERE m.lore_id = $1::uuid AND p.author_id = lp.author_id)::boolean AS by_member
 FROM lore_posts lp
 JOIN users u ON u.id = lp.author_id
 WHERE lp.lore_id = $1::uuid
@@ -747,7 +747,9 @@ type ListLorePostsRow struct {
 
 // A lore's readable posts, oldest first, keyset-paginated on (created_at, id)
 // and served by lore_posts_lore_created_idx. by_member says whether the
-// author has a perspective in the lore.
+// author has a perspective in the lore; it names the lore by the argument,
+// not lp.lore_id, so the planner probes the lore's members instead of
+// hashing every membership.
 func (q *Queries) ListLorePosts(ctx context.Context, arg ListLorePostsParams) ([]ListLorePostsRow, error) {
 	rows, err := q.db.Query(ctx, listLorePosts,
 		arg.LoreID,
