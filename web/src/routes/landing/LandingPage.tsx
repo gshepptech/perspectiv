@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
+import { useShowMore } from "@/lib/showMore";
 import { useSession } from "@/lib/session";
 
 import { ExampleArc, HowItWorks } from "./ExampleArc";
@@ -149,6 +150,8 @@ function YourPerspectives() {
     initialPageParam: "",
     getNextPageParam: (last) => last.nextPageToken || undefined,
   });
+  const items = mine.data?.pages.flatMap((page) => page.perspectives) ?? [];
+  const more = useShowMore(items.length, mine.fetchNextPage);
   if (mine.isPending) return null;
   if (mine.isError) {
     return (
@@ -157,20 +160,19 @@ function YourPerspectives() {
       </p>
     );
   }
-  const items = mine.data.pages.flatMap((page) => page.perspectives);
   if (items.length === 0) return null;
   return (
     <section aria-labelledby="landing-mine" className="mt-12">
       <h2 id="landing-mine" className="text-xl">
         Your perspectives
       </h2>
-      <ul className="mt-3 divide-y divide-rule border-y border-rule">
+      <ul ref={more.list} className="mt-3 divide-y divide-rule border-y border-rule">
         {items.map((p) => (
           <MineRow key={p.id} p={p} />
         ))}
       </ul>
       {mine.hasNextPage && (
-        <Button variant="secondary" className="mt-3" pending={mine.isFetchingNextPage} onClick={() => void mine.fetchNextPage()}>
+        <Button variant="secondary" className="mt-3" pending={mine.isFetchingNextPage} onClick={more.showMore}>
           Show more
         </Button>
       )}

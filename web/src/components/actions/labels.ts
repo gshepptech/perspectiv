@@ -33,3 +33,11 @@ export const emojis: readonly { value: Emoji; glyph: string; name: string }[] = 
 
 /** Every report reason a reporter can pick, in enum order; UNSPECIFIED is never offered. */
 export const reportReasons: readonly { value: ReportReason; label: string }[] = inEnumOrder(reasonLabels);
+
+/**
+ * A report reason in the reporter's own words, so the report queue names it
+ * exactly as the reporter chose it.
+ */
+export function reportReasonLabel(reason: ReportReason): string {
+  return reason === ReportReason.UNSPECIFIED ? "No reason given" : reasonLabels[reason];
+}

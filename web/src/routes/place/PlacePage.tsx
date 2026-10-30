@@ -1,7 +1,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Crown, PenLine, Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
 import { formatDayBeside, genreLabel, loreStatusLabel, placeCategories, placeCategoryLabel, placeKindLabel } from "@/components/reader/format";
@@ -13,6 +13,7 @@ import { EpicTab, Genre, PlaceCategory, PlaceKind } from "@/gen/perspectiv/v1/en
 import type { EpicArc, EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
+import { useShowMore } from "@/lib/showMore";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { useDebounced } from "@/routes/compose/search";
 
@@ -128,6 +129,10 @@ function EpicList({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Ge
     initialPageParam: "",
     getNextPageParam: (last) => last.nextPageToken || undefined,
   });
+  const isTales = tab === EpicTab.TALES;
+  const arcs = epic.data?.pages.flatMap((p) => p.arcs) ?? [];
+  const tales = epic.data?.pages.flatMap((p) => p.tales) ?? [];
+  const more = useShowMore(isTales ? tales.length : arcs.length, epic.fetchNextPage);
   if (epic.isPending) {
     return (
       <p role="status" className="text-sm text-ink-muted">
@@ -142,29 +147,26 @@ function EpicList({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Ge
       </p>
     );
   }
-  const isTales = tab === EpicTab.TALES;
-  const arcs = epic.data.pages.flatMap((p) => p.arcs);
-  const tales = epic.data.pages.flatMap((p) => p.tales);
   if ((isTales ? tales.length : arcs.length) === 0) {
     return <EmptyEpic place={place} tab={tab} genre={genre} />;
   }
   return (
     <>
       {isTales ? (
-        <ul aria-label="Tales" className="divide-y divide-rule">
+        <ul ref={more.list} aria-label="Tales" className="divide-y divide-rule">
           {tales.map((tale) => (
             <TaleItem key={tale.perspectiveId} tale={tale} />
           ))}
         </ul>
       ) : (
-        <ul aria-label="Arcs" className="divide-y divide-rule">
+        <ul ref={more.list} aria-label="Arcs" className="divide-y divide-rule">
           {arcs.map((arc) => (
             <ArcItem key={arc.arcId} arc={arc} />
           ))}
         </ul>
       )}
       {epic.hasNextPage && (
-        <Button variant="secondary" className="mt-4" pending={epic.isFetchingNextPage} onClick={() => void epic.fetchNextPage()}>
+        <Button variant="secondary" className="mt-4" pending={epic.isFetchingNextPage} onClick={more.showMore}>
           {epic.isFetchingNextPage ? "Loading…" : "Show more"}
         </Button>
       )}
@@ -172,9 +174,17 @@ function EpicList({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Ge
   );
 }
 
-function PlaceLinks({ places, label }: { places: Place[]; label: string }) {
+function PlaceLinks({
+  places,
+  label,
+  listRef,
+}: {
+  places: Place[];
+  label: string;
+  listRef?: RefObject<HTMLUListElement | null>;
+}) {
   return (
-    <ul aria-label={label} className="mt-2 flex flex-wrap gap-x-4 md:block">
+    <ul ref={listRef} aria-label={label} className="mt-2 flex flex-wrap gap-x-4 md:block">
       {places.map((child) => (
         <li key={child.id}>
           <Link
@@ -222,6 +232,7 @@ function Children({ place }: { place: Place }) {
   });
   const withStories = storied.data?.places ?? [];
   const all = children.data?.pages.flatMap((p) => p.places) ?? [];
+  const morePlaces = useShowMore(all.length, children.fetchNextPage);
   if (!enabled) return null;
   const filterId = `filter-${place.id}`;
   return (
@@ -283,9 +294,9 @@ function Children({ place }: { place: Place }) {
               {all.length === 0 && children.isSuccess && (
                 <p className="mt-2 text-sm text-ink-muted">No {placeCategoryLabel(category).toLowerCase()} places here yet.</p>
               )}
-              <PlaceLinks places={all} label={`All places in ${place.name}`} />
+              <PlaceLinks places={all} label={`All places in ${place.name}`} listRef={morePlaces.list} />
               {children.hasNextPage && (
-                <Button variant="ghost" size="sm" className="min-h-11" pending={children.isFetchingNextPage} onClick={() => void children.fetchNextPage()}>
+                <Button variant="ghost" size="sm" className="min-h-11" pending={children.isFetchingNextPage} onClick={morePlaces.showMore}>
                   More places
                 </Button>
               )}

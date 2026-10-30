@@ -81,23 +81,29 @@ export function NotificationsSection() {
                     <th scope="row" className="py-2 pr-2 font-normal">
                       {label}
                     </th>
-                    <td className="px-2 py-2 text-center">
-                      <input
-                        type="checkbox"
-                        aria-label={`${label}: in app`}
-                        checked={t.inApp}
-                        onChange={(e) => update.mutate({ ...t, inApp: e.target.checked })}
-                        className="size-5 accent-accent"
-                      />
+                    <td className="p-0 text-center">
+                      {/* The whole cell toggles the box: a 44px target on a phone. */}
+                      <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`${label}: in app`}
+                          checked={t.inApp}
+                          onChange={(e) => update.mutate({ ...t, inApp: e.target.checked })}
+                          className="size-5 accent-accent"
+                        />
+                      </label>
                     </td>
-                    <td className="py-2 pl-2 text-center">
-                      <input
-                        type="checkbox"
-                        aria-label={`${label}: email`}
-                        checked={t.email}
-                        onChange={(e) => update.mutate({ ...t, email: e.target.checked })}
-                        className="size-5 accent-accent"
-                      />
+                    <td className="p-0 text-center">
+                      {/* The whole cell toggles the box: a 44px target on a phone. */}
+                      <label className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`${label}: email`}
+                          checked={t.email}
+                          onChange={(e) => update.mutate({ ...t, email: e.target.checked })}
+                          className="size-5 accent-accent"
+                        />
+                      </label>
                     </td>
                   </tr>
                 );
@@ -107,7 +113,7 @@ export function NotificationsSection() {
         </div>
       )}
       {prefs.isSuccess && (
-        <label className="mt-4 grid grid-cols-[auto_1fr] items-start gap-x-3">
+        <label className="mt-4 grid min-h-11 cursor-pointer grid-cols-[auto_1fr] items-start gap-x-3">
           <input
             type="checkbox"
             checked={digestOn}

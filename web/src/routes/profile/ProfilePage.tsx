@@ -2,6 +2,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Crown } from "lucide-react";
+import type { RefObject } from "react";
 import { Link, useParams } from "react-router";
 
 import { formatDayBeside, loreStatusLabel } from "@/components/reader/format";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import type { Profile } from "@/gen/perspectiv/v1/user_pb";
 import { clients } from "@/lib/connect";
+import { useShowMore } from "@/lib/showMore";
 
 const joinedFormat = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -88,6 +90,8 @@ function Writing({ userId, username }: { userId: string; username: string }) {
     initialPageParam: "",
     getNextPageParam: (last) => last.nextPageToken || undefined,
   });
+  const count = list.data?.pages.reduce((n, page) => n + page.perspectives.length, 0) ?? 0;
+  const more = useShowMore(count, list.fetchNextPage);
   return (
     <section aria-labelledby="profile-writing" className="mt-10">
       <h2 id="profile-writing" className="text-xl">
@@ -103,9 +107,9 @@ function Writing({ userId, username }: { userId: string; username: string }) {
           {username}&apos;s perspectives could not be loaded. Try again in a moment.
         </p>
       )}
-      {list.isSuccess && <WritingList pages={list.data.pages} username={username} />}
+      {list.isSuccess && <WritingList pages={list.data.pages} username={username} listRef={more.list} />}
       {list.hasNextPage && (
-        <Button variant="secondary" className="mt-3" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+        <Button variant="secondary" className="mt-3" pending={list.isFetchingNextPage} onClick={more.showMore}>
           Show more
         </Button>
       )}
@@ -113,11 +117,19 @@ function Writing({ userId, username }: { userId: string; username: string }) {
   );
 }
 
-function WritingList({ pages, username }: { pages: readonly { perspectives: Perspective[] }[]; username: string }) {
+function WritingList({
+  pages,
+  username,
+  listRef,
+}: {
+  pages: readonly { perspectives: Perspective[] }[];
+  username: string;
+  listRef: RefObject<HTMLUListElement | null>;
+}) {
   const items = pages.flatMap((page) => page.perspectives);
   if (items.length === 0) return <p className="mt-3 text-ink-muted">{username} has not published a perspective yet.</p>;
   return (
-    <ul className="mt-3 divide-y divide-rule border-y border-rule">
+    <ul ref={listRef} className="mt-3 divide-y divide-rule border-y border-rule">
       {items.map((p) => (
         <WritingRow key={p.id} p={p} />
       ))}

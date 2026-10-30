@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/moderation.proto.
  */
 export const file_perspectiv_v1_moderation: GenFile = /*@__PURE__*/
-  fileDesc("Ch5wZXJzcGVjdGl2L3YxL21vZGVyYXRpb24ucHJvdG8SDXBlcnNwZWN0aXYudjEi5gMKBlJlcG9ydBIKCgJpZBgBIAEoCRIoCghyZXBvcnRlchgCIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhI0Cgt0YXJnZXRfa2luZBgDIAEoDjIfLnBlcnNwZWN0aXYudjEuUmVwb3J0VGFyZ2V0S2luZBIRCgl0YXJnZXRfaWQYBCABKAkSFAoMdGFyZ2V0X2xhYmVsGAUgASgJEisKBnJlYXNvbhgGIAEoDjIbLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVhc29uEg8KB2RldGFpbHMYByABKAkSKwoGc3RhdHVzGAggASgOMhsucGVyc3BlY3Rpdi52MS5SZXBvcnRTdGF0dXMSKwoLcmVzb2x2ZWRfYnkYCSABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSMwoKcmVzb2x1dGlvbhgKIAEoDjIfLnBlcnNwZWN0aXYudjEuTW9kZXJhdGlvbkFjdGlvbhIZChFyZXNvbHV0aW9uX3JlYXNvbhgLIAEoCRIuCgpjcmVhdGVkX2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtyZXNvbHZlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAilgEKDVJlcG9ydFJlcXVlc3QSNAoLdGFyZ2V0X2tpbmQYASABKA4yHy5wZXJzcGVjdGl2LnYxLlJlcG9ydFRhcmdldEtpbmQSEQoJdGFyZ2V0X2lkGAIgASgJEisKBnJlYXNvbhgDIAEoDjIbLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVhc29uEg8KB2RldGFpbHMYBCABKAkiIwoOUmVwb3J0UmVzcG9uc2USEQoJcmVwb3J0X2lkGAEgASgJIpYBChJMaXN0UmVwb3J0c1JlcXVlc3QSKwoGc3RhdHVzGAEgASgOMhsucGVyc3BlY3Rpdi52MS5SZXBvcnRTdGF0dXMSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSFwoPc3ViamVjdF91c2VyX2lkGAQgASgJEhMKC3JlcG9ydGVyX2lkGAUgASgJIlYKE0xpc3RSZXBvcnRzUmVzcG9uc2USJgoHcmVwb3J0cxgBIAMoCzIVLnBlcnNwZWN0aXYudjEuUmVwb3J0EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJkCg5SZXNvbHZlUmVxdWVzdBIRCglyZXBvcnRfaWQYASABKAkSLwoGYWN0aW9uGAIgASgOMh8ucGVyc3BlY3Rpdi52MS5Nb2RlcmF0aW9uQWN0aW9uEg4KBnJlYXNvbhgDIAEoCSI4Cg9SZXNvbHZlUmVzcG9uc2USJQoGcmVwb3J0GAEgASgLMhUucGVyc3BlY3Rpdi52MS5SZXBvcnQiqAIKCkF1ZGl0RW50cnkSCgoCaWQYASABKAkSJQoFYWN0b3IYAiABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSKgoGYWN0aW9uGAMgASgOMhoucGVyc3BlY3Rpdi52MS5BdWRpdEFjdGlvbhIzCgt0YXJnZXRfa2luZBgEIAEoDjIeLnBlcnNwZWN0aXYudjEuQXVkaXRUYXJnZXRLaW5kEhEKCXRhcmdldF9pZBgFIAEoCRISCgp0YXJnZXRfcmVmGAYgASgJEhQKDHRhcmdldF9sYWJlbBgHIAEoCRIRCglyZXBvcnRfaWQYCCABKAkSDgoGcmVhc29uGAkgASgJEiYKAmF0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKTAQoTTGlzdEF1ZGl0TG9nUmVxdWVzdBIqCgZhY3Rpb24YASABKA4yGi5wZXJzcGVjdGl2LnYxLkF1ZGl0QWN0aW9uEhAKCGFjdG9yX2lkGAIgASgJEhcKD3N1YmplY3RfdXNlcl9pZBgDIAEoCRISCgpwYWdlX3Rva2VuGAQgASgJEhEKCXBhZ2Vfc2l6ZRgFIAEoBSJbChRMaXN0QXVkaXRMb2dSZXNwb25zZRIqCgdlbnRyaWVzGAEgAygLMhkucGVyc3BlY3Rpdi52MS5BdWRpdEVudHJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIiChFMb29rdXBVc2VyUmVxdWVzdBINCgVxdWVyeRgBIAEoCSK8AwoNQWRtaW5Vc2VyVmlldxIPCgd1c2VyX2lkGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJEhIKCmVtYWlsX2hpbnQYAyABKAkSFgoOZW1haWxfdmVyaWZpZWQYBCABKAgSIQoEcm9sZRgFIAEoDjITLnBlcnNwZWN0aXYudjEuUm9sZRItCglqb2luZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDHN1c3BlbmRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDwoHZGVsZXRlZBgIIAEoCBIzCg9sYXN0X3NpZ25faW5fYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhsKE2ZhaWxlZF9zaWduX2luc18yNGgYCiABKAUSDwoHc3RvcmllcxgLIAEoBRIWCg5oaWRkZW5fc3RvcmllcxgMIAEoBRIcChRvcGVuX3JlcG9ydHNfYWdhaW5zdBgNIAEoBRIXCg9yZXBvcnRzX2FnYWluc3QYDiABKAUSFQoNcmVwb3J0c19maWxlZBgPIAEoBSJAChJMb29rdXBVc2VyUmVzcG9uc2USKgoEdXNlchgBIAEoCzIcLnBlcnNwZWN0aXYudjEuQWRtaW5Vc2VyVmlldzKmAwoRTW9kZXJhdGlvblNlcnZpY2USRQoGUmVwb3J0EhwucGVyc3BlY3Rpdi52MS5SZXBvcnRSZXF1ZXN0Gh0ucGVyc3BlY3Rpdi52MS5SZXBvcnRSZXNwb25zZRJUCgtMaXN0UmVwb3J0cxIhLnBlcnNwZWN0aXYudjEuTGlzdFJlcG9ydHNSZXF1ZXN0GiIucGVyc3BlY3Rpdi52MS5MaXN0UmVwb3J0c1Jlc3BvbnNlEkgKB1Jlc29sdmUSHS5wZXJzcGVjdGl2LnYxLlJlc29sdmVSZXF1ZXN0Gh4ucGVyc3BlY3Rpdi52MS5SZXNvbHZlUmVzcG9uc2USVwoMTGlzdEF1ZGl0TG9nEiIucGVyc3BlY3Rpdi52MS5MaXN0QXVkaXRMb2dSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5MaXN0QXVkaXRMb2dSZXNwb25zZRJRCgpMb29rdXBVc2VyEiAucGVyc3BlY3Rpdi52MS5Mb29rdXBVc2VyUmVxdWVzdBohLnBlcnNwZWN0aXYudjEuTG9va3VwVXNlclJlc3BvbnNlQqQBChFjb20ucGVyc3BlY3Rpdi52MUIPTW9kZXJhdGlvblByb3RvUAFaKXBlcnNwZWN0aXYvZ2VuL3BlcnNwZWN0aXYvdjE7cGVyc3BlY3RpdnYxogIDUFhYqgINUGVyc3BlY3Rpdi5WMcoCDVBlcnNwZWN0aXZcVjHiAhlQZXJzcGVjdGl2XFYxXEdQQk1ldGFkYXRh6gIOUGVyc3BlY3Rpdjo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
+  fileDesc("Ch5wZXJzcGVjdGl2L3YxL21vZGVyYXRpb24ucHJvdG8SDXBlcnNwZWN0aXYudjEi5gMKBlJlcG9ydBIKCgJpZBgBIAEoCRIoCghyZXBvcnRlchgCIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhI0Cgt0YXJnZXRfa2luZBgDIAEoDjIfLnBlcnNwZWN0aXYudjEuUmVwb3J0VGFyZ2V0S2luZBIRCgl0YXJnZXRfaWQYBCABKAkSFAoMdGFyZ2V0X2xhYmVsGAUgASgJEisKBnJlYXNvbhgGIAEoDjIbLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVhc29uEg8KB2RldGFpbHMYByABKAkSKwoGc3RhdHVzGAggASgOMhsucGVyc3BlY3Rpdi52MS5SZXBvcnRTdGF0dXMSKwoLcmVzb2x2ZWRfYnkYCSABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSMwoKcmVzb2x1dGlvbhgKIAEoDjIfLnBlcnNwZWN0aXYudjEuTW9kZXJhdGlvbkFjdGlvbhIZChFyZXNvbHV0aW9uX3JlYXNvbhgLIAEoCRIuCgpjcmVhdGVkX2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtyZXNvbHZlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAilgEKDVJlcG9ydFJlcXVlc3QSNAoLdGFyZ2V0X2tpbmQYASABKA4yHy5wZXJzcGVjdGl2LnYxLlJlcG9ydFRhcmdldEtpbmQSEQoJdGFyZ2V0X2lkGAIgASgJEisKBnJlYXNvbhgDIAEoDjIbLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVhc29uEg8KB2RldGFpbHMYBCABKAkiIwoOUmVwb3J0UmVzcG9uc2USEQoJcmVwb3J0X2lkGAEgASgJIpYBChJMaXN0UmVwb3J0c1JlcXVlc3QSKwoGc3RhdHVzGAEgASgOMhsucGVyc3BlY3Rpdi52MS5SZXBvcnRTdGF0dXMSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSFwoPc3ViamVjdF91c2VyX2lkGAQgASgJEhMKC3JlcG9ydGVyX2lkGAUgASgJIlYKE0xpc3RSZXBvcnRzUmVzcG9uc2USJgoHcmVwb3J0cxgBIAMoCzIVLnBlcnNwZWN0aXYudjEuUmVwb3J0EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJkCg5SZXNvbHZlUmVxdWVzdBIRCglyZXBvcnRfaWQYASABKAkSLwoGYWN0aW9uGAIgASgOMh8ucGVyc3BlY3Rpdi52MS5Nb2RlcmF0aW9uQWN0aW9uEg4KBnJlYXNvbhgDIAEoCSI4Cg9SZXNvbHZlUmVzcG9uc2USJQoGcmVwb3J0GAEgASgLMhUucGVyc3BlY3Rpdi52MS5SZXBvcnQiqAIKCkF1ZGl0RW50cnkSCgoCaWQYASABKAkSJQoFYWN0b3IYAiABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSKgoGYWN0aW9uGAMgASgOMhoucGVyc3BlY3Rpdi52MS5BdWRpdEFjdGlvbhIzCgt0YXJnZXRfa2luZBgEIAEoDjIeLnBlcnNwZWN0aXYudjEuQXVkaXRUYXJnZXRLaW5kEhEKCXRhcmdldF9pZBgFIAEoCRISCgp0YXJnZXRfcmVmGAYgASgJEhQKDHRhcmdldF9sYWJlbBgHIAEoCRIRCglyZXBvcnRfaWQYCCABKAkSDgoGcmVhc29uGAkgASgJEiYKAmF0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKTAQoTTGlzdEF1ZGl0TG9nUmVxdWVzdBIqCgZhY3Rpb24YASABKA4yGi5wZXJzcGVjdGl2LnYxLkF1ZGl0QWN0aW9uEhAKCGFjdG9yX2lkGAIgASgJEhcKD3N1YmplY3RfdXNlcl9pZBgDIAEoCRISCgpwYWdlX3Rva2VuGAQgASgJEhEKCXBhZ2Vfc2l6ZRgFIAEoBSJbChRMaXN0QXVkaXRMb2dSZXNwb25zZRIqCgdlbnRyaWVzGAEgAygLMhkucGVyc3BlY3Rpdi52MS5BdWRpdEVudHJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIiChFMb29rdXBVc2VyUmVxdWVzdBINCgVxdWVyeRgBIAEoCSK8AwoNQWRtaW5Vc2VyVmlldxIPCgd1c2VyX2lkGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJEhIKCmVtYWlsX2hpbnQYAyABKAkSFgoOZW1haWxfdmVyaWZpZWQYBCABKAgSIQoEcm9sZRgFIAEoDjITLnBlcnNwZWN0aXYudjEuUm9sZRItCglqb2luZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDHN1c3BlbmRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDwoHZGVsZXRlZBgIIAEoCBIzCg9sYXN0X3NpZ25faW5fYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhsKE2ZhaWxlZF9zaWduX2luc18yNGgYCiABKAUSDwoHc3RvcmllcxgLIAEoBRIWCg5oaWRkZW5fc3RvcmllcxgMIAEoBRIcChRvcGVuX3JlcG9ydHNfYWdhaW5zdBgNIAEoBRIXCg9yZXBvcnRzX2FnYWluc3QYDiABKAUSFQoNcmVwb3J0c19maWxlZBgPIAEoBSJAChJMb29rdXBVc2VyUmVzcG9uc2USKgoEdXNlchgBIAEoCzIcLnBlcnNwZWN0aXYudjEuQWRtaW5Vc2VyVmlldyI4ChVMaWZ0U3VzcGVuc2lvblJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCRIOCgZyZWFzb24YAiABKAkiRAoWTGlmdFN1c3BlbnNpb25SZXNwb25zZRIqCgR1c2VyGAEgASgLMhwucGVyc3BlY3Rpdi52MS5BZG1pblVzZXJWaWV3ImgKDlJlc3RvcmVSZXF1ZXN0EjMKC3RhcmdldF9raW5kGAEgASgOMh4ucGVyc3BlY3Rpdi52MS5BdWRpdFRhcmdldEtpbmQSEQoJdGFyZ2V0X2lkGAIgASgJEg4KBnJlYXNvbhgDIAEoCSIRCg9SZXN0b3JlUmVzcG9uc2UyzwQKEU1vZGVyYXRpb25TZXJ2aWNlEkUKBlJlcG9ydBIcLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVxdWVzdBodLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVzcG9uc2USVAoLTGlzdFJlcG9ydHMSIS5wZXJzcGVjdGl2LnYxLkxpc3RSZXBvcnRzUmVxdWVzdBoiLnBlcnNwZWN0aXYudjEuTGlzdFJlcG9ydHNSZXNwb25zZRJICgdSZXNvbHZlEh0ucGVyc3BlY3Rpdi52MS5SZXNvbHZlUmVxdWVzdBoeLnBlcnNwZWN0aXYudjEuUmVzb2x2ZVJlc3BvbnNlElcKDExpc3RBdWRpdExvZxIiLnBlcnNwZWN0aXYudjEuTGlzdEF1ZGl0TG9nUmVxdWVzdBojLnBlcnNwZWN0aXYudjEuTGlzdEF1ZGl0TG9nUmVzcG9uc2USUQoKTG9va3VwVXNlchIgLnBlcnNwZWN0aXYudjEuTG9va3VwVXNlclJlcXVlc3QaIS5wZXJzcGVjdGl2LnYxLkxvb2t1cFVzZXJSZXNwb25zZRJdCg5MaWZ0U3VzcGVuc2lvbhIkLnBlcnNwZWN0aXYudjEuTGlmdFN1c3BlbnNpb25SZXF1ZXN0GiUucGVyc3BlY3Rpdi52MS5MaWZ0U3VzcGVuc2lvblJlc3BvbnNlEkgKB1Jlc3RvcmUSHS5wZXJzcGVjdGl2LnYxLlJlc3RvcmVSZXF1ZXN0Gh4ucGVyc3BlY3Rpdi52MS5SZXN0b3JlUmVzcG9uc2VCpAEKEWNvbS5wZXJzcGVjdGl2LnYxQg9Nb2RlcmF0aW9uUHJvdG9QAVopcGVyc3BlY3Rpdi9nZW4vcGVyc3BlY3Rpdi92MTtwZXJzcGVjdGl2djGiAgNQWFiqAg1QZXJzcGVjdGl2LlYxygINUGVyc3BlY3RpdlxWMeICGVBlcnNwZWN0aXZcVjFcR1BCTWV0YWRhdGHqAg5QZXJzcGVjdGl2OjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
 
 /**
  * Report is one user report as the admin queue shows it.
@@ -356,7 +356,8 @@ export type ListAuditLogRequest = Message<"perspectiv.v1.ListAuditLogRequest"> &
 
   /**
    * When set, only actions on this user: on the account itself, or on a
-   * perspective or thread post they wrote.
+   * perspective or thread post they wrote. Lookups of the account are left
+   * out; they read it rather than act on it.
    *
    * @generated from field: string subject_user_id = 3;
    */
@@ -535,6 +536,91 @@ export const LookupUserResponseSchema: GenMessage<LookupUserResponse> = /*@__PUR
   messageDesc(file_perspectiv_v1_moderation, 12);
 
 /**
+ * @generated from message perspectiv.v1.LiftSuspensionRequest
+ */
+export type LiftSuspensionRequest = Message<"perspectiv.v1.LiftSuspensionRequest"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * Why; written to the audit entry.
+   *
+   * @generated from field: string reason = 2;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.LiftSuspensionRequest.
+ * Use `create(LiftSuspensionRequestSchema)` to create a new message.
+ */
+export const LiftSuspensionRequestSchema: GenMessage<LiftSuspensionRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 13);
+
+/**
+ * @generated from message perspectiv.v1.LiftSuspensionResponse
+ */
+export type LiftSuspensionResponse = Message<"perspectiv.v1.LiftSuspensionResponse"> & {
+  /**
+   * @generated from field: perspectiv.v1.AdminUserView user = 1;
+   */
+  user?: AdminUserView | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.LiftSuspensionResponse.
+ * Use `create(LiftSuspensionResponseSchema)` to create a new message.
+ */
+export const LiftSuspensionResponseSchema: GenMessage<LiftSuspensionResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 14);
+
+/**
+ * @generated from message perspectiv.v1.RestoreRequest
+ */
+export type RestoreRequest = Message<"perspectiv.v1.RestoreRequest"> & {
+  /**
+   * PERSPECTIVE, PLACE or LORE_POST.
+   *
+   * @generated from field: perspectiv.v1.AuditTargetKind target_kind = 1;
+   */
+  targetKind: AuditTargetKind;
+
+  /**
+   * @generated from field: string target_id = 2;
+   */
+  targetId: string;
+
+  /**
+   * Why; written to the audit entry.
+   *
+   * @generated from field: string reason = 3;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.RestoreRequest.
+ * Use `create(RestoreRequestSchema)` to create a new message.
+ */
+export const RestoreRequestSchema: GenMessage<RestoreRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 15);
+
+/**
+ * @generated from message perspectiv.v1.RestoreResponse
+ */
+export type RestoreResponse = Message<"perspectiv.v1.RestoreResponse"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.RestoreResponse.
+ * Use `create(RestoreResponseSchema)` to create a new message.
+ */
+export const RestoreResponseSchema: GenMessage<RestoreResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 16);
+
+/**
  * ModerationService takes reports from users and lets admins resolve them.
  *
  * @generated from service perspectiv.v1.ModerationService
@@ -588,6 +674,29 @@ export const ModerationService: GenService<{
     methodKind: "unary";
     input: typeof LookupUserRequestSchema;
     output: typeof LookupUserResponseSchema;
+  },
+  /**
+   * ADMIN only. Restores a suspended account's standing; writes an audit
+   * entry with the reason.
+   *
+   * @generated from rpc perspectiv.v1.ModerationService.LiftSuspension
+   */
+  liftSuspension: {
+    methodKind: "unary";
+    input: typeof LiftSuspensionRequestSchema;
+    output: typeof LiftSuspensionResponseSchema;
+  },
+  /**
+   * ADMIN only. Makes a hidden perspective, place or thread post readable
+   * again; writes an audit entry with the reason. Claims rejected while it
+   * was hidden stay rejected.
+   *
+   * @generated from rpc perspectiv.v1.ModerationService.Restore
+   */
+  restore: {
+    methodKind: "unary";
+    input: typeof RestoreRequestSchema;
+    output: typeof RestoreResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_moderation, 0);

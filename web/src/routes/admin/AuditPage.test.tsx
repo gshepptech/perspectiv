@@ -72,11 +72,74 @@ describe("audit log", () => {
     expect(api.callsTo("ModerationService/ListAuditLog")[0]?.body).toMatchObject({ action: "AUDIT_ACTION_DISMISS" });
     await userEvent.setup().click(screen.getByRole("button", { name: "Show more" }));
     await waitFor(() => expect(within(screen.getByRole("list", { name: "Audit entries" })).getAllByRole("listitem")).toHaveLength(2));
+    // The last page takes the button with it; focus goes to the first new entry.
+    expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
+    const [, added] = within(screen.getByRole("list", { name: "Audit entries" })).getAllByRole("listitem");
+    await waitFor(() => expect(added).toHaveFocus());
+  });
+
+  it("says nothing matches the filter, rather than that nothing is recorded", async () => {
+    installApi({ "ModerationService/ListAuditLog": () => ok({ entries: [] }) }, admin);
+    renderRoute("/admin/audit?action=DISMISS");
+    expect(await screen.findByText("No entries for this action.")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing recorded yet.")).not.toBeInTheDocument();
+  });
+
+  it("says nothing is recorded when unfiltered, and takes focus to its heading on arrival", async () => {
+    installApi({ "ModerationService/ListAuditLog": () => ok({ entries: [] }) }, admin);
+    renderRoute("/admin/audit");
+    expect(await screen.findByText("Nothing recorded yet.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Audit log" })).toHaveFocus();
   });
 
   it("shows the refusal when the server denies an admin whose role has changed", async () => {
     installApi({ "ModerationService/ListAuditLog": () => apiError("permission_denied", "admin only") }, admin);
     renderRoute("/admin/audit");
     expect(await screen.findByRole("alert")).toHaveTextContent("Only site admins can read the audit log.");
+  });
+});
+
+describe("restoring hidden content", () => {
+  it("restores a hidden perspective from its hide entry with a reason", async () => {
+    const user = userEvent.setup();
+    const api = installApi(
+      {
+        "ModerationService/ListAuditLog": () => ok({ entries: [entry(), entry({ id: "3", action: "AUDIT_ACTION_DISMISS", targetLabel: "x" })] }),
+        "ModerationService/Restore": () => ok({}),
+      },
+      admin,
+    );
+    renderRoute("/admin/audit");
+    const list = await screen.findByRole("list", { name: "Audit entries" });
+    const [hide, dismiss] = within(list).getAllByRole("listitem");
+    expect(within(dismiss!).queryByRole("button", { name: "Restore…" })).not.toBeInTheDocument();
+    await user.click(within(hide!).getByRole("button", { name: "Restore…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Restore this perspective?" });
+    await user.type(within(dialog).getByLabelText("Reason for the audit log"), "hidden by mistake");
+    await user.click(within(dialog).getByRole("button", { name: "Restore perspective" }));
+    const status = await screen.findByRole("status", { name: "Audit status" });
+    await waitFor(() => expect(status).toHaveTextContent("The perspective is restored."));
+    expect(api.callsTo("ModerationService/Restore")[0]?.body).toMatchObject({
+      targetKind: "AUDIT_TARGET_KIND_PERSPECTIVE",
+      targetId: "p-7",
+      reason: "hidden by mistake",
+    });
+  });
+
+  it("says so in the dialog when it is already visible", async () => {
+    const user = userEvent.setup();
+    installApi(
+      {
+        "ModerationService/ListAuditLog": () => ok({ entries: [entry()] }),
+        "ModerationService/Restore": () => apiError("failed_precondition", "this is not hidden"),
+      },
+      admin,
+    );
+    renderRoute("/admin/audit");
+    await user.click(await screen.findByRole("button", { name: "Restore…" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Reason for the audit log"), "check");
+    await user.click(within(dialog).getByRole("button", { name: "Restore perspective" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("This is not hidden.");
   });
 });

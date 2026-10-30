@@ -2,7 +2,8 @@
 // an admin resolves a report with, the append-only moderation audit trail and
 // the command-line admin grant.
 //
-// Suspension. SUSPEND_USER sets users.suspended_at; nothing clears it in v1.
+// Suspension. SUSPEND_USER sets users.suspended_at; an admin's
+// LiftSuspension clears it, with a reason on the audit entry.
 // A suspended account keeps reading, signing in and managing its own account
 // (profile, settings, blocks, deletion), and what it already published stays
 // readable: removing content is the separate hide actions. What it loses is

@@ -115,7 +115,8 @@ func TestEnumValues(t *testing.T) {
 			enum: perspectivv1.AuditAction(0).Descriptor(),
 			want: []string{"AUDIT_ACTION_UNSPECIFIED", "AUDIT_ACTION_HIDE_PERSPECTIVE", "AUDIT_ACTION_HIDE_PLACE", "AUDIT_ACTION_SUSPEND_USER",
 				"AUDIT_ACTION_DISMISS", "AUDIT_ACTION_HIDE_LORE_POST", "AUDIT_ACTION_CLEAR_LORE_NAME", "AUDIT_ACTION_ADMIN_GRANT",
-				"AUDIT_ACTION_ACCESS_CODE_CREATE", "AUDIT_ACTION_ACCESS_CODE_REVOKE", "AUDIT_ACTION_WAITLIST_INVITE", "AUDIT_ACTION_USER_LOOKUP"},
+				"AUDIT_ACTION_ACCESS_CODE_CREATE", "AUDIT_ACTION_ACCESS_CODE_REVOKE", "AUDIT_ACTION_WAITLIST_INVITE", "AUDIT_ACTION_USER_LOOKUP",
+				"AUDIT_ACTION_LIFT_SUSPENSION", "AUDIT_ACTION_RESTORE"},
 		},
 		{
 			name: "audit target kind",
@@ -163,7 +164,7 @@ var services = map[string][]string{
 	"VoteService":        {"Vote", "VoteRemove"},
 	"ReactService":       {"React"},
 	"NotifyService":      {"ListInbox", "MarkRead", "GetPreferences", "UpdatePreferences", "Unsubscribe"},
-	"ModerationService":  {"Report", "ListReports", "Resolve", "ListAuditLog", "LookupUser"},
+	"ModerationService":  {"Report", "ListReports", "Resolve", "ListAuditLog", "LookupUser", "LiftSuspension", "Restore"},
 }
 
 func service(t *testing.T, name string) protoreflect.ServiceDescriptor {
@@ -233,6 +234,7 @@ func TestNoResponseCarriesAnEmailExceptTheCallersOwnAccount(t *testing.T) {
 		"AuthService.ListWaitlist:ListWaitlistResponse.entries.email_hint",
 		// An admin's user lookup shows the account's address masked the same
 		// way, never whole, and the lookup itself is audited.
+		"ModerationService.LiftSuspension:LiftSuspensionResponse.user.email_hint",
 		"ModerationService.LookupUser:LookupUserResponse.user.email_hint",
 		"UserService.GetProfile:GetProfileResponse.account.email",
 	}

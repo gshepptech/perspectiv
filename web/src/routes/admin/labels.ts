@@ -1,4 +1,6 @@
-import { AuditAction, AuditTargetKind, ModerationAction, ReportReason, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
+import { AuditAction, AuditTargetKind, ModerationAction, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
+
+import type { Resolution } from "./ResolveDialog";
 
 export function targetKindLabel(kind: ReportTargetKind): string {
   switch (kind) {
@@ -14,25 +16,6 @@ export function targetKindLabel(kind: ReportTargetKind): string {
       return "Lore name";
     case ReportTargetKind.UNSPECIFIED:
       return "Unknown target";
-  }
-}
-
-export function reasonLabel(reason: ReportReason): string {
-  switch (reason) {
-    case ReportReason.REAL_NAME_OR_HANDLE_OF_NON_USER:
-      return "Names a real person who is not a user";
-    case ReportReason.HARASSMENT:
-      return "Harassment";
-    case ReportReason.HATEFUL_CONTENT:
-      return "Hateful content";
-    case ReportReason.SEXUAL_CONTENT:
-      return "Sexual content";
-    case ReportReason.SPAM:
-      return "Spam";
-    case ReportReason.OTHER:
-      return "Other";
-    case ReportReason.UNSPECIFIED:
-      return "No reason given";
   }
 }
 
@@ -53,6 +36,13 @@ export function actionLabel(action: ModerationAction): string {
     case ModerationAction.UNSPECIFIED:
       return "No action";
   }
+}
+
+/** The status line a page shows once a report is resolved. */
+export function resolutionMessage(r: Resolution): string {
+  return r.suspended
+    ? `${r.suspended} is suspended. The report on their perspective stays open.`
+    : `Report resolved: ${actionLabel(r.action).toLowerCase()}.`;
 }
 
 /**
@@ -122,6 +112,10 @@ export function auditActionLabel(action: AuditAction): string {
       return "hid a place";
     case AuditAction.SUSPEND_USER:
       return "suspended a user";
+    case AuditAction.LIFT_SUSPENSION:
+      return "lifted a suspension";
+    case AuditAction.RESTORE:
+      return "restored hidden content";
     case AuditAction.DISMISS:
       return "dismissed a report";
     case AuditAction.HIDE_LORE_POST:
@@ -150,6 +144,8 @@ export const auditActions: AuditAction[] = [
   AuditAction.HIDE_LORE_POST,
   AuditAction.CLEAR_LORE_NAME,
   AuditAction.SUSPEND_USER,
+  AuditAction.LIFT_SUSPENSION,
+  AuditAction.RESTORE,
   AuditAction.DISMISS,
   AuditAction.ADMIN_GRANT,
   AuditAction.ACCESS_CODE_CREATE,

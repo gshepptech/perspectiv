@@ -5,11 +5,7 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing (wave 4)
 
-16. **Character search on common words.** SearchCharacters walks a big
-    city's stories in date order and filters labels row by row (570 ms for a
-    rare word in Miami at beta scale); matching labels first is fast for rare
-    words and slow for common ones, so it needs a capped label-first plan
-    with the current one as fallback.
+Nothing in progress.
 
 ## Out of scope for v1
 
@@ -24,6 +20,42 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Undoing moderation: an admin lifts a suspension from the dossier and
+  restores a hidden perspective, place or thread post from its hide entry
+  in the audit log, each with a required reason on a new audit entry
+  (AUDIT_ACTION_LIFT_SUSPENSION, AUDIT_ACTION_RESTORE). A restored story
+  queues its arc for a lore recount; claims rejected while it was hidden
+  stay rejected. Verified by TestLiftSuspension, TestRestore, migration 23
+  up-down-up and the dossier and audit page tests.
+- UX fixes from a browser walkthrough of the new screens: the dossier
+  re-reads and announces after a resolve; the lookup box follows the
+  address; server messages read as sentences; "Show more" moves focus to
+  the first new entry across eleven lists; admin and settings pages focus
+  their heading on arrival; sign out everywhere lands on a confirmed sign-in
+  page; stale success lines clear on edit; report reasons read the same for
+  reporter and admin; 44px tap targets for preference checkboxes, dialog
+  close and admin name links; clearer unsubscribe, confirm-email, empty
+  lookup and wrong-password states. Verified by the web suite (401 tests)
+  and e2e.
+- Request metrics: every API call is counted by procedure and Connect code
+  (`rpc_requests_total`) and timed by procedure
+  (`rpc_request_duration_seconds`) from an interceptor outside recovery, so
+  panics and refusals count too. `make dev-grafana` provisions a
+  "Perspectiv overview" dashboard (calls by code, server error ratio, p95
+  by procedure, refusals, job and email failures, product activity), and
+  Prometheus now scrapes the port HTTP_ADDR names instead of a fixed
+  :8080. Verified by TestMetricsInterceptor and the dashboard and series
+  read back from the dev stack.
+- Character search on common words: a word of three letters or more is
+  first looked up by label through the trigram index, capped at 2,000
+  matches; a rarer word is then filtered to the place (570 ms to about
+  25 ms at beta scale), and a common one keeps the walk of the place's
+  stories. Verified by TestSearchCharacters on both paths.
+- Email footers: "Change it in Settings" and "Stop these emails" are
+  links in the HTML part rather than bare addresses, and a dossier's
+  "Moderator actions" leaves out lookups of the account, which the full
+  audit log still lists. Verified by the email render tests and
+  TestAuditLog.
 - Query performance, part 2: lore groups are found in Go from the arc's
   accepted-claim edges with union-find instead of a recursive walk that
   grew with the square of a group (3.7 s under the arc lock at beta

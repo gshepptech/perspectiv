@@ -4,6 +4,7 @@ package moderation_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -60,17 +61,7 @@ func actions(entries []*perspectivv1.AuditEntry) []perspectivv1.AuditAction {
 	return out
 }
 
-func sameActions(got, want []perspectivv1.AuditAction) bool {
-	if len(got) != len(want) {
-		return false
-	}
-	for i := range got {
-		if got[i] != want[i] {
-			return false
-		}
-	}
-	return true
-}
+func sameActions(got, want []perspectivv1.AuditAction) bool { return slices.Equal(got, want) }
 
 // The audit log lists every admin action newest first, with its actor and a
 // label for its target, and filters by action, by actor and by the user an
@@ -140,12 +131,38 @@ func TestAuditLog(t *testing.T) {
 	}
 
 	// Pages do not overlap and end with an empty token.
+	all, _, err = e.auditLog(ana, &perspectivv1.ListAuditLogRequest{})
+	if err != nil {
+		t.Fatalf("ListAuditLog: %v", err)
+	}
 	paged := e.auditIDsPaged(ana, 3)
 	if len(paged) != len(all) || paged[0] != all[0].GetId() || paged[len(paged)-1] != all[len(all)-1].GetId() {
 		t.Fatalf("paged ids %v, want the %d entries once each", paged, len(all))
 	}
 	_, _, err = e.auditLog(ana, &perspectivv1.ListAuditLogRequest{PageToken: "not-a-token"})
 	wantCode(t, err, connect.CodeInvalidArgument)
+}
+
+// Looking an account up is in the whole log but not in the account's list of
+// actions on it, which a dossier opened often would otherwise bury.
+func TestDossierActionsLeaveOutLookups(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	w := e.world("writer")
+	ana := e.adminUser("ana")
+	e.resolve(ana, e.report(e.user("reporter"), perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_USER, w.author),
+		perspectivv1.ModerationAction_MODERATION_ACTION_DISMISS)
+	if _, err := e.admin(ana).LookupUser(context.Background(), connect.NewRequest(&perspectivv1.LookupUserRequest{Query: "writer"})); err != nil {
+		t.Fatalf("LookupUser: %v", err)
+	}
+	about, _, err := e.auditLog(ana, &perspectivv1.ListAuditLogRequest{SubjectUserId: w.author.String()})
+	if err != nil || !sameActions(actions(about), []perspectivv1.AuditAction{perspectivv1.AuditAction_AUDIT_ACTION_DISMISS}) {
+		t.Fatalf("actions about the author = %v, %v; want only the dismissal", actions(about), err)
+	}
+	lookups, _, err := e.auditLog(ana, &perspectivv1.ListAuditLogRequest{Action: perspectivv1.AuditAction_AUDIT_ACTION_USER_LOOKUP})
+	if err != nil || len(lookups) != 1 {
+		t.Fatalf("lookups in the log = %d, %v; want 1", len(lookups), err)
+	}
 }
 
 func TestAuditLogIsAdminOnly(t *testing.T) {
@@ -325,5 +342,149 @@ func TestWriteAuditRefusesMalformedEntries(t *testing.T) {
 	}
 	if n := e.count(`SELECT count(*) FROM moderation_audit`); n != 0 {
 		t.Fatalf("audit rows = %d, want 0", n)
+	}
+}
+
+// An admin lifts a suspension with a reason: the account can report again,
+// the dossier shows it unsuspended, and the audit log names who and why.
+func TestLiftSuspension(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	w := e.world("writer")
+	member := e.user("member")
+	admin := e.adminUser("ana")
+	e.resolve(admin, e.report(member, perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_USER, w.author),
+		perspectivv1.ModerationAction_MODERATION_ACTION_SUSPEND_USER)
+	lift := func(as uuid.UUID, target, reason string) (*perspectivv1.AdminUserView, error) {
+		res, err := e.admin(as).LiftSuspension(context.Background(), connect.NewRequest(&perspectivv1.LiftSuspensionRequest{
+			UserId: target, Reason: reason,
+		}))
+		if err != nil {
+			return nil, err
+		}
+		return res.Msg.GetUser(), nil
+	}
+
+	tests := []struct {
+		name, target, reason string
+		as                   uuid.UUID
+		want                 connect.Code
+	}{
+		{name: "no reason", as: admin, target: w.author.String(), reason: "  ", want: connect.CodeInvalidArgument},
+		{name: "not an id", as: admin, target: "writer", reason: "appeal upheld", want: connect.CodeInvalidArgument},
+		{name: "no such account", as: admin, target: uuid.NewString(), reason: "appeal upheld", want: connect.CodeNotFound},
+		{name: "not suspended", as: admin, target: member.String(), reason: "appeal upheld", want: connect.CodeFailedPrecondition},
+		{name: "not an admin", as: member, target: w.author.String(), reason: "appeal upheld", want: connect.CodePermissionDenied},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := lift(tc.as, tc.target, tc.reason)
+			wantCode(t, err, tc.want)
+		})
+	}
+
+	u, err := lift(admin, w.author.String(), "  appeal upheld  ")
+	if err != nil {
+		t.Fatalf("LiftSuspension: %v", err)
+	}
+	if u.GetSuspendedAt() != nil || u.GetUserId() != w.author.String() {
+		t.Fatalf("view after lifting = %+v", u)
+	}
+	// Standing restored: the account can file a report again.
+	e.report(w.author, perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PERSPECTIVE, e.world("other").perspective)
+	entries, _, err := e.auditLog(admin, &perspectivv1.ListAuditLogRequest{SubjectUserId: w.author.String()})
+	if err != nil || len(entries) == 0 {
+		t.Fatalf("audit entries = %v, %v", entries, err)
+	}
+	last := entries[0]
+	if last.GetAction() != perspectivv1.AuditAction_AUDIT_ACTION_LIFT_SUSPENSION || last.GetReason() != "appeal upheld" ||
+		last.GetActor().GetUsername() != "ana" {
+		t.Fatalf("newest entry = %+v", last)
+	}
+	// Lifting twice is refused rather than audited twice.
+	_, err = lift(admin, w.author.String(), "again")
+	wantCode(t, err, connect.CodeFailedPrecondition)
+}
+
+// An admin restores hidden content with a reason: it is readable again, the
+// arc is queued for a lore recount, and the audit log names who and why.
+func TestRestore(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	w := e.world("writer")
+	member := e.user("member")
+	admin := e.adminUser("ana")
+	for _, r := range []struct {
+		kind   perspectivv1.ReportTargetKind
+		target uuid.UUID
+		action perspectivv1.ModerationAction
+	}{
+		{perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PERSPECTIVE, w.perspective, perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_PERSPECTIVE},
+		{perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PLACE, w.store, perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_PLACE},
+		{perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_POST, w.post, perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_LORE_POST},
+	} {
+		e.resolve(admin, e.report(member, r.kind, r.target), r.action)
+	}
+	e.exec(`UPDATE arcs SET lore_dirty_at = NULL WHERE id = $1`, w.arc)
+	restore := func(as uuid.UUID, kind perspectivv1.AuditTargetKind, target uuid.UUID, reason string) error {
+		_, err := e.admin(as).Restore(context.Background(), connect.NewRequest(&perspectivv1.RestoreRequest{
+			TargetKind: kind, TargetId: target.String(), Reason: reason,
+		}))
+		return err
+	}
+	hidden := func(table string, id uuid.UUID) bool {
+		t.Helper()
+		var h bool
+		e.scan(`SELECT hidden_at IS NOT NULL FROM `+table+` WHERE id = $1`, []any{id}, &h)
+		return h
+	}
+
+	refusals := []struct {
+		name   string
+		as     uuid.UUID
+		kind   perspectivv1.AuditTargetKind
+		target uuid.UUID
+		reason string
+		want   connect.Code
+	}{
+		{name: "no reason", as: admin, kind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_PLACE, target: w.store, want: connect.CodeInvalidArgument},
+		{name: "a kind that cannot be restored", as: admin, kind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_USER, target: w.author, reason: "x", want: connect.CodeInvalidArgument},
+		{name: "not hidden", as: admin, kind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_PERSPECTIVE, target: e.world("other").perspective, reason: "x", want: connect.CodeFailedPrecondition},
+		{name: "not an admin", as: member, kind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_PLACE, target: w.store, reason: "x", want: connect.CodePermissionDenied},
+	}
+	for _, tc := range refusals {
+		t.Run(tc.name, func(t *testing.T) {
+			wantCode(t, restore(tc.as, tc.kind, tc.target, tc.reason), tc.want)
+		})
+	}
+
+	restores := []struct {
+		kind   perspectivv1.AuditTargetKind
+		table  string
+		target uuid.UUID
+	}{
+		{perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_PERSPECTIVE, "perspectives", w.perspective},
+		{perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_PLACE, "places", w.store},
+		{perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_LORE_POST, "lore_posts", w.post},
+	}
+	for _, r := range restores {
+		if !hidden(r.table, r.target) {
+			t.Fatalf("%s was not hidden before the restore", r.table)
+		}
+		if err := restore(admin, r.kind, r.target, "hidden by mistake"); err != nil {
+			t.Fatalf("Restore %v: %v", r.kind, err)
+		}
+		if hidden(r.table, r.target) {
+			t.Fatalf("%s still hidden after the restore", r.table)
+		}
+		wantCode(t, restore(admin, r.kind, r.target, "again"), connect.CodeFailedPrecondition)
+	}
+	var dirty bool
+	e.scan(`SELECT lore_dirty_at IS NOT NULL FROM arcs WHERE id = $1`, []any{w.arc}, &dirty)
+	if !dirty {
+		t.Fatal("restoring a perspective did not queue its arc for a lore recount")
+	}
+	if n := e.count(`SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_RESTORE' AND reason = 'hidden by mistake' AND actor_id = $1`, admin); n != 3 {
+		t.Fatalf("restore audit entries = %d, want 3", n)
 	}
 }

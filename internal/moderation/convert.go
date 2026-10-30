@@ -151,7 +151,9 @@ func validAuditAction(a perspectivv1.AuditAction) bool {
 		perspectivv1.AuditAction_AUDIT_ACTION_ACCESS_CODE_CREATE,
 		perspectivv1.AuditAction_AUDIT_ACTION_ACCESS_CODE_REVOKE,
 		perspectivv1.AuditAction_AUDIT_ACTION_WAITLIST_INVITE,
-		perspectivv1.AuditAction_AUDIT_ACTION_USER_LOOKUP:
+		perspectivv1.AuditAction_AUDIT_ACTION_USER_LOOKUP,
+		perspectivv1.AuditAction_AUDIT_ACTION_LIFT_SUSPENSION,
+		perspectivv1.AuditAction_AUDIT_ACTION_RESTORE:
 		return true
 	case perspectivv1.AuditAction_AUDIT_ACTION_UNSPECIFIED:
 	}

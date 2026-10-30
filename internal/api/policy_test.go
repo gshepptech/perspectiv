@@ -69,15 +69,17 @@ func TestRoutePolicies(t *testing.T) {
 		"/perspectiv.v1.UserService/ChangeUsername":      "",
 	}
 	admin := map[string]bool{
-		"/perspectiv.v1.ModerationService/ListReports":  true,
-		"/perspectiv.v1.ModerationService/Resolve":      true,
-		"/perspectiv.v1.ModerationService/ListAuditLog": true,
-		"/perspectiv.v1.ModerationService/LookupUser":   true,
-		"/perspectiv.v1.AuthService/CreateAccessCode":   true,
-		"/perspectiv.v1.AuthService/ListAccessCodes":    true,
-		"/perspectiv.v1.AuthService/RevokeAccessCode":   true,
-		"/perspectiv.v1.AuthService/ListWaitlist":       true,
-		"/perspectiv.v1.AuthService/InviteFromWaitlist": true,
+		"/perspectiv.v1.ModerationService/ListReports":    true,
+		"/perspectiv.v1.ModerationService/Resolve":        true,
+		"/perspectiv.v1.ModerationService/ListAuditLog":   true,
+		"/perspectiv.v1.ModerationService/LookupUser":     true,
+		"/perspectiv.v1.ModerationService/LiftSuspension": true,
+		"/perspectiv.v1.ModerationService/Restore":        true,
+		"/perspectiv.v1.AuthService/CreateAccessCode":     true,
+		"/perspectiv.v1.AuthService/ListAccessCodes":      true,
+		"/perspectiv.v1.AuthService/RevokeAccessCode":     true,
+		"/perspectiv.v1.AuthService/ListWaitlist":         true,
+		"/perspectiv.v1.AuthService/InviteFromWaitlist":   true,
 	}
 	rateLimited := map[string]string{
 		"/perspectiv.v1.AuthService/SignUp": api.LimitSignup,

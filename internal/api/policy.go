@@ -134,6 +134,8 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.ModerationService/Resolve":     {Access: Admin},
 	// Admin only; the search limit bounds probing for addresses with a
 	// leaked admin token.
-	"/perspectiv.v1.ModerationService/ListAuditLog": {Access: Admin},
-	"/perspectiv.v1.ModerationService/LookupUser":   {Access: Admin, RateLimit: LimitSearch},
+	"/perspectiv.v1.ModerationService/ListAuditLog":   {Access: Admin},
+	"/perspectiv.v1.ModerationService/LookupUser":     {Access: Admin, RateLimit: LimitSearch},
+	"/perspectiv.v1.ModerationService/LiftSuspension": {Access: Admin},
+	"/perspectiv.v1.ModerationService/Restore":        {Access: Admin},
 }

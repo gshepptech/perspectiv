@@ -1,7 +1,7 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
-import { useQuery } from "@tanstack/react-query";
-import { useState, type FormEvent } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { Button } from "@/components/ui/Button";
@@ -10,12 +10,33 @@ import { ReportStatus, Role } from "@/gen/perspectiv/v1/enums_pb";
 import type { AdminUserView } from "@/gen/perspectiv/v1/moderation_pb";
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
+import { asSentence } from "@/routes/auth/errors";
 
-import { AuditList } from "./AuditList";
+import { auditKey, AuditList } from "./AuditList";
+import { resolutionMessage } from "./labels";
+import { ReasonDialog } from "./ReasonDialog";
 import { ReportList } from "./ReportList";
+import type { Resolution } from "./ResolveDialog";
 
 const day = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 const dayTime = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+const lookupKey = (query: string) => ["moderation", "lookupUser", query] as const;
+
+// Sessions older than this are deleted, so an older sign-in leaves no trace.
+const SESSION_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * The dossier's last sign-in. With none on record, an account younger than
+ * the session window has never signed in; an older one may have, before the
+ * window.
+ */
+function lastSignIn(u: AdminUserView, now: Date): string {
+  if (u.lastSignInAt) return dayTime.format(timestampDate(u.lastSignInAt));
+  const joined = u.joinedAt ? timestampDate(u.joinedAt).getTime() : 0;
+  return joined && now.getTime() - joined < SESSION_DAYS * DAY_MS ? "Never" : `None in the last ${SESSION_DAYS} days`;
+}
 
 function Fact({ term, children }: { term: string; children: React.ReactNode }) {
   return (
@@ -44,8 +65,27 @@ function Standing({ u }: { u: AdminUserView }) {
 }
 
 /** One account as a moderator sees it, with the reports and actions about it. */
-function Dossier({ u }: { u: AdminUserView }) {
+/** What the last action on a dossier did; seq tells a repeat apart. */
+type Note = { text: string; seq: number };
+
+function Dossier({
+  u,
+  note,
+  onResolved,
+  onChanged,
+}: {
+  u: AdminUserView;
+  note: Note | null;
+  onResolved: (r: Resolution) => void;
+  onChanged: (text: string) => void;
+}) {
   const name = u.deleted ? "[deleted]" : u.username;
+  const status = useRef<HTMLParagraphElement>(null);
+  // A resolve or a lift closes its dialog and usually removes the button
+  // that opened it, so focus goes to the line that says what happened.
+  useEffect(() => {
+    if (note) status.current?.focus();
+  }, [note]);
   return (
     <article aria-labelledby="dossier-name" className="grid min-w-0 gap-6">
       <div className="grid gap-2">
@@ -53,11 +93,21 @@ function Dossier({ u }: { u: AdminUserView }) {
           {name}
         </h2>
         <Standing u={u} />
+        {u.suspendedAt && !u.deleted && (
+          <ReasonDialog
+            trigger="Lift suspension…"
+            title={`Lift ${name}'s suspension?`}
+            description="They can report again and, if an admin, moderate again. What was hidden stays hidden."
+            confirm="Lift suspension"
+            act={(reason) => clients.moderation.liftSuspension({ userId: u.userId, reason })}
+            onDone={() => onChanged(`${name}'s suspension is lifted.`)}
+          />
+        )}
       </div>
       <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <Fact term="Email">{u.emailHint || "None (account deleted)"}</Fact>
         <Fact term="Joined">{u.joinedAt ? day.format(timestampDate(u.joinedAt)) : "Unknown"}</Fact>
-        <Fact term="Last sign-in">{u.lastSignInAt ? dayTime.format(timestampDate(u.lastSignInAt)) : "None in the last 30 days"}</Fact>
+        <Fact term="Last sign-in">{lastSignIn(u, new Date())}</Fact>
         <Fact term="Failed sign-ins, last 24 hours">{u.failedSignIns24h}</Fact>
         <Fact term="Stories">
           {u.stories}
@@ -82,12 +132,15 @@ function Dossier({ u }: { u: AdminUserView }) {
         <h3 id="dossier-reports" className="text-xl">
           Reports against them
         </h3>
+        <p ref={status} tabIndex={-1} role="status" aria-label="Dossier status" className="text-sm text-success">
+          {note?.text}
+        </p>
         <ReportList
           status={ReportStatus.UNSPECIFIED}
           subjectUserId={u.userId}
           label={`Reports against ${name}`}
           empty="No reports against this account or anything it wrote."
-          onResolved={() => undefined}
+          onResolved={onResolved}
         />
       </section>
       <section aria-labelledby="dossier-actions" className="grid gap-2 border-t border-rule pt-4">
@@ -101,10 +154,13 @@ function Dossier({ u }: { u: AdminUserView }) {
 }
 
 function Lookup({ query }: { query: string }) {
+  const queryClient = useQueryClient();
+  const [note, setNote] = useState<Note | null>(null);
   // Each match writes an audit entry, so a lookup is never retried or
-  // refetched on its own.
+  // refetched on its own; only a resolve here, which changes the counts,
+  // asks again.
   const found = useQuery({
-    queryKey: ["moderation", "lookupUser", query],
+    queryKey: lookupKey(query),
     queryFn: () => clients.moderation.lookupUser({ query }),
     retry: false,
     staleTime: Infinity,
@@ -118,7 +174,7 @@ function Lookup({ query }: { query: string }) {
         : e.code === Code.PermissionDenied
           ? "Only site admins can look up users."
           : e.code === Code.InvalidArgument
-            ? e.rawMessage
+            ? asSentence(e.rawMessage)
             : `The lookup failed: ${e.rawMessage}`;
     return (
       <p role="alert" className="font-medium text-error [overflow-wrap:anywhere]">
@@ -133,7 +189,17 @@ function Lookup({ query }: { query: string }) {
       </p>
     );
   }
-  return <Dossier u={found.data.user} />;
+  const changed = (text: string) => {
+    setNote((n) => ({ text, seq: (n?.seq ?? 0) + 1 }));
+    // The fresh lookup writes its own audit entry, so the actions list is
+    // read after it.
+    void queryClient
+      .invalidateQueries({ queryKey: lookupKey(query) })
+      .then(() => queryClient.invalidateQueries({ queryKey: auditKey }));
+  };
+  return (
+    <Dossier u={found.data.user} note={note} onResolved={(r) => changed(resolutionMessage(r))} onChanged={changed} />
+  );
 }
 
 /**
@@ -146,14 +212,31 @@ export function Component() {
   const [params, setParams] = useSearchParams();
   const query = params.get("q")?.trim() ?? "";
   const [text, setText] = useState(query);
+  const [empty, setEmpty] = useState(false);
+  // The box follows the address: a reporter link or Back changes the
+  // dossier, and the box must name the one shown.
+  const [shown, setShown] = useState(query);
+  if (shown !== query) {
+    setShown(query);
+    setText(query);
+    setEmpty(false);
+  }
+  const heading = useRef<HTMLHeadingElement>(null);
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => heading.current?.focus(), []);
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const q = text.trim();
-    if (q) setParams({ q });
+    if (q) {
+      setParams({ q });
+    } else {
+      setEmpty(true);
+      field.current?.focus();
+    }
   };
   return (
     <section aria-labelledby="users-title" className="mx-auto grid w-full max-w-shell min-w-0 gap-6">
-      <h1 id="users-title" className="text-2xl sm:text-3xl">
+      <h1 id="users-title" ref={heading} tabIndex={-1} className="text-2xl focus:outline-none sm:text-3xl">
         Look up a user
       </h1>
       {session?.role !== Role.ADMIN ? (
@@ -167,14 +250,25 @@ export function Component() {
               </label>
               <Input
                 id="lookup-query"
+                ref={field}
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  setEmpty(false);
+                }}
+                aria-invalid={empty}
+                aria-describedby={empty ? "lookup-query-error" : undefined}
                 autoComplete="off"
                 autoCapitalize="none"
                 spellCheck={false}
               />
             </div>
             <Button type="submit">Look up</Button>
+            {empty && (
+              <p id="lookup-query-error" role="alert" className="basis-full text-sm font-medium text-error">
+                Enter a username, email or account id.
+              </p>
+            )}
           </form>
           {query && <Lookup key={query} query={query} />}
         </>

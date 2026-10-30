@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ReportStatus, Role } from "@/gen/perspectiv/v1/enums_pb";
 import { useSession } from "@/lib/session";
 
-import { actionLabel } from "./labels";
+import { resolutionMessage } from "./labels";
 import { ADMINS_ONLY, ReportList } from "./ReportList";
 import type { Resolution } from "./ResolveDialog";
 
@@ -17,20 +17,25 @@ export function Component() {
   const session = useSession();
   const [tab, setTab] = useState("open");
   const [last, setLast] = useState<Resolution | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const status = useRef<HTMLParagraphElement>(null);
+  useEffect(() => heading.current?.focus(), []);
+  // A resolve closes its dialog and usually removes the Resolve button, so
+  // focus goes to the line that says what happened.
+  useEffect(() => {
+    if (last) status.current?.focus();
+  }, [last]);
   return (
     <section aria-labelledby="reports-title" className="mx-auto grid w-full max-w-shell min-w-0 gap-4">
-      <h1 id="reports-title" className="text-2xl sm:text-3xl">
+      <h1 id="reports-title" ref={heading} tabIndex={-1} className="text-2xl focus:outline-none sm:text-3xl">
         Report queue
       </h1>
       {session?.role !== Role.ADMIN ? (
         <p className="text-ink-muted">{ADMINS_ONLY}</p>
       ) : (
         <>
-          <p role="status" aria-label="Queue status" className="text-sm text-success">
-            {last &&
-              (last.suspended
-                ? `${last.suspended} is suspended. The report on their perspective stays open.`
-                : `Report resolved: ${actionLabel(last.action).toLowerCase()}.`)}
+          <p ref={status} tabIndex={-1} role="status" aria-label="Queue status" className="text-sm text-success">
+            {last && resolutionMessage(last)}
           </p>
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList aria-label="Report status">

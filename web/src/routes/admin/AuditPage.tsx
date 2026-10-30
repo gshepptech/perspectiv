@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
@@ -23,9 +24,11 @@ export function Component() {
   const session = useSession();
   const [params, setParams] = useSearchParams();
   const action = actionFrom(params.get("action"));
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), []);
   return (
     <section aria-labelledby="audit-title" className="mx-auto grid w-full max-w-shell min-w-0 gap-4">
-      <h1 id="audit-title" className="text-2xl sm:text-3xl">
+      <h1 id="audit-title" ref={heading} tabIndex={-1} className="text-2xl focus:outline-none sm:text-3xl">
         Audit log
       </h1>
       {session?.role !== Role.ADMIN ? (
@@ -48,7 +51,11 @@ export function Component() {
               ))}
             </SelectContent>
           </Select>
-          <AuditList action={action} label="Audit entries" empty="Nothing recorded yet." />
+          <AuditList
+            action={action}
+            label="Audit entries"
+            empty={action === AuditAction.UNSPECIFIED ? "Nothing recorded yet." : "No entries for this action."}
+          />
         </>
       )}
     </section>

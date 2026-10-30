@@ -1,4 +1,5 @@
 import { BookOpen, Inbox, KeyRound, LogOut, PenLine, ScrollText, Settings, ShieldAlert, UserSearch, Users } from "lucide-react";
+import { useRef } from "react";
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from "react-router";
 
 import { Button } from "@/components/ui/Button";
@@ -23,6 +24,13 @@ const navLink = ({ isActive }: { isActive: boolean }) =>
 
 function AccountMenu({ username, isAdmin }: { username: string; isAdmin: boolean }) {
   const navigate = useNavigate();
+  // A page reached from the menu moves focus to its own heading; the menu
+  // must not then pull focus back to its button as it closes.
+  const went = useRef(false);
+  const go = (path: string) => {
+    went.current = true;
+    void navigate(path);
+  };
   async function signOut() {
     try {
       await clients.auth.logout({});
@@ -41,29 +49,34 @@ function AccountMenu({ username, isAdmin }: { username: string; isAdmin: boolean
           <span className="hidden max-w-32 truncate sm:inline">{username}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent
+        onCloseAutoFocus={(e) => {
+          if (went.current) e.preventDefault();
+          went.current = false;
+        }}
+      >
         <DropdownMenuLabel>Signed in as {username}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void navigate("/settings")}>
+        <DropdownMenuItem onSelect={() => go("/settings")}>
           <Settings aria-hidden size={16} /> Settings
         </DropdownMenuItem>
         {isAdmin && (
-          <DropdownMenuItem onSelect={() => void navigate("/admin/reports")}>
+          <DropdownMenuItem onSelect={() => go("/admin/reports")}>
             <ShieldAlert aria-hidden size={16} /> Reports
           </DropdownMenuItem>
         )}
         {isAdmin && (
-          <DropdownMenuItem onSelect={() => void navigate("/admin/access")}>
+          <DropdownMenuItem onSelect={() => go("/admin/access")}>
             <KeyRound aria-hidden size={16} /> Beta access
           </DropdownMenuItem>
         )}
         {isAdmin && (
-          <DropdownMenuItem onSelect={() => void navigate("/admin/users")}>
+          <DropdownMenuItem onSelect={() => go("/admin/users")}>
             <UserSearch aria-hidden size={16} /> Look up a user
           </DropdownMenuItem>
         )}
         {isAdmin && (
-          <DropdownMenuItem onSelect={() => void navigate("/admin/audit")}>
+          <DropdownMenuItem onSelect={() => go("/admin/audit")}>
             <ScrollText aria-hidden size={16} /> Audit log
           </DropdownMenuItem>
         )}

@@ -1,4 +1,4 @@
-import { Code } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -28,6 +28,20 @@ function Done() {
   );
 }
 
+/** The server refused the link itself; asking again cannot help. */
+function Invalid() {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), []);
+  return (
+    <AuthPanel>
+      <AuthHeading ref={heading}>This link no longer works</AuthHeading>
+      <p role="alert" className="mt-4">
+        This unsubscribe link is not valid. Sign in and turn emails off in {settingsLink}.
+      </p>
+    </AuthPanel>
+  );
+}
+
 /**
  * The page an email's unsubscribe link opens. It asks before acting: link
  * scanners open every link in an email, and opening the page must change
@@ -48,6 +62,7 @@ export function Component() {
     );
   }
   if (stop.isSuccess) return <Done />;
+  if (stop.error && ConnectError.from(stop.error).code === Code.InvalidArgument) return <Invalid />;
   return (
     <AuthPanel>
       <AuthHeading>Stop notification emails?</AuthHeading>
@@ -56,15 +71,7 @@ export function Component() {
         when you sign in.
       </p>
       <div className="mt-6 grid gap-4">
-        <FormAlert
-          message={
-            stop.error
-              ? errorMessage(stop.error, {
-                  [Code.InvalidArgument]: "This unsubscribe link is not valid. Sign in and turn emails off in Settings.",
-                })
-              : null
-          }
-        />
+        <FormAlert message={stop.error ? errorMessage(stop.error) : null} />
         <Button pending={stop.isPending} onClick={() => stop.mutate()}>
           Stop emails
         </Button>

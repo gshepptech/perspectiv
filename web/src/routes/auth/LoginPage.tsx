@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Code } from "@connectrpc/connect";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button";
@@ -22,9 +22,13 @@ type Values = z.infer<typeof schema>;
 // The two links under the form are separate 44px targets on a phone.
 const targetClass = "inline-flex min-h-11 items-center";
 
+/** The navigation state a page sets when it sends the reader here signed out. */
+export type LoginState = { signedOutEverywhere?: boolean };
+
 export function Component() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const arrived = useLocation().state as LoginState | null;
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", password: "" } });
   const login = useMutation({
     mutationFn: async (values: Values) => {
@@ -37,6 +41,11 @@ export function Component() {
   return (
     <AuthPanel>
       <AuthHeading>Sign in</AuthHeading>
+      {arrived?.signedOutEverywhere && (
+        <p role="status" className="mt-4 text-sm font-medium text-success">
+          You are signed out on every device.
+        </p>
+      )}
       <Form {...form}>
         <form noValidate className="mt-6 grid gap-4" onSubmit={form.handleSubmit((v) => login.mutate(v))}>
           <FormField

@@ -1,6 +1,7 @@
 import { ConnectError } from "@connectrpc/connect";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -54,6 +55,9 @@ export function ResolveDialog({
   onResolved: (r: Resolution) => void;
 }) {
   const choices = choicesFor(report.targetKind);
+  // Once resolved, the page moves focus to its status line: the Resolve
+  // button that opened this dialog usually goes with the open report.
+  const resolved = useRef(false);
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { action: choices[0]?.value ?? "", reason: "" },
@@ -66,12 +70,19 @@ export function ResolveDialog({
       await clients.moderation.resolve({ reportId: report.id, action, reason });
       return { action };
     },
-    onSuccess: onResolved,
+    onSuccess: (r) => {
+      resolved.current = true;
+      onResolved(r);
+    },
   });
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent
+        onCloseAutoFocus={(e) => {
+          if (resolved.current) e.preventDefault();
+        }}
+      >
         <DialogTitle>Resolve report</DialogTitle>
         <DialogDescription className="[overflow-wrap:anywhere]">
           {targetKindLabel(report.targetKind)}: {report.targetLabel}

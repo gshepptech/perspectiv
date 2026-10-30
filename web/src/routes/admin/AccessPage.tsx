@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import type { AccessCode, WaitlistEntry } from "@/gen/perspectiv/v1/auth_pb";
 import { Role } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
+import { useShowMore } from "@/lib/showMore";
 import { useSession } from "@/lib/session";
 
 const ADMINS_ONLY = "Only site admins can manage beta access.";
@@ -21,6 +22,7 @@ const codesKey = ["auth", "listAccessCodes"] as const;
 const waitlistKey = ["auth", "listWaitlist"] as const;
 const dateFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "medium" });
 const INVITED_HEADING = "access-invited";
+const invitedHeading = () => document.getElementById(INVITED_HEADING);
 
 function failure(err: unknown, what: string): string {
   const e = ConnectError.from(err);
@@ -257,6 +259,7 @@ function Codes() {
     getNextPageParam: (last) => last.nextPageToken || undefined,
   });
   const codes = list.data?.pages.flatMap((p) => p.codes) ?? [];
+  const more = useShowMore(codes.length, list.fetchNextPage);
   return (
     <div className="grid gap-4">
       <CreateCode onCreated={setMade} />
@@ -270,14 +273,14 @@ function Codes() {
       )}
       {list.isSuccess && codes.length === 0 && <p className="text-ink-muted">No codes yet.</p>}
       {codes.length > 0 && (
-        <ul aria-label="Beta codes" className="min-w-0">
+        <ul ref={more.list} aria-label="Beta codes" className="min-w-0">
           {codes.map((c) => (
             <CodeItem key={c.code} c={c} />
           ))}
         </ul>
       )}
       {list.hasNextPage && (
-        <Button variant="secondary" className="justify-self-start" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+        <Button variant="secondary" className="justify-self-start" pending={list.isFetchingNextPage} onClick={more.showMore}>
           Show more codes
         </Button>
       )}
@@ -341,6 +344,8 @@ function WaitlistList() {
   const entries = list.data?.pages.flatMap((p) => p.entries) ?? [];
   const waiting = entries.filter((w) => !w.invitedAt);
   const invited = entries.filter((w) => w.invitedAt);
+  // Waiting people come first, so a later page may add only to Invited.
+  const more = useShowMore(waiting.length, list.fetchNextPage, invitedHeading);
   if (list.isError) {
     return (
       <p role="alert" className="font-medium text-error">
@@ -356,7 +361,7 @@ function WaitlistList() {
           {list.hasNextPage ? "+" : ""})
         </h2>
         {list.isSuccess && waiting.length === 0 && <p className="mt-2 text-ink-muted">Nobody is waiting.</p>}
-        <ul aria-label="Waiting" className="min-w-0">
+        <ul ref={more.list} aria-label="Waiting" className="min-w-0">
           {waiting.map((w) => (
             <WaitlistItem key={w.id} w={w} />
           ))}
@@ -375,7 +380,7 @@ function WaitlistList() {
         </section>
       )}
       {list.hasNextPage && (
-        <Button variant="secondary" className="justify-self-start" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+        <Button variant="secondary" className="justify-self-start" pending={list.isFetchingNextPage} onClick={more.showMore}>
           Show more
         </Button>
       )}
@@ -391,9 +396,11 @@ function WaitlistList() {
 export function Component() {
   const session = useSession();
   const [tab, setTab] = useState("codes");
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), []);
   return (
     <section aria-labelledby="access-title" className="mx-auto grid w-full max-w-shell min-w-0 gap-4">
-      <h1 id="access-title" className="text-2xl sm:text-3xl">
+      <h1 id="access-title" ref={heading} tabIndex={-1} className="text-2xl focus:outline-none sm:text-3xl">
         Beta access
       </h1>
       {session?.role !== Role.ADMIN ? (

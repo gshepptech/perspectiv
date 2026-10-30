@@ -7,9 +7,11 @@ import { Link } from "react-router";
 import { Button } from "@/components/ui/Button";
 import { ReportStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Report } from "@/gen/perspectiv/v1/moderation_pb";
+import { reportReasonLabel } from "@/components/actions/labels";
 import { clients } from "@/lib/connect";
+import { useShowMore } from "@/lib/showMore";
 
-import { actionLabel, reasonLabel, targetHref, targetKindLabel } from "./labels";
+import { actionLabel, targetHref, targetKindLabel } from "./labels";
 import { ResolveDialog, type Resolution } from "./ResolveDialog";
 
 export const reportsKey = ["moderation", "listReports"] as const;
@@ -29,12 +31,15 @@ function ReportItem({ report, onResolve }: { report: Report; onResolve?: () => v
       <h2 id={headingId} className="text-xl [overflow-wrap:anywhere]">
         {targetKindLabel(report.targetKind)}: {report.targetLabel}
       </h2>
-      <p className="font-medium">{reasonLabel(report.reason)}</p>
+      <p className="font-medium">{reportReasonLabel(report.reason)}</p>
       {report.details && <p className="[overflow-wrap:anywhere]">{report.details}</p>}
       <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
         Reported by{" "}
         {report.reporter ? (
-          <Link to={dossierHref(report.reporter.userId)} className="text-accent underline underline-offset-4">
+          <Link
+            to={dossierHref(report.reporter.userId)}
+            className="inline-flex min-h-11 items-center text-accent underline underline-offset-4"
+          >
             {report.reporter.username}
           </Link>
         ) : (
@@ -90,6 +95,8 @@ export function ReportList({
     initialPageParam: "",
     getNextPageParam: (last) => last.nextPageToken || undefined,
   });
+  const reports = list.data?.pages.flatMap((p) => p.reports) ?? [];
+  const more = useShowMore(reports.length, list.fetchNextPage);
   if (list.isError) {
     const e = ConnectError.from(list.error);
     return (
@@ -105,13 +112,12 @@ export function ReportList({
       </p>
     );
   }
-  const reports = list.data.pages.flatMap((p) => p.reports);
   if (reports.length === 0) {
     return <p className="text-ink-muted">{empty}</p>;
   }
   return (
     <>
-      <ul aria-label={label}>
+      <ul ref={more.list} aria-label={label}>
         {reports.map((r) => (
           <ReportItem
             key={r.id}
@@ -122,7 +128,7 @@ export function ReportList({
       </ul>
       {list.hasNextPage && (
         <div className="mt-4">
-          <Button variant="secondary" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+          <Button variant="secondary" pending={list.isFetchingNextPage} onClick={more.showMore}>
             Show more
           </Button>
         </div>

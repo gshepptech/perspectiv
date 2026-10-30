@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ClaimDirection, ClaimStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Claim } from "@/gen/perspectiv/v1/lore_pb";
 import { clients } from "@/lib/connect";
+import { useShowMore } from "@/lib/showMore";
 
 const claimsKey = ["lore", "listClaims"] as const;
 
@@ -125,6 +126,8 @@ function ClaimList({ direction }: { direction: ClaimDirection }) {
     initialPageParam: "",
     getNextPageParam: (last) => last.nextPageToken || undefined,
   });
+  const claims = list.data?.pages.flatMap((p) => p.claims) ?? [];
+  const more = useShowMore(claims.length, list.fetchNextPage);
   if (list.isError) {
     return (
       <p role="alert" className="font-medium text-error">
@@ -139,7 +142,6 @@ function ClaimList({ direction }: { direction: ClaimDirection }) {
       </p>
     );
   }
-  const claims = list.data.pages.flatMap((p) => p.claims);
   if (claims.length === 0) {
     return (
       <p className="text-ink-muted">
@@ -151,14 +153,14 @@ function ClaimList({ direction }: { direction: ClaimDirection }) {
   }
   return (
     <>
-      <ul aria-label={incoming ? "Claims on your characters" : "Your claims"}>
+      <ul ref={more.list} aria-label={incoming ? "Claims on your characters" : "Your claims"}>
         {claims.map((c) => (
           <ClaimItem key={c.id} claim={c} incoming={incoming} />
         ))}
       </ul>
       {list.hasNextPage && (
         <div className="mt-4">
-          <Button variant="secondary" pending={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>
+          <Button variant="secondary" pending={list.isFetchingNextPage} onClick={more.showMore}>
             Show more
           </Button>
         </div>

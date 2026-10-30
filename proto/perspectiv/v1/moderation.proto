@@ -18,6 +18,13 @@ service ModerationService {
   // ADMIN only. One account as a moderator needs to see it. A match writes
   // a USER_LOOKUP audit entry.
   rpc LookupUser(LookupUserRequest) returns (LookupUserResponse);
+  // ADMIN only. Restores a suspended account's standing; writes an audit
+  // entry with the reason.
+  rpc LiftSuspension(LiftSuspensionRequest) returns (LiftSuspensionResponse);
+  // ADMIN only. Makes a hidden perspective, place or thread post readable
+  // again; writes an audit entry with the reason. Claims rejected while it
+  // was hidden stay rejected.
+  rpc Restore(RestoreRequest) returns (RestoreResponse);
 }
 
 // Report is one user report as the admin queue shows it.
@@ -103,7 +110,8 @@ message ListAuditLogRequest {
   // When set, only what this admin did.
   string actor_id = 2;
   // When set, only actions on this user: on the account itself, or on a
-  // perspective or thread post they wrote.
+  // perspective or thread post they wrote. Lookups of the account are left
+  // out; they read it rather than act on it.
   string subject_user_id = 3;
   string page_token = 4;
   int32 page_size = 5;
@@ -145,3 +153,23 @@ message AdminUserView {
 message LookupUserResponse {
   AdminUserView user = 1;
 }
+
+message LiftSuspensionRequest {
+  string user_id = 1;
+  // Why; written to the audit entry.
+  string reason = 2;
+}
+
+message LiftSuspensionResponse {
+  AdminUserView user = 1;
+}
+
+message RestoreRequest {
+  // PERSPECTIVE, PLACE or LORE_POST.
+  AuditTargetKind target_kind = 1;
+  string target_id = 2;
+  // Why; written to the audit entry.
+  string reason = 3;
+}
+
+message RestoreResponse {}

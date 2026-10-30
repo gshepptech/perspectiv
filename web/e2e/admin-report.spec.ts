@@ -54,7 +54,7 @@ test("NFR-004 a report is resolved by an admin and the perspective is hidden fro
   const open = admin.page.getByRole("list", { name: "Open reports" });
   const item = open.getByRole("listitem").filter({ hasText: `Reported by ${reporterAcct.username}` });
   await expect(item).toContainText("Perspective:");
-  await expect(item).toContainText("Names a real person who is not a user");
+  await expect(item).toContainText("Real name or handle of a non-user");
   await item.getByRole("button", { name: "Resolve" }).click();
   const resolve = admin.page.getByRole("dialog", { name: "Resolve report" });
   await resolve.getByRole("radio", { name: "Hide perspective" }).check();

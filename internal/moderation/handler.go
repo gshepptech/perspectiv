@@ -160,3 +160,36 @@ func (h *Handler) LookupUser(ctx context.Context, req *connect.Request[perspecti
 	}
 	return connect.NewResponse(&perspectivv1.LookupUserResponse{User: u}), nil
 }
+
+// LiftSuspension restores a suspended account. ADMIN only.
+func (h *Handler) LiftSuspension(ctx context.Context, req *connect.Request[perspectivv1.LiftSuspensionRequest]) (*connect.Response[perspectivv1.LiftSuspensionResponse], error) {
+	caller, err := callerID(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	target, err := parseID("user_id", req.Msg.GetUserId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	u, err := h.svc.LiftSuspension(ctx, caller, target, req.Msg.GetReason())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.LiftSuspensionResponse{User: u}), nil
+}
+
+// Restore makes hidden content readable again. ADMIN only.
+func (h *Handler) Restore(ctx context.Context, req *connect.Request[perspectivv1.RestoreRequest]) (*connect.Response[perspectivv1.RestoreResponse], error) {
+	caller, err := callerID(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	target, err := parseID("target_id", req.Msg.GetTargetId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	if err := h.svc.Restore(ctx, caller, req.Msg.GetTargetKind(), target, req.Msg.GetReason()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.RestoreResponse{}), nil
+}

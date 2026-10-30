@@ -51,14 +51,19 @@ export function Component() {
   return (
     <AuthPanel>
       <AuthHeading>This link no longer works</AuthHeading>
-      <p className="mt-4">
-        {result === "taken"
-          ? "Another account started using that address before you confirmed it, so your email was not changed."
-          : "The link is incomplete, has expired, was already used, or a newer change replaced it. Your email was not changed."}
-      </p>
+      {result === "taken" ? (
+        <p className="mt-4">Another account started using that address before you confirmed it, so your email was not changed.</p>
+      ) : (
+        // A used link is dead too, and it may have worked the first time, so
+        // this says nothing about whether the email changed.
+        <p className="mt-4">
+          The link is incomplete, has expired, was already used, or a newer change replaced it. Settings shows the email
+          your account uses now.
+        </p>
+      )}
       <p className="mt-6">
-        <Link to={signedIn ? "/settings" : "/login"} className={linkClass}>
-          {signedIn ? "Try again from settings" : "Sign in"}
+        <Link to={signedIn ? "/settings" : "/login?next=%2Fsettings"} className={linkClass}>
+          {signedIn ? "Open settings" : "Sign in"}
         </Link>
       </p>
     </AuthPanel>

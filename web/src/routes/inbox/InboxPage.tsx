@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import type { Notification } from "@/gen/perspectiv/v1/notify_pb";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
+import { useShowMore } from "@/lib/showMore";
 import { FormAlert } from "@/routes/auth/AuthPanel";
 import { errorMessage } from "@/routes/auth/errors";
 
@@ -65,6 +66,7 @@ export function Component() {
   });
 
   const notifications = inbox.data?.pages.flatMap((p) => p.notifications) ?? [];
+  const more = useShowMore(notifications.length, inbox.fetchNextPage);
   const unreadCount = inbox.data?.pages[0]?.unreadCount ?? 0;
   const open = (n: Notification) => {
     if (!n.readAt) markRead.mutate([n.id]);
@@ -125,7 +127,7 @@ export function Component() {
         </p>
       )}
       {notifications.length > 0 && (
-        <ul aria-label="Notifications" className="mt-2 divide-y divide-rule border-y border-rule">
+        <ul ref={more.list} aria-label="Notifications" className="mt-2 divide-y divide-rule border-y border-rule">
           {notifications.map((n) => (
             <Row key={n.id} n={n} onOpen={open} />
           ))}
@@ -136,7 +138,7 @@ export function Component() {
           variant="secondary"
           className="mt-4"
           pending={inbox.isFetchingNextPage}
-          onClick={() => void inbox.fetchNextPage()}
+          onClick={more.showMore}
         >
           Show older
         </Button>

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { CircleAlert, CircleCheck } from "lucide-react";
 
 import type { Account } from "@/gen/perspectiv/v1/user_pb";
@@ -46,9 +47,13 @@ function AccountSection({ account }: { account: Account }) {
 
 export function Component() {
   const me = useQuery(myProfileQuery);
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), []);
   return (
     <div className="mx-auto w-full max-w-2xl min-w-0">
-      <h1 className="text-2xl sm:text-3xl">Settings</h1>
+      <h1 ref={heading} tabIndex={-1} className="text-2xl focus:outline-none sm:text-3xl">
+        Settings
+      </h1>
       {me.isPending && (
         <p role="status" className="mt-6 text-ink-muted">
           Loading your settings…

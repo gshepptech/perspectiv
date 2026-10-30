@@ -183,15 +183,19 @@ func (w *emailWorker) withUnsubscribe(c *content, data map[string]string) (strin
 		return "", errors.New("notification email without its recipient's user id")
 	}
 	q := w.unsub.query(id)
-	c.Footer += " Stop these emails: " + w.baseURL + unsubscribePage + "?" + q
+	c.Unsubscribe = w.baseURL + unsubscribePage + "?" + q
 	return w.baseURL + "/api" + unsubscribeOneClick + "?" + q, nil
 }
 
 // content is what every email shows: a subject, a paragraph, one link and an
 // optional footer. A digest also lists its items, each with its own link.
 type content struct {
-	Subject, Body, Action, Link, Footer string
-	Items                               []digestLine
+	Subject, Body, Action, Link string
+	// Footer is a closing sentence; SettingsLink, when set, follows it as
+	// a "Change it in Settings" link, and Unsubscribe as "Stop these
+	// emails". In the text part each link stands on its own line.
+	Footer, SettingsLink, Unsubscribe string
+	Items                             []digestLine
 }
 
 // digestLine is one event in a digest: what happened and where to see it.
@@ -204,7 +208,9 @@ var htmlBody = template.Must(template.New("email").Parse(
 		`<p>{{.Body}}</p>{{if .Items}}<ul>{{range .Items}}<li><a href="{{.Link}}">{{.Text}}</a></li>{{end}}</ul>{{end}}` +
 		`<p><a href="{{.Link}}">{{.Action}}</a></p>` +
 		`<p style="font-size:13px;color:#5b564e">Or paste this link into your browser: {{.Link}}</p>` +
-		`{{if .Footer}}<p style="font-size:13px;color:#5b564e">{{.Footer}}</p>{{end}}</body></html>`))
+		`{{if .Footer}}<p style="font-size:13px;color:#5b564e">{{.Footer}}` +
+		`{{if .SettingsLink}} <a href="{{.SettingsLink}}">Change it in Settings</a>.{{end}}` +
+		`{{if .Unsubscribe}} <a href="{{.Unsubscribe}}">Stop these emails</a>.{{end}}</p>{{end}}</body></html>`))
 
 func (c content) message(to string) (mailer.Message, error) {
 	var html bytes.Buffer
@@ -221,6 +227,12 @@ func (c content) message(to string) (mailer.Message, error) {
 	text += c.Action + ": " + c.Link + "\n"
 	if c.Footer != "" {
 		text += "\n" + c.Footer + "\n"
+		if c.SettingsLink != "" {
+			text += "Change it in Settings: " + c.SettingsLink + "\n"
+		}
+		if c.Unsubscribe != "" {
+			text += "Stop these emails: " + c.Unsubscribe + "\n"
+		}
 	}
 	return mailer.Message{To: to, Subject: c.Subject, Text: text, HTML: html.String()}, nil
 }
@@ -286,11 +298,12 @@ func (w *emailWorker) notificationContent(data map[string]string) (content, erro
 		path = "/inbox"
 	}
 	return content{
-		Subject: subject,
-		Body:    body,
-		Action:  "Open Perspectiv",
-		Link:    w.baseURL + path,
-		Footer:  "Choose which emails you get at " + w.baseURL + "/settings",
+		Subject:      subject,
+		Body:         body,
+		Action:       "Open Perspectiv",
+		Link:         w.baseURL + path,
+		Footer:       "You choose which emails you get.",
+		SettingsLink: w.baseURL + "/settings",
 	}, nil
 }
 
@@ -317,11 +330,12 @@ func (w *emailWorker) digestContent(data map[string]string) (content, error) {
 		subject = fmt.Sprintf("Your day on Perspectiv: %d updates", len(lines))
 	}
 	return content{
-		Subject: subject,
-		Body:    "Here is what happened since your last summary.",
-		Items:   lines,
-		Action:  "Open your inbox",
-		Link:    w.baseURL + "/inbox",
-		Footer:  "You get one summary a day instead of an email for each. Change it at " + w.baseURL + "/settings",
+		Subject:      subject,
+		Body:         "Here is what happened since your last summary.",
+		Items:        lines,
+		Action:       "Open your inbox",
+		Link:         w.baseURL + "/inbox",
+		Footer:       "You get one summary a day instead of an email for each.",
+		SettingsLink: w.baseURL + "/settings",
 	}, nil
 }

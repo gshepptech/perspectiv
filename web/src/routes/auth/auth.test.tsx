@@ -75,7 +75,7 @@ describe("SignUpPage", () => {
     await user.type(screen.getByLabelText("Password"), "a long enough secret");
     await user.click(screen.getByRole("checkbox", { name: /I am 18 or over/ }));
     await user.click(screen.getByRole("button", { name: "Sign up" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("that username is taken");
+    expect(await screen.findByRole("alert")).toHaveTextContent("That username is taken.");
   });
 
   it("OT-037: fits a 375px viewport", async () => {
@@ -203,6 +203,11 @@ describe("ConfirmEmailPage", () => {
     renderRoute("/confirm-email?token=old", { "AuthService/ConfirmEmailChange": () => fail("invalid_argument", "expired") });
     expect(await screen.findByRole("heading", { name: "This link no longer works" })).toBeInTheDocument();
     expect(screen.getByRole("main")).toHaveTextContent(/a newer change replaced it/);
+    // A used link may have worked the first time, so the page never claims
+    // the email was left alone; it points to where the current one shows.
+    expect(screen.getByRole("main")).not.toHaveTextContent(/not changed/);
+    expect(screen.getByRole("main")).toHaveTextContent("Settings shows the email your account uses now.");
+    expect(within(screen.getByRole("main")).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login?next=%2Fsettings");
   });
 
   it("asks nothing of the server when the link has no token", async () => {
@@ -258,7 +263,7 @@ describe("ResetPasswordPage", () => {
     await user.type(await screen.findByLabelText("New password"), "short");
     await user.type(screen.getByLabelText("Repeat new password"), "short");
     await user.click(screen.getByRole("button", { name: "Set new password" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("password must be at least 10 characters");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Password must be at least 10 characters.");
   });
 
   it("without a token, sends the reader to ask for a new link", async () => {

@@ -48,6 +48,12 @@ const (
 	// ModerationServiceLookupUserProcedure is the fully-qualified name of the ModerationService's
 	// LookupUser RPC.
 	ModerationServiceLookupUserProcedure = "/perspectiv.v1.ModerationService/LookupUser"
+	// ModerationServiceLiftSuspensionProcedure is the fully-qualified name of the ModerationService's
+	// LiftSuspension RPC.
+	ModerationServiceLiftSuspensionProcedure = "/perspectiv.v1.ModerationService/LiftSuspension"
+	// ModerationServiceRestoreProcedure is the fully-qualified name of the ModerationService's Restore
+	// RPC.
+	ModerationServiceRestoreProcedure = "/perspectiv.v1.ModerationService/Restore"
 )
 
 // ModerationServiceClient is a client for the perspectiv.v1.ModerationService service.
@@ -62,6 +68,13 @@ type ModerationServiceClient interface {
 	// ADMIN only. One account as a moderator needs to see it. A match writes
 	// a USER_LOOKUP audit entry.
 	LookupUser(context.Context, *connect.Request[v1.LookupUserRequest]) (*connect.Response[v1.LookupUserResponse], error)
+	// ADMIN only. Restores a suspended account's standing; writes an audit
+	// entry with the reason.
+	LiftSuspension(context.Context, *connect.Request[v1.LiftSuspensionRequest]) (*connect.Response[v1.LiftSuspensionResponse], error)
+	// ADMIN only. Makes a hidden perspective, place or thread post readable
+	// again; writes an audit entry with the reason. Claims rejected while it
+	// was hidden stay rejected.
+	Restore(context.Context, *connect.Request[v1.RestoreRequest]) (*connect.Response[v1.RestoreResponse], error)
 }
 
 // NewModerationServiceClient constructs a client for the perspectiv.v1.ModerationService service.
@@ -105,16 +118,30 @@ func NewModerationServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(moderationServiceMethods.ByName("LookupUser")),
 			connect.WithClientOptions(opts...),
 		),
+		liftSuspension: connect.NewClient[v1.LiftSuspensionRequest, v1.LiftSuspensionResponse](
+			httpClient,
+			baseURL+ModerationServiceLiftSuspensionProcedure,
+			connect.WithSchema(moderationServiceMethods.ByName("LiftSuspension")),
+			connect.WithClientOptions(opts...),
+		),
+		restore: connect.NewClient[v1.RestoreRequest, v1.RestoreResponse](
+			httpClient,
+			baseURL+ModerationServiceRestoreProcedure,
+			connect.WithSchema(moderationServiceMethods.ByName("Restore")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // moderationServiceClient implements ModerationServiceClient.
 type moderationServiceClient struct {
-	report       *connect.Client[v1.ReportRequest, v1.ReportResponse]
-	listReports  *connect.Client[v1.ListReportsRequest, v1.ListReportsResponse]
-	resolve      *connect.Client[v1.ResolveRequest, v1.ResolveResponse]
-	listAuditLog *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
-	lookupUser   *connect.Client[v1.LookupUserRequest, v1.LookupUserResponse]
+	report         *connect.Client[v1.ReportRequest, v1.ReportResponse]
+	listReports    *connect.Client[v1.ListReportsRequest, v1.ListReportsResponse]
+	resolve        *connect.Client[v1.ResolveRequest, v1.ResolveResponse]
+	listAuditLog   *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
+	lookupUser     *connect.Client[v1.LookupUserRequest, v1.LookupUserResponse]
+	liftSuspension *connect.Client[v1.LiftSuspensionRequest, v1.LiftSuspensionResponse]
+	restore        *connect.Client[v1.RestoreRequest, v1.RestoreResponse]
 }
 
 // Report calls perspectiv.v1.ModerationService.Report.
@@ -142,6 +169,16 @@ func (c *moderationServiceClient) LookupUser(ctx context.Context, req *connect.R
 	return c.lookupUser.CallUnary(ctx, req)
 }
 
+// LiftSuspension calls perspectiv.v1.ModerationService.LiftSuspension.
+func (c *moderationServiceClient) LiftSuspension(ctx context.Context, req *connect.Request[v1.LiftSuspensionRequest]) (*connect.Response[v1.LiftSuspensionResponse], error) {
+	return c.liftSuspension.CallUnary(ctx, req)
+}
+
+// Restore calls perspectiv.v1.ModerationService.Restore.
+func (c *moderationServiceClient) Restore(ctx context.Context, req *connect.Request[v1.RestoreRequest]) (*connect.Response[v1.RestoreResponse], error) {
+	return c.restore.CallUnary(ctx, req)
+}
+
 // ModerationServiceHandler is an implementation of the perspectiv.v1.ModerationService service.
 type ModerationServiceHandler interface {
 	Report(context.Context, *connect.Request[v1.ReportRequest]) (*connect.Response[v1.ReportResponse], error)
@@ -154,6 +191,13 @@ type ModerationServiceHandler interface {
 	// ADMIN only. One account as a moderator needs to see it. A match writes
 	// a USER_LOOKUP audit entry.
 	LookupUser(context.Context, *connect.Request[v1.LookupUserRequest]) (*connect.Response[v1.LookupUserResponse], error)
+	// ADMIN only. Restores a suspended account's standing; writes an audit
+	// entry with the reason.
+	LiftSuspension(context.Context, *connect.Request[v1.LiftSuspensionRequest]) (*connect.Response[v1.LiftSuspensionResponse], error)
+	// ADMIN only. Makes a hidden perspective, place or thread post readable
+	// again; writes an audit entry with the reason. Claims rejected while it
+	// was hidden stay rejected.
+	Restore(context.Context, *connect.Request[v1.RestoreRequest]) (*connect.Response[v1.RestoreResponse], error)
 }
 
 // NewModerationServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -193,6 +237,18 @@ func NewModerationServiceHandler(svc ModerationServiceHandler, opts ...connect.H
 		connect.WithSchema(moderationServiceMethods.ByName("LookupUser")),
 		connect.WithHandlerOptions(opts...),
 	)
+	moderationServiceLiftSuspensionHandler := connect.NewUnaryHandler(
+		ModerationServiceLiftSuspensionProcedure,
+		svc.LiftSuspension,
+		connect.WithSchema(moderationServiceMethods.ByName("LiftSuspension")),
+		connect.WithHandlerOptions(opts...),
+	)
+	moderationServiceRestoreHandler := connect.NewUnaryHandler(
+		ModerationServiceRestoreProcedure,
+		svc.Restore,
+		connect.WithSchema(moderationServiceMethods.ByName("Restore")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.ModerationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ModerationServiceReportProcedure:
@@ -205,6 +261,10 @@ func NewModerationServiceHandler(svc ModerationServiceHandler, opts ...connect.H
 			moderationServiceListAuditLogHandler.ServeHTTP(w, r)
 		case ModerationServiceLookupUserProcedure:
 			moderationServiceLookupUserHandler.ServeHTTP(w, r)
+		case ModerationServiceLiftSuspensionProcedure:
+			moderationServiceLiftSuspensionHandler.ServeHTTP(w, r)
+		case ModerationServiceRestoreProcedure:
+			moderationServiceRestoreHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -232,4 +292,12 @@ func (UnimplementedModerationServiceHandler) ListAuditLog(context.Context, *conn
 
 func (UnimplementedModerationServiceHandler) LookupUser(context.Context, *connect.Request[v1.LookupUserRequest]) (*connect.Response[v1.LookupUserResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ModerationService.LookupUser is not implemented"))
+}
+
+func (UnimplementedModerationServiceHandler) LiftSuspension(context.Context, *connect.Request[v1.LiftSuspensionRequest]) (*connect.Response[v1.LiftSuspensionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ModerationService.LiftSuspension is not implemented"))
+}
+
+func (UnimplementedModerationServiceHandler) Restore(context.Context, *connect.Request[v1.RestoreRequest]) (*connect.Response[v1.RestoreResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ModerationService.Restore is not implemented"))
 }

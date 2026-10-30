@@ -103,7 +103,7 @@ describe("SettingsPage profile", () => {
     const { user } = settings({ "UserService/UpdateProfile": () => fail("invalid_argument", "avatar must be under 1 MB") });
     await user.upload(await screen.findByLabelText("New avatar"), new File(["x"], "big.png", { type: "image/png" }));
     await user.click(screen.getByRole("button", { name: "Save profile" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("avatar must be under 1 MB");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Avatar must be under 1 MB.");
   });
 });
 
@@ -144,7 +144,7 @@ describe("SettingsPage username", () => {
     const input = await screen.findByLabelText("New username");
     await user.clear(input);
     await user.type(input, "wren_two{Enter}");
-    expect(await screen.findByRole("alert")).toHaveTextContent("you can change your username once every 30 days");
+    expect(await screen.findByRole("alert")).toHaveTextContent("You can change your username once every 30 days.");
     expect(currentSession()?.username).toBe("wren");
   });
 });
@@ -315,13 +315,48 @@ describe("SettingsPage sign-in and security", () => {
     await user.type(within(form).getByLabelText("New password"), "a new long secret");
     await user.type(within(form).getByLabelText("Repeat new password"), "a new long secret");
     await user.click(within(form).getByRole("button", { name: "Change password" }));
-    expect(await within(form).findByRole("alert")).toHaveTextContent("Your current password is not right.");
+    // Under the field it is about, marked invalid, with focus on it; no
+    // second, form-level alert repeats it.
+    const field = within(form).getByLabelText("Current password");
+    await waitFor(() => expect(field).toHaveAttribute("aria-invalid", "true"));
+    expect(field).toHaveAccessibleDescription("Your current password is not right.");
+    expect(field).toHaveFocus();
+    expect(within(form).getAllByRole("alert")).toHaveLength(1);
+  });
+
+  it("puts a wrong password under the email form's password field too", async () => {
+    const { user } = settings({ "AuthService/RequestEmailChange": () => fail("permission_denied", "wrong") });
+    const form = await screen.findByRole("form", { name: "Change email" });
+    await user.type(within(form).getByLabelText("New email"), "wren@new.example");
+    await user.type(within(form).getByLabelText("Current password"), "not it");
+    await user.click(within(form).getByRole("button", { name: "Send confirmation link" }));
+    const field = within(form).getByLabelText("Current password");
+    await waitFor(() => expect(field).toHaveAttribute("aria-invalid", "true"));
+    expect(field).toHaveAccessibleDescription("Your current password is not right.");
+    expect(within(form).getAllByRole("alert")).toHaveLength(1);
+  });
+
+  it("clears a success line once the form is edited again", async () => {
+    const { user } = settings({ "AuthService/ChangePassword": () => ok() });
+    const form = await screen.findByRole("form", { name: "Change password" });
+    await user.type(within(form).getByLabelText("Current password"), "old secret here");
+    await user.type(within(form).getByLabelText("New password"), "a new long secret");
+    await user.type(within(form).getByLabelText("Repeat new password"), "a new long secret");
+    await user.click(within(form).getByRole("button", { name: "Change password" }));
+    expect(await within(form).findByRole("status")).toHaveTextContent("Your password is changed.");
+    await user.type(within(form).getByLabelText("New password"), "x");
+    expect(within(form).queryByRole("status")).not.toBeInTheDocument();
+    await user.click(within(form).getByRole("button", { name: "Change password" }));
+    expect(await within(form).findByText("Enter a password.")).toBeInTheDocument();
+    expect(within(form).queryByText(/Your password is changed/)).not.toBeInTheDocument();
   });
 
   it("sends a confirmation link to the new email and keeps the old one shown", async () => {
     const { api, user } = settings({ "AuthService/RequestEmailChange": () => ok() });
     const form = await screen.findByRole("form", { name: "Change email" });
-    expect(form).toHaveTextContent("Your email stays wren@example.com until you follow it.");
+    expect(form).toHaveTextContent(
+      "We email a confirmation link to the new address. Until you follow it, your email stays wren@example.com.",
+    );
     await user.type(within(form).getByLabelText("New email"), "wren@new.example");
     await user.type(within(form).getByLabelText("Current password"), "my secret");
     await user.click(within(form).getByRole("button", { name: "Send confirmation link" }));
@@ -337,7 +372,7 @@ describe("SettingsPage sign-in and security", () => {
     await user.type(within(form).getByLabelText("New email"), "taken@example.com");
     await user.type(within(form).getByLabelText("Current password"), "my secret");
     await user.click(within(form).getByRole("button", { name: "Send confirmation link" }));
-    expect(await within(form).findByRole("alert")).toHaveTextContent("an account with that email already exists");
+    expect(await within(form).findByRole("alert")).toHaveTextContent("An account with that email already exists.");
   });
 
   it("signs out everywhere after confirming, and lands on sign in", async () => {
@@ -346,6 +381,7 @@ describe("SettingsPage sign-in and security", () => {
     const dialog = await screen.findByRole("dialog", { name: "Sign out everywhere?" });
     await user.click(within(dialog).getByRole("button", { name: "Sign out everywhere" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+    expect(await screen.findByRole("status")).toHaveTextContent("You are signed out on every device.");
     expect(api.sent("AuthService/SignOutEverywhere")).toHaveLength(1);
     expect(currentSession()).toBeNull();
     expect(getAccessToken()).toBeNull();
@@ -422,7 +458,12 @@ describe("UnsubscribePage", () => {
       "NotifyService/Unsubscribe": () => fail("invalid_argument", "this unsubscribe link is not valid"),
     });
     await user.click(await screen.findByRole("button", { name: "Stop emails" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Sign in and turn emails off in Settings.");
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Sign in and turn emails off in Settings.");
+    expect(within(alert).getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+    // The server said the link is bad; asking again cannot help.
+    expect(screen.queryByRole("button", { name: "Stop emails" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "This link no longer works" })).toHaveFocus();
   });
 
   it("asks nothing of the server when the link is incomplete", async () => {

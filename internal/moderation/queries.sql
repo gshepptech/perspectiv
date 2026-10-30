@@ -80,6 +80,21 @@ UPDATE lore_posts SET hidden_at = coalesce(hidden_at, now()) WHERE id = @id::uui
 -- name: ClearLoreName :execrows
 UPDATE lores SET name = NULL, named_by = NULL, name_cleared_at = now() WHERE id = @id::uuid;
 
+-- name: RestorePerspective :one
+-- Unhides a hidden perspective; no row when it was not hidden.
+UPDATE perspectives SET hidden_at = NULL WHERE id = @id::uuid AND hidden_at IS NOT NULL
+RETURNING arc_id;
+
+-- name: RestorePlace :execrows
+UPDATE places SET hidden_at = NULL WHERE id = @id::uuid AND hidden_at IS NOT NULL;
+
+-- name: RestoreLorePost :execrows
+UPDATE lore_posts SET hidden_at = NULL WHERE id = @id::uuid AND hidden_at IS NOT NULL;
+
+-- name: LiftSuspension :execrows
+-- Clears a live account's suspension; no row when it was not suspended.
+UPDATE users SET suspended_at = NULL WHERE id = @id::uuid AND suspended_at IS NOT NULL AND deleted_at IS NULL;
+
 -- name: SuspendUser :execrows
 UPDATE users SET suspended_at = coalesce(suspended_at, now()) WHERE id = @id::uuid;
 
@@ -195,7 +210,7 @@ SELECT pg_advisory_xact_lock(hashtextextended(@key::text, 0));
 -- name: ListAuditLog :many
 -- The audit log, newest first, keyset-paginated on id. Each filter is off
 -- when NULL; a subject matches actions on the account or on a perspective or
--- thread post it wrote.
+-- thread post it wrote, other than lookups.
 SELECT a.id,
        a.actor_id,
        (CASE WHEN au.deleted_at IS NOT NULL THEN '[deleted]' ELSE coalesce(au.username, '') END)::text AS actor_username,
@@ -227,6 +242,10 @@ WHERE (sqlc.narg(action)::text IS NULL OR a.action = sqlc.narg(action)::text)
                SELECT 1 FROM perspectives sp WHERE sp.id = a.target_id AND sp.author_id = sqlc.narg(subject_id)::uuid))
        OR (a.target_kind = 'AUDIT_TARGET_KIND_LORE_POST' AND EXISTS (
                SELECT 1 FROM lore_posts slp WHERE slp.id = a.target_id AND slp.author_id = sqlc.narg(subject_id)::uuid)))
+  -- About a user means acted on them: lookups only read the account, and a
+  -- dossier opened often would bury its actions under them. The whole log
+  -- still lists every lookup.
+  AND (sqlc.narg(subject_id)::uuid IS NULL OR a.action <> 'AUDIT_ACTION_USER_LOOKUP')
   AND (sqlc.narg(before_id)::bigint IS NULL OR a.id < sqlc.narg(before_id)::bigint)
 ORDER BY a.id DESC
 LIMIT @max_rows::integer;

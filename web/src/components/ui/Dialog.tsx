@@ -23,7 +23,7 @@ export function DialogContent({ className, children, ...props }: ComponentProps<
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute top-3 right-3 inline-flex size-9 items-center justify-center rounded-md text-ink-muted hover:text-ink"
+          className="absolute top-2 right-2 inline-flex size-11 items-center justify-center rounded-md text-ink-muted hover:text-ink"
           aria-label="Close"
         >
           <X aria-hidden size={18} />
@@ -34,7 +34,7 @@ export function DialogContent({ className, children, ...props }: ComponentProps<
 }
 
 export function DialogTitle({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) {
-  return <DialogPrimitive.Title className={cn("pr-10 font-serif text-xl font-semibold", className)} {...props} />;
+  return <DialogPrimitive.Title className={cn("pr-12 font-serif text-xl font-semibold", className)} {...props} />;
 }
 
 export function DialogDescription({ className, ...props }: ComponentProps<typeof DialogPrimitive.Description>) {

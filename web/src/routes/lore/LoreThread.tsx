@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
+import { useShowMore } from "@/lib/showMore";
 import { useSession } from "@/lib/session";
 
 const MAX_POST = 1000;
@@ -52,6 +53,7 @@ export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boole
     },
   });
   const items = posts.data?.pages.flatMap((p) => p.posts) ?? [];
+  const more = useShowMore<HTMLOListElement>(items.length, posts.fetchNextPage);
   const error = form.formState.errors.body?.message;
 
   return (
@@ -68,7 +70,7 @@ export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boole
         <p className="mt-3 text-ink-muted">Nobody has said anything yet. Were you there? Start the conversation.</p>
       )}
       {items.length > 0 && (
-        <ol aria-label="Posts" className="mt-4 grid gap-4">
+        <ol ref={more.list} aria-label="Posts" className="mt-4 grid gap-4">
           {items.map((p) => (
             <li key={p.id} className="min-w-0">
               {/* Report stays on the header's row: the byline wraps beside it rather than pushing it below. */}
@@ -94,7 +96,7 @@ export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boole
         </ol>
       )}
       {posts.hasNextPage && (
-        <Button variant="ghost" size="sm" className="mt-3" pending={posts.isFetchingNextPage} onClick={() => void posts.fetchNextPage()}>
+        <Button variant="ghost" size="sm" className="mt-3" pending={posts.isFetchingNextPage} onClick={more.showMore}>
           Older posts
         </Button>
       )}

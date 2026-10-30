@@ -183,6 +183,10 @@ enum AuditAction {
   AUDIT_ACTION_WAITLIST_INVITE = 10;
   // An admin looked an account up, which shows its masked email.
   AUDIT_ACTION_USER_LOOKUP = 11;
+  // An admin restored a suspended account's standing.
+  AUDIT_ACTION_LIFT_SUSPENSION = 12;
+  // An admin made hidden content readable again; the target kind says what.
+  AUDIT_ACTION_RESTORE = 13;
 }
 
 // AuditTargetKind is what an audit entry acted on.

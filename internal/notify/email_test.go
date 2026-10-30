@@ -336,5 +336,7 @@ func checkUnsubscribe(t *testing.T, m mailer.Message, want bool) {
 		t.Fatalf("one-click URL = %q", m.Unsubscribe)
 	}
 	wantContains(t, "text", m.Text, []string{page}, true)
-	wantContains(t, "html", m.HTML, []string{"Stop these emails: " + page}, true)
+	wantContains(t, "text", m.Text, []string{"Stop these emails: " + page}, true)
+	// In HTML both are links with words, not bare addresses.
+	wantContains(t, "html", m.HTML, []string{`">Stop these emails</a>.`, `<a href="` + baseURL + `/settings">Change it in Settings</a>.`}, true)
 }

@@ -47,7 +47,7 @@ describe("report queue (FR-035)", () => {
     renderRoute("/admin/reports");
     const item = await screen.findByRole("listitem", { name: /The rainy Thursday/ });
     expect(item).toHaveTextContent("Perspective");
-    expect(item).toHaveTextContent("Names a real person who is not a user");
+    expect(item).toHaveTextContent("Real name or handle of a non-user");
     expect(item).toHaveTextContent("Names my neighbour in part 2.");
     expect(item).toHaveTextContent("Reported by marlo");
     expect(within(item).getByRole("link", { name: "Open the perspective" })).toHaveAttribute("href", "/perspectives/p-7");
@@ -96,6 +96,8 @@ describe("report queue (FR-035)", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(await screen.findByText("No open reports.")).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Queue status" })).toHaveTextContent("Report resolved: hide perspective.");
+    // The Resolve button went with the report; focus is on what happened.
+    await waitFor(() => expect(screen.getByRole("status", { name: "Queue status" })).toHaveFocus());
   });
 
   it("offers the action that fits each target kind", async () => {

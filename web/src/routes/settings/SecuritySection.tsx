@@ -1,4 +1,4 @@
-import { Code } from "@connectrpc/connect";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -14,18 +14,37 @@ import { clients } from "@/lib/connect";
 import { clearSession } from "@/lib/session";
 import { FormAlert } from "@/routes/auth/AuthPanel";
 import { errorMessage } from "@/routes/auth/errors";
+import type { LoginState } from "@/routes/auth/LoginPage";
 import { emailSchema, passwordSchema } from "@/routes/auth/rules";
 
 import { Saved, Section } from "./Section";
 
 // A wrong current password comes back PermissionDenied; it is the reader's
-// typo, not a lack of rights, so it is worded as one.
-const wrongPassword = { [Code.PermissionDenied]: "Your current password is not right." };
+// typo, not a lack of rights, so it is worded as one and shown under the
+// Current password field rather than as a form-level alert.
+const WRONG_PASSWORD = "Your current password is not right.";
+
+function isWrongPassword(err: unknown): boolean {
+  return ConnectError.from(err).code === Code.PermissionDenied;
+}
+
+/** A request failure the field errors do not already show. */
+function formFailure(err: Error | null): string | null {
+  return err && !isWrongPassword(err) ? errorMessage(err) : null;
+}
 
 const passwordForm = z
   .object({ currentPassword: passwordSchema, newPassword: passwordSchema, repeat: z.string() })
   .refine((v) => v.newPassword === v.repeat, { error: "The two passwords differ.", path: ["repeat"] });
 type PasswordValues = z.infer<typeof passwordForm>;
+
+/**
+ * Typing into a form after it answered clears that answer, so a success line
+ * never sits beside a new validation error. A request in flight is left alone.
+ */
+function clearAnswer(m: { isSuccess: boolean; isError: boolean; reset: () => void }) {
+  if (m.isSuccess || m.isError) m.reset();
+}
 
 function ChangePassword() {
   const form = useForm<PasswordValues>({
@@ -35,10 +54,19 @@ function ChangePassword() {
   const change = useMutation({
     mutationFn: (v: PasswordValues) => clients.auth.changePassword({ currentPassword: v.currentPassword, newPassword: v.newPassword }),
     onSuccess: () => form.reset(),
+    onError: (err) => {
+      if (isWrongPassword(err)) form.setError("currentPassword", { message: WRONG_PASSWORD }, { shouldFocus: true });
+    },
   });
   return (
     <Form {...form}>
-      <form noValidate className="grid gap-4" onSubmit={form.handleSubmit((v) => change.mutate(v))} aria-labelledby="security-password">
+      <form
+        noValidate
+        className="grid gap-4"
+        onSubmit={form.handleSubmit((v) => change.mutate(v))}
+        onChange={() => clearAnswer(change)}
+        aria-labelledby="security-password"
+      >
         <h3 id="security-password" className="text-lg">
           Change password
         </h3>
@@ -82,7 +110,7 @@ function ChangePassword() {
             </FormItem>
           )}
         />
-        <FormAlert message={change.error ? errorMessage(change.error, wrongPassword) : null} />
+        <FormAlert message={formFailure(change.error)} />
         <Saved message={change.isSuccess ? "Your password is changed. Every other device is signed out." : null} />
         <div>
           <Button type="submit" variant="secondary" pending={change.isPending}>
@@ -102,10 +130,19 @@ function ChangeEmail({ email }: { email: string }) {
   const change = useMutation({
     mutationFn: (v: EmailValues) => clients.auth.requestEmailChange(v),
     onSuccess: () => form.reset(),
+    onError: (err) => {
+      if (isWrongPassword(err)) form.setError("currentPassword", { message: WRONG_PASSWORD }, { shouldFocus: true });
+    },
   });
   return (
     <Form {...form}>
-      <form noValidate className="grid gap-4" onSubmit={form.handleSubmit((v) => change.mutate(v))} aria-labelledby="security-email">
+      <form
+        noValidate
+        className="grid gap-4"
+        onSubmit={form.handleSubmit((v) => change.mutate(v))}
+        onChange={() => clearAnswer(change)}
+        aria-labelledby="security-email"
+      >
         <h3 id="security-email" className="text-lg">
           Change email
         </h3>
@@ -118,7 +155,9 @@ function ChangeEmail({ email }: { email: string }) {
               <FormControl>
                 <Input type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} {...field} />
               </FormControl>
-              <FormDescription>We email a link to the new address. Your email stays {email} until you follow it.</FormDescription>
+              <FormDescription>
+                We email a confirmation link to the new address. Until you follow it, your email stays {email}.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -136,7 +175,7 @@ function ChangeEmail({ email }: { email: string }) {
             </FormItem>
           )}
         />
-        <FormAlert message={change.error ? errorMessage(change.error, wrongPassword) : null} />
+        <FormAlert message={formFailure(change.error)} />
         <Saved
           message={
             change.isSuccess
@@ -167,7 +206,8 @@ function SignOutEverywhere() {
     onSuccess: async () => {
       clearSession();
       queryClient.clear();
-      await navigate("/login", { replace: true });
+      const state: LoginState = { signedOutEverywhere: true };
+      await navigate("/login", { replace: true, state });
     },
   });
   return (

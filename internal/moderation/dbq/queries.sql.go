@@ -368,6 +368,19 @@ func (q *Queries) LastSignIn(ctx context.Context, userID uuid.UUID) (time.Time, 
 	return created_at, err
 }
 
+const liftSuspension = `-- name: LiftSuspension :execrows
+UPDATE users SET suspended_at = NULL WHERE id = $1::uuid AND suspended_at IS NOT NULL AND deleted_at IS NULL
+`
+
+// Clears a live account's suspension; no row when it was not suspended.
+func (q *Queries) LiftSuspension(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, liftSuspension, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const listAuditLog = `-- name: ListAuditLog :many
 SELECT a.id,
        a.actor_id,
@@ -400,6 +413,10 @@ WHERE ($1::text IS NULL OR a.action = $1::text)
                SELECT 1 FROM perspectives sp WHERE sp.id = a.target_id AND sp.author_id = $3::uuid))
        OR (a.target_kind = 'AUDIT_TARGET_KIND_LORE_POST' AND EXISTS (
                SELECT 1 FROM lore_posts slp WHERE slp.id = a.target_id AND slp.author_id = $3::uuid)))
+  -- About a user means acted on them: lookups only read the account, and a
+  -- dossier opened often would bury its actions under them. The whole log
+  -- still lists every lookup.
+  AND ($3::uuid IS NULL OR a.action <> 'AUDIT_ACTION_USER_LOOKUP')
   AND ($4::bigint IS NULL OR a.id < $4::bigint)
 ORDER BY a.id DESC
 LIMIT $5::integer
@@ -429,7 +446,7 @@ type ListAuditLogRow struct {
 
 // The audit log, newest first, keyset-paginated on id. Each filter is off
 // when NULL; a subject matches actions on the account or on a perspective or
-// thread post it wrote.
+// thread post it wrote, other than lookups.
 func (q *Queries) ListAuditLog(ctx context.Context, arg ListAuditLogParams) ([]ListAuditLogRow, error) {
 	rows, err := q.db.Query(ctx, listAuditLog,
 		arg.Action,
@@ -737,6 +754,43 @@ func (q *Queries) ResolveReport(ctx context.Context, arg ResolveReportParams) er
 		arg.ID,
 	)
 	return err
+}
+
+const restoreLorePost = `-- name: RestoreLorePost :execrows
+UPDATE lore_posts SET hidden_at = NULL WHERE id = $1::uuid AND hidden_at IS NOT NULL
+`
+
+func (q *Queries) RestoreLorePost(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, restoreLorePost, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const restorePerspective = `-- name: RestorePerspective :one
+UPDATE perspectives SET hidden_at = NULL WHERE id = $1::uuid AND hidden_at IS NOT NULL
+RETURNING arc_id
+`
+
+// Unhides a hidden perspective; no row when it was not hidden.
+func (q *Queries) RestorePerspective(ctx context.Context, id uuid.UUID) (*uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, restorePerspective, id)
+	var arc_id *uuid.UUID
+	err := row.Scan(&arc_id)
+	return arc_id, err
+}
+
+const restorePlace = `-- name: RestorePlace :execrows
+UPDATE places SET hidden_at = NULL WHERE id = $1::uuid AND hidden_at IS NOT NULL
+`
+
+func (q *Queries) RestorePlace(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, restorePlace, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const setRoleAdmin = `-- name: SetRoleAdmin :exec

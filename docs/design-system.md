@@ -260,6 +260,14 @@ heading, a plain list of entries with `rule` dividers, "Show more" to page.
   line" as its actor. A target that has a page links to it; a user target
   links to its dossier.
 - In the report queue, the reporter's name links to their dossier.
+- **Undoing a decision.** A suspended account's dossier offers "Lift
+  suspension…" beside its standing; a hide entry in the audit log
+  (perspective, place or thread post) offers "Restore…". Both open the
+  same small dialog: what is being undone, a required "Reason for the
+  audit log", and a primary button naming the action. On success the
+  dialog closes, a status line says what changed and takes focus, and the
+  dossier or log re-reads, so the new entry appears at the top. A restore
+  of something already visible says so in the dialog instead.
 
 ## App icon
 
