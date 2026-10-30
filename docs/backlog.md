@@ -3,24 +3,35 @@
 What is left before a public beta, in the order it is being worked. An item
 moves to Done in the same commit as the work, with what was verified.
 
-## Doing
+## Doing (wave 2)
 
-Nothing: the pre-beta list is done. What remains waits on the owner.
+8. **Account security.** Change password while signed in, change email with
+   verification of the new address, and sign out of every device.
+9. **Mobile pass.** Every main screen checked at 375px for overflow, tap
+   targets and reading comfort, and fixed (review delegated).
+
+## Next
+
+11. **Search stories.** Full-text search over published stories and arc
+    titles, inside a place and everywhere.
+12. **Moderation tools.** An audit log view and a user lookup for admins.
 
 ## Waiting on a decision or an event
 
 - **Legal review and a contact address.** The Terms, Privacy and
   Community guidelines pages describe what the code does today; they need a
   lawyer's review and a real contact address from the owner before launch.
-- **History before any push.** Two early commits on this branch hold 58 MB of
-  stray binaries; squash them before the branch is pushed. Rewriting history
-  waits for the owner's go-ahead.
 - **Intermittent race in TestServeByRole.** Seen twice under the full gate,
   never in eight reruns. `make test-integration` now keeps
   tmp/test-results/integration.json with the race report for the next one.
 
 ## Done
 
+- A livelier beta: five more seed days (Tampa, Key West, Jacksonville,
+  Saint Petersburg, Sarasota) with 26 new writers, three canon lores, two
+  contenders, four tales, named lores and thread posts. Characters are
+  described, never named, and no place is a business. Verified by
+  `make seed` on the dev database and the rank pass promoting the canons.
 - Notification digest: "Send my emails as one daily summary" in Settings.
   While on, each email-worthy event becomes a digest item; an hourly job
   sends each digest account one summary of its items at most once a day

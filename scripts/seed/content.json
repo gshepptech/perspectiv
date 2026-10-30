@@ -371,6 +371,357 @@
         { "claimant": "wristband_wren", "author": "setlist_sam", "character": "the girl humming the encore at the counter" },
         { "claimant": "setlist_sam", "author": "wristband_wren", "character": "the guy who split the short stack" }
       ]
+    },
+    {
+      "place": "Curtis Hixon Waterfront Park",
+      "city": "Tampa",
+      "date": "2026-09-26",
+      "title": "Giant bubbles on the big lawn",
+      "perspectives": [
+        {
+          "user": "giantbubble_gil",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "Every other Saturday I bring a bucket of dish soap, glycerin and a secret amount of cornstarch to the big lawn by the river, plus two sticks and a loop of cotton rope. On a still afternoon one bubble can get as long as a car. This Saturday the wind dropped around four and I knew it was going to be a good one.",
+            "A little one in dinosaur rain boots chased every single bubble with her dad running two steps behind, apologizing to everyone she bumped into. And a man got off a rental bike on the Riverwalk, leaned it on a tree, sat down in the grass and did not move for an hour. When I packed up he helped me carry the bucket to my car."
+          ],
+          "characters": ["the dad chasing a toddler in dinosaur rain boots", "the man who parked his rental bike and stayed"]
+        },
+        {
+          "user": "rainboots_dad",
+          "genre": "COMEDY",
+          "parts": [
+            "My daughter wore her dinosaur rain boots because it said thirty percent chance of rain, and also because she wears them to everything, including the pool. We came for the playground. We never made it to the playground. A man was making bubbles the size of a minivan and she decided that her job, her only job, was to pop all of them.",
+            "I said sorry to roughly forty strangers in one hour. Nobody minded. A woman on a picnic blanket was drawing the bubbles and she turned her clipboard around to show my daughter, who announced that the drawing was wrong because it did not have her in it. The woman added a tiny dinosaur boot in the corner."
+          ],
+          "characters": ["the woman drawing on a picnic blanket"]
+        },
+        {
+          "user": "rented_wheels_ro",
+          "genre": "DRAMA",
+          "parts": [
+            "I moved to Tampa in August for a job and I still do not know anyone outside my office. Saturdays have been long. I rented a bike to ride the whole Riverwalk because a coworker said it was the thing to do, and halfway along I saw a bubble float over the railing, bigger than any bubble has a right to be.",
+            "I sat down to watch for a minute and stayed until the sun went orange. A woman a few feet away was sketching on a clipboard and asked if she could put me in the drawing, since I had not moved in so long. I said yes. The man with the bubbles let me try the sticks once. I made a bad one. Everyone clapped anyway."
+          ],
+          "characters": ["the woman sketching on a clipboard"]
+        },
+        {
+          "user": "clipboard_noor",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "I draw at Curtis Hixon most weekends because the light comes off the river sideways in the late afternoon and makes everything look like it is lit from inside. Giant bubbles are the hardest thing I have ever tried to draw. They are every color and no color, and they never hold still long enough.",
+            "So I drew the people instead. A man who had been sitting so still he could have been a statue, his rental bike leaned against a tree. A toddler in dinosaur rain boots who critiqued my work and was right. Her dad, mid-apology. By sunset I had one full page, and it is the best page in the book."
+          ],
+          "characters": ["the toddler's dad, mid-apology"]
+        },
+        {
+          "user": "lost_shades_kat",
+          "genre": "COMEDY",
+          "parts": [
+            "First time on a paddleboard, and I made it from the boat launch to the edge of the park before I turned to wave at my sister and my sunglasses slid right off my head into the river. They were prescription. I said a word I will not repeat on a family website.",
+            "A teenager fishing off the seawall saw the whole thing. He swung his crabbing net down on its long pole, scooped twice, and came up with my glasses and one very confused crab. He handed them down to me like it was nothing. I said thank you in English, then in Spanish, then somehow in French, which I do not speak."
+          ],
+          "characters": ["the teenager on the seawall with a crabbing net"]
+        },
+        {
+          "user": "seawall_crabber",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "I crab off the seawall by the park most Saturdays with chicken necks and a string. My grandpa taught me on this same wall. You learn to watch the water, not your phone, and that is how I saw the paddleboarder's sunglasses go in. They sank slow, right by the pilings.",
+            "Two scoops and I had them. Also a blue crab, who I put back. She said thank you in about three languages, one of which I am pretty sure she invented. I am nineteen and nobody has ever thanked me that hard for anything. I went home and told my grandpa and he laughed until he coughed."
+          ],
+          "characters": ["the paddleboarder who said thank you in three languages"]
+        },
+        {
+          "user": "green_chair_watch",
+          "genre": "MYSTERY",
+          "solo": true,
+          "parts": [
+            "When I got to the lawn around two there was a green folding chair set up facing the river, perfectly level, with a paperback face down on the seat and a thermos tucked in the cup holder. Nobody near it. I figured whoever owned it had gone for a bathroom or a snack and would be back in five minutes.",
+            "At six it was still there. The book was a mystery, fittingly, open to page two hundred and twelve. I did not touch anything. When I left after sunset the chair was gone, and I never saw anyone pick it up. If it was yours, I hope you liked the ending."
+          ],
+          "characters": ["whoever left the green folding chair"]
+        }
+      ],
+      "claims": [
+        { "claimant": "rainboots_dad", "author": "giantbubble_gil", "character": "the dad chasing a toddler in dinosaur rain boots" },
+        { "claimant": "rented_wheels_ro", "author": "giantbubble_gil", "character": "the man who parked his rental bike and stayed" },
+        { "claimant": "clipboard_noor", "author": "rented_wheels_ro", "character": "the woman sketching on a clipboard" },
+        { "claimant": "rainboots_dad", "author": "clipboard_noor", "character": "the toddler's dad, mid-apology" },
+        { "claimant": "seawall_crabber", "author": "lost_shades_kat", "character": "the teenager on the seawall with a crabbing net" },
+        { "claimant": "lost_shades_kat", "author": "seawall_crabber", "character": "the paddleboarder who said thank you in three languages" }
+      ],
+      "posts": [
+        { "in_lore_of": "giantbubble_gil", "user": "clipboard_noor", "body": "I scanned the page. Gil, Ro, I can send you both a copy. The dinosaur boot stays in the corner." },
+        { "in_lore_of": "giantbubble_gil", "user": "rented_wheels_ro", "body": "Two weeks from Saturday, same lawn? I will bring the bike back and actually try to make a good one." },
+        { "in_lore_of": "giantbubble_gil", "user": "rainboots_dad", "body": "She has asked about the bubble man every day since. Please confirm you exist so I can stop being questioned." },
+        { "in_lore_of": "giantbubble_gil", "user": "giantbubble_gil", "body": "I exist. Wind permitting, the bucket will be there." },
+        { "in_lore_of": "seawall_crabber", "user": "lost_shades_kat", "body": "I would like the record to show I have since bought a strap for my glasses." },
+        { "in_lore_of": "seawall_crabber", "user": "seawall_crabber", "body": "The crab would like the record to show it was having a normal day before this." }
+      ],
+      "names": [
+        { "in_lore_of": "giantbubble_gil", "user": "clipboard_noor", "name": "The bubble Saturday" },
+        { "in_lore_of": "seawall_crabber", "user": "lost_shades_kat", "name": "Sunglasses off the seawall" }
+      ]
+    },
+    {
+      "place": "Fort Zachary Taylor State Park",
+      "city": "Key West",
+      "date": "2026-10-04",
+      "hour": 18,
+      "title": "Sunset on the rocks",
+      "perspectives": [
+        {
+          "user": "reef_or_bust",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "The beach at Fort Zach is rocky and everybody warns you about it, and everybody is right, and it is still the best snorkeling you can walk into from the sand. I spent the late afternoon floating over the rocks while a college kid next to me in a mask two sizes too big narrated every fish to nobody.",
+            "When the light went gold we all climbed out and sat on the rocks to wait for the sun. An older man near me had a little notebook and wrote something down the second it touched the water. I asked. He said he has been counting sunsets for years. This was one of the good ones, he said, and underlined it."
+          ],
+          "characters": ["the college kid in the oversized snorkel mask", "the man counting sunsets in a notebook"]
+        },
+        {
+          "user": "mask_too_big",
+          "genre": "COMEDY",
+          "parts": [
+            "I borrowed my roommate's snorkel mask, and my roommate has a much larger head than me, which I learned about four seconds into the water. I spent the whole swim holding it on with one hand and yelling into the snorkel every time I saw something. Parrotfish. Another parrotfish. A thing that was maybe a rock.",
+            "The woman floating next to me finally lifted her head and said 'that one is a sergeant major,' and I said 'thank you' through the snorkel, which came out as a long honk. Later on the rocks a couple a little way down started clapping for the sunset, and I clapped too, because I had never seen anything like it."
+          ],
+          "characters": ["the snorkeler who told me the fish names", "the couple who clapped for the sunset"]
+        },
+        {
+          "user": "sunset_ledger",
+          "genre": "DRAMA",
+          "parts": [
+            "My wife and I started writing down sunsets in 2009, one line each, place and color. She kept the book and I kept the pen. Since she passed I keep both. I go to Fort Zach on Sundays because she liked how the sun drops right between the ships and the shore.",
+            "That evening a young woman with salt in her hair asked what I was writing, and I told her, which I do not usually do. Then a couple down the rocks clapped when the sun went under, the way people used to on Mallory Square. I wrote it down: orange, then pink, applause. That is a good line. She would have liked it."
+          ],
+          "characters": ["the young woman who asked about my notebook"]
+        },
+        {
+          "user": "clapped_at_sunset",
+          "genre": "ROMANCE",
+          "parts": [
+            "We got married on Thursday in a courthouse in Ohio and flew to Key West on Friday with one carry-on each. We had a list. Sunday's item was 'sunset somewhere that isn't Mallory Square,' because we wanted it to be quiet. We found the rocks at Fort Zach and a kid in a huge snorkel mask honking at fish.",
+            "When the sun touched the water I clapped. I don't know why. My husband laughed and joined in, and then the kid in the mask clapped too, and an older man with a notebook looked up and smiled at us like he knew something. I keep thinking about that smile. I think it was a blessing."
+          ],
+          "characters": ["the kid in the huge snorkel mask", "the older man with a notebook"]
+        },
+        {
+          "user": "ring_in_the_shallows",
+          "genre": "DRAMA",
+          "parts": [
+            "I took my ring off to put on sunscreen, set it on my towel, and somehow when I shook the towel out the ring went with the sand into the shallows. It was my grandmother's. I was on my knees in six inches of water with my phone flashlight, nearly crying, while the sun went down behind me.",
+            "A guy in a mask and fins was just coming in. He asked what I'd lost, said 'give me two minutes,' and went face down in the water like a heron. It took him more like twenty minutes. He came up holding the ring between two fingers and said 'this one?' as if there could be another."
+          ],
+          "characters": ["the snorkeler who came up holding my ring"]
+        },
+        {
+          "user": "fins_after_five",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "I snorkel Fort Zach after work most days when the water is clear, and I've found a lot of things on the bottom there: sunglasses, a fork, once a whole flip-flop with a fish living in it. I was walking out when I saw a woman on her knees at the edge of the water, holding her phone light over the sand.",
+            "A ring in the shallows is easier than it sounds if you keep your shadow off it. The light was going so I stayed low and slow. When I found it she did not say anything for a second, just held it with both hands. Then she hugged me, fins and all. Best thing I've ever pulled off that bottom."
+          ],
+          "characters": ["the woman searching the shallows by phone light"]
+        }
+      ],
+      "claims": [
+        { "claimant": "mask_too_big", "author": "reef_or_bust", "character": "the college kid in the oversized snorkel mask" },
+        { "claimant": "sunset_ledger", "author": "reef_or_bust", "character": "the man counting sunsets in a notebook" },
+        { "claimant": "clapped_at_sunset", "author": "mask_too_big", "character": "the couple who clapped for the sunset" },
+        { "claimant": "reef_or_bust", "author": "sunset_ledger", "character": "the young woman who asked about my notebook" },
+        { "claimant": "fins_after_five", "author": "ring_in_the_shallows", "character": "the snorkeler who came up holding my ring" },
+        { "claimant": "ring_in_the_shallows", "author": "fins_after_five", "character": "the woman searching the shallows by phone light" }
+      ],
+      "posts": [
+        { "in_lore_of": "reef_or_bust", "user": "clapped_at_sunset", "body": "We read this on the plane home and both cried in row 23. Thank you for writing down our clap." },
+        { "in_lore_of": "reef_or_bust", "user": "sunset_ledger", "body": "It is in the book now. Orange, then pink, applause. All four of you are in that line." },
+        { "in_lore_of": "reef_or_bust", "user": "mask_too_big", "body": "Update: bought my own mask. It fits. I miss the honk a little." },
+        { "in_lore_of": "fins_after_five", "user": "ring_in_the_shallows", "body": "Showed my grandmother's ring to my mom and told her the whole story. She wants to buy you dinner." },
+        { "in_lore_of": "fins_after_five", "user": "fins_after_five", "body": "Tell her I accept. Also tell her to keep that towel away from the water." }
+      ],
+      "names": [
+        { "in_lore_of": "reef_or_bust", "user": "sunset_ledger", "name": "Orange, then pink, applause" }
+      ]
+    },
+    {
+      "place": "Kathryn Abbey Hanna Park",
+      "city": "Jacksonville",
+      "date": "2026-10-10",
+      "title": "The morning the swell came in",
+      "perspectives": [
+        {
+          "user": "dawn_patrol_jax",
+          "genre": "ACTION",
+          "parts": [
+            "Swell forecast said chest high and clean for Saturday morning and for once the forecast told the truth. I was in the water at Hanna by six-forty, sets rolling in long and glassy, the kind of morning you tell people about for a year. Every surfer in Duval County had the same idea by seven.",
+            "Between sets I watched a first-timer on a blue foam board try to stand up maybe thirty times, so I started yelling 'paddle, paddle, now stand' when her wave came. On the beach an old man was doing tai chi right at the waterline, slow as anything, while a dog ran circles around him carrying something in its mouth."
+          ],
+          "characters": ["the first-timer on the blue foam board", "the old man doing tai chi at the waterline"]
+        },
+        {
+          "user": "foamie_first_time",
+          "genre": "COMEDY",
+          "parts": [
+            "I turned forty this year and my list said 'learn to surf,' so I bought the biggest, bluest foam board at the store and drove to Hanna Park at dawn like a person with a plan. I did not have a plan. I had a board and a lot of confidence and no idea which way the waves were going.",
+            "Thirty-one falls. I counted. On thirty-two a guy out past me started yelling 'paddle, paddle, now stand,' and I did all three in that order, and I rode it maybe four seconds all the way to where the water was shin deep. I screamed. He screamed. A woman on the beach chasing her dog screamed too, I think just to be included."
+          ],
+          "characters": ["the surfer yelling 'paddle, paddle, now stand'"]
+        },
+        {
+          "user": "tai_chi_at_tide",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "I am seventy-six and I do my form at the edge of the water every morning I can get to Hanna. The sand is soft, which keeps the knees honest. That Saturday was crowded with surfers, the water full of black wetsuits like seals, and I liked the company.",
+            "Halfway through, a sandy brown dog sat down in front of me and dropped a crab shell at my feet like a gift. Then it watched me, very seriously, through the whole second half of the form. Its owner arrived out of breath and apologized. I told her it had better posture than most of my class."
+          ],
+          "characters": ["the woman whose dog brought me a crab shell"]
+        },
+        {
+          "user": "biscuit_off_leash",
+          "genre": "COMEDY",
+          "parts": [
+            "Biscuit is a two-year-old mutt with exactly one hobby: finding things on the beach and giving them to strangers. I unclipped her for one second at the dog-friendly end to fix my shoe and she was gone down the sand at full speed toward a man doing tai chi.",
+            "By the time I caught up she had given him a crab shell and was sitting perfectly, like a dog in a commercial. He told me she had better posture than his students. Then a woman out in the water stood up on a blue board and rode all the way in, and I screamed with her, because what else do you do."
+          ],
+          "characters": ["the woman who rode the blue board all the way in"]
+        },
+        {
+          "user": "painted_rock_trail",
+          "genre": "MYSTERY",
+          "solo": true,
+          "parts": [
+            "While everyone was on the beach I walked the bike trails around the lake. Every quarter mile or so there was a small rock at the base of a tree, painted bright, each with one or two words in white letters. The first one said 'keep.' The next one said 'going.' Then 'you're.' Then 'almost.'",
+            "I followed them for two miles. The last rock I found, back near the lake, said 'there,' and nothing came after it. I sat on the bench by the water for a while anyway. I don't know who painted them or what they meant for, but that Saturday they were for me."
+          ],
+          "characters": ["whoever painted the rocks on the lake trail"]
+        }
+      ],
+      "claims": [
+        { "claimant": "foamie_first_time", "author": "dawn_patrol_jax", "character": "the first-timer on the blue foam board" },
+        { "claimant": "dawn_patrol_jax", "author": "foamie_first_time", "character": "the surfer yelling 'paddle, paddle, now stand'" },
+        { "claimant": "tai_chi_at_tide", "author": "dawn_patrol_jax", "character": "the old man doing tai chi at the waterline" },
+        { "claimant": "biscuit_off_leash", "author": "tai_chi_at_tide", "character": "the woman whose dog brought me a crab shell" },
+        { "claimant": "foamie_first_time", "author": "biscuit_off_leash", "character": "the woman who rode the blue board all the way in" }
+      ],
+      "posts": [
+        { "in_lore_of": "dawn_patrol_jax", "user": "foamie_first_time", "body": "Went back Sunday. Stood up on the ninth try. Nobody yelled and I missed it." },
+        { "in_lore_of": "dawn_patrol_jax", "user": "dawn_patrol_jax", "body": "Next swell, I will be out there yelling. Paddle, paddle, now stand." },
+        { "in_lore_of": "dawn_patrol_jax", "user": "tai_chi_at_tide", "body": "Biscuit is welcome in my class any morning. She can bring a shell." }
+      ],
+      "names": [
+        { "in_lore_of": "dawn_patrol_jax", "user": "foamie_first_time", "name": "Paddle, paddle, now stand" }
+      ]
+    },
+    {
+      "place": "Vinoy Park",
+      "city": "Saint Petersburg",
+      "date": "2026-10-18",
+      "hour": 7,
+      "title": "Sunrise yoga, one mat short",
+      "perspectives": [
+        {
+          "user": "mat_left_at_home",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "There is a free sunrise yoga class on the grass at Vinoy Park on Sunday mornings, and I finally went, and I forgot my mat. I stood at the back holding my car keys and a coffee while forty people unrolled theirs in perfect rows facing the water.",
+            "A man next to me looked at my empty hands, pulled a beach towel out of his bag, gave it to me and did the whole class on the bare grass. He said he wanted the grass anyway. I do not believe him. When we lay down at the end, the sky over the bay went pink and a pelican landed close enough to hear."
+          ],
+          "characters": ["the man who gave me his beach towel"]
+        },
+        {
+          "user": "grass_is_fine",
+          "genre": "COMEDY",
+          "parts": [
+            "I always bring a beach towel in case the grass is wet, and the grass is always wet. On Sunday a woman showed up next to me with a coffee and no mat, looking like she was about to leave, so I handed her the towel. I said I liked the grass. The grass was very wet.",
+            "In front of us a woman laughed through every single balance pose, not a little laugh, a full laugh, which made her fall over, which made her laugh harder. By tree pose half the back row was wobbling and giggling with her. I have been to that class for a year and it was the best one."
+          ],
+          "characters": ["the woman who laughed through every balance pose"]
+        },
+        {
+          "user": "wobbly_tree_pose",
+          "genre": "COMEDY",
+          "parts": [
+            "I cannot balance. My doctor says it is my inner ear. My sister says it is my personality. Either way, at sunrise yoga I fall over during tree pose, and when I fall over I laugh, and I cannot stop once I start.",
+            "Sunday I started early, during warrior three, and by tree pose the whole back row was going. A man behind me on bare wet grass was laughing so hard he had to lie down. The instructor just smiled and said 'balance is a practice.' I'm going back next week. The back row needs me."
+          ],
+          "characters": ["the man laughing on the wet grass behind me"]
+        },
+        {
+          "user": "old_dog_new_route",
+          "genre": "DRAMA",
+          "solo": true,
+          "parts": [
+            "My husband walked our dog along the Vinoy waterfront every morning for eleven years. Since spring it has been me, and for months I took a different route because I could not do the park. On Sunday the dog pulled me that way and I let him.",
+            "There was a yoga class on the grass, forty people lying still under a pink sky, and the dog stopped and sat down to watch them like he was waiting his turn. Nobody noticed us. We stayed until they all sat up. I think I will come back next Sunday. I think he knew the way better than I did."
+          ],
+          "characters": []
+        }
+      ],
+      "claims": [
+        { "claimant": "grass_is_fine", "author": "mat_left_at_home", "character": "the man who gave me his beach towel" },
+        { "claimant": "wobbly_tree_pose", "author": "grass_is_fine", "character": "the woman who laughed through every balance pose" },
+        { "claimant": "grass_is_fine", "author": "wobbly_tree_pose", "character": "the man laughing on the wet grass behind me" }
+      ],
+      "posts": [
+        { "in_lore_of": "mat_left_at_home", "user": "mat_left_at_home", "body": "Washed the towel. Bringing it back Sunday, and I bought a mat. And a second towel, for whoever forgets next." },
+        { "in_lore_of": "mat_left_at_home", "user": "wobbly_tree_pose", "body": "Back row, Sunday, seven sharp. Bring your worst tree pose." }
+      ],
+      "names": [
+        { "in_lore_of": "mat_left_at_home", "user": "wobbly_tree_pose", "name": "The back row" }
+      ]
+    },
+    {
+      "place": "Sarasota Bayfront Park",
+      "city": "Sarasota",
+      "date": "2026-09-19",
+      "hour": 19,
+      "title": "Dolphins off the seawall",
+      "perspectives": [
+        {
+          "user": "cast_net_carl",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "I throw a cast net off the seawall at Bayfront for bait most evenings. You stand still long enough and the bay tells you things. That Saturday it told me dolphins, two of them, working the bait schools right along the wall, close enough to hear them breathe.",
+            "Two young people on a bench were so busy being nervous with each other they hadn't seen them, so I pointed. They both jumped up and leaned on the rail. Down the wall, a woman with a camera lens as long as my arm swung it around in time. I went home with no bait and a good evening."
+          ],
+          "characters": ["the two people on what was obviously a first date", "the woman with the long camera lens"]
+        },
+        {
+          "user": "first_date_sarasota",
+          "genre": "ROMANCE",
+          "parts": [
+            "We had been talking on an app for three weeks and agreed on a walk at Bayfront at sunset because a walk is easy to leave. Neither of us left. We sat on a bench and talked about nothing, and I could not tell you one word of it now, and I don't care.",
+            "An older man with a fishing net turned around and said 'you two are missing it,' and pointed, and there were dolphins right below the rail. She grabbed my arm. That is the part I remember. Later, a woman with a big camera showed us a photo she had taken of the dolphins, and we were in the corner of it, leaning on the rail."
+          ],
+          "characters": ["the man with the cast net who told us to look"]
+        },
+        {
+          "user": "long_lens_evenings",
+          "genre": "SLICE_OF_LIFE",
+          "parts": [
+            "I photograph birds at Bayfront in the evenings. Pelicans mostly, sometimes an osprey. I had my long lens on a heron when I heard the man with the cast net say 'there,' and I swung around just as two dolphins rolled under the seawall, gold light on their backs.",
+            "I got eleven frames. The best one has a dolphin halfway out of the water and, in the corner, two young people leaning on the rail, one of them holding the other's arm. I walked over and showed them on the camera screen. They asked for a copy. I think they will want it someday."
+          ],
+          "characters": ["the couple in the corner of my best frame"]
+        },
+        {
+          "user": "harmonica_somewhere",
+          "genre": "MYSTERY",
+          "solo": true,
+          "parts": [
+            "I eat dinner on the same bench at the marina end of the park on Saturdays. Around dusk someone started playing a harmonica, one slow tune I almost recognized, over and over. It came from the boats, or the path behind me, or the water, depending on the wind.",
+            "I walked the whole seawall looking for whoever it was. Nobody had a harmonica. Nobody else seemed to hear it. It stopped when the streetlights came on. I have hummed it all week trying to name it. If you were playing, I would love to know the song."
+          ],
+          "characters": ["the harmonica player I never found"]
+        }
+      ],
+      "claims": [
+        { "claimant": "first_date_sarasota", "author": "cast_net_carl", "character": "the two people on what was obviously a first date" },
+        { "claimant": "long_lens_evenings", "author": "cast_net_carl", "character": "the woman with the long camera lens" },
+        { "claimant": "first_date_sarasota", "author": "long_lens_evenings", "character": "the couple in the corner of my best frame" }
+      ]
     }
   ]
 }
