@@ -162,6 +162,7 @@ SELECT id
 FROM perspectives
 WHERE arc_id = $1::uuid
   AND author_id = $2::uuid
+  AND deleted_at IS NULL
 `
 
 type FindAuthorPerspectiveInArcParams struct {
@@ -169,7 +170,7 @@ type FindAuthorPerspectiveInArcParams struct {
 	AuthorID uuid.UUID
 }
 
-// The author's perspective in the arc, published or not.
+// The author's perspective in the arc that is not deleted, published or not.
 func (q *Queries) FindAuthorPerspectiveInArc(ctx context.Context, arg FindAuthorPerspectiveInArcParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, findAuthorPerspectiveInArc, arg.ArcID, arg.AuthorID)
 	var id uuid.UUID

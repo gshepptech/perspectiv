@@ -31,7 +31,7 @@ export function FindYourself({ placeId, placeName }: { placeId: string; placeNam
       <h2 id={`${fieldId}-title`} className="font-sans text-base font-medium">
         Were you in someone's story?
       </h2>
-      <p className="mt-1 text-ink-muted">Search how people at {placeName} described the strangers they saw.</p>
+      <p className="mt-1 text-ink-muted wrap-anywhere">Search how people at {placeName} described the strangers they saw.</p>
       <label htmlFor={fieldId} className="sr-only">
         Search descriptions
       </label>

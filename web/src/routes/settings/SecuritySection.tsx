@@ -156,7 +156,7 @@ function ChangeEmail({ email }: { email: string }) {
               <FormControl>
                 <Input type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} {...field} />
               </FormControl>
-              <FormDescription>
+              <FormDescription className="wrap-anywhere">
                 We email a confirmation link to the new address. Until you follow it, your email stays {email}.
               </FormDescription>
               <FormMessage />

@@ -34,7 +34,7 @@ func (q *Queries) DeleteParts(ctx context.Context, perspectiveID uuid.UUID) erro
 const findInArc = `-- name: FindInArc :one
 SELECT id, deleted_at, hidden_at
 FROM perspectives
-WHERE arc_id = $1::uuid AND author_id = $2::uuid
+WHERE arc_id = $1::uuid AND author_id = $2::uuid AND deleted_at IS NULL
 `
 
 type FindInArcParams struct {
@@ -48,8 +48,9 @@ type FindInArcRow struct {
 	HiddenAt  *time.Time
 }
 
-// The author's perspective in an arc, whatever its state; the unique index
-// on (arc_id, author_id) allows at most one.
+// The author's perspective in an arc that is not deleted, draft, published
+// or hidden; the partial unique index allows at most one. A deleted one
+// frees the place, so its author may write there again.
 func (q *Queries) FindInArc(ctx context.Context, arg FindInArcParams) (FindInArcRow, error) {
 	row := q.db.QueryRow(ctx, findInArc, arg.ArcID, arg.AuthorID)
 	var i FindInArcRow

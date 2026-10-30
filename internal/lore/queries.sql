@@ -17,11 +17,12 @@ JOIN perspectives p ON p.id = ch.perspective_id
 WHERE ch.id = $1;
 
 -- name: FindAuthorPerspectiveInArc :one
--- The author's perspective in the arc, published or not.
+-- The author's perspective in the arc that is not deleted, published or not.
 SELECT id
 FROM perspectives
 WHERE arc_id = sqlc.arg(arc_id)::uuid
-  AND author_id = sqlc.arg(author_id)::uuid;
+  AND author_id = sqlc.arg(author_id)::uuid
+  AND deleted_at IS NULL;
 
 -- name: LockPerspectives :many
 -- Locks the perspectives in id order, the order every lore writer uses, so

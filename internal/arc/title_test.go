@@ -106,3 +106,30 @@ func TestHourTitle(t *testing.T) {
 		})
 	}
 }
+
+func TestNotAfterToday(t *testing.T) {
+	t.Parallel()
+	// 03:00 UTC on Oct 17 is still Oct 16 in Los Angeles.
+	now := time.Date(2026, 10, 17, 3, 0, 0, 0, time.UTC)
+	day := func(d int) time.Time { return time.Date(2026, 10, d, 0, 0, 0, 0, time.UTC) }
+	tests := []struct {
+		name string
+		day  time.Time
+		zone string
+		ok   bool
+	}{
+		{name: "today in the place", day: day(16), zone: "America/Los_Angeles", ok: true},
+		{name: "tomorrow in the place, today in UTC", day: day(17), zone: "America/Los_Angeles", ok: false},
+		{name: "today in UTC", day: day(17), zone: "UTC", ok: true},
+		{name: "a past day", day: day(1), zone: "America/New_York", ok: true},
+		{name: "an unknown zone reads as UTC", day: day(18), zone: "Mars/Olympus", ok: false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if err := notAfterToday(tc.day, tc.zone, now); (err == nil) != tc.ok {
+				t.Fatalf("notAfterToday = %v, want ok %v", err, tc.ok)
+			}
+		})
+	}
+}

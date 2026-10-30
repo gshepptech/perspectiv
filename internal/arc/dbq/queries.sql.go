@@ -243,7 +243,7 @@ WITH RECURSIVE up AS (
     JOIN up ON parent.id = up.parent_id
     WHERE up.depth < 8
 )
-SELECT p.id, p.name,
+SELECT p.id, p.name, p.timezone,
        EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::bool AS subtree_hidden
 FROM places p
 WHERE p.id = $1::uuid
@@ -252,6 +252,7 @@ WHERE p.id = $1::uuid
 type GetPlaceForArcRow struct {
 	ID            uuid.UUID
 	Name          string
+	Timezone      string
 	SubtreeHidden bool
 }
 
@@ -260,7 +261,12 @@ type GetPlaceForArcRow struct {
 func (q *Queries) GetPlaceForArc(ctx context.Context, id uuid.UUID) (GetPlaceForArcRow, error) {
 	row := q.db.QueryRow(ctx, getPlaceForArc, id)
 	var i GetPlaceForArcRow
-	err := row.Scan(&i.ID, &i.Name, &i.SubtreeHidden)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Timezone,
+		&i.SubtreeHidden,
+	)
 	return i, err
 }
 

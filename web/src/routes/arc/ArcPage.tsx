@@ -381,7 +381,7 @@ function ArcView({ res }: { res: GetArcResponse }) {
             {arc.placeChain.map((p, i) => (
               <Fragment key={p.id}>
                 {i > 0 && <li aria-hidden>›</li>}
-                <li className="min-w-0 break-words">
+                <li className="min-w-0 wrap-anywhere">
                   <Link to={`/places/${p.id}`} className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">
                     {p.name}
                   </Link>

@@ -76,6 +76,9 @@ func (s *Service) ResolveForPublish(ctx context.Context, tx pgx.Tx, in ResolveIn
 	if err != nil {
 		return uuid.Nil, false, apiutil.Internal(fmt.Errorf("read place: %w", err))
 	}
+	if err := notAfterToday(in.LocalDate, place.Timezone, time.Now()); err != nil {
+		return uuid.Nil, false, err
+	}
 	date := dateToDB(in.LocalDate)
 
 	day, dayCreated, err := resolveDay(ctx, q, place.Name, date, in)
@@ -207,4 +210,21 @@ func (s *Service) RetitleHourArc(ctx context.Context, caller, arcID uuid.UUID, t
 		return nil, apiutil.Internal(fmt.Errorf("commit: %w", err))
 	}
 	return arc, nil
+}
+
+// notAfterToday refuses a day that has not happened yet where the place is:
+// a perspective tells what someone saw. The web picker stops at today too;
+// this holds for any client. An unknown zone falls back to UTC.
+func notAfterToday(day time.Time, zone string, now time.Time) error {
+	loc, err := time.LoadLocation(zone)
+	if err != nil || zone == "" {
+		loc = time.UTC
+	}
+	y, m, d := now.In(loc).Date()
+	today := time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
+	dy, dm, dd := day.Date()
+	if time.Date(dy, dm, dd, 0, 0, 0, 0, time.UTC).After(today) {
+		return apiutil.InvalidArg("pick a day that has already happened")
+	}
+	return nil
 }

@@ -276,8 +276,10 @@ func checkSlot(ctx context.Context, q *dbq.Queries, arcID, caller uuid.UUID) err
 		return nil
 	case err != nil:
 		return apiutil.Internal(fmt.Errorf("find perspective in arc: %w", err))
-	case row.DeletedAt != nil || row.HiddenAt != nil:
-		return apiutil.FailedPrecondition("your perspective in this arc was removed; you cannot publish another there")
+	case row.HiddenAt != nil:
+		// A moderator's hide stands; deleting is the author's own choice
+		// and frees the place (FindInArc skips deleted rows).
+		return apiutil.FailedPrecondition("your perspective in this arc was hidden by a moderator; you cannot publish another there")
 	default:
 		return errAlreadyInArc
 	}

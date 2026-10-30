@@ -119,7 +119,9 @@ export function renderRoute(path: string, handlers: Handlers = {}, opts: RenderO
 // page wider than a 375px viewport less its two 16px gutters (343px): a fixed
 // width or min-width over 343px, in a Tailwind class or an inline style, and
 // text that is forbidden to wrap without being clipped. The real measurement
-// at 375px runs in the Playwright suite against the dev loop.
+// at 375px is src/routes/compose/phoneWidth.test.ts, which loads every route
+// in Chromium through Vite with stubbed API replies and fails on any element
+// past the viewport or a document wider than it.
 const PHONE_COLUMN_PX = 375 - 32;
 
 function fixedPx(cls: string): number | null {

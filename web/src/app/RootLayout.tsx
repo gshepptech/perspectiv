@@ -25,15 +25,28 @@ const navItem = "inline-flex min-h-11 min-w-11 flex-col items-center justify-cen
 const navLink = ({ isActive }: { isActive: boolean }) =>
   cn(navItem, "border-b-2", isActive ? "border-accent text-ink" : "border-transparent text-ink-muted hover:text-ink");
 
-/** A count over a navigation icon; the link's own name carries it for screen readers. */
-function Badge({ count }: { count: number }) {
-  if (count <= 0) return null;
+/** The badge text for a count: the count itself, or "99+" above 99. */
+const badgeText = (count: number, more = false) => (more || count > 99 ? "99+" : String(count));
+
+/**
+ * A navigation item's icon with its count as a badge. It follows the word and
+ * a space in the DOM and is moved before the word with `order-first`, so the
+ * visible text reads "Inbox 2", in the order the link's name says it ("Inbox,
+ * 2 unread"): a speech-input user who says what they see names the link
+ * (WCAG 2.5.3).
+ */
+function BadgedIcon({ icon: Icon, badge }: { icon: typeof Inbox; badge: string | null }) {
   return (
-    <span
-      aria-hidden
-      className="absolute -top-1.5 -right-2.5 min-w-4.5 rounded-full bg-accent px-1 text-center text-xs leading-4.5 font-bold text-accent-ink"
-    >
-      {count > 99 ? "99+" : String(count)}
+    <span className="relative order-first">
+      <Icon aria-hidden size={20} />
+      {badge && (
+        <span
+          aria-hidden
+          className="absolute -top-1.5 -right-2.5 min-w-4.5 rounded-full bg-accent px-1 text-center text-xs leading-4.5 font-bold text-accent-ink"
+        >
+          {badge}
+        </span>
+      )}
     </span>
   );
 }
@@ -41,13 +54,11 @@ function Badge({ count }: { count: number }) {
 /** The Inbox item, with the unread count as a badge and in its name. */
 function InboxLink() {
   const unread = useUnreadCount(true).data ?? 0;
+  const badge = unread > 0 ? badgeText(unread) : null;
   return (
-    <NavLink to="/inbox" className={navLink} aria-label={unread > 0 ? `Inbox, ${unread} unread` : undefined}>
-      <span className="relative">
-        <Inbox aria-hidden size={20} />
-        <Badge count={unread} />
-      </span>
-      <span>Inbox</span>
+    <NavLink to="/inbox" className={navLink} aria-label={badge ? `Inbox, ${badge} unread` : undefined}>
+      <span>Inbox</span>{" "}
+      <BadgedIcon icon={Inbox} badge={badge} />
     </NavLink>
   );
 }
@@ -56,14 +67,11 @@ function InboxLink() {
 function RequestsLink() {
   const waiting = useWaitingRequests(true).data;
   const count = waiting?.count ?? 0;
-  const spoken = waiting?.more ? `${count}+` : String(count);
+  const badge = count > 0 ? badgeText(count, waiting?.more) : null;
   return (
-    <NavLink to="/claims" className={navLink} aria-label={count > 0 ? `Requests, ${spoken} waiting` : undefined}>
-      <span className="relative">
-        <UserCheck aria-hidden size={20} />
-        <Badge count={waiting?.more ? count + 1 : count} />
-      </span>
-      <span>Requests</span>
+    <NavLink to="/claims" className={navLink} aria-label={badge ? `Requests, ${badge} waiting` : undefined}>
+      <span>Requests</span>{" "}
+      <BadgedIcon icon={UserCheck} badge={badge} />
     </NavLink>
   );
 }

@@ -7,6 +7,12 @@ moves to Done in the same commit as the work, with what was verified.
 
 Nothing in progress.
 
+## Next
+
+- **E2E sign-up budget.** The e2e suite now uses all 10 sign-ups an hour
+  the server allows one address; a new spec needing its own account must
+  sign in to an existing one, or the limit becomes configurable for e2e.
+
 ## Out of scope for v1
 
 - Full-text search over stories: the spec leaves it out (A-057); place
@@ -20,6 +26,16 @@ Nothing in progress.
 
 ## Done
 
+- Spec audit (162 FR, AC and OT items: 158 met with tests, none unmet):
+  a member who deletes their story in an arc may write there again (the
+  one-story rule now ignores deleted stories; a moderator's hide still
+  holds the place; migration 27); publishing a day that has not happened
+  yet where the place is is refused on the server, not only by the web
+  picker; the ingress forwarding settings the per-IP limits rely on are
+  pinned by a chart test; AC-009 and FR-045 carry amendments for the later
+  decisions that changed them; and the phone-width and axe tests (delegated)
+  cover every reading route. Verified by TestPublishAfterDeleteInSameArc,
+  TestNotAfterToday, TestIngressNginxValues and migration 27 up-down-up.
 - Place data quality in the importer: localities match through St/Saint,
   Ft/Fort, Mt/Mount, case and punctuation (St. Petersburg places were
   dropped as unfiled), and unfiled counts are logged by locality; names

@@ -446,7 +446,7 @@ func checkIssuer(t *testing.T, objs map[string]object) {
 }
 
 // The ingress-nginx values the runbook installs turn HSTS on.
-func TestIngressNginxValuesHSTS(t *testing.T) {
+func TestIngressNginxValues(t *testing.T) {
 	t.Parallel()
 	b, err := os.ReadFile(filepath.Join(chartDir(t), "..", "k3s", "ingress-nginx-values.yaml"))
 	if err != nil {
@@ -465,6 +465,16 @@ func TestIngressNginxValuesHSTS(t *testing.T) {
 	}
 	if str(cfg, "ssl-redirect") != "true" {
 		t.Errorf("ssl-redirect = %v", get(cfg, "ssl-redirect"))
+	}
+	// The per-IP rate limits see each visitor's own address only while the
+	// load balancer keeps the source address (Local) and nginx forwards it
+	// without trusting a client-sent header; drift either way and the whole
+	// site shares one budget, or a client chooses its own address.
+	if got := str(v, "controller", "service", "externalTrafficPolicy"); got != "Local" {
+		t.Errorf("externalTrafficPolicy = %q, want Local", got)
+	}
+	if str(cfg, "compute-full-forwarded-for") != "true" || str(cfg, "use-forwarded-headers") != "false" {
+		t.Errorf("forwarding: compute-full-forwarded-for %v, use-forwarded-headers %v", get(cfg, "compute-full-forwarded-for"), get(cfg, "use-forwarded-headers"))
 	}
 }
 

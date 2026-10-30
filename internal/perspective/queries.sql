@@ -41,11 +41,12 @@ SET place_id = sqlc.narg(place_id)::uuid,
 WHERE id = sqlc.arg(id)::uuid;
 
 -- name: FindInArc :one
--- The author's perspective in an arc, whatever its state; the unique index
--- on (arc_id, author_id) allows at most one.
+-- The author's perspective in an arc that is not deleted, draft, published
+-- or hidden; the partial unique index allows at most one. A deleted one
+-- frees the place, so its author may write there again.
 SELECT id, deleted_at, hidden_at
 FROM perspectives
-WHERE arc_id = sqlc.arg(arc_id)::uuid AND author_id = sqlc.arg(author_id)::uuid;
+WHERE arc_id = sqlc.arg(arc_id)::uuid AND author_id = sqlc.arg(author_id)::uuid AND deleted_at IS NULL;
 
 -- name: InsertPublished :one
 INSERT INTO perspectives (arc_id, author_id, place_id, local_date, hour, genre,

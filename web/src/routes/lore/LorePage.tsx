@@ -180,7 +180,7 @@ export function Component() {
         <h1 id="lore-title" className="mt-3 text-3xl leading-tight wrap-anywhere sm:text-4xl">
           {title}
         </h1>
-        <p className="mt-2 text-ink-muted">
+        <p className="mt-2 text-ink-muted wrap-anywhere">
           {[lore.name ? dayTitle : "", first?.place?.name, first ? formatDayBeside(dayTitle, first.localDate, first.hour) : ""].filter(Boolean).join(" · ")}
         </p>
         {lore.name && lore.namedBy && (

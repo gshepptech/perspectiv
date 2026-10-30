@@ -35,6 +35,21 @@ export async function signedIn(browser: Browser, account: Account): Promise<Writ
   return { account, page };
 }
 
+/**
+ * A browser context of its own, signed in through the sign-in page with the
+ * account's password. The session is new, so the state the setup project
+ * saved for the account stays good for the spec that owns it.
+ */
+export async function signInWithPassword(browser: Browser, account: Account): Promise<Writer> {
+  const page = await (await browser.newContext()).newPage();
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(account.email);
+  await page.getByLabel("Password").fill(account.password);
+  await page.getByRole("main").getByRole("button", { name: "Sign in" }).click();
+  await expect(accountMenu(page, account)).toBeVisible();
+  return { account, page };
+}
+
 /** A signed-out reader; reading every page is public. */
 export async function reader(browser: Browser): Promise<Page> {
   const context = await browser.newContext();

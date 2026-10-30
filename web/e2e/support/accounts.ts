@@ -5,8 +5,7 @@
  *
  * Refresh tokens rotate on every use and a reused one revokes the session, so
  * a saved state is good for exactly one browser context. Each account is
- * therefore used by one spec only, and the lore journey and the report flow
- * have their own accounts.
+ * therefore used by one spec only, and each spec has its own accounts.
  */
 import { join } from "node:path";
 
@@ -68,6 +67,21 @@ export const findAccounts = () => ({
   gil: account("gil"),
 });
 
+/**
+ * The accessibility scan's writer, an admin so the one account reaches the
+ * admin pages too. The server allows 10 sign-ups an hour from one address and
+ * the suite signs up from one, so this is the tenth account: a new spec
+ * signs in to an existing account with its password rather than adding one.
+ */
+export const a11yAccounts = () => ({
+  ivy: account("ivy", true),
+});
+
 export function allAccounts(): Account[] {
-  return [...Object.values(loreAccounts()), ...Object.values(reportAccounts()), ...Object.values(findAccounts())];
+  return [
+    ...Object.values(loreAccounts()),
+    ...Object.values(reportAccounts()),
+    ...Object.values(findAccounts()),
+    ...Object.values(a11yAccounts()),
+  ];
 }

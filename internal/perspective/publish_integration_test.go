@@ -251,8 +251,9 @@ func TestPublishSecondInArcAlreadyExists(t *testing.T) {
 	w.publish(me, hourly)
 }
 
-// A user whose perspective in an arc was deleted cannot publish there again:
-// the deleted row still holds the arc's one slot for that user.
+// A member who deleted their story in an arc may write there again; the
+// deleted one stays a removed placeholder. A story a moderator hid still
+// holds the place.
 func TestPublishAfterDeleteInSameArc(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -262,9 +263,20 @@ func TestPublishAfterDeleteInSameArc(t *testing.T) {
 	if _, err := w.client.Delete(ctx, as(me, &perspectivv1.PerspectiveServiceDeleteRequest{PerspectiveId: first.GetPerspectiveId()})); err != nil {
 		t.Fatalf("Delete: %v", err)
 	}
-	_, err := w.client.Publish(ctx, as(me, w.publishReq()))
+	second := w.publish(me, w.publishReq())
+	if second.GetArcId() != first.GetArcId() || second.GetPerspectiveId() == first.GetPerspectiveId() {
+		t.Fatalf("second story = %v, want a new one in the same arc", second)
+	}
+	if n := w.count(`SELECT count(*) FROM perspectives WHERE arc_id = $1 AND author_id = $2`, first.GetArcId(), me); n != 2 {
+		t.Fatalf("rows in the arc = %d, want the deleted one and the new one", n)
+	}
+
+	hidden := w.user()
+	h := w.publish(hidden, w.publishReq())
+	w.exec(`UPDATE perspectives SET hidden_at = now() WHERE id = $1`, h.GetPerspectiveId())
+	_, err := w.client.Publish(ctx, as(hidden, w.publishReq()))
 	if codeOf(err) != connect.CodeFailedPrecondition {
-		t.Fatalf("publish after delete code = %v, want FailedPrecondition (err %v)", codeOf(err), err)
+		t.Fatalf("publish after a moderator's hide = %v, want FailedPrecondition", codeOf(err))
 	}
 }
 
