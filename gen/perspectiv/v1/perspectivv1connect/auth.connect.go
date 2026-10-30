@@ -61,6 +61,12 @@ const (
 	// AuthServiceSignOutEverywhereProcedure is the fully-qualified name of the AuthService's
 	// SignOutEverywhere RPC.
 	AuthServiceSignOutEverywhereProcedure = "/perspectiv.v1.AuthService/SignOutEverywhere"
+	// AuthServiceListSessionsProcedure is the fully-qualified name of the AuthService's ListSessions
+	// RPC.
+	AuthServiceListSessionsProcedure = "/perspectiv.v1.AuthService/ListSessions"
+	// AuthServiceRevokeSessionProcedure is the fully-qualified name of the AuthService's RevokeSession
+	// RPC.
+	AuthServiceRevokeSessionProcedure = "/perspectiv.v1.AuthService/RevokeSession"
 	// AuthServiceGetSignUpInfoProcedure is the fully-qualified name of the AuthService's GetSignUpInfo
 	// RPC.
 	AuthServiceGetSignUpInfoProcedure = "/perspectiv.v1.AuthService/GetSignUpInfo"
@@ -104,6 +110,11 @@ type AuthServiceClient interface {
 	ConfirmEmailChange(context.Context, *connect.Request[v1.ConfirmEmailChangeRequest]) (*connect.Response[v1.ConfirmEmailChangeResponse], error)
 	// Signs the caller out on every device, this one included.
 	SignOutEverywhere(context.Context, *connect.Request[v1.SignOutEverywhereRequest]) (*connect.Response[v1.SignOutEverywhereResponse], error)
+	// The caller's signed-in sessions, most recently used first.
+	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
+	// Signs one of the caller's other sessions out. The caller's own session
+	// is signed out with Logout instead.
+	RevokeSession(context.Context, *connect.Request[v1.RevokeSessionRequest]) (*connect.Response[v1.RevokeSessionResponse], error)
 	// Public. Whether signing up needs an access code (the invite-only beta).
 	GetSignUpInfo(context.Context, *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error)
 	// Public. Asks for a place in the beta. Always answers OK, whether or not
@@ -198,6 +209,18 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("SignOutEverywhere")),
 			connect.WithClientOptions(opts...),
 		),
+		listSessions: connect.NewClient[v1.ListSessionsRequest, v1.ListSessionsResponse](
+			httpClient,
+			baseURL+AuthServiceListSessionsProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ListSessions")),
+			connect.WithClientOptions(opts...),
+		),
+		revokeSession: connect.NewClient[v1.RevokeSessionRequest, v1.RevokeSessionResponse](
+			httpClient,
+			baseURL+AuthServiceRevokeSessionProcedure,
+			connect.WithSchema(authServiceMethods.ByName("RevokeSession")),
+			connect.WithClientOptions(opts...),
+		),
 		getSignUpInfo: connect.NewClient[v1.GetSignUpInfoRequest, v1.GetSignUpInfoResponse](
 			httpClient,
 			baseURL+AuthServiceGetSignUpInfoProcedure,
@@ -256,6 +279,8 @@ type authServiceClient struct {
 	requestEmailChange   *connect.Client[v1.RequestEmailChangeRequest, v1.RequestEmailChangeResponse]
 	confirmEmailChange   *connect.Client[v1.ConfirmEmailChangeRequest, v1.ConfirmEmailChangeResponse]
 	signOutEverywhere    *connect.Client[v1.SignOutEverywhereRequest, v1.SignOutEverywhereResponse]
+	listSessions         *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	revokeSession        *connect.Client[v1.RevokeSessionRequest, v1.RevokeSessionResponse]
 	getSignUpInfo        *connect.Client[v1.GetSignUpInfoRequest, v1.GetSignUpInfoResponse]
 	joinWaitlist         *connect.Client[v1.JoinWaitlistRequest, v1.JoinWaitlistResponse]
 	createAccessCode     *connect.Client[v1.CreateAccessCodeRequest, v1.CreateAccessCodeResponse]
@@ -320,6 +345,16 @@ func (c *authServiceClient) SignOutEverywhere(ctx context.Context, req *connect.
 	return c.signOutEverywhere.CallUnary(ctx, req)
 }
 
+// ListSessions calls perspectiv.v1.AuthService.ListSessions.
+func (c *authServiceClient) ListSessions(ctx context.Context, req *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error) {
+	return c.listSessions.CallUnary(ctx, req)
+}
+
+// RevokeSession calls perspectiv.v1.AuthService.RevokeSession.
+func (c *authServiceClient) RevokeSession(ctx context.Context, req *connect.Request[v1.RevokeSessionRequest]) (*connect.Response[v1.RevokeSessionResponse], error) {
+	return c.revokeSession.CallUnary(ctx, req)
+}
+
 // GetSignUpInfo calls perspectiv.v1.AuthService.GetSignUpInfo.
 func (c *authServiceClient) GetSignUpInfo(ctx context.Context, req *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error) {
 	return c.getSignUpInfo.CallUnary(ctx, req)
@@ -375,6 +410,11 @@ type AuthServiceHandler interface {
 	ConfirmEmailChange(context.Context, *connect.Request[v1.ConfirmEmailChangeRequest]) (*connect.Response[v1.ConfirmEmailChangeResponse], error)
 	// Signs the caller out on every device, this one included.
 	SignOutEverywhere(context.Context, *connect.Request[v1.SignOutEverywhereRequest]) (*connect.Response[v1.SignOutEverywhereResponse], error)
+	// The caller's signed-in sessions, most recently used first.
+	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
+	// Signs one of the caller's other sessions out. The caller's own session
+	// is signed out with Logout instead.
+	RevokeSession(context.Context, *connect.Request[v1.RevokeSessionRequest]) (*connect.Response[v1.RevokeSessionResponse], error)
 	// Public. Whether signing up needs an access code (the invite-only beta).
 	GetSignUpInfo(context.Context, *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error)
 	// Public. Asks for a place in the beta. Always answers OK, whether or not
@@ -465,6 +505,18 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("SignOutEverywhere")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceListSessionsHandler := connect.NewUnaryHandler(
+		AuthServiceListSessionsProcedure,
+		svc.ListSessions,
+		connect.WithSchema(authServiceMethods.ByName("ListSessions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceRevokeSessionHandler := connect.NewUnaryHandler(
+		AuthServiceRevokeSessionProcedure,
+		svc.RevokeSession,
+		connect.WithSchema(authServiceMethods.ByName("RevokeSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	authServiceGetSignUpInfoHandler := connect.NewUnaryHandler(
 		AuthServiceGetSignUpInfoProcedure,
 		svc.GetSignUpInfo,
@@ -531,6 +583,10 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceConfirmEmailChangeHandler.ServeHTTP(w, r)
 		case AuthServiceSignOutEverywhereProcedure:
 			authServiceSignOutEverywhereHandler.ServeHTTP(w, r)
+		case AuthServiceListSessionsProcedure:
+			authServiceListSessionsHandler.ServeHTTP(w, r)
+		case AuthServiceRevokeSessionProcedure:
+			authServiceRevokeSessionHandler.ServeHTTP(w, r)
 		case AuthServiceGetSignUpInfoProcedure:
 			authServiceGetSignUpInfoHandler.ServeHTTP(w, r)
 		case AuthServiceJoinWaitlistProcedure:
@@ -596,6 +652,14 @@ func (UnimplementedAuthServiceHandler) ConfirmEmailChange(context.Context, *conn
 
 func (UnimplementedAuthServiceHandler) SignOutEverywhere(context.Context, *connect.Request[v1.SignOutEverywhereRequest]) (*connect.Response[v1.SignOutEverywhereResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.SignOutEverywhere is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.ListSessions is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) RevokeSession(context.Context, *connect.Request[v1.RevokeSessionRequest]) (*connect.Response[v1.RevokeSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.RevokeSession is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) GetSignUpInfo(context.Context, *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error) {

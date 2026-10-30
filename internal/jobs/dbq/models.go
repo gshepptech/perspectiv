@@ -265,6 +265,7 @@ type Session struct {
 	LastUsedAt pgtype.Timestamptz
 	ExpiresAt  pgtype.Timestamptz
 	RevokedAt  pgtype.Timestamptz
+	Device     string
 }
 
 type User struct {

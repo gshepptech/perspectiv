@@ -40,6 +40,9 @@ function profileBody(opts: { username?: string; bio?: string; avatarUrl?: string
   };
 }
 
+const laptop = { sessionId: "s-1", device: "Firefox on macOS", signedInAt: "2026-10-20T10:00:00Z", lastUsedAt: "2026-10-30T10:00:00Z", current: true };
+const phone = { sessionId: "s-2", device: "Safari on iPhone", signedInAt: "2026-10-02T10:00:00Z", lastUsedAt: "2026-10-28T10:00:00Z", current: false };
+
 const allOn = () => ok({ preferences: KINDS.map((kind) => ({ kind, inApp: true, email: true })) });
 
 function settings(handlers: Handlers = {}) {
@@ -48,6 +51,7 @@ function settings(handlers: Handlers = {}) {
     {
       "UserService/GetProfile": (body) => (body.username ? fail("not_found") : ok(profileBody())),
       "NotifyService/GetPreferences": allOn,
+      "AuthService/ListSessions": () => ok({ sessions: [laptop] }),
       ...handlers,
     },
     { signedIn: true },
@@ -470,5 +474,29 @@ describe("UnsubscribePage", () => {
     const { api } = renderRoute("/unsubscribe?u=user-1");
     expect(await screen.findByRole("heading", { name: "This link no longer works" })).toBeInTheDocument();
     expect(api.sent("NotifyService/Unsubscribe")).toHaveLength(0);
+  });
+});
+
+describe("SettingsPage signed-in devices", () => {
+  it("lists each device by browser and system and signs another one out", async () => {
+    let signedIn = [laptop, phone];
+    const { api, user } = settings({
+      "AuthService/ListSessions": () => ok({ sessions: signedIn }),
+      "AuthService/RevokeSession": () => {
+        signedIn = [laptop];
+        return ok();
+      },
+    });
+    const list = await screen.findByRole("list", { name: "Signed-in devices" });
+    const [mine, other] = within(list).getAllByRole("listitem");
+    expect(mine).toHaveTextContent("Firefox on macOSThis device");
+    expect(within(mine!).queryByRole("button")).not.toBeInTheDocument();
+    expect(other).toHaveTextContent("Safari on iPhone");
+    await user.click(within(other!).getByRole("button", { name: "Sign out Safari on iPhone" }));
+    const status = await screen.findByRole("status", { name: "Devices status" });
+    await waitFor(() => expect(status).toHaveTextContent("Safari on iPhone is signed out."));
+    expect(status).toHaveFocus();
+    expect(api.sent("AuthService/RevokeSession")).toEqual([{ sessionId: "s-2" }]);
+    await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(1));
   });
 });

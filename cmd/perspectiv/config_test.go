@@ -81,8 +81,9 @@ func TestLoadConfigRoles(t *testing.T) {
 	}
 }
 
-// Each role requires only what it runs: the worker never signs tokens or
-// stores avatars, and the API never sends mail.
+// Each role requires only what it runs: the worker never stores avatars and
+// the API never sends mail. Both need JWT_SECRET: the API signs tokens with
+// it, and the worker signs unsubscribe links with a key derived from it.
 func TestLoadConfigPerRoleRequirements(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -108,7 +109,9 @@ func TestLoadConfigPerRoleRequirements(t *testing.T) {
 		{"bad expiry window", with(validEnv(), "EXPIRY_WINDOW", "-1h"), "EXPIRY_WINDOW"},
 		{"bad cookie flag", with(validEnv(), "COOKIE_SECURE", "maybe"), "COOKIE_SECURE"},
 		{"bad migrate flag", with(validEnv(), "MIGRATE_ON_START", "yes please"), "MIGRATE_ON_START"},
-		{"worker without API settings", with(validEnv(), "ROLE", "worker", "JWT_SECRET", "", "AVATAR_DIR", ""), ""},
+		{"worker without API settings", with(validEnv(), "ROLE", "worker", "AVATAR_DIR", ""), ""},
+		// Workers sign unsubscribe links the API checks, with a key from it.
+		{"worker short JWT secret", with(validEnv(), "ROLE", "worker", "JWT_SECRET", "short"), "JWT_SECRET"},
 		{"api without mail settings", with(validEnv(), "ROLE", "api", "MAIL_PROVIDER", "", "MAIL_FROM", ""), ""},
 		{"worker resend with key", with(validEnv(), "ROLE", "worker", "MAIL_PROVIDER", "resend", "RESEND_API_KEY", "re_x"), ""},
 	}

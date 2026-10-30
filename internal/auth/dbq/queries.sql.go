@@ -414,17 +414,18 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 }
 
 const insertSession = `-- name: InsertSession :one
-INSERT INTO sessions (user_id, expires_at) VALUES ($1, $2)
+INSERT INTO sessions (user_id, expires_at, device) VALUES ($1::uuid, $2, $3::text)
 RETURNING id
 `
 
 type InsertSessionParams struct {
 	UserID    uuid.UUID
 	ExpiresAt time.Time
+	Device    string
 }
 
 func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (uuid.UUID, error) {
-	row := q.db.QueryRow(ctx, insertSession, arg.UserID, arg.ExpiresAt)
+	row := q.db.QueryRow(ctx, insertSession, arg.UserID, arg.ExpiresAt, arg.Device)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
@@ -514,6 +515,46 @@ func (q *Queries) ListAccessCodes(ctx context.Context, arg ListAccessCodesParams
 			&i.CreatedAt,
 			&i.ExpiresAt,
 			&i.RevokedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLiveSessions = `-- name: ListLiveSessions :many
+SELECT id, device, created_at, last_used_at
+FROM sessions
+WHERE user_id = $1::uuid AND revoked_at IS NULL AND expires_at > now()
+ORDER BY last_used_at DESC, id
+`
+
+type ListLiveSessionsRow struct {
+	ID         uuid.UUID
+	Device     string
+	CreatedAt  time.Time
+	LastUsedAt time.Time
+}
+
+// The account's signed-in sessions, most recently used first.
+func (q *Queries) ListLiveSessions(ctx context.Context, userID uuid.UUID) ([]ListLiveSessionsRow, error) {
+	rows, err := q.db.Query(ctx, listLiveSessions, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLiveSessionsRow
+	for rows.Next() {
+		var i ListLiveSessionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Device,
+			&i.CreatedAt,
+			&i.LastUsedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -645,6 +686,27 @@ func (q *Queries) MarkWaitlistInvited(ctx context.Context, arg MarkWaitlistInvit
 		&i.Code,
 	)
 	return i, err
+}
+
+const ownLiveSession = `-- name: OwnLiveSession :one
+SELECT EXISTS (
+    SELECT 1 FROM sessions
+    WHERE id = $1::uuid AND user_id = $2::uuid
+      AND revoked_at IS NULL AND expires_at > now()
+)::boolean AS live
+`
+
+type OwnLiveSessionParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+// Whether the session is the user's and still live.
+func (q *Queries) OwnLiveSession(ctx context.Context, arg OwnLiveSessionParams) (bool, error) {
+	row := q.db.QueryRow(ctx, ownLiveSession, arg.ID, arg.UserID)
+	var live bool
+	err := row.Scan(&live)
+	return live, err
 }
 
 const purgeEmailTokens = `-- name: PurgeEmailTokens :execrows

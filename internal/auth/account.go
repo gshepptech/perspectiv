@@ -296,3 +296,52 @@ func (s *Service) SignOutEverywhere(ctx context.Context, caller apiutil.Caller) 
 	s.log.Info().Str("event", "signed_out_everywhere").Str("sub", caller.UserID.String()).Msg("every session revoked")
 	return nil
 }
+
+// Session is one of an account's signed-in devices.
+type Session struct {
+	ID         uuid.UUID
+	Device     string
+	SignedInAt time.Time
+	LastUsedAt time.Time
+	Current    bool
+}
+
+// ListSessions returns the caller's live sessions, most recently used first,
+// marking the one the caller is using.
+func (s *Service) ListSessions(ctx context.Context, caller apiutil.Caller) ([]Session, error) {
+	rows, err := s.q.ListLiveSessions(ctx, caller.UserID)
+	if err != nil {
+		return nil, internal("list sessions", err)
+	}
+	out := make([]Session, len(rows))
+	for i, r := range rows {
+		out[i] = Session{ID: r.ID, Device: r.Device, SignedInAt: r.CreatedAt, LastUsedAt: r.LastUsedAt, Current: r.ID == caller.SessionID}
+	}
+	return out, nil
+}
+
+var errNoSuchSession = apiutil.NotFound("that device is not signed in")
+
+// RevokeSession signs out one of the caller's other sessions. Another
+// account's session reads as not found, so ids cannot be probed. The
+// caller's own session is refused: signing out here is Logout.
+func (s *Service) RevokeSession(ctx context.Context, caller apiutil.Caller, sid uuid.UUID) error {
+	if sid == caller.SessionID {
+		return apiutil.FailedPrecondition("this is the device you are using; sign out instead")
+	}
+	err := s.inTx(ctx, func(q *dbq.Queries, _ pgx.Tx) error {
+		live, err := q.OwnLiveSession(ctx, dbq.OwnLiveSessionParams{ID: sid, UserID: caller.UserID})
+		if err != nil {
+			return internal("check session", err)
+		}
+		if !live {
+			return errNoSuchSession
+		}
+		return revokeSession(ctx, q, sid)
+	})
+	if err != nil {
+		return err
+	}
+	s.log.Info().Str("event", "session_revoked").Str("sub", caller.UserID.String()).Str("session", sid.String()).Msg("device signed out")
+	return nil
+}

@@ -20,6 +20,18 @@ Nothing in progress.
 
 ## Done
 
+- Security review fixes (unsubscribe, audit, retention, metrics): a worker
+  no longer starts without JWT_SECRET, since the unsubscribe links it signs
+  are checked by the API with a key from it; and a user lookup that finds
+  no account is audited too ("looked up by email, no match", never the
+  text searched), so probing for addresses shows in the log. Verified by
+  the config tests and TestLookupUser.
+- Signed-in devices: Settings lists each live session as a browser and
+  system ("Firefox on macOS"), marks the one in use, shows when each was
+  signed in and last used, and signs any other one out. Only that short
+  label is stored, never the User-Agent; the privacy page says so. Another
+  account's session reads as not found. Verified by TestSessions,
+  TestDeviceLabel, migration 24 up-down-up and the settings tests.
 - Undoing moderation: an admin lifts a suspension from the dossier and
   restores a hidden perspective, place or thread post from its hide entry
   in the audit log, each with a required reason on a new audit entry

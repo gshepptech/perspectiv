@@ -27,6 +27,11 @@ service AuthService {
   rpc ConfirmEmailChange(ConfirmEmailChangeRequest) returns (ConfirmEmailChangeResponse);
   // Signs the caller out on every device, this one included.
   rpc SignOutEverywhere(SignOutEverywhereRequest) returns (SignOutEverywhereResponse);
+  // The caller's signed-in sessions, most recently used first.
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  // Signs one of the caller's other sessions out. The caller's own session
+  // is signed out with Logout instead.
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
   // Public. Whether signing up needs an access code (the invite-only beta).
   rpc GetSignUpInfo(GetSignUpInfoRequest) returns (GetSignUpInfoResponse);
   // Public. Asks for a place in the beta. Always answers OK, whether or not
@@ -234,3 +239,26 @@ message ConfirmEmailChangeResponse {}
 message SignOutEverywhereRequest {}
 
 message SignOutEverywhereResponse {}
+
+// SessionInfo is one signed-in device as its owner sees it.
+message SessionInfo {
+  string session_id = 1;
+  // "Firefox on macOS", or empty when the browser was not recognised.
+  string device = 2;
+  google.protobuf.Timestamp signed_in_at = 3;
+  google.protobuf.Timestamp last_used_at = 4;
+  // True for the session making this call.
+  bool current = 5;
+}
+
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+  repeated SessionInfo sessions = 1;
+}
+
+message RevokeSessionRequest {
+  string session_id = 1;
+}
+
+message RevokeSessionResponse {}

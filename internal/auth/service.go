@@ -265,9 +265,10 @@ var (
 	errLockedOut      = apiutil.ResourceExhausted("too many failed sign-in attempts; try again in 15 minutes")
 )
 
-// Login checks the password under the account lockout and starts a session.
+// Login checks the password under the account lockout and starts a session,
+// labelled with the browser and system userAgent names.
 // Every attempt on an existing account is recorded in login_attempts.
-func (s *Service) Login(ctx context.Context, email, password string) (Tokens, error) {
+func (s *Service) Login(ctx context.Context, email, password, userAgent string) (Tokens, error) {
 	u, err := s.q.GetUserByEmail(ctx, strings.TrimSpace(email))
 	if errors.Is(err, pgx.ErrNoRows) {
 		_, _ = s.passwords.VerifyPassword(s.dummyHash, password)
@@ -308,7 +309,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (Tokens, er
 			refused = errBadCredentials
 			return nil
 		}
-		out, err = s.startSession(ctx, q, SessionUser{
+		out, err = s.startSession(ctx, q, deviceLabel(userAgent), SessionUser{
 			ID: u.ID, Username: u.Username, Role: role, EmailVerified: u.EmailVerifiedAt != nil,
 		})
 		return err
@@ -330,9 +331,9 @@ func (s *Service) Login(ctx context.Context, email, password string) (Tokens, er
 
 // startSession creates a session with its first refresh token and signs an
 // access token for it.
-func (s *Service) startSession(ctx context.Context, q *dbq.Queries, u SessionUser) (Tokens, error) {
+func (s *Service) startSession(ctx context.Context, q *dbq.Queries, device string, u SessionUser) (Tokens, error) {
 	now := time.Now()
-	sid, err := q.InsertSession(ctx, dbq.InsertSessionParams{UserID: u.ID, ExpiresAt: now.Add(SessionMaxAge)})
+	sid, err := q.InsertSession(ctx, dbq.InsertSessionParams{UserID: u.ID, ExpiresAt: now.Add(SessionMaxAge), Device: device})
 	if err != nil {
 		return Tokens{}, internal("insert session", err)
 	}

@@ -17,6 +17,7 @@ import { errorMessage } from "@/routes/auth/errors";
 import type { LoginState } from "@/routes/auth/LoginPage";
 import { emailSchema, passwordSchema } from "@/routes/auth/rules";
 
+import { DeviceList } from "./DeviceList";
 import { Saved, Section } from "./Section";
 
 // A wrong current password comes back PermissionDenied; it is the reader's
@@ -213,7 +214,8 @@ function SignOutEverywhere() {
   return (
     <div className="grid gap-3">
       <h3 className="text-lg">Signed-in devices</h3>
-      <p>Signed in somewhere you no longer use? Sign out everywhere, then sign in again here.</p>
+      <DeviceList />
+      <p>Lost a device, or not sure? Sign out everywhere, then sign in again here.</p>
       <Dialog
         open={open}
         onOpenChange={(next) => {

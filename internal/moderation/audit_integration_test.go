@@ -246,12 +246,15 @@ func TestLookupUser(t *testing.T) {
 	_, err = lookup("not an @ address")
 	wantCode(t, err, connect.CodeInvalidArgument)
 
-	// Each match is audited with how it was found, never the address.
-	var n, byEmail int
-	e.scan(`SELECT count(*), count(*) FILTER (WHERE reason = 'looked up by email') FROM moderation_audit
-	        WHERE action = 'AUDIT_ACTION_USER_LOOKUP' AND actor_id = $1`, []any{admin}, &n, &byEmail)
-	if n != 6 || byEmail != 1 {
-		t.Fatalf("lookup audit rows = %d (%d by email), want 6 (1 by email)", n, byEmail)
+	// Each lookup is audited with how it was searched, a miss too, never the
+	// text searched for: six matches and four misses (the blank and the
+	// malformed address are refused before any search).
+	var n, byEmail, misses int
+	e.scan(`SELECT count(*), count(*) FILTER (WHERE reason = 'looked up by email'),
+	               count(*) FILTER (WHERE target_ref = 'no match' AND reason LIKE '%, no match')
+	        FROM moderation_audit WHERE action = 'AUDIT_ACTION_USER_LOOKUP' AND actor_id = $1`, []any{admin}, &n, &byEmail, &misses)
+	if n != 10 || byEmail != 1 || misses != 4 {
+		t.Fatalf("lookup audit rows = %d (%d by email, %d misses), want 10 (1 by email, 4 misses)", n, byEmail, misses)
 	}
 	if e.count(`SELECT count(*) FROM moderation_audit WHERE reason ILIKE '%example.test%'`) != 0 {
 		t.Fatal("an audit row carries a searched address")

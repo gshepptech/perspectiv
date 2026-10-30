@@ -97,6 +97,11 @@ func loadConfig(getenv func(string) string) (config, error) {
 	if u, err := url.Parse(c.PublicBaseURL); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		errs = append(errs, errors.New("PUBLIC_BASE_URL must be an absolute http(s) URL"))
 	}
+	// The API signs tokens with it and the workers sign unsubscribe links
+	// with a key derived from it, which the API checks: both need the same.
+	if len(c.JWTSecret) < auth.MinJWTSecretBytes {
+		errs = append(errs, fmt.Errorf("JWT_SECRET must be at least %d bytes", auth.MinJWTSecretBytes))
+	}
 	if c.runsAPI() {
 		errs = append(errs, c.validateAPI()...)
 	}
@@ -109,9 +114,6 @@ func loadConfig(getenv func(string) string) (config, error) {
 // validateAPI checks what only the API needs.
 func (c config) validateAPI() []error {
 	var errs []error
-	if len(c.JWTSecret) < auth.MinJWTSecretBytes {
-		errs = append(errs, fmt.Errorf("JWT_SECRET must be at least %d bytes", auth.MinJWTSecretBytes))
-	}
 	if c.AvatarDir == "" {
 		errs = append(errs, errors.New("AVATAR_DIR is required where the API runs"))
 	}

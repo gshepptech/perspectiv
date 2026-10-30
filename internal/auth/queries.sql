@@ -36,7 +36,7 @@ WHERE user_id = sqlc.arg(user_id)
 INSERT INTO login_attempts (user_id, succeeded) VALUES ($1, $2);
 
 -- name: InsertSession :one
-INSERT INTO sessions (user_id, expires_at) VALUES ($1, $2)
+INSERT INTO sessions (user_id, expires_at, device) VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(expires_at), sqlc.arg(device)::text)
 RETURNING id;
 
 -- name: InsertRefreshToken :exec
@@ -271,3 +271,18 @@ WHERE (action, subject, window_start) IN (
     WHERE window_start < sqlc.arg(before)::timestamptz
     LIMIT sqlc.arg(batch)::integer
 );
+
+-- name: ListLiveSessions :many
+-- The account's signed-in sessions, most recently used first.
+SELECT id, device, created_at, last_used_at
+FROM sessions
+WHERE user_id = sqlc.arg(user_id)::uuid AND revoked_at IS NULL AND expires_at > now()
+ORDER BY last_used_at DESC, id;
+
+-- name: OwnLiveSession :one
+-- Whether the session is the user's and still live.
+SELECT EXISTS (
+    SELECT 1 FROM sessions
+    WHERE id = sqlc.arg(id)::uuid AND user_id = sqlc.arg(user_id)::uuid
+      AND revoked_at IS NULL AND expires_at > now()
+)::boolean AS live;

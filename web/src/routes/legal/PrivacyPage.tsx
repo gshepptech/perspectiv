@@ -17,7 +17,8 @@ export function Component() {
           thread posts, lore names, the places you follow, people you block, and reports you file.
         </li>
         <li>
-          <strong>Security records:</strong> your sign-in sessions, and the times of sign-in attempts, so we can lock an
+          <strong>Security records:</strong> your sign-in sessions, each with the kind of browser and system it started from
+          (like “Firefox on macOS”, so you can tell your devices apart in Settings), and the times of sign-in attempts, so we can lock an
           account against guessing. Your network address is counted briefly to limit abuse. Each day these are deleted once
           old: a session 30 days after it ends, a sign-in attempt after 30 days, an emailed link 7 days after it is used or
           expires, and an address count after a day.

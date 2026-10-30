@@ -143,12 +143,16 @@ func (s *Service) LookupUser(ctx context.Context, admin uuid.UUID, query string)
 		return nil, apiutil.InvalidArg("enter a username, email or account id")
 	}
 	var view *perspectivv1.AdminUserView
+	missedBy := ""
 	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		q := s.q.WithTx(tx)
 		if err := s.requireAdmin(ctx, q, admin, perspectivv1connect.ModerationServiceLookupUserProcedure); err != nil {
 			return err
 		}
 		id, how, err := findUser(ctx, q, query)
+		if errors.Is(err, errNoSuchUser) {
+			missedBy = how
+		}
 		if err != nil {
 			return err
 		}
@@ -160,11 +164,26 @@ func (s *Service) LookupUser(ctx context.Context, admin uuid.UUID, query string)
 			TargetKind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_USER, TargetID: &id, Reason: "looked up by " + how,
 		})
 	})
+	if missedBy != "" {
+		// A miss is audited too, so probing for which addresses have
+		// accounts shows in the log; the searched text is never kept.
+		if aerr := writeAudit(ctx, s.q, AuditEntry{
+			Actor: &admin, Action: perspectivv1.AuditAction_AUDIT_ACTION_USER_LOOKUP,
+			TargetKind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_USER, TargetRef: noMatchRef,
+			Reason: "looked up by " + missedBy + ", no match",
+		}); aerr != nil {
+			return nil, apiutil.Internal(fmt.Errorf("write audit row: %w", aerr))
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
 	return view, nil
 }
+
+// noMatchRef stands in for the account of a lookup that found none; the
+// audit row needs a target and the searched text is not kept.
+const noMatchRef = "no match"
 
 func findUser(ctx context.Context, q *dbq.Queries, query string) (uuid.UUID, string, error) {
 	var (
@@ -186,7 +205,7 @@ func findUser(ctx context.Context, q *dbq.Queries, query string) (uuid.UUID, str
 		how = "username"
 	}
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, "", errNoSuchUser
+		return uuid.Nil, how, errNoSuchUser
 	}
 	if err != nil {
 		return uuid.Nil, "", apiutil.Internal(fmt.Errorf("find user: %w", err))

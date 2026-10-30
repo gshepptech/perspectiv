@@ -98,7 +98,7 @@ func (h *Handler) Login(ctx context.Context, req *connect.Request[perspectivv1.L
 	if req.Msg.GetEmail() == "" || req.Msg.GetPassword() == "" {
 		return nil, apiutil.ToConnect(errBadCredentials)
 	}
-	t, err := h.svc.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword())
+	t, err := h.svc.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword(), req.Header().Get("User-Agent"))
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
@@ -224,4 +224,40 @@ func (h *Handler) SignOutEverywhere(ctx context.Context, _ *connect.Request[pers
 	res := connect.NewResponse(&perspectivv1.SignOutEverywhereResponse{})
 	res.Header().Add("Set-Cookie", h.clearCookie().String())
 	return res, nil
+}
+
+// ListSessions lists the caller's signed-in devices.
+func (h *Handler) ListSessions(ctx context.Context, _ *connect.Request[perspectivv1.ListSessionsRequest]) (*connect.Response[perspectivv1.ListSessionsResponse], error) {
+	c, err := callerOrDeny(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sessions, err := h.svc.ListSessions(ctx, c)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	res := &perspectivv1.ListSessionsResponse{Sessions: make([]*perspectivv1.SessionInfo, len(sessions))}
+	for i, s := range sessions {
+		res.Sessions[i] = &perspectivv1.SessionInfo{
+			SessionId: s.ID.String(), Device: s.Device, SignedInAt: timestamppb.New(s.SignedInAt),
+			LastUsedAt: timestamppb.New(s.LastUsedAt), Current: s.Current,
+		}
+	}
+	return connect.NewResponse(res), nil
+}
+
+// RevokeSession signs out one of the caller's other devices.
+func (h *Handler) RevokeSession(ctx context.Context, req *connect.Request[perspectivv1.RevokeSessionRequest]) (*connect.Response[perspectivv1.RevokeSessionResponse], error) {
+	c, err := callerOrDeny(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sid, err := uuid.Parse(req.Msg.GetSessionId())
+	if err != nil {
+		return nil, apiutil.ToConnect(apiutil.InvalidArg("session_id must be an id"))
+	}
+	if err := h.svc.RevokeSession(ctx, c, sid); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.RevokeSessionResponse{}), nil
 }

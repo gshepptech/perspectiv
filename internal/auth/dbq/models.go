@@ -267,6 +267,7 @@ type Session struct {
 	LastUsedAt time.Time
 	ExpiresAt  time.Time
 	RevokedAt  *time.Time
+	Device     string
 }
 
 type User struct {

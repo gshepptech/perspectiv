@@ -1954,6 +1954,245 @@ func (*SignOutEverywhereResponse) Descriptor() ([]byte, []int) {
 	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{38}
 }
 
+// SessionInfo is one signed-in device as its owner sees it.
+type SessionInfo struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// "Firefox on macOS", or empty when the browser was not recognised.
+	Device     string                 `protobuf:"bytes,2,opt,name=device,proto3" json:"device,omitempty"`
+	SignedInAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=signed_in_at,json=signedInAt,proto3" json:"signed_in_at,omitempty"`
+	LastUsedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
+	// True for the session making this call.
+	Current       bool `protobuf:"varint,5,opt,name=current,proto3" json:"current,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SessionInfo) Reset() {
+	*x = SessionInfo{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionInfo) ProtoMessage() {}
+
+func (x *SessionInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionInfo.ProtoReflect.Descriptor instead.
+func (*SessionInfo) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *SessionInfo) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *SessionInfo) GetDevice() string {
+	if x != nil {
+		return x.Device
+	}
+	return ""
+}
+
+func (x *SessionInfo) GetSignedInAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SignedInAt
+	}
+	return nil
+}
+
+func (x *SessionInfo) GetLastUsedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastUsedAt
+	}
+	return nil
+}
+
+func (x *SessionInfo) GetCurrent() bool {
+	if x != nil {
+		return x.Current
+	}
+	return false
+}
+
+type ListSessionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSessionsRequest) Reset() {
+	*x = ListSessionsRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSessionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSessionsRequest) ProtoMessage() {}
+
+func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSessionsRequest.ProtoReflect.Descriptor instead.
+func (*ListSessionsRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{40}
+}
+
+type ListSessionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sessions      []*SessionInfo         `protobuf:"bytes,1,rep,name=sessions,proto3" json:"sessions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSessionsResponse) Reset() {
+	*x = ListSessionsResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSessionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSessionsResponse) ProtoMessage() {}
+
+func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSessionsResponse.ProtoReflect.Descriptor instead.
+func (*ListSessionsResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *ListSessionsResponse) GetSessions() []*SessionInfo {
+	if x != nil {
+		return x.Sessions
+	}
+	return nil
+}
+
+type RevokeSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeSessionRequest) Reset() {
+	*x = RevokeSessionRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeSessionRequest) ProtoMessage() {}
+
+func (x *RevokeSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeSessionRequest.ProtoReflect.Descriptor instead.
+func (*RevokeSessionRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *RevokeSessionRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type RevokeSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeSessionResponse) Reset() {
+	*x = RevokeSessionResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeSessionResponse) ProtoMessage() {}
+
+func (x *RevokeSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeSessionResponse.ProtoReflect.Descriptor instead.
+func (*RevokeSessionResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{43}
+}
+
 var File_perspectiv_v1_auth_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_auth_proto_rawDesc = "" +
@@ -2070,7 +2309,23 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"\x1c\n" +
 	"\x1aConfirmEmailChangeResponse\"\x1a\n" +
 	"\x18SignOutEverywhereRequest\"\x1b\n" +
-	"\x19SignOutEverywhereResponse2\x8e\r\n" +
+	"\x19SignOutEverywhereResponse\"\xda\x01\n" +
+	"\vSessionInfo\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x16\n" +
+	"\x06device\x18\x02 \x01(\tR\x06device\x12<\n" +
+	"\fsigned_in_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"signedInAt\x12<\n" +
+	"\flast_used_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"lastUsedAt\x12\x18\n" +
+	"\acurrent\x18\x05 \x01(\bR\acurrent\"\x15\n" +
+	"\x13ListSessionsRequest\"N\n" +
+	"\x14ListSessionsResponse\x126\n" +
+	"\bsessions\x18\x01 \x03(\v2\x1a.perspectiv.v1.SessionInfoR\bsessions\"5\n" +
+	"\x14RevokeSessionRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
+	"\x15RevokeSessionResponse2\xc3\x0e\n" +
 	"\vAuthService\x12E\n" +
 	"\x06SignUp\x12\x1c.perspectiv.v1.SignUpRequest\x1a\x1d.perspectiv.v1.SignUpResponse\x12B\n" +
 	"\x05Login\x12\x1b.perspectiv.v1.LoginRequest\x1a\x1c.perspectiv.v1.LoginResponse\x12E\n" +
@@ -2082,7 +2337,9 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\x0eChangePassword\x12$.perspectiv.v1.ChangePasswordRequest\x1a%.perspectiv.v1.ChangePasswordResponse\x12i\n" +
 	"\x12RequestEmailChange\x12(.perspectiv.v1.RequestEmailChangeRequest\x1a).perspectiv.v1.RequestEmailChangeResponse\x12i\n" +
 	"\x12ConfirmEmailChange\x12(.perspectiv.v1.ConfirmEmailChangeRequest\x1a).perspectiv.v1.ConfirmEmailChangeResponse\x12f\n" +
-	"\x11SignOutEverywhere\x12'.perspectiv.v1.SignOutEverywhereRequest\x1a(.perspectiv.v1.SignOutEverywhereResponse\x12Z\n" +
+	"\x11SignOutEverywhere\x12'.perspectiv.v1.SignOutEverywhereRequest\x1a(.perspectiv.v1.SignOutEverywhereResponse\x12W\n" +
+	"\fListSessions\x12\".perspectiv.v1.ListSessionsRequest\x1a#.perspectiv.v1.ListSessionsResponse\x12Z\n" +
+	"\rRevokeSession\x12#.perspectiv.v1.RevokeSessionRequest\x1a$.perspectiv.v1.RevokeSessionResponse\x12Z\n" +
 	"\rGetSignUpInfo\x12#.perspectiv.v1.GetSignUpInfoRequest\x1a$.perspectiv.v1.GetSignUpInfoResponse\x12W\n" +
 	"\fJoinWaitlist\x12\".perspectiv.v1.JoinWaitlistRequest\x1a#.perspectiv.v1.JoinWaitlistResponse\x12c\n" +
 	"\x10CreateAccessCode\x12&.perspectiv.v1.CreateAccessCodeRequest\x1a'.perspectiv.v1.CreateAccessCodeResponse\x12`\n" +
@@ -2104,7 +2361,7 @@ func file_perspectiv_v1_auth_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_auth_proto_rawDescData
 }
 
-var file_perspectiv_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_perspectiv_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
 var file_perspectiv_v1_auth_proto_goTypes = []any{
 	(*SessionUser)(nil),                  // 0: perspectiv.v1.SessionUser
 	(*SignUpRequest)(nil),                // 1: perspectiv.v1.SignUpRequest
@@ -2145,65 +2402,77 @@ var file_perspectiv_v1_auth_proto_goTypes = []any{
 	(*ConfirmEmailChangeResponse)(nil),   // 36: perspectiv.v1.ConfirmEmailChangeResponse
 	(*SignOutEverywhereRequest)(nil),     // 37: perspectiv.v1.SignOutEverywhereRequest
 	(*SignOutEverywhereResponse)(nil),    // 38: perspectiv.v1.SignOutEverywhereResponse
-	(Role)(0),                            // 39: perspectiv.v1.Role
-	(*timestamppb.Timestamp)(nil),        // 40: google.protobuf.Timestamp
+	(*SessionInfo)(nil),                  // 39: perspectiv.v1.SessionInfo
+	(*ListSessionsRequest)(nil),          // 40: perspectiv.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),         // 41: perspectiv.v1.ListSessionsResponse
+	(*RevokeSessionRequest)(nil),         // 42: perspectiv.v1.RevokeSessionRequest
+	(*RevokeSessionResponse)(nil),        // 43: perspectiv.v1.RevokeSessionResponse
+	(Role)(0),                            // 44: perspectiv.v1.Role
+	(*timestamppb.Timestamp)(nil),        // 45: google.protobuf.Timestamp
 }
 var file_perspectiv_v1_auth_proto_depIdxs = []int32{
-	39, // 0: perspectiv.v1.SessionUser.role:type_name -> perspectiv.v1.Role
-	40, // 1: perspectiv.v1.LoginResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	44, // 0: perspectiv.v1.SessionUser.role:type_name -> perspectiv.v1.Role
+	45, // 1: perspectiv.v1.LoginResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: perspectiv.v1.LoginResponse.user:type_name -> perspectiv.v1.SessionUser
-	40, // 3: perspectiv.v1.RefreshResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	45, // 3: perspectiv.v1.RefreshResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: perspectiv.v1.RefreshResponse.user:type_name -> perspectiv.v1.SessionUser
-	40, // 5: perspectiv.v1.AccessCode.created_at:type_name -> google.protobuf.Timestamp
-	40, // 6: perspectiv.v1.AccessCode.expires_at:type_name -> google.protobuf.Timestamp
+	45, // 5: perspectiv.v1.AccessCode.created_at:type_name -> google.protobuf.Timestamp
+	45, // 6: perspectiv.v1.AccessCode.expires_at:type_name -> google.protobuf.Timestamp
 	19, // 7: perspectiv.v1.CreateAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
 	19, // 8: perspectiv.v1.ListAccessCodesResponse.codes:type_name -> perspectiv.v1.AccessCode
 	19, // 9: perspectiv.v1.RevokeAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
-	40, // 10: perspectiv.v1.WaitlistEntry.created_at:type_name -> google.protobuf.Timestamp
-	40, // 11: perspectiv.v1.WaitlistEntry.invited_at:type_name -> google.protobuf.Timestamp
+	45, // 10: perspectiv.v1.WaitlistEntry.created_at:type_name -> google.protobuf.Timestamp
+	45, // 11: perspectiv.v1.WaitlistEntry.invited_at:type_name -> google.protobuf.Timestamp
 	26, // 12: perspectiv.v1.ListWaitlistResponse.entries:type_name -> perspectiv.v1.WaitlistEntry
 	26, // 13: perspectiv.v1.InviteFromWaitlistResponse.entry:type_name -> perspectiv.v1.WaitlistEntry
-	1,  // 14: perspectiv.v1.AuthService.SignUp:input_type -> perspectiv.v1.SignUpRequest
-	3,  // 15: perspectiv.v1.AuthService.Login:input_type -> perspectiv.v1.LoginRequest
-	5,  // 16: perspectiv.v1.AuthService.Logout:input_type -> perspectiv.v1.LogoutRequest
-	7,  // 17: perspectiv.v1.AuthService.Refresh:input_type -> perspectiv.v1.RefreshRequest
-	9,  // 18: perspectiv.v1.AuthService.VerifyEmail:input_type -> perspectiv.v1.VerifyEmailRequest
-	11, // 19: perspectiv.v1.AuthService.RequestPasswordReset:input_type -> perspectiv.v1.RequestPasswordResetRequest
-	13, // 20: perspectiv.v1.AuthService.ResetPassword:input_type -> perspectiv.v1.ResetPasswordRequest
-	31, // 21: perspectiv.v1.AuthService.ChangePassword:input_type -> perspectiv.v1.ChangePasswordRequest
-	33, // 22: perspectiv.v1.AuthService.RequestEmailChange:input_type -> perspectiv.v1.RequestEmailChangeRequest
-	35, // 23: perspectiv.v1.AuthService.ConfirmEmailChange:input_type -> perspectiv.v1.ConfirmEmailChangeRequest
-	37, // 24: perspectiv.v1.AuthService.SignOutEverywhere:input_type -> perspectiv.v1.SignOutEverywhereRequest
-	15, // 25: perspectiv.v1.AuthService.GetSignUpInfo:input_type -> perspectiv.v1.GetSignUpInfoRequest
-	17, // 26: perspectiv.v1.AuthService.JoinWaitlist:input_type -> perspectiv.v1.JoinWaitlistRequest
-	20, // 27: perspectiv.v1.AuthService.CreateAccessCode:input_type -> perspectiv.v1.CreateAccessCodeRequest
-	22, // 28: perspectiv.v1.AuthService.ListAccessCodes:input_type -> perspectiv.v1.ListAccessCodesRequest
-	24, // 29: perspectiv.v1.AuthService.RevokeAccessCode:input_type -> perspectiv.v1.RevokeAccessCodeRequest
-	27, // 30: perspectiv.v1.AuthService.ListWaitlist:input_type -> perspectiv.v1.ListWaitlistRequest
-	29, // 31: perspectiv.v1.AuthService.InviteFromWaitlist:input_type -> perspectiv.v1.InviteFromWaitlistRequest
-	2,  // 32: perspectiv.v1.AuthService.SignUp:output_type -> perspectiv.v1.SignUpResponse
-	4,  // 33: perspectiv.v1.AuthService.Login:output_type -> perspectiv.v1.LoginResponse
-	6,  // 34: perspectiv.v1.AuthService.Logout:output_type -> perspectiv.v1.LogoutResponse
-	8,  // 35: perspectiv.v1.AuthService.Refresh:output_type -> perspectiv.v1.RefreshResponse
-	10, // 36: perspectiv.v1.AuthService.VerifyEmail:output_type -> perspectiv.v1.VerifyEmailResponse
-	12, // 37: perspectiv.v1.AuthService.RequestPasswordReset:output_type -> perspectiv.v1.RequestPasswordResetResponse
-	14, // 38: perspectiv.v1.AuthService.ResetPassword:output_type -> perspectiv.v1.ResetPasswordResponse
-	32, // 39: perspectiv.v1.AuthService.ChangePassword:output_type -> perspectiv.v1.ChangePasswordResponse
-	34, // 40: perspectiv.v1.AuthService.RequestEmailChange:output_type -> perspectiv.v1.RequestEmailChangeResponse
-	36, // 41: perspectiv.v1.AuthService.ConfirmEmailChange:output_type -> perspectiv.v1.ConfirmEmailChangeResponse
-	38, // 42: perspectiv.v1.AuthService.SignOutEverywhere:output_type -> perspectiv.v1.SignOutEverywhereResponse
-	16, // 43: perspectiv.v1.AuthService.GetSignUpInfo:output_type -> perspectiv.v1.GetSignUpInfoResponse
-	18, // 44: perspectiv.v1.AuthService.JoinWaitlist:output_type -> perspectiv.v1.JoinWaitlistResponse
-	21, // 45: perspectiv.v1.AuthService.CreateAccessCode:output_type -> perspectiv.v1.CreateAccessCodeResponse
-	23, // 46: perspectiv.v1.AuthService.ListAccessCodes:output_type -> perspectiv.v1.ListAccessCodesResponse
-	25, // 47: perspectiv.v1.AuthService.RevokeAccessCode:output_type -> perspectiv.v1.RevokeAccessCodeResponse
-	28, // 48: perspectiv.v1.AuthService.ListWaitlist:output_type -> perspectiv.v1.ListWaitlistResponse
-	30, // 49: perspectiv.v1.AuthService.InviteFromWaitlist:output_type -> perspectiv.v1.InviteFromWaitlistResponse
-	32, // [32:50] is the sub-list for method output_type
-	14, // [14:32] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	45, // 14: perspectiv.v1.SessionInfo.signed_in_at:type_name -> google.protobuf.Timestamp
+	45, // 15: perspectiv.v1.SessionInfo.last_used_at:type_name -> google.protobuf.Timestamp
+	39, // 16: perspectiv.v1.ListSessionsResponse.sessions:type_name -> perspectiv.v1.SessionInfo
+	1,  // 17: perspectiv.v1.AuthService.SignUp:input_type -> perspectiv.v1.SignUpRequest
+	3,  // 18: perspectiv.v1.AuthService.Login:input_type -> perspectiv.v1.LoginRequest
+	5,  // 19: perspectiv.v1.AuthService.Logout:input_type -> perspectiv.v1.LogoutRequest
+	7,  // 20: perspectiv.v1.AuthService.Refresh:input_type -> perspectiv.v1.RefreshRequest
+	9,  // 21: perspectiv.v1.AuthService.VerifyEmail:input_type -> perspectiv.v1.VerifyEmailRequest
+	11, // 22: perspectiv.v1.AuthService.RequestPasswordReset:input_type -> perspectiv.v1.RequestPasswordResetRequest
+	13, // 23: perspectiv.v1.AuthService.ResetPassword:input_type -> perspectiv.v1.ResetPasswordRequest
+	31, // 24: perspectiv.v1.AuthService.ChangePassword:input_type -> perspectiv.v1.ChangePasswordRequest
+	33, // 25: perspectiv.v1.AuthService.RequestEmailChange:input_type -> perspectiv.v1.RequestEmailChangeRequest
+	35, // 26: perspectiv.v1.AuthService.ConfirmEmailChange:input_type -> perspectiv.v1.ConfirmEmailChangeRequest
+	37, // 27: perspectiv.v1.AuthService.SignOutEverywhere:input_type -> perspectiv.v1.SignOutEverywhereRequest
+	40, // 28: perspectiv.v1.AuthService.ListSessions:input_type -> perspectiv.v1.ListSessionsRequest
+	42, // 29: perspectiv.v1.AuthService.RevokeSession:input_type -> perspectiv.v1.RevokeSessionRequest
+	15, // 30: perspectiv.v1.AuthService.GetSignUpInfo:input_type -> perspectiv.v1.GetSignUpInfoRequest
+	17, // 31: perspectiv.v1.AuthService.JoinWaitlist:input_type -> perspectiv.v1.JoinWaitlistRequest
+	20, // 32: perspectiv.v1.AuthService.CreateAccessCode:input_type -> perspectiv.v1.CreateAccessCodeRequest
+	22, // 33: perspectiv.v1.AuthService.ListAccessCodes:input_type -> perspectiv.v1.ListAccessCodesRequest
+	24, // 34: perspectiv.v1.AuthService.RevokeAccessCode:input_type -> perspectiv.v1.RevokeAccessCodeRequest
+	27, // 35: perspectiv.v1.AuthService.ListWaitlist:input_type -> perspectiv.v1.ListWaitlistRequest
+	29, // 36: perspectiv.v1.AuthService.InviteFromWaitlist:input_type -> perspectiv.v1.InviteFromWaitlistRequest
+	2,  // 37: perspectiv.v1.AuthService.SignUp:output_type -> perspectiv.v1.SignUpResponse
+	4,  // 38: perspectiv.v1.AuthService.Login:output_type -> perspectiv.v1.LoginResponse
+	6,  // 39: perspectiv.v1.AuthService.Logout:output_type -> perspectiv.v1.LogoutResponse
+	8,  // 40: perspectiv.v1.AuthService.Refresh:output_type -> perspectiv.v1.RefreshResponse
+	10, // 41: perspectiv.v1.AuthService.VerifyEmail:output_type -> perspectiv.v1.VerifyEmailResponse
+	12, // 42: perspectiv.v1.AuthService.RequestPasswordReset:output_type -> perspectiv.v1.RequestPasswordResetResponse
+	14, // 43: perspectiv.v1.AuthService.ResetPassword:output_type -> perspectiv.v1.ResetPasswordResponse
+	32, // 44: perspectiv.v1.AuthService.ChangePassword:output_type -> perspectiv.v1.ChangePasswordResponse
+	34, // 45: perspectiv.v1.AuthService.RequestEmailChange:output_type -> perspectiv.v1.RequestEmailChangeResponse
+	36, // 46: perspectiv.v1.AuthService.ConfirmEmailChange:output_type -> perspectiv.v1.ConfirmEmailChangeResponse
+	38, // 47: perspectiv.v1.AuthService.SignOutEverywhere:output_type -> perspectiv.v1.SignOutEverywhereResponse
+	41, // 48: perspectiv.v1.AuthService.ListSessions:output_type -> perspectiv.v1.ListSessionsResponse
+	43, // 49: perspectiv.v1.AuthService.RevokeSession:output_type -> perspectiv.v1.RevokeSessionResponse
+	16, // 50: perspectiv.v1.AuthService.GetSignUpInfo:output_type -> perspectiv.v1.GetSignUpInfoResponse
+	18, // 51: perspectiv.v1.AuthService.JoinWaitlist:output_type -> perspectiv.v1.JoinWaitlistResponse
+	21, // 52: perspectiv.v1.AuthService.CreateAccessCode:output_type -> perspectiv.v1.CreateAccessCodeResponse
+	23, // 53: perspectiv.v1.AuthService.ListAccessCodes:output_type -> perspectiv.v1.ListAccessCodesResponse
+	25, // 54: perspectiv.v1.AuthService.RevokeAccessCode:output_type -> perspectiv.v1.RevokeAccessCodeResponse
+	28, // 55: perspectiv.v1.AuthService.ListWaitlist:output_type -> perspectiv.v1.ListWaitlistResponse
+	30, // 56: perspectiv.v1.AuthService.InviteFromWaitlist:output_type -> perspectiv.v1.InviteFromWaitlistResponse
+	37, // [37:57] is the sub-list for method output_type
+	17, // [17:37] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_auth_proto_init() }
@@ -2218,7 +2487,7 @@ func file_perspectiv_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_auth_proto_rawDesc), len(file_perspectiv_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   39,
+			NumMessages:   44,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
