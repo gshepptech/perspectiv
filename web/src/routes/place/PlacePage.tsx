@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { EpicTab, Genre, PlaceCategory, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
+import { EpicTab, Genre, PlaceCategory, PlaceKind, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { EpicArc, EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { useShowMore } from "@/lib/showMore";
+import { ReportDialog } from "@/components/actions/ReportDialog";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { useDebounced } from "@/routes/compose/search";
 
@@ -405,6 +406,10 @@ export function Component() {
                 Add a place here
               </Link>
             </Button>
+          )}
+          {/* A duplicate listing is reported here, where it is noticed. */}
+          {place.kind !== PlaceKind.STATE && (
+            <ReportDialog targetKind={ReportTargetKind.PLACE} targetId={place.id} targetLabel={place.name} triggerLabel="Report place" />
           )}
         </div>
       </header>

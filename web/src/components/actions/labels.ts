@@ -18,6 +18,7 @@ const reasonLabels: Record<Exclude<ReportReason, ReportReason.UNSPECIFIED>, stri
   [ReportReason.SEXUAL_CONTENT]: "Sexual content",
   [ReportReason.SPAM]: "Spam",
   [ReportReason.OTHER]: "Other",
+  [ReportReason.DUPLICATE_PLACE]: "Same place as another listing",
 };
 
 function inEnumOrder<K extends number, V>(labels: Record<K, V>): { value: K; label: V }[] {
@@ -33,6 +34,11 @@ export const emojis: readonly { value: Emoji; glyph: string; name: string }[] = 
 
 /** Every report reason a reporter can pick, in enum order; UNSPECIFIED is never offered. */
 export const reportReasons: readonly { value: ReportReason; label: string }[] = inEnumOrder(reasonLabels);
+
+/** The reasons offered for a target: "same place" is for a place only. */
+export function reportReasonsFor(isPlace: boolean): readonly { value: ReportReason; label: string }[] {
+  return reportReasons.filter((r) => isPlace || r.value !== ReportReason.DUPLICATE_PLACE);
+}
 
 /**
  * A report reason in the reporter's own words, so the report queue names it

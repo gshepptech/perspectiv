@@ -79,6 +79,10 @@ func (in *ReportInput) validate() error {
 	if !validReason(in.Reason) {
 		return apiutil.InvalidArg("reason is required")
 	}
+	if in.Reason == perspectivv1.ReportReason_REPORT_REASON_DUPLICATE_PLACE &&
+		in.TargetKind != perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PLACE {
+		return apiutil.InvalidArg("only a place can be reported as a duplicate")
+	}
 	in.Details = strings.TrimSpace(in.Details)
 	if utf8.RuneCountInString(in.Details) > MaxDetailsRunes {
 		return apiutil.InvalidArg(fmt.Sprintf("details must be at most %d characters", MaxDetailsRunes))

@@ -731,6 +731,8 @@ const (
 	ReportReason_REPORT_REASON_SEXUAL_CONTENT                  ReportReason = 4
 	ReportReason_REPORT_REASON_SPAM                            ReportReason = 5
 	ReportReason_REPORT_REASON_OTHER                           ReportReason = 6
+	// The place is another listing of one already there; for a place only.
+	ReportReason_REPORT_REASON_DUPLICATE_PLACE ReportReason = 7
 )
 
 // Enum value maps for ReportReason.
@@ -743,6 +745,7 @@ var (
 		4: "REPORT_REASON_SEXUAL_CONTENT",
 		5: "REPORT_REASON_SPAM",
 		6: "REPORT_REASON_OTHER",
+		7: "REPORT_REASON_DUPLICATE_PLACE",
 	}
 	ReportReason_value = map[string]int32{
 		"REPORT_REASON_UNSPECIFIED":                     0,
@@ -752,6 +755,7 @@ var (
 		"REPORT_REASON_SEXUAL_CONTENT":                  4,
 		"REPORT_REASON_SPAM":                            5,
 		"REPORT_REASON_OTHER":                           6,
+		"REPORT_REASON_DUPLICATE_PLACE":                 7,
 	}
 )
 
@@ -1343,7 +1347,7 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\x18REPORT_TARGET_KIND_PLACE\x10\x02\x12\x1b\n" +
 	"\x17REPORT_TARGET_KIND_USER\x10\x03\x12 \n" +
 	"\x1cREPORT_TARGET_KIND_LORE_POST\x10\x04\x12 \n" +
-	"\x1cREPORT_TARGET_KIND_LORE_NAME\x10\x05*\xf4\x01\n" +
+	"\x1cREPORT_TARGET_KIND_LORE_NAME\x10\x05*\x97\x02\n" +
 	"\fReportReason\x12\x1d\n" +
 	"\x19REPORT_REASON_UNSPECIFIED\x10\x00\x121\n" +
 	"-REPORT_REASON_REAL_NAME_OR_HANDLE_OF_NON_USER\x10\x01\x12\x1c\n" +
@@ -1351,7 +1355,8 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\x1dREPORT_REASON_HATEFUL_CONTENT\x10\x03\x12 \n" +
 	"\x1cREPORT_REASON_SEXUAL_CONTENT\x10\x04\x12\x16\n" +
 	"\x12REPORT_REASON_SPAM\x10\x05\x12\x17\n" +
-	"\x13REPORT_REASON_OTHER\x10\x06*a\n" +
+	"\x13REPORT_REASON_OTHER\x10\x06\x12!\n" +
+	"\x1dREPORT_REASON_DUPLICATE_PLACE\x10\a*a\n" +
 	"\fReportStatus\x12\x1d\n" +
 	"\x19REPORT_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12REPORT_STATUS_OPEN\x10\x01\x12\x1a\n" +

@@ -61,7 +61,8 @@ func validReason(r perspectivv1.ReportReason) bool {
 		perspectivv1.ReportReason_REPORT_REASON_HATEFUL_CONTENT,
 		perspectivv1.ReportReason_REPORT_REASON_SEXUAL_CONTENT,
 		perspectivv1.ReportReason_REPORT_REASON_SPAM,
-		perspectivv1.ReportReason_REPORT_REASON_OTHER:
+		perspectivv1.ReportReason_REPORT_REASON_OTHER,
+		perspectivv1.ReportReason_REPORT_REASON_DUPLICATE_PLACE:
 		return true
 	case perspectivv1.ReportReason_REPORT_REASON_UNSPECIFIED:
 		return false

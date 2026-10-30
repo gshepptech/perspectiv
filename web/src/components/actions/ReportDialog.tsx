@@ -10,11 +10,11 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } 
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import type { ReportReason, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
+import { ReportTargetKind, type ReportReason } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
 
 import { actionError } from "./errors";
-import { reportReasons } from "./labels";
+import { reportReasons, reportReasonsFor } from "./labels";
 import { useWriteGate } from "./useWriteGate";
 
 // The reports table stores details without a limit; the form caps them so a
@@ -90,7 +90,7 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {reportReasons.map((r) => (
+                        {reportReasonsFor(targetKind === ReportTargetKind.PLACE).map((r) => (
                           <SelectItem key={r.value} value={String(r.value)}>
                             {r.label}
                           </SelectItem>

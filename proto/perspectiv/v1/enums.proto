@@ -143,6 +143,8 @@ enum ReportReason {
   REPORT_REASON_SEXUAL_CONTENT = 4;
   REPORT_REASON_SPAM = 5;
   REPORT_REASON_OTHER = 6;
+  // The place is another listing of one already there; for a place only.
+  REPORT_REASON_DUPLICATE_PLACE = 7;
 }
 
 // ReportStatus is whether an admin has resolved a report.

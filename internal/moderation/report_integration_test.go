@@ -130,6 +130,7 @@ func TestReportRefusals(t *testing.T) {
 		{"unknown kind", perspectivv1.ReportTargetKind(99), w.store.String(), realName, "", connect.CodeInvalidArgument},
 		{"unspecified reason", place, w.store.String(), perspectivv1.ReportReason_REPORT_REASON_UNSPECIFIED, "", connect.CodeInvalidArgument},
 		{"unknown reason", place, w.store.String(), perspectivv1.ReportReason(99), "", connect.CodeInvalidArgument},
+		{"a perspective reported as a duplicate place", persp, w.perspective.String(), perspectivv1.ReportReason_REPORT_REASON_DUPLICATE_PLACE, "", connect.CodeInvalidArgument},
 		{"bad target id", place, "nope", realName, "", connect.CodeInvalidArgument},
 		{"nil target id", place, uuid.Nil.String(), realName, "", connect.CodeInvalidArgument},
 		{"details too long", place, w.store.String(), realName, strings.Repeat("é", 1001), connect.CodeInvalidArgument},
@@ -270,5 +271,28 @@ func TestReportLoreContent(t *testing.T) {
 		if err := report(tc.kind, tc.target); connect.CodeOf(err) != connect.CodeNotFound {
 			t.Fatalf("%s: err = %v, want NotFound", tc.name, err)
 		}
+	}
+}
+
+// A member reports a place as a duplicate of another listing, for an admin
+// to merge.
+func TestReportDuplicatePlace(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	w := e.world("writer")
+	reporter := e.user("reporter")
+	res, err := e.client(reporter).Report(context.Background(), connect.NewRequest(&perspectivv1.ReportRequest{
+		TargetKind: perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PLACE,
+		TargetId:   w.store.String(),
+		Reason:     perspectivv1.ReportReason_REPORT_REASON_DUPLICATE_PLACE,
+		Details:    "Same as Corner Deli on Main St",
+	}))
+	if err != nil {
+		t.Fatalf("Report: %v", err)
+	}
+	var reason string
+	e.scan(`SELECT reason FROM reports WHERE id = $1`, []any{res.Msg.GetReportId()}, &reason)
+	if reason != "REPORT_REASON_DUPLICATE_PLACE" {
+		t.Fatalf("stored reason = %s", reason)
 	}
 }

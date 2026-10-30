@@ -7,13 +7,6 @@ moves to Done in the same commit as the work, with what was verified.
 
 Nothing in progress.
 
-## Next (wave 7)
-
-27. **"This is the same place" reports.** Members can report a duplicate
-    place for an admin to merge (the admin merge exists).
-28. **"Were you here?"** One tap to say you were at a place on a day and
-    see its "Is this you?" list before writing anything.
-
 ## Out of scope for v1
 
 - Full-text search over stories: the spec leaves it out (A-057); place
@@ -27,6 +20,13 @@ Nothing in progress.
 
 ## Done
 
+- "This is the same place": members report a place as "Same place as
+  another listing" (offered for places only, from the place page and the
+  arc page); an admin merges it from the place page. "Were you here?" as a
+  claim without a story is not built: claims link stories, and the wave 6
+  "Write your side" flow from "Is this you?" covers the need. Verified by
+  TestReportDuplicatePlace, the refusal table, migration 26 up-down-up and
+  the label tests.
 - The first-time user (wave 6, from a newcomer walkthrough): "That was me"
   and upvote explain what a newcomer must do first and offer "Write your
   side", returning to the story with the claim open after publishing; the
