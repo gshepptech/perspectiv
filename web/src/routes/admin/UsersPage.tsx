@@ -57,7 +57,7 @@ function Dossier({ u }: { u: AdminUserView }) {
       <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <Fact term="Email">{u.emailHint || "None (account deleted)"}</Fact>
         <Fact term="Joined">{u.joinedAt ? day.format(timestampDate(u.joinedAt)) : "Unknown"}</Fact>
-        <Fact term="Last sign-in">{u.lastSignInAt ? dayTime.format(timestampDate(u.lastSignInAt)) : "Never"}</Fact>
+        <Fact term="Last sign-in">{u.lastSignInAt ? dayTime.format(timestampDate(u.lastSignInAt)) : "None in the last 30 days"}</Fact>
         <Fact term="Failed sign-ins, last 24 hours">{u.failedSignIns24h}</Fact>
         <Fact term="Stories">
           {u.stories}

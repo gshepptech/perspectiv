@@ -226,7 +226,10 @@ func build(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, log zerolog.Logge
 		river.AddWorker(workers, jobs.NewExpiryWorker(pool))
 		river.AddWorker(workers, rank.NewWorker(pool, loreSvc, m, enq, cfg.CanonMinMembers))
 		notify.AddWorkers(workers, pool, newMailer(cfg), m, log, cfg.PublicBaseURL, notify.NewUnsubscriber(cfg.JWTSecret))
-		a.worker, err = jobs.NewClient(pool, log, m, workers, []*river.PeriodicJob{rank.PeriodicJob(cfg.RankInterval), notify.DigestPeriodicJob()})
+		river.AddWorker(workers, auth.NewRetentionWorker(pool, log))
+		a.worker, err = jobs.NewClient(pool, log, m, workers, []*river.PeriodicJob{
+			rank.PeriodicJob(cfg.RankInterval), notify.DigestPeriodicJob(), auth.RetentionPeriodicJob(),
+		})
 		if err != nil {
 			return nil, err
 		}

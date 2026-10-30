@@ -18,8 +18,9 @@ export function Component() {
         </li>
         <li>
           <strong>Security records:</strong> your sign-in sessions, and the times of sign-in attempts, so we can lock an
-          account against guessing. Your network address is counted briefly to limit abuse, and old counts are deleted as new
-          ones start.
+          account against guessing. Your network address is counted briefly to limit abuse. Each day these are deleted once
+          old: a session 30 days after it ends, a sign-in attempt after 30 days, an emailed link 7 days after it is used or
+          expires, and an address count after a day.
         </li>
         <li>
           <strong>The waitlist:</strong> if you join it, your email address and the note you leave, until you are invited.

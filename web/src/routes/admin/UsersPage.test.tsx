@@ -54,7 +54,7 @@ describe("user lookup", () => {
     expect(dossier).toHaveTextContent("ma•••@example.test");
     expect(dossier).toHaveTextContent("4, 1 hidden");
     expect(dossier).toHaveTextContent("1 open of 2");
-    expect(dossier).toHaveTextContent("Never");
+    expect(dossier).toHaveTextContent("None in the last 30 days");
     expect(within(dossier).getByRole("link", { name: "Public profile" })).toHaveAttribute("href", "/users/marlo");
     expect(within(dossier).getByRole("list", { name: "Standing" })).toHaveTextContent("Email verified");
     await waitFor(() => expect(api.callsTo("ModerationService/ListReports")[0]?.body).toMatchObject({ subjectUserId: "u-9" }));

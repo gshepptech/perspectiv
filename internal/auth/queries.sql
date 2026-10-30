@@ -236,3 +236,38 @@ UPDATE users SET email = sqlc.arg(email)::text, email_verified_at = now() WHERE 
 
 -- name: EmailTaken :one
 SELECT EXISTS (SELECT 1 FROM users WHERE lower(email) = lower(sqlc.arg(email)::text) AND id <> sqlc.arg(id)::uuid)::boolean AS taken;
+
+-- name: PurgeEmailTokens :execrows
+-- One batch of emailed links spent or expired before the cutoff.
+DELETE FROM email_tokens
+WHERE id IN (
+    SELECT id FROM email_tokens
+    WHERE expires_at < sqlc.arg(before)::timestamptz OR used_at < sqlc.arg(before)::timestamptz
+    LIMIT sqlc.arg(batch)::integer
+);
+
+-- name: PurgeSessions :execrows
+-- One batch of sessions that ended (revoked or expired) before the cutoff;
+-- their refresh tokens go with them.
+DELETE FROM sessions
+WHERE id IN (
+    SELECT id FROM sessions
+    WHERE expires_at < sqlc.arg(before)::timestamptz OR revoked_at < sqlc.arg(before)::timestamptz
+    LIMIT sqlc.arg(batch)::integer
+);
+
+-- name: PurgeLoginAttempts :execrows
+DELETE FROM login_attempts
+WHERE id IN (
+    SELECT id FROM login_attempts WHERE attempted_at < sqlc.arg(before)::timestamptz
+    LIMIT sqlc.arg(batch)::integer
+);
+
+-- name: PurgeRateWindows :execrows
+-- Counters whose window started before the cutoff; no limit reads them.
+DELETE FROM rate_limit_counters
+WHERE (action, subject, window_start) IN (
+    SELECT action, subject, window_start FROM rate_limit_counters
+    WHERE window_start < sqlc.arg(before)::timestamptz
+    LIMIT sqlc.arg(batch)::integer
+);

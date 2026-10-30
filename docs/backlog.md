@@ -3,9 +3,11 @@
 What is left before a public beta, in the order it is being worked. An item
 moves to Done in the same commit as the work, with what was verified.
 
-## Doing (wave 3)
+## Doing (wave 4)
 
-Nothing in progress.
+14. **Query performance.** Fix the measured slow queries from the audit at
+    beta scale (followers fan-out 112 s, place search scoped to a state,
+    lore groups, generic plans on listings, missing partial indexes).
 
 ## Out of scope for v1
 
@@ -20,6 +22,11 @@ Nothing in progress.
 
 ## Done
 
+- Data retention: a daily job deletes, in batches, emailed links 7 days
+  after use or expiry, sessions and their refresh tokens 30 days after they
+  end, sign-in attempts after 30 days and rate-limit counters after a day,
+  with indexes for each cutoff; the privacy page states the periods.
+  Verified by TestRetentionPurge and migration 20 up-down-up.
 - TestServeByRole flake, diagnosed: the API role hashed a bcrypt dummy
   password at cost 12 while building the auth service, before it listened.
   That takes 0.3s, 3s under the race detector and over 30s under the full

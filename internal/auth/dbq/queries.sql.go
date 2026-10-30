@@ -647,6 +647,97 @@ func (q *Queries) MarkWaitlistInvited(ctx context.Context, arg MarkWaitlistInvit
 	return i, err
 }
 
+const purgeEmailTokens = `-- name: PurgeEmailTokens :execrows
+DELETE FROM email_tokens
+WHERE id IN (
+    SELECT id FROM email_tokens
+    WHERE expires_at < $1::timestamptz OR used_at < $1::timestamptz
+    LIMIT $2::integer
+)
+`
+
+type PurgeEmailTokensParams struct {
+	Before time.Time
+	Batch  int32
+}
+
+// One batch of emailed links spent or expired before the cutoff.
+func (q *Queries) PurgeEmailTokens(ctx context.Context, arg PurgeEmailTokensParams) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeEmailTokens, arg.Before, arg.Batch)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const purgeLoginAttempts = `-- name: PurgeLoginAttempts :execrows
+DELETE FROM login_attempts
+WHERE id IN (
+    SELECT id FROM login_attempts WHERE attempted_at < $1::timestamptz
+    LIMIT $2::integer
+)
+`
+
+type PurgeLoginAttemptsParams struct {
+	Before time.Time
+	Batch  int32
+}
+
+func (q *Queries) PurgeLoginAttempts(ctx context.Context, arg PurgeLoginAttemptsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeLoginAttempts, arg.Before, arg.Batch)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const purgeRateWindows = `-- name: PurgeRateWindows :execrows
+DELETE FROM rate_limit_counters
+WHERE (action, subject, window_start) IN (
+    SELECT action, subject, window_start FROM rate_limit_counters
+    WHERE window_start < $1::timestamptz
+    LIMIT $2::integer
+)
+`
+
+type PurgeRateWindowsParams struct {
+	Before time.Time
+	Batch  int32
+}
+
+// Counters whose window started before the cutoff; no limit reads them.
+func (q *Queries) PurgeRateWindows(ctx context.Context, arg PurgeRateWindowsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeRateWindows, arg.Before, arg.Batch)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const purgeSessions = `-- name: PurgeSessions :execrows
+DELETE FROM sessions
+WHERE id IN (
+    SELECT id FROM sessions
+    WHERE expires_at < $1::timestamptz OR revoked_at < $1::timestamptz
+    LIMIT $2::integer
+)
+`
+
+type PurgeSessionsParams struct {
+	Before time.Time
+	Batch  int32
+}
+
+// One batch of sessions that ended (revoked or expired) before the cutoff;
+// their refresh tokens go with them.
+func (q *Queries) PurgeSessions(ctx context.Context, arg PurgeSessionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeSessions, arg.Before, arg.Batch)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const retireEmailTokens = `-- name: RetireEmailTokens :exec
 UPDATE email_tokens SET used_at = now()
 WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL
