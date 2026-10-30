@@ -19,6 +19,7 @@ import (
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
 	"perspectiv/internal/api"
 	"perspectiv/internal/api/apiutil"
+	"perspectiv/internal/api/metrics"
 )
 
 // logSink is a goroutine-safe buffer of JSON log lines.
@@ -144,6 +145,9 @@ type stack struct {
 type stackOpts struct {
 	gate api.Gate
 	lim  *fakeLimiter
+	// metrics, when set, puts the metrics interceptor outermost, as the
+	// composition root does.
+	metrics *metrics.Metrics
 }
 
 // testProcedures are mounted on every stack; the last is not in api.Routes.
@@ -169,6 +173,9 @@ func newStack(t *testing.T, o stackOpts) *stack {
 	s := &stack{logs: &logSink{}, lim: o.lim, seen: map[string]apiutil.Caller{}, hits: map[string]int{}}
 	log := zerolog.New(s.logs)
 	ics := api.Interceptors(log, fakeAuthn{}, o.gate, o.lim)
+	if o.metrics != nil {
+		ics = append([]connect.Interceptor{api.MetricsInterceptor(o.metrics)}, ics...)
+	}
 
 	var mounts []api.Mount
 	for _, proc := range testProcedures {

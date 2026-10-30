@@ -16,6 +16,11 @@ type Metrics struct {
 	CanonChanges          prometheus.Counter
 	JobFailures           prometheus.Counter
 	EmailSendFailures     prometheus.Counter
+	// RPCs counts every API call by procedure and Connect code ("ok" for
+	// success); RPCDuration times them by procedure. The procedures are the
+	// fixed set the services declare, so the labels stay bounded.
+	RPCs        *prometheus.CounterVec
+	RPCDuration *prometheus.HistogramVec
 }
 
 // New creates the domain counters and registers them on reg. It panics when
@@ -43,8 +48,18 @@ func New(reg prometheus.Registerer) *Metrics {
 			Name: "email_send_failures_total",
 			Help: "Email sends the mail provider rejected or that failed in transit.",
 		}),
+		RPCs: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "rpc_requests_total",
+			Help: "API calls by procedure and Connect code (ok for success).",
+		}, []string{"procedure", "code"}),
+		RPCDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "rpc_request_duration_seconds",
+			Help:    "API call duration by procedure, from the outermost interceptor.",
+			Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
+		}, []string{"procedure"}),
 	}
-	reg.MustRegister(m.PerspectivesPublished, m.ClaimsAccepted, m.CanonChanges, m.JobFailures, m.EmailSendFailures)
+	reg.MustRegister(m.PerspectivesPublished, m.ClaimsAccepted, m.CanonChanges, m.JobFailures, m.EmailSendFailures,
+		m.RPCs, m.RPCDuration)
 	return m
 }
 

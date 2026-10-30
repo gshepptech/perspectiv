@@ -302,9 +302,15 @@ cmd_migrate_down() {
 cmd_grafana_up() {
 	require docker
 	load_env
+	# Prometheus scrapes the server on the host at whatever port HTTP_ADDR
+	# names, so the checked-in config is rendered with it.
+	local port="${HTTP_ADDR##*:}"
+	mkdir -p "$ROOT/tmp/dev"
+	sed "s/host.docker.internal:8080/host.docker.internal:$port/" "$ROOT/scripts/grafana/prometheus.yml" >"$ROOT/tmp/dev/prometheus.yml"
+	export PROMETHEUS_CONFIG="$ROOT/tmp/dev/prometheus.yml"
 	docker compose -p "$OBS_PROJECT" -f "$OBS_COMPOSE" up -d
 	echo "grafana    http://localhost:$GRAFANA_PORT"
-	echo "prometheus http://localhost:$PROMETHEUS_PORT (scrapes the server's /metrics)"
+	echo "prometheus http://localhost:$PROMETHEUS_PORT (scrapes the server's /metrics on :$port)"
 	echo "tempo      OTLP gRPC localhost:$TEMPO_OTLP_GRPC_PORT; set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:$TEMPO_OTLP_GRPC_PORT in .env.dev.local"
 	echo "loki       http://localhost:$LOKI_PORT"
 }

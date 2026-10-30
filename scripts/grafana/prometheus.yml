@@ -1,4 +1,5 @@
-# Scrapes the dev server's /metrics on the host (HTTP_ADDR :8080 by default).
+# Scrapes the dev server's /metrics on the host. dev.sh replaces :8080 with
+# the port HTTP_ADDR names before starting Prometheus.
 global:
   scrape_interval: 15s
 
