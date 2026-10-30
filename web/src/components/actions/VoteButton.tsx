@@ -98,7 +98,7 @@ export function VoteButton({ perspectiveId, upvotes: upvotesProp, voted: votedPr
           aria-pressed={voted}
           aria-label={label}
           pending={vote.isPending}
-          className={voted ? "border-accent text-accent" : undefined}
+          className={cn("min-h-11", voted && "border-accent text-accent")}
           onClick={() => {
             if (gate()) vote.mutate(!voted);
           }}

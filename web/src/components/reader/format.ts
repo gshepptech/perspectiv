@@ -76,13 +76,20 @@ export function formatDay(localDate: string, hour?: number): string {
 }
 
 /**
- * formatDay for a date shown beside a title: an hour arc's title already
- * ends with its hour (" · 23:00", given when the arc is made), so the hour
- * is left off the date rather than said twice. A retitled hour arc keeps it.
+ * Whether an hour arc's title already ends with its hour (" · 23:00"), as the
+ * title the server gives an hour arc when it is made does. A retitled hour arc
+ * may not, and then the hour is shown beside it.
+ */
+export function titleEndsWithHour(title: string, hour?: number): boolean {
+  return hour !== undefined && title.endsWith(` · ${String(hour).padStart(2, "0")}:00`);
+}
+
+/**
+ * formatDay for a date shown beside a title: the hour is left off the date
+ * when the title already ends with it, rather than said twice.
  */
 export function formatDayBeside(title: string, localDate: string, hour?: number): string {
-  if (hour !== undefined && title.endsWith(` · ${String(hour).padStart(2, "0")}:00`)) return formatDay(localDate);
-  return formatDay(localDate, hour);
+  return titleEndsWithHour(title, hour) ? formatDay(localDate) : formatDay(localDate, hour);
 }
 
 /** The filter chips a city's places can be narrowed by, in the order shown. */

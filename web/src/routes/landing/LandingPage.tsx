@@ -218,7 +218,7 @@ export function Component() {
                 id={inputId}
                 type="search"
                 autoComplete="off"
-                placeholder="Where were you? A store, mall, town or city"
+                placeholder="A store, mall, town or city"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 className="min-h-14 rounded-full pr-5 pl-13 text-lg shadow-sm"

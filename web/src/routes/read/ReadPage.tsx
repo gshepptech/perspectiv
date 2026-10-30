@@ -60,21 +60,22 @@ function Byline({ p }: { p: Perspective }) {
   // is linked with and the thread.
   const inLore = p.loreStatus === LoreStatus.IN_LORE && p.loreId !== "";
   return (
-    <p className="flex flex-wrap gap-x-3 gap-y-1">
+    // Every link sits in a 44px row so neighbouring links never crowd on a phone.
+    <p className="flex flex-wrap items-center gap-x-3">
       {p.author && (
-        <span>
-          by <AuthorLink username={p.author.username} />
+        <span className="inline-flex min-h-11 items-center gap-1">
+          by <AuthorLink username={p.author.username} className="inline-flex min-h-11 items-center" />
         </span>
       )}
       {p.place && (
-        <Link to={`/places/${p.place.id}`} className="wrap-anywhere text-accent underline underline-offset-4">
+        <Link to={`/places/${p.place.id}`} className="inline-flex min-h-11 items-center wrap-anywhere text-accent underline underline-offset-4">
           {p.place.name}
         </Link>
       )}
       <span>{formatDayBeside(p.arcTitle || p.titleIfNewArc, p.localDate, p.hour)}</span>
       {genre && <span>{genre}</span>}
       {inLore ? (
-        <Link to={`/lores/${p.loreId}`} className="text-accent underline underline-offset-4">
+        <Link to={`/lores/${p.loreId}`} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
           {standing}: read the lore
         </Link>
       ) : (

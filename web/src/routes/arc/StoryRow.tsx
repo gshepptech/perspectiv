@@ -82,7 +82,7 @@ export function StoryRow({
         {summary.excerpt && (
           <p className="mt-1 line-clamp-2 max-w-measure font-serif text-prose break-words hyphens-auto text-ink">{summary.excerpt}</p>
         )}
-        <Link to={href} className="mt-1 inline-flex min-h-9 items-center text-sm font-medium text-accent underline underline-offset-4">
+        <Link to={href} className="mt-1 inline-flex min-h-11 min-w-11 items-center text-sm font-medium text-accent underline underline-offset-4">
           Read <span className="sr-only">{name ? `${name}'s perspective` : "this perspective"}</span>
         </Link>
       </div>

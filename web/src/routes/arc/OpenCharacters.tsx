@@ -46,7 +46,7 @@ export function OpenCharacters({
             <Link
               to={`/perspectives/${encodeURIComponent(c.perspectiveId)}?claim=1`}
               aria-label={`That was me: ${c.label}`}
-              className="inline-flex min-h-9 items-center font-medium text-accent underline underline-offset-4"
+              className="inline-flex min-h-11 items-center font-medium text-accent underline underline-offset-4"
             >
               That was me
             </Link>

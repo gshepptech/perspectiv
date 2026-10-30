@@ -111,7 +111,7 @@ export function RootLayout() {
                 <NavLink to="/login" className={navLink}>
                   Sign in
                 </NavLink>
-                <Button asChild size="sm">
+                <Button asChild size="sm" className="min-h-11">
                   <Link to="/signup">Sign up</Link>
                 </Button>
               </>

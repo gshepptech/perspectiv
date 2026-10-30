@@ -8,6 +8,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
+import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { signIn } from "@/lib/session";
 
@@ -17,6 +18,9 @@ import { emailSchema, passwordSchema, safeNext } from "./rules";
 
 const schema = z.object({ email: emailSchema, password: passwordSchema });
 type Values = z.infer<typeof schema>;
+
+// The two links under the form are separate 44px targets on a phone.
+const targetClass = "inline-flex min-h-11 items-center";
 
 export function Component() {
   const navigate = useNavigate();
@@ -77,13 +81,13 @@ export function Component() {
         </form>
       </Form>
       <p className="mt-6 text-sm">
-        <Link to="/forgot-password" className={linkClass}>
+        <Link to="/forgot-password" className={cn(linkClass, targetClass)}>
           Forgot your password?
         </Link>
       </p>
       <p className="mt-2 text-sm text-ink-muted">
         New here?{" "}
-        <Link to="/signup" className={linkClass}>
+        <Link to="/signup" className={cn(linkClass, targetClass)}>
           Create an account
         </Link>
       </p>

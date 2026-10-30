@@ -31,7 +31,7 @@ export function ReactBar({ perspectiveId, counts }: { perspectiveId: string; cou
   const byEmoji = new Map(counts.map((c) => [c.emoji, c]));
   return (
     <div className="flex flex-col gap-1">
-      <div role="group" aria-label="Reacts" className="flex flex-wrap gap-1.5">
+      <div role="group" aria-label="Reacts" className="flex flex-wrap gap-2">
         {emojis.map(({ value, glyph, name }) => {
           const count = byEmoji.get(value)?.count ?? 0;
           const mine = byEmoji.get(value)?.mine ?? false;
@@ -46,7 +46,7 @@ export function ReactBar({ perspectiveId, counts }: { perspectiveId: string; cou
                 if (!react.isPending && gate()) react.mutate({ emoji: value, on: !mine });
               }}
               className={cn(
-                "inline-flex min-h-9 items-center gap-1 rounded-full border px-2.5 text-sm",
+                "inline-flex min-h-11 items-center gap-1 rounded-full border px-2.5 text-sm",
                 "aria-disabled:opacity-60",
                 mine ? "border-accent bg-surface text-ink" : "border-control text-ink-muted hover:border-ink hover:text-ink",
               )}

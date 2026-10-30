@@ -161,6 +161,14 @@ describe("hour timeline", () => {
     expect(screen.getByText(/15:00/)).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Hours" })).toBeNull();
   });
+
+  it("an hour arc whose title ends with its hour says the hour once", async () => {
+    await open("/arcs/arc-h23", () => ({
+      body: { arc: arc({ id: "arc-h23", hour: 23, parentArcId: "arc-day", title: "Dryer number six · 23:00" }), sublores: [], tales: [], hours: [] },
+    }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Dryer number six · 23:00" })).toBeInTheDocument();
+    expect(screen.getAllByText(/23:00/)).toHaveLength(1);
+  });
 });
 
 describe("signed-out reader", () => {

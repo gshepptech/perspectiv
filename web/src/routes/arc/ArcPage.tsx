@@ -6,6 +6,7 @@ import { Link, useLocation, useParams } from "react-router";
 
 import type { ViewerRights } from "@/components/actions/PerspectiveActions";
 import { ReportDialog } from "@/components/actions/ReportDialog";
+import { titleEndsWithHour } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import type { Arc, ArcLore, GetArcResponse, HourArc, ListArcSectionResponse } from "@/gen/perspectiv/v1/arc_pb";
 import type { Lore } from "@/gen/perspectiv/v1/lore_pb";
@@ -397,7 +398,7 @@ function ArcView({ res }: { res: GetArcResponse }) {
         </h1>
         <p className="mt-1 flex flex-wrap items-center gap-x-3 text-ink-muted">
           <span>{dateLabel(arc.localDate)}</span>
-          {isHour && (
+          {isHour && !titleEndsWithHour(arc.title, arc.hour) && (
             <span className="inline-flex items-center gap-1">
               <Clock aria-hidden size={16} />
               {hourLabel(arc.hour ?? 0)}
@@ -418,11 +419,11 @@ function ArcView({ res }: { res: GetArcResponse }) {
         )}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {rights.mineId ? (
-            <Button asChild variant="secondary" size="sm">
+            <Button asChild variant="secondary" size="sm" className="min-h-11">
               <Link to={`/perspectives/${rights.mineId}`}>Read yours</Link>
             </Button>
           ) : (
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="min-h-11">
               <Link to={composeHref(arc)}>
                 <PenLine aria-hidden size={16} />
                 Write your perspective

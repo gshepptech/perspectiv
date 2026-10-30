@@ -59,7 +59,7 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
       }}
     >
       <DialogTrigger asChild>
-        <Button aria-label={`${triggerLabel}: ${targetLabel}`} variant="ghost" size="sm" className="text-ink-muted">
+        <Button aria-label={`${triggerLabel}: ${targetLabel}`} variant="ghost" size="sm" className="min-h-11 text-ink-muted">
           <Flag aria-hidden size={16} />
           {triggerLabel}
         </Button>

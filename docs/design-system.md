@@ -266,7 +266,8 @@ are writing, each of which opens its place page.
   `text-lg`, `ink-muted`.
 - **The search is the call to action.** A large rounded field (`rounded-full`,
   `surface`, `control` border, 56px tall) labelled "Search places", with the
-  placeholder "Where were you? A store, mall, town or city". Results drop
+  placeholder "A store, mall, town or city" (short enough to show whole in
+  a 375px field). Results drop
   below it as before. Under it, one line for newcomers: "Anyone can read.
   Sign up to write your side."
 - **The example arc.** A labelled "Example" panel that shows the product

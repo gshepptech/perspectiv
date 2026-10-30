@@ -48,7 +48,7 @@ function isNotFound(err: unknown): boolean {
 function ArcItem({ arc }: { arc: EpicArc }) {
   return (
     <li className="py-3">
-      <Link to={`/arcs/${arc.arcId}`} className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">
+      <Link to={`/arcs/${arc.arcId}`} className="inline-flex min-h-11 items-center font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">
         {arc.title}
       </Link>
       <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">

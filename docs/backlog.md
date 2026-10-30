@@ -5,8 +5,6 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing (wave 2)
 
-9. **Mobile pass.** Every main screen checked at 375px for overflow, tap
-   targets and reading comfort, and fixed (review delegated).
 
 ## Next
 
@@ -25,6 +23,13 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Mobile pass: twelve screens measured at 375x812. Nothing overflowed; the
+  defects were tap targets. Sign up, Write your perspective, Read yours,
+  story-row Read, byline links, Upvote, reacts (8px apart), Report, the
+  login links, place arc titles and both "That was me" links are now 44px;
+  a thread post's Report stays on its header row; the landing placeholder
+  fits the field; an hour arc's page says its hour once. Verified by
+  measuring the live loop at 375px, the unit suite and the e2e suite.
 - Account security: Settings has "Sign-in and security". Changing the
   password takes the current one (counted by the login lockout), retires
   reset links and signs out every other device. Changing email takes the

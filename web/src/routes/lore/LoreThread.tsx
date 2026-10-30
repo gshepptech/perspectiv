@@ -71,20 +71,23 @@ export function LoreThread({ loreId, canPost }: { loreId: string; canPost: boole
         <ol aria-label="Posts" className="mt-4 grid gap-4">
           {items.map((p) => (
             <li key={p.id} className="min-w-0">
-              <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-ink-muted">
-                {p.author && <AuthorLink username={p.author.username} />}
-                {p.byMember && <span className="rounded-full bg-accent/10 px-2 text-xs font-medium text-accent">In this lore</span>}
-                {p.createdAt && <time dateTime={timestampDate(p.createdAt).toISOString()}>{when.format(timestampDate(p.createdAt))}</time>}
+              {/* Report stays on the header's row: the byline wraps beside it rather than pushing it below. */}
+              <div className="flex items-center gap-2">
+                <p className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 text-sm text-ink-muted">
+                  {p.author && <AuthorLink username={p.author.username} />}
+                  {p.byMember && <span className="rounded-full bg-accent/10 px-2 text-xs font-medium text-accent">In this lore</span>}
+                  {p.createdAt && <time dateTime={timestampDate(p.createdAt).toISOString()}>{when.format(timestampDate(p.createdAt))}</time>}
+                </p>
                 {p.author?.userId !== session?.userId && (
-                  <span className="ml-auto">
+                  <div className="shrink-0">
                     <ReportDialog
                       targetKind={ReportTargetKind.LORE_POST}
                       targetId={p.id}
                       targetLabel={`${p.author?.username ?? "this"}'s post`}
                     />
-                  </span>
+                  </div>
                 )}
-              </p>
+              </div>
               <p className="mt-1 whitespace-pre-line wrap-anywhere text-ink">{p.body}</p>
             </li>
           ))}
