@@ -20,6 +20,27 @@ Nothing in progress.
 
 ## Done
 
+- Day listings name their canon: a place page row and a front-page card
+  read "Canon: *The long queue*" once the canon lore's members name it, and
+  plain "Canon" otherwise or after a moderator clears the name. Verified by
+  TestGetEpicRanked and PlacePage.test.tsx.
+- Save a story to read later: a Save toggle (Bookmark, `aria-pressed`,
+  "Save"/"Saved") in a story's action bar, a signed-in /saved page titled
+  "Saved stories" with profile-style rows that name the writer, Show more
+  and an empty state, and "Saved" first in the account menu; a signed-out
+  reader who presses Save is sent to sign in and back. SavePerspective is
+  NotFound for a story the caller cannot read (draft, deleted, hidden, at
+  or below a hidden place), for an unsave too; ListSaved pages newest save
+  first and leaves out a saved story that stops being readable, keeping
+  the save so the story returns once restored; Get's perspective carries
+  `saved` for the caller. Deleting an account removes its saves (the
+  account is soft-deleted, so the FK cascade alone would not); the data
+  export lists saved story ids with when they were saved. Migration 29.
+  Verified by TestSavePerspective, TestSavePerspectiveNotFoundWhenUnreadable,
+  TestListSaved, TestSavedPerspectivesCascade, TestHotQueriesAreIndexBacked,
+  TestDeleteAccount, TestExportMyData, TestMigrationsRollBack, the web
+  suite (actions.test.tsx save cases, SavedPage.test.tsx, router.test.tsx)
+  and e2e/save-story.spec.ts.
 - Follow a writer: a Follow toggle and follower count on a profile, a
   "Writers you follow" list in Settings with Unfollow, and a new inbox and
   email kind (NEW_STORY_BY_FOLLOWED_WRITER) for each new story by a followed

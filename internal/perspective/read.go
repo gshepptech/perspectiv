@@ -281,6 +281,7 @@ func assemble(r dbq.GetPerspectivesRow, c contents) (*perspectivv1.Perspective, 
 	p.Characters = c.characters[r.ID]
 	p.Upvotes = r.Upvotes
 	p.Voted = r.Voted
+	p.Saved = r.Saved
 	p.Reacts = c.reacts[r.ID]
 	return p, nil
 }

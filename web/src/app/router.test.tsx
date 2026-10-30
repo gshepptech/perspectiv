@@ -63,6 +63,7 @@ const contract: [string, string][] = [
   ["/lores/l-1", "lore/LorePage"],
   ["/compose?placeId=p-1&date=2026-10-01&hour=14", "compose/ComposePage"],
   ["/claims", "claims/ClaimsPage"],
+  ["/saved", "saved/SavedPage"],
   ["/admin/reports", "admin/ReportsPage"],
   ["/admin/access", "admin/AccessPage"],
   ["/admin/users?q=wren", "admin/UsersPage"],
@@ -107,7 +108,7 @@ describe("signed-out reading and writing", () => {
     });
   }
 
-  const writePaths = ["/compose?placeId=p-1&date=2026-10-01", "/claims", "/admin/reports", "/admin/access", "/admin/users", "/admin/audit", "/settings", "/inbox"];
+  const writePaths = ["/compose?placeId=p-1&date=2026-10-01", "/claims", "/admin/reports", "/admin/access", "/admin/users", "/admin/audit", "/settings", "/inbox", "/saved"];
   for (const path of writePaths) {
     it(`${path} redirects a signed-out visitor to login with next`, async () => {
       const { router } = renderAt(path);
@@ -212,6 +213,17 @@ describe("shell", () => {
     const requests = await within(nav).findByRole("link", { name: "Requests, 2 waiting" });
     expect(requests).toHaveAttribute("href", "/claims");
     expect(requests).toHaveTextContent("2");
+  });
+
+  it("lists Saved first in the account menu and opens the member's saved stories", async () => {
+    const user = userEvent.setup();
+    const { router } = renderAt("/", { refresh: signedIn() });
+    await screen.findByTestId("page");
+    await user.click(screen.getByRole("button", { name: "Account: wren" }));
+    const items = await screen.findAllByRole("menuitem");
+    expect(items.map((i) => i.textContent?.trim())).toEqual(["Saved", "Settings", "Sign out"]);
+    await user.click(screen.getByRole("menuitem", { name: "Saved" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/saved"));
   });
 
   it("offers Reports to an admin", async () => {

@@ -60,7 +60,9 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt
+                 LIMIT 1), '')::text AS excerpt,
+       -- The canon lore's name, so a listing can say which lore is canon.
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[$1::uuid]
@@ -100,6 +102,7 @@ type EpicArcsNewestRow struct {
 	PerspectiveCount int32
 	CityName         string
 	Excerpt          string
+	CanonLoreName    string
 }
 
 // The same arcs as EpicArcsRanked, newest first.
@@ -133,6 +136,7 @@ func (q *Queries) EpicArcsNewest(ctx context.Context, arg EpicArcsNewestParams) 
 			&i.PerspectiveCount,
 			&i.CityName,
 			&i.Excerpt,
+			&i.CanonLoreName,
 		); err != nil {
 			return nil, err
 		}
@@ -160,7 +164,9 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt
+                 LIMIT 1), '')::text AS excerpt,
+       -- The canon lore's name, so a listing can say which lore is canon.
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[$1::uuid]
@@ -205,6 +211,7 @@ type EpicArcsRankedRow struct {
 	PerspectiveCount int32
 	CityName         string
 	Excerpt          string
+	CanonLoreName    string
 }
 
 // Arcs at the place and every visible descendant, found by arcs.place_path
@@ -245,6 +252,7 @@ func (q *Queries) EpicArcsRanked(ctx context.Context, arg EpicArcsRankedParams) 
 			&i.PerspectiveCount,
 			&i.CityName,
 			&i.Excerpt,
+			&i.CanonLoreName,
 		); err != nil {
 			return nil, err
 		}
@@ -363,7 +371,9 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt
+                 LIMIT 1), '')::text AS excerpt,
+       -- The canon lore's name, so a listing can say which lore is canon.
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
@@ -400,6 +410,7 @@ type EverywhereArcsNewestRow struct {
 	PerspectiveCount int32
 	CityName         string
 	Excerpt          string
+	CanonLoreName    string
 }
 
 // EverywhereArcsRanked, newest first.
@@ -432,6 +443,7 @@ func (q *Queries) EverywhereArcsNewest(ctx context.Context, arg EverywhereArcsNe
 			&i.PerspectiveCount,
 			&i.CityName,
 			&i.Excerpt,
+			&i.CanonLoreName,
 		); err != nil {
 			return nil, err
 		}
@@ -459,7 +471,9 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt
+                 LIMIT 1), '')::text AS excerpt,
+       -- The canon lore's name, so a listing can say which lore is canon.
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
@@ -501,6 +515,7 @@ type EverywhereArcsRankedRow struct {
 	PerspectiveCount int32
 	CityName         string
 	Excerpt          string
+	CanonLoreName    string
 }
 
 // EpicArcsRanked across every visible place: the front page. A separate
@@ -538,6 +553,7 @@ func (q *Queries) EverywhereArcsRanked(ctx context.Context, arg EverywhereArcsRa
 			&i.PerspectiveCount,
 			&i.CityName,
 			&i.Excerpt,
+			&i.CanonLoreName,
 		); err != nil {
 			return nil, err
 		}

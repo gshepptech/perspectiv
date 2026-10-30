@@ -114,6 +114,10 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.PerspectiveService/ListByAuthor": {Access: Public},
 	"/perspectiv.v1.PerspectiveService/CreateInvite": {Access: User, Verified: true},
 	"/perspectiv.v1.PerspectiveService/GetInvite":    {Access: Public},
+	// Saving puts no text in front of anyone else, so it needs no verified
+	// email.
+	"/perspectiv.v1.PerspectiveService/SavePerspective": {Access: User},
+	"/perspectiv.v1.PerspectiveService/ListSaved":       {Access: User},
 
 	"/perspectiv.v1.LoreService/ClaimCharacter": {Access: User, Verified: true, RateLimit: LimitClaim},
 	"/perspectiv.v1.LoreService/ResolveClaim":   {Access: User, Verified: true},

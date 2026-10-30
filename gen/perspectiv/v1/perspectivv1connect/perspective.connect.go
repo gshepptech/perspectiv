@@ -59,6 +59,12 @@ const (
 	// PerspectiveServiceGetInviteProcedure is the fully-qualified name of the PerspectiveService's
 	// GetInvite RPC.
 	PerspectiveServiceGetInviteProcedure = "/perspectiv.v1.PerspectiveService/GetInvite"
+	// PerspectiveServiceSavePerspectiveProcedure is the fully-qualified name of the
+	// PerspectiveService's SavePerspective RPC.
+	PerspectiveServiceSavePerspectiveProcedure = "/perspectiv.v1.PerspectiveService/SavePerspective"
+	// PerspectiveServiceListSavedProcedure is the fully-qualified name of the PerspectiveService's
+	// ListSaved RPC.
+	PerspectiveServiceListSavedProcedure = "/perspectiv.v1.PerspectiveService/ListSaved"
 )
 
 // PerspectiveServiceClient is a client for the perspectiv.v1.PerspectiveService service.
@@ -87,6 +93,13 @@ type PerspectiveServiceClient interface {
 	// Public. What an invite link shows before sign-in: who wrote, where, when,
 	// and the opening of their story. NotFound once the perspective is gone.
 	GetInvite(context.Context, *connect.Request[v1.GetInviteRequest]) (*connect.Response[v1.GetInviteResponse], error)
+	// Saves a story to read later, or unsaves it. Either is a no-op when
+	// already so. NotFound when the story is not readable to the caller: a
+	// draft, deleted or hidden, or filed at or below a hidden place.
+	SavePerspective(context.Context, *connect.Request[v1.SavePerspectiveRequest]) (*connect.Response[v1.SavePerspectiveResponse], error)
+	// The caller's saved stories, most recently saved first. A saved story
+	// that is no longer readable is left out until it is readable again.
+	ListSaved(context.Context, *connect.Request[v1.ListSavedRequest]) (*connect.Response[v1.ListSavedResponse], error)
 }
 
 // NewPerspectiveServiceClient constructs a client for the perspectiv.v1.PerspectiveService service.
@@ -154,20 +167,34 @@ func NewPerspectiveServiceClient(httpClient connect.HTTPClient, baseURL string, 
 			connect.WithSchema(perspectiveServiceMethods.ByName("GetInvite")),
 			connect.WithClientOptions(opts...),
 		),
+		savePerspective: connect.NewClient[v1.SavePerspectiveRequest, v1.SavePerspectiveResponse](
+			httpClient,
+			baseURL+PerspectiveServiceSavePerspectiveProcedure,
+			connect.WithSchema(perspectiveServiceMethods.ByName("SavePerspective")),
+			connect.WithClientOptions(opts...),
+		),
+		listSaved: connect.NewClient[v1.ListSavedRequest, v1.ListSavedResponse](
+			httpClient,
+			baseURL+PerspectiveServiceListSavedProcedure,
+			connect.WithSchema(perspectiveServiceMethods.ByName("ListSaved")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // perspectiveServiceClient implements PerspectiveServiceClient.
 type perspectiveServiceClient struct {
-	saveDraft    *connect.Client[v1.SaveDraftRequest, v1.SaveDraftResponse]
-	publish      *connect.Client[v1.PublishRequest, v1.PublishResponse]
-	update       *connect.Client[v1.PerspectiveServiceUpdateRequest, v1.PerspectiveServiceUpdateResponse]
-	delete       *connect.Client[v1.PerspectiveServiceDeleteRequest, v1.PerspectiveServiceDeleteResponse]
-	get          *connect.Client[v1.PerspectiveServiceGetRequest, v1.PerspectiveServiceGetResponse]
-	listMine     *connect.Client[v1.ListMineRequest, v1.ListMineResponse]
-	listByAuthor *connect.Client[v1.ListByAuthorRequest, v1.ListByAuthorResponse]
-	createInvite *connect.Client[v1.CreateInviteRequest, v1.CreateInviteResponse]
-	getInvite    *connect.Client[v1.GetInviteRequest, v1.GetInviteResponse]
+	saveDraft       *connect.Client[v1.SaveDraftRequest, v1.SaveDraftResponse]
+	publish         *connect.Client[v1.PublishRequest, v1.PublishResponse]
+	update          *connect.Client[v1.PerspectiveServiceUpdateRequest, v1.PerspectiveServiceUpdateResponse]
+	delete          *connect.Client[v1.PerspectiveServiceDeleteRequest, v1.PerspectiveServiceDeleteResponse]
+	get             *connect.Client[v1.PerspectiveServiceGetRequest, v1.PerspectiveServiceGetResponse]
+	listMine        *connect.Client[v1.ListMineRequest, v1.ListMineResponse]
+	listByAuthor    *connect.Client[v1.ListByAuthorRequest, v1.ListByAuthorResponse]
+	createInvite    *connect.Client[v1.CreateInviteRequest, v1.CreateInviteResponse]
+	getInvite       *connect.Client[v1.GetInviteRequest, v1.GetInviteResponse]
+	savePerspective *connect.Client[v1.SavePerspectiveRequest, v1.SavePerspectiveResponse]
+	listSaved       *connect.Client[v1.ListSavedRequest, v1.ListSavedResponse]
 }
 
 // SaveDraft calls perspectiv.v1.PerspectiveService.SaveDraft.
@@ -215,6 +242,16 @@ func (c *perspectiveServiceClient) GetInvite(ctx context.Context, req *connect.R
 	return c.getInvite.CallUnary(ctx, req)
 }
 
+// SavePerspective calls perspectiv.v1.PerspectiveService.SavePerspective.
+func (c *perspectiveServiceClient) SavePerspective(ctx context.Context, req *connect.Request[v1.SavePerspectiveRequest]) (*connect.Response[v1.SavePerspectiveResponse], error) {
+	return c.savePerspective.CallUnary(ctx, req)
+}
+
+// ListSaved calls perspectiv.v1.PerspectiveService.ListSaved.
+func (c *perspectiveServiceClient) ListSaved(ctx context.Context, req *connect.Request[v1.ListSavedRequest]) (*connect.Response[v1.ListSavedResponse], error) {
+	return c.listSaved.CallUnary(ctx, req)
+}
+
 // PerspectiveServiceHandler is an implementation of the perspectiv.v1.PerspectiveService service.
 type PerspectiveServiceHandler interface {
 	// Creates or replaces the caller's draft (autosave).
@@ -241,6 +278,13 @@ type PerspectiveServiceHandler interface {
 	// Public. What an invite link shows before sign-in: who wrote, where, when,
 	// and the opening of their story. NotFound once the perspective is gone.
 	GetInvite(context.Context, *connect.Request[v1.GetInviteRequest]) (*connect.Response[v1.GetInviteResponse], error)
+	// Saves a story to read later, or unsaves it. Either is a no-op when
+	// already so. NotFound when the story is not readable to the caller: a
+	// draft, deleted or hidden, or filed at or below a hidden place.
+	SavePerspective(context.Context, *connect.Request[v1.SavePerspectiveRequest]) (*connect.Response[v1.SavePerspectiveResponse], error)
+	// The caller's saved stories, most recently saved first. A saved story
+	// that is no longer readable is left out until it is readable again.
+	ListSaved(context.Context, *connect.Request[v1.ListSavedRequest]) (*connect.Response[v1.ListSavedResponse], error)
 }
 
 // NewPerspectiveServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -304,6 +348,18 @@ func NewPerspectiveServiceHandler(svc PerspectiveServiceHandler, opts ...connect
 		connect.WithSchema(perspectiveServiceMethods.ByName("GetInvite")),
 		connect.WithHandlerOptions(opts...),
 	)
+	perspectiveServiceSavePerspectiveHandler := connect.NewUnaryHandler(
+		PerspectiveServiceSavePerspectiveProcedure,
+		svc.SavePerspective,
+		connect.WithSchema(perspectiveServiceMethods.ByName("SavePerspective")),
+		connect.WithHandlerOptions(opts...),
+	)
+	perspectiveServiceListSavedHandler := connect.NewUnaryHandler(
+		PerspectiveServiceListSavedProcedure,
+		svc.ListSaved,
+		connect.WithSchema(perspectiveServiceMethods.ByName("ListSaved")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.PerspectiveService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PerspectiveServiceSaveDraftProcedure:
@@ -324,6 +380,10 @@ func NewPerspectiveServiceHandler(svc PerspectiveServiceHandler, opts ...connect
 			perspectiveServiceCreateInviteHandler.ServeHTTP(w, r)
 		case PerspectiveServiceGetInviteProcedure:
 			perspectiveServiceGetInviteHandler.ServeHTTP(w, r)
+		case PerspectiveServiceSavePerspectiveProcedure:
+			perspectiveServiceSavePerspectiveHandler.ServeHTTP(w, r)
+		case PerspectiveServiceListSavedProcedure:
+			perspectiveServiceListSavedHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -367,4 +427,12 @@ func (UnimplementedPerspectiveServiceHandler) CreateInvite(context.Context, *con
 
 func (UnimplementedPerspectiveServiceHandler) GetInvite(context.Context, *connect.Request[v1.GetInviteRequest]) (*connect.Response[v1.GetInviteResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PerspectiveService.GetInvite is not implemented"))
+}
+
+func (UnimplementedPerspectiveServiceHandler) SavePerspective(context.Context, *connect.Request[v1.SavePerspectiveRequest]) (*connect.Response[v1.SavePerspectiveResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PerspectiveService.SavePerspective is not implemented"))
+}
+
+func (UnimplementedPerspectiveServiceHandler) ListSaved(context.Context, *connect.Request[v1.ListSavedRequest]) (*connect.Response[v1.ListSavedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PerspectiveService.ListSaved is not implemented"))
 }

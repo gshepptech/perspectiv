@@ -164,7 +164,7 @@ describe("on a story's own page", () => {
 });
 
 describe("signed-out reader on a story's page", () => {
-  for (const [label, name] of [["report", /^Report:/]] as const) {
+  for (const [label, name] of [["report", /^Report:/], ["save", /^Save /]] as const) {
     it(`AC-009: the ${label} action redirects to login without calling the server`, async () => {
       const { api } = await openStory("p-otter", OTTER, {
         signedOut: true,
@@ -173,7 +173,7 @@ describe("signed-out reader on a story's page", () => {
       const actions = await story();
       await userEvent.click(await within(actions).findByRole("button", { name }));
       expect(await screen.findByTestId("login")).toHaveTextContent("next=%2Fperspectives%2Fp-otter");
-      expect(api.calls.some((c) => /^(VoteService|ReactService|LoreService|ModerationService)/.test(c.procedure))).toBe(false);
+      expect(api.calls.some((c) => /^(VoteService|ReactService|LoreService|ModerationService)|SavePerspective/.test(c.procedure))).toBe(false);
     });
   }
 
@@ -553,6 +553,50 @@ describe("report", () => {
     await userEvent.click(await screen.findByRole("option", { name: "Spam" }));
     await userEvent.click(within(dialog).getByRole("button", { name: "Send report" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("too many reports, try later");
+  });
+});
+
+describe("save", () => {
+  it("saves a story to read later and unsaves it, pressed state and words following the server", async () => {
+    let isSaved = false;
+    const app = await openStory("p-otter", OTTER, {
+      routes: {
+        "PerspectiveService/Get": () => ({
+          body: { perspective: { ...perspective("p-otter", { author: OTTER, loreId: "lore-canon" }).perspective, saved: isSaved } },
+        }),
+        "PerspectiveService/SavePerspective": () => {
+          isSaved = currentBody().on === true;
+          return { body: { saved: isSaved } };
+        },
+      },
+    });
+    const actions = await story();
+    const save = await within(actions).findByRole("button", { name: "Save otter's perspective", pressed: false });
+    expect(save).toHaveTextContent("Save");
+
+    await userEvent.click(save);
+    const saved = await within(actions).findByRole("button", { name: "Saved otter's perspective", pressed: true });
+    expect(saved).toHaveTextContent("Saved");
+
+    await userEvent.click(saved);
+    await within(actions).findByRole("button", { name: "Save otter's perspective", pressed: false });
+    expect(bodiesFor(app.api, "PerspectiveService/SavePerspective")).toEqual([{ perspectiveId: "p-otter", on: true }, { perspectiveId: "p-otter" }]);
+  });
+
+  it("shows a story the reader saved earlier as Saved", async () => {
+    await openStory("p-otter", OTTER, { over: { saved: true } });
+    const actions = await story();
+    expect(await within(actions).findByRole("button", { name: "Saved otter's perspective" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("says so in place when the story can no longer be saved", async () => {
+    await openStory("p-otter", OTTER, {
+      routes: { "PerspectiveService/SavePerspective": () => connectError("not_found", "perspective not found") },
+    });
+    const actions = await story();
+    await userEvent.click(await within(actions).findByRole("button", { name: "Save otter's perspective" }));
+    expect(await within(actions).findByRole("alert")).toHaveTextContent("perspective not found");
+    expect(within(actions).getByRole("button", { name: "Save otter's perspective" })).toHaveAttribute("aria-pressed", "false");
   });
 });
 

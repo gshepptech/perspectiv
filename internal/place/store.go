@@ -373,6 +373,8 @@ type EpicArc struct {
 	City string
 	// Excerpt opens the canon's first story, or the first story without a canon.
 	Excerpt string
+	// CanonLoreName names the canon lore; "" without a canon or a name.
+	CanonLoreName string
 }
 
 // Cursor returns the keyset that resumes a listing after a.
@@ -472,6 +474,7 @@ func epicArcsFrom(rows []dbq.EpicArcsRankedRow) []EpicArc {
 			LocalDate: r.LocalDate.Time, Hour: hourOf(r.Hour), CanonLoreID: r.CanonLoreID.UUID,
 			CanonScore: r.CanonScore, MemberCount: r.MemberCount, PerspectiveCount: r.PerspectiveCount,
 			CreatedAt: r.CreatedAt.Time, City: r.CityName, Excerpt: clipExcerpt(r.Excerpt),
+			CanonLoreName: r.CanonLoreName,
 		}
 	}
 	return out

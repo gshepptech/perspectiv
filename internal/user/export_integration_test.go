@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -16,7 +17,7 @@ import (
 
 // ExportMyData returns the caller's own data as one JSON document: their
 // account with its email, their stories with parts and characters, claims
-// both ways, follows and more, and nobody else's email.
+// both ways, follows, saved stories and more, and nobody else's email.
 func TestExportMyData(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -37,6 +38,10 @@ func TestExportMyData(t *testing.T) {
 	fan := e.user("fanofmine")
 	e.exec(`INSERT INTO user_follows (follower_id, followee_id) VALUES ($1, $2), ($3, $1)`, me, other, fan)
 	e.exec(`INSERT INTO votes (perspective_id, user_id) VALUES ($1, $2)`, theirs, me)
+	// The stories the member saved are theirs to export, hidden ones too;
+	// who saved the member's own stories is not.
+	e.exec(`INSERT INTO saved_perspectives (user_id, perspective_id, created_at) VALUES ($1, $2, '2026-10-20T12:00:00Z'), ($3, $4, now())`,
+		me, theirs, fan, mine)
 	e.draft(me)
 
 	res, err := e.client(me).ExportMyData(ctx, connect.NewRequest(&perspectivv1.ExportMyDataRequest{}))
@@ -74,6 +79,10 @@ func TestExportMyData(t *testing.T) {
 		Upvotes []struct {
 			PerspectiveID uuid.UUID `json:"perspective_id"`
 		} `json:"upvotes"`
+		SavedStories []struct {
+			PerspectiveID uuid.UUID `json:"perspective_id"`
+			SavedAt       time.Time `json:"saved_at"`
+		} `json:"saved_stories"`
 		ThreadPosts []any `json:"thread_posts"`
 	}
 	if err := json.Unmarshal([]byte(doc), &got); err != nil {
@@ -98,6 +107,9 @@ func TestExportMyData(t *testing.T) {
 		t.Fatal("the export names who follows the member")
 	case len(got.Upvotes) != 1 || got.Upvotes[0].PerspectiveID != theirs:
 		t.Fatalf("upvotes = %+v", got.Upvotes)
+	case len(got.SavedStories) != 1 || got.SavedStories[0].PerspectiveID != theirs ||
+		!got.SavedStories[0].SavedAt.Equal(time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)):
+		t.Fatalf("saved stories = %+v, want the one story the member saved and when", got.SavedStories)
 	case got.ThreadPosts == nil:
 		t.Fatal("an empty section must be an empty list, not missing")
 	}

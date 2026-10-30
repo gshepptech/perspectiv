@@ -431,8 +431,8 @@ export type ExportMyDataResponse = Message<"perspectiv.v1.ExportMyDataResponse">
   /**
    * A JSON object: the account, its stories with parts and characters,
    * claims made and received, votes, reactions, thread posts, lores named,
-   * places and writers followed, blocks, reports filed, invites sent and
-   * notification settings.
+   * places and writers followed, stories saved, blocks, reports filed,
+   * invites sent and notification settings.
    *
    * @generated from field: string json = 1;
    */

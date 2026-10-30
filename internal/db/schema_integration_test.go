@@ -440,6 +440,42 @@ func TestReactsOneOfEachEmoji(t *testing.T) {
 	wantErr(t, w.exec(react, w.perspective, bob, "EMOJI_HEART"), uniqueViolation, "reacts_pkey")
 }
 
+// TestSavedPerspectivesCascade checks that a member saves a story at most
+// once and that a save goes with its member or its story when either row is
+// removed outright.
+func TestSavedPerspectivesCascade(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name   string
+		remove func(w world, saver uuid.UUID) error
+	}{
+		{name: "the member is removed", remove: func(w world, saver uuid.UUID) error {
+			return w.exec(`DELETE FROM users WHERE id = $1`, saver)
+		}},
+		{name: "the story is removed", remove: func(w world, _ uuid.UUID) error {
+			return w.exec(`DELETE FROM perspectives WHERE id = $1`, w.perspective)
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			w := newWorld(t)
+			bob := w.user2()
+			save := `INSERT INTO saved_perspectives (user_id, perspective_id) VALUES ($1, $2)`
+			wantOK(t, w.exec(save, bob, w.perspective))
+			wantErr(t, w.exec(save, bob, w.perspective), uniqueViolation, "saved_perspectives_pkey")
+			wantOK(t, tt.remove(w, bob))
+			var n int
+			if err := w.pool.QueryRow(context.Background(), `SELECT count(*) FROM saved_perspectives`).Scan(&n); err != nil {
+				t.Fatal(err)
+			}
+			if n != 0 {
+				t.Fatalf("saved_perspectives rows = %d, want 0 after the cascade", n)
+			}
+		})
+	}
+}
+
 // TestNotificationPayloadSchema checks the writer-side validation of the
 // notifications payload JSON Schema.
 func TestNotificationPayloadSchema(t *testing.T) {
@@ -589,6 +625,13 @@ func TestHotQueriesAreIndexBacked(t *testing.T) {
 			name: "inbox page after a cursor",
 			query: `SELECT id FROM notifications WHERE user_id = $1 AND (created_at, id) < ($2, $3)
 				ORDER BY created_at DESC, id DESC LIMIT 20`,
+			args: []any{uuid.New(), "2026-10-11T00:00:00Z", uuid.New()},
+		},
+		{
+			name: "saved stories page after a cursor",
+			query: `SELECT perspective_id FROM saved_perspectives WHERE user_id = $1
+				AND (created_at, perspective_id) < ($2, $3)
+				ORDER BY created_at DESC, perspective_id DESC LIMIT 20`,
 			args: []any{uuid.New(), "2026-10-11T00:00:00Z", uuid.New()},
 		},
 		{

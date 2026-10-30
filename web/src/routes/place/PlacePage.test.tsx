@@ -32,6 +32,7 @@ const rankedArcs = [
     place: store,
     localDate: "2026-01-14",
     canonLoreId: "lore-1",
+    canonLoreName: "Ice night",
     canonScore: 9.5,
     memberCount: 5,
     perspectiveCount: 7,
@@ -149,7 +150,7 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     expect(items).toHaveLength(2);
     expect(within(items[0]!).getByRole("link", { name: "The night the fountain froze" })).toHaveAttribute("href", "/arcs/arc-canon");
     expect(items[0]).toHaveTextContent("Prairie Books");
-    expect(items[0]).toHaveTextContent("Canon");
+    expect(items[0]).toHaveTextContent("Canon: Ice night");
     expect(items[0]).toHaveTextContent("5 in lore");
     expect(items[0]).toHaveTextContent("January 14, 2026");
     expect(items[1]).toHaveTextContent("July 4, 2026, 14:00");

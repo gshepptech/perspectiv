@@ -260,6 +260,12 @@ type Report struct {
 	ResolvedAt       *time.Time
 }
 
+type SavedPerspective struct {
+	UserID        uuid.UUID
+	PerspectiveID uuid.UUID
+	CreatedAt     time.Time
+}
+
 type Session struct {
 	ID         uuid.UUID
 	UserID     uuid.UUID

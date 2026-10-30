@@ -217,7 +217,7 @@ func arcToProto(a EpicArc) *perspectivv1.EpicArc {
 		LocalDate: a.LocalDate.Format(dateLayout), Hour: a.Hour,
 		CanonLoreId: idString(a.CanonLoreID), CanonScore: a.CanonScore,
 		MemberCount: a.MemberCount, PerspectiveCount: a.PerspectiveCount,
-		CreatedAt: timestamppb.New(a.CreatedAt), City: a.City, Excerpt: a.Excerpt,
+		CreatedAt: timestamppb.New(a.CreatedAt), City: a.City, Excerpt: a.Excerpt, CanonLoreName: a.CanonLoreName,
 	}
 }
 

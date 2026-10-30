@@ -204,7 +204,9 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt
+                 LIMIT 1), '')::text AS excerpt,
+       -- The canon lore's name, so a listing can say which lore is canon.
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[@place_id::uuid]
@@ -239,7 +241,9 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt
+                 LIMIT 1), '')::text AS excerpt,
+       -- The canon lore's name, so a listing can say which lore is canon.
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[@place_id::uuid]
@@ -274,7 +278,9 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt
+                 LIMIT 1), '')::text AS excerpt,
+       -- The canon lore's name, so a listing can say which lore is canon.
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
@@ -307,7 +313,9 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt
+                 LIMIT 1), '')::text AS excerpt,
+       -- The canon lore's name, so a listing can say which lore is canon.
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)

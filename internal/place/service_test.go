@@ -510,6 +510,15 @@ func TestGetEpicRanked(t *testing.T) {
 	if a := res.GetArcs()[4]; a.Hour == nil || a.GetHour() != 14 {
 		t.Fatalf("hour arc = %v", a)
 	}
+	// The canon lore's name rides along once a member names it; unnamed is "".
+	if first.GetCanonLoreName() != "" {
+		t.Fatalf("unnamed canon name = %q", first.GetCanonLoreName())
+	}
+	h.exec(`UPDATE lores SET name = 'The long queue' WHERE id = $1`, first.GetCanonLoreId())
+	named := epic(t, c, &perspectivv1.GetEpicRequest{PlaceId: h.city.String(), Tab: perspectivv1.EpicTab_EPIC_TAB_RANKED})
+	if got := named.GetArcs()[0].GetCanonLoreName(); got != "The long queue" {
+		t.Fatalf("canon lore name = %q", got)
+	}
 
 	t.Run("paged result equals the single page", func(t *testing.T) {
 		paged := epicPages(t, c, &perspectivv1.GetEpicRequest{PlaceId: h.city.String(), Tab: perspectivv1.EpicTab_EPIC_TAB_RANKED, PageSize: 2})

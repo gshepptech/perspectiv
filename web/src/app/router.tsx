@@ -36,6 +36,7 @@ export const pages: readonly Page[] = [
   { path: "/i/:code", module: "invite/InvitePage" },
   { path: "/compose", module: "compose/ComposePage", signedIn: true },
   { path: "/claims", module: "claims/ClaimsPage", signedIn: true },
+  { path: "/saved", module: "saved/SavedPage", signedIn: true },
   { path: "/admin/reports", module: "admin/ReportsPage", signedIn: true },
   { path: "/admin/access", module: "admin/AccessPage", signedIn: true },
   { path: "/admin/users", module: "admin/UsersPage", signedIn: true },

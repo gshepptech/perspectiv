@@ -110,7 +110,8 @@ func TestBlockUserRejects(t *testing.T) {
 
 // ST-010, AC-038 (user part): deleting an account sets deleted_at on it and on
 // every perspective it wrote, marks their arcs for the next rank run, frees
-// its email and username, drops its avatar and ends its sessions.
+// its email and username, drops its avatar and saved stories and ends its
+// sessions.
 func TestDeleteAccount(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -130,6 +131,7 @@ func TestDeleteAccount(t *testing.T) {
 	session := e.id(`INSERT INTO sessions (user_id, expires_at) VALUES ($1, now() + interval '1 day') RETURNING id`, alice)
 	e.exec(`INSERT INTO refresh_tokens (session_id, token_hash, expires_at) VALUES ($1, 'h1', now() + interval '1 day')`, session)
 	e.exec(`INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2)`, bob, alice)
+	e.exec(`INSERT INTO saved_perspectives (user_id, perspective_id) VALUES ($1, $2), ($3, $4)`, alice, bobs, bob, mine)
 
 	if _, err := c.UpdateProfile(ctx, connect.NewRequest(&perspectivv1.UpdateProfileRequest{
 		Bio: "bio", Avatar: testPNG(t, 8, 8), AvatarContentType: "image/png",
@@ -181,6 +183,10 @@ func TestDeleteAccount(t *testing.T) {
 	if e.timeCol(arcDirty, arc) == nil || e.timeCol(arcDirty, otherArc) != nil {
 		t.Fatal("lore_dirty_at: want only the account's arc marked")
 	}
+	// The account's saves go with it. Bob's save of its story stays, as any
+	// save of a deleted story does: his Saved list leaves the story out.
+	wantSaves(t, e, alice, 0)
+	wantSaves(t, e, bob, 1)
 	if e.timeCol(`SELECT revoked_at FROM sessions WHERE id = $1`, session) == nil ||
 		e.timeCol(`SELECT revoked_at FROM refresh_tokens WHERE session_id = $1`, session) == nil {
 		t.Fatal("sessions or refresh tokens left live")
@@ -204,6 +210,16 @@ func TestDeleteAccount(t *testing.T) {
 	}
 	if b := own.Msg.GetAccount().GetBlocked(); len(b) != 1 || b[0].GetUsername() != user.DeletedUsername {
 		t.Fatalf("blocked list after delete = %v", b)
+	}
+}
+
+// wantSaves fails unless user has saved exactly want stories.
+func wantSaves(t *testing.T, e *env, user uuid.UUID, want int) {
+	t.Helper()
+	var n int
+	e.scan(`SELECT count(*) FROM saved_perspectives WHERE user_id = $1`, []any{user}, &n)
+	if n != want {
+		t.Fatalf("saved stories of %s = %d, want %d", user, n, want)
 	}
 }
 

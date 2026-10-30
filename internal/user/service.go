@@ -431,7 +431,8 @@ func (s *Service) UnblockUser(ctx context.Context, caller, target uuid.UUID) err
 // (drafts too), marks the arcs those sat in for the next rank run (which
 // dissolves their claims and recomputes lore and canon), erases the
 // account's email, username, bio, avatar and password hash, removes every
-// follow it made or received, and revokes its sessions and refresh tokens. The avatar file is removed after the commit.
+// follow it made or received and every story it saved, and revokes its
+// sessions and refresh tokens. The avatar file is removed after the commit.
 func (s *Service) DeleteAccount(ctx context.Context, caller uuid.UUID, password string) error {
 	u, err := s.q.GetUser(ctx, caller)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -484,6 +485,9 @@ func (s *Service) deleteAccountTx(ctx context.Context, q *dbq.Queries, caller uu
 	}
 	if err := q.DeleteFollowsOf(ctx, caller); err != nil {
 		return "", apiutil.Internal(fmt.Errorf("delete follows: %w", err))
+	}
+	if err := q.DeleteSavesOf(ctx, caller); err != nil {
+		return "", apiutil.Internal(fmt.Errorf("delete saved stories: %w", err))
 	}
 	tag := strings.ReplaceAll(caller.String(), "-", "")
 	if err := q.AnonymizeUser(ctx, dbq.AnonymizeUserParams{

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Crown } from "lucide-react";
 import { Link } from "react-router";
 
+import { CanonName } from "@/components/reader/CanonName";
 import { formatDay } from "@/components/reader/format";
 import { EpicTab } from "@/gen/perspectiv/v1/enums_pb";
 import type { EpicArc } from "@/gen/perspectiv/v1/place_pb";
@@ -43,7 +44,7 @@ function PlaceCard({ a }: { a: EpicArc }) {
           {a.canonLoreId && (
             <span className="mr-2 inline-flex items-center gap-1 font-medium text-accent">
               <Crown aria-hidden size={16} />
-              Canon
+              <CanonName name={a.canonLoreName} />
             </span>
           )}
           <span className="text-ink-muted">

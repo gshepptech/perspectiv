@@ -770,7 +770,9 @@ type EpicArc struct {
 	City string `protobuf:"bytes,11,opt,name=city,proto3" json:"city,omitempty"`
 	// The opening of the canon's first story, or of the first story when the
 	// arc has no canon.
-	Excerpt       string `protobuf:"bytes,12,opt,name=excerpt,proto3" json:"excerpt,omitempty"`
+	Excerpt string `protobuf:"bytes,12,opt,name=excerpt,proto3" json:"excerpt,omitempty"`
+	// The canon lore's name; empty when the arc has no canon or it is unnamed.
+	CanonLoreName string `protobuf:"bytes,13,opt,name=canon_lore_name,json=canonLoreName,proto3" json:"canon_lore_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -885,6 +887,13 @@ func (x *EpicArc) GetCity() string {
 func (x *EpicArc) GetExcerpt() string {
 	if x != nil {
 		return x.Excerpt
+	}
+	return ""
+}
+
+func (x *EpicArc) GetCanonLoreName() string {
+	if x != nil {
+		return x.CanonLoreName
 	}
 	return ""
 }
@@ -1531,7 +1540,7 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12*\n" +
-	"\x05genre\x18\x05 \x01(\x0e2\x14.perspectiv.v1.GenreR\x05genre\"\xa4\x03\n" +
+	"\x05genre\x18\x05 \x01(\x0e2\x14.perspectiv.v1.GenreR\x05genre\"\xcc\x03\n" +
 	"\aEpicArc\x12\x15\n" +
 	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12-\n" +
@@ -1548,7 +1557,8 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x12\n" +
 	"\x04city\x18\v \x01(\tR\x04city\x12\x18\n" +
-	"\aexcerpt\x18\f \x01(\tR\aexcerptB\a\n" +
+	"\aexcerpt\x18\f \x01(\tR\aexcerpt\x12&\n" +
+	"\x0fcanon_lore_name\x18\r \x01(\tR\rcanonLoreNameB\a\n" +
 	"\x05_hour\"\xc6\x03\n" +
 	"\bEpicTale\x12%\n" +
 	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12\x15\n" +

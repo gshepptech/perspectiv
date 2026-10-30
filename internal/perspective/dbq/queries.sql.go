@@ -208,7 +208,9 @@ SELECT p.id, p.arc_id, p.author_id, p.genre, p.status, p.lore_status, p.lore_id,
                AND up.hidden_at IS NOT NULL)::boolean AS place_hidden,
        (SELECT count(*) FROM votes v WHERE v.perspective_id = p.id)::int AS upvotes,
        EXISTS (SELECT 1 FROM votes v WHERE v.perspective_id = p.id
-               AND v.user_id = $1::uuid)::boolean AS voted
+               AND v.user_id = $1::uuid)::boolean AS voted,
+       EXISTS (SELECT 1 FROM saved_perspectives s WHERE s.perspective_id = p.id
+               AND s.user_id = $1::uuid)::boolean AS saved
 FROM perspectives p
 JOIN users u ON u.id = p.author_id
 LEFT JOIN arcs a ON a.id = p.arc_id
@@ -248,6 +250,7 @@ type GetPerspectivesRow struct {
 	PlaceHidden    bool
 	Upvotes        int32
 	Voted          bool
+	Saved          bool
 }
 
 // Full rows for a set of perspectives with their arc, place and author. The
@@ -291,6 +294,7 @@ func (q *Queries) GetPerspectives(ctx context.Context, arg GetPerspectivesParams
 			&i.PlaceHidden,
 			&i.Upvotes,
 			&i.Voted,
+			&i.Saved,
 		); err != nil {
 			return nil, err
 		}
@@ -724,6 +728,78 @@ func (q *Queries) ListPartsOf(ctx context.Context, ids []uuid.UUID) ([]Perspecti
 	return items, nil
 }
 
+const listSaved = `-- name: ListSaved :many
+WITH RECURSIVE mine AS (
+    SELECT s.perspective_id AS id, s.created_at AS saved_at, a.place_id
+    FROM saved_perspectives s
+    JOIN perspectives p ON p.id = s.perspective_id
+    JOIN arcs a ON a.id = p.arc_id
+    WHERE s.user_id = $2::uuid
+      AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND p.deleted_at IS NULL
+      AND p.hidden_at IS NULL
+      AND ($3::timestamptz IS NULL
+           OR (s.created_at, s.perspective_id) < ($3::timestamptz, $4::uuid))
+), up AS (
+    SELECT m.id AS perspective_id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM mine m
+    JOIN places pl ON pl.id = m.place_id
+    UNION ALL
+    SELECT up.perspective_id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT m.id, m.saved_at
+FROM mine m
+WHERE NOT EXISTS (SELECT 1 FROM up WHERE up.perspective_id = m.id AND up.hidden_at IS NOT NULL)
+ORDER BY m.saved_at DESC, m.id DESC
+LIMIT $1::int
+`
+
+type ListSavedParams struct {
+	RowLimit int32
+	UserID   uuid.UUID
+	AfterAt  *time.Time
+	AfterID  *uuid.UUID
+}
+
+type ListSavedRow struct {
+	ID      uuid.UUID
+	SavedAt time.Time
+}
+
+// One member's saved stories that are readable now, most recently saved
+// first, keyset-paginated on (saved_at, id); mine is served by
+// saved_perspectives_user_created_idx. A save of a story that is a draft,
+// deleted, hidden, or whose arc's place or any ancestor is hidden is left
+// out but kept, so it returns when the story is restored: the rule
+// ListByAuthor applies.
+func (q *Queries) ListSaved(ctx context.Context, arg ListSavedParams) ([]ListSavedRow, error) {
+	rows, err := q.db.Query(ctx, listSaved,
+		arg.RowLimit,
+		arg.UserID,
+		arg.AfterAt,
+		arg.AfterID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSavedRow
+	for rows.Next() {
+		var i ListSavedRow
+		if err := rows.Scan(&i.ID, &i.SavedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockArcLore = `-- name: LockArcLore :exec
 SELECT pg_advisory_xact_lock(hashtextextended('lore:' || $1::uuid::text, 0))
 `
@@ -868,6 +944,23 @@ func (q *Queries) ReactCountsOf(ctx context.Context, arg ReactCountsOfParams) ([
 	return items, nil
 }
 
+const savePerspective = `-- name: SavePerspective :exec
+INSERT INTO saved_perspectives (user_id, perspective_id)
+VALUES ($1::uuid, $2::uuid)
+ON CONFLICT (user_id, perspective_id) DO NOTHING
+`
+
+type SavePerspectiveParams struct {
+	UserID        uuid.UUID
+	PerspectiveID uuid.UUID
+}
+
+// Saving twice keeps the first save and its time.
+func (q *Queries) SavePerspective(ctx context.Context, arg SavePerspectiveParams) error {
+	_, err := q.db.Exec(ctx, savePerspective, arg.UserID, arg.PerspectiveID)
+	return err
+}
+
 const setInviteCode = `-- name: SetInviteCode :exec
 UPDATE perspectives SET invite_code = $1::text WHERE id = $2::uuid
 `
@@ -890,6 +983,21 @@ WHERE id = $1
 
 func (q *Queries) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, softDelete, id)
+	return err
+}
+
+const unsavePerspective = `-- name: UnsavePerspective :exec
+DELETE FROM saved_perspectives
+WHERE user_id = $1::uuid AND perspective_id = $2::uuid
+`
+
+type UnsavePerspectiveParams struct {
+	UserID        uuid.UUID
+	PerspectiveID uuid.UUID
+}
+
+func (q *Queries) UnsavePerspective(ctx context.Context, arg UnsavePerspectiveParams) error {
+	_, err := q.db.Exec(ctx, unsavePerspective, arg.UserID, arg.PerspectiveID)
 	return err
 }
 

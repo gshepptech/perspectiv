@@ -81,6 +81,10 @@ WHERE (follower_id = sqlc.arg(a)::uuid AND followee_id = sqlc.arg(b)::uuid)
 -- Removes every follow an account made or received.
 DELETE FROM user_follows WHERE follower_id = sqlc.arg(user_id)::uuid OR followee_id = sqlc.arg(user_id)::uuid;
 
+-- name: DeleteSavesOf :exec
+-- Removes every story an account saved to read later.
+DELETE FROM saved_perspectives WHERE user_id = sqlc.arg(user_id)::uuid;
+
 -- name: FollowUser :exec
 INSERT INTO user_follows (follower_id, followee_id)
 VALUES (sqlc.arg(follower_id)::uuid, sqlc.arg(followee_id)::uuid)
@@ -237,6 +241,9 @@ SELECT jsonb_build_object(
     SELECT jsonb_agg(jsonb_build_object('username', coalesce(fu.username, '[deleted]'), 'since', f.created_at) ORDER BY f.created_at)
     FROM user_follows f LEFT JOIN users fu ON fu.id = f.followee_id AND fu.deleted_at IS NULL
     WHERE f.follower_id = sqlc.arg(user_id)::uuid), '[]'::jsonb),
+  'saved_stories', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('perspective_id', sp.perspective_id, 'saved_at', sp.created_at) ORDER BY sp.created_at)
+    FROM saved_perspectives sp WHERE sp.user_id = sqlc.arg(user_id)::uuid), '[]'::jsonb),
   'blocked', coalesce((
     SELECT jsonb_agg(jsonb_build_object('username', coalesce(bu.username, '[deleted]'), 'since', b.created_at) ORDER BY b.created_at)
     FROM blocks b LEFT JOIN users bu ON bu.id = b.blocked_id AND bu.deleted_at IS NULL

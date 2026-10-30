@@ -258,6 +258,12 @@ type Report struct {
 	ResolvedAt       pgtype.Timestamptz
 }
 
+type SavedPerspective struct {
+	UserID        uuid.UUID
+	PerspectiveID uuid.UUID
+	CreatedAt     pgtype.Timestamptz
+}
+
 type Session struct {
 	ID         uuid.UUID
 	UserID     uuid.UUID

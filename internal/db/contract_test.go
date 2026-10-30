@@ -153,8 +153,9 @@ func TestEnumValues(t *testing.T) {
 // ListArcSection the arc page's later pages (NFR-008). CreateInvite and
 // GetInvite serve the "I was there too" share link, ListLorePosts and
 // AddLorePost a lore's thread, NameLore a lore's name, FollowPlace and
-// ListFollowing the places a user follows, and FollowUser and
-// ListFollowedWriters the writers a user follows.
+// ListFollowing the places a user follows, FollowUser and
+// ListFollowedWriters the writers a user follows, and SavePerspective and
+// ListSaved the stories a user saved to read later.
 var services = map[string][]string{
 	"AuthService": {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword",
 		"ChangePassword", "RequestEmailChange", "ConfirmEmailChange", "SignOutEverywhere", "ListSessions", "RevokeSession",
@@ -163,7 +164,7 @@ var services = map[string][]string{
 		"FollowUser", "ListFollowedWriters"},
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters"},
 	"ArcService":         {"GetArc", "FindDayArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},
-	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite"},
+	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite", "SavePerspective", "ListSaved"},
 	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore"},
 	"VoteService":        {"Vote", "VoteRemove"},
 	"ReactService":       {"React"},

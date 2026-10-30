@@ -35,6 +35,13 @@ service PerspectiveService {
   // Public. What an invite link shows before sign-in: who wrote, where, when,
   // and the opening of their story. NotFound once the perspective is gone.
   rpc GetInvite(GetInviteRequest) returns (GetInviteResponse);
+  // Saves a story to read later, or unsaves it. Either is a no-op when
+  // already so. NotFound when the story is not readable to the caller: a
+  // draft, deleted or hidden, or filed at or below a hidden place.
+  rpc SavePerspective(SavePerspectiveRequest) returns (SavePerspectiveResponse);
+  // The caller's saved stories, most recently saved first. A saved story
+  // that is no longer readable is left out until it is readable again.
+  rpc ListSaved(ListSavedRequest) returns (ListSavedResponse);
 }
 
 // Part is one page of a perspective.
@@ -104,6 +111,9 @@ message Perspective {
   google.protobuf.Timestamp updated_at = 20;
   bool deleted = 21;
   bool hidden = 22;
+  // True when the signed-in caller has saved it to read later; false when
+  // signed out.
+  bool saved = 23;
 }
 
 // PerspectiveSummary is a perspective as an entry in a listing.
@@ -253,4 +263,26 @@ message Invite {
 
 message GetInviteResponse {
   Invite invite = 1;
+}
+
+message SavePerspectiveRequest {
+  string perspective_id = 1;
+  // True saves, false unsaves.
+  bool on = 2;
+}
+
+message SavePerspectiveResponse {
+  bool saved = 1;
+}
+
+message ListSavedRequest {
+  string page_token = 1;
+  int32 page_size = 2;
+}
+
+message ListSavedResponse {
+  // Each saved story as ListByAuthor returns it, so a saved row reads like
+  // a profile row.
+  repeated Perspective perspectives = 1;
+  string next_page_token = 2;
 }

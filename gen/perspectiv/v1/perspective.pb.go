@@ -259,13 +259,16 @@ type Perspective struct {
 	Characters    []*Character `protobuf:"bytes,14,rep,name=characters,proto3" json:"characters,omitempty"`
 	Upvotes       int32        `protobuf:"varint,15,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
 	// True when the caller has up-voted it.
-	Voted         bool                   `protobuf:"varint,16,opt,name=voted,proto3" json:"voted,omitempty"`
-	Reacts        []*ReactCount          `protobuf:"bytes,17,rep,name=reacts,proto3" json:"reacts,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	PublishedAt   *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Deleted       bool                   `protobuf:"varint,21,opt,name=deleted,proto3" json:"deleted,omitempty"`
-	Hidden        bool                   `protobuf:"varint,22,opt,name=hidden,proto3" json:"hidden,omitempty"`
+	Voted       bool                   `protobuf:"varint,16,opt,name=voted,proto3" json:"voted,omitempty"`
+	Reacts      []*ReactCount          `protobuf:"bytes,17,rep,name=reacts,proto3" json:"reacts,omitempty"`
+	CreatedAt   *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	PublishedAt *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
+	UpdatedAt   *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Deleted     bool                   `protobuf:"varint,21,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	Hidden      bool                   `protobuf:"varint,22,opt,name=hidden,proto3" json:"hidden,omitempty"`
+	// True when the signed-in caller has saved it to read later; false when
+	// signed out.
+	Saved         bool `protobuf:"varint,23,opt,name=saved,proto3" json:"saved,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -450,6 +453,13 @@ func (x *Perspective) GetDeleted() bool {
 func (x *Perspective) GetHidden() bool {
 	if x != nil {
 		return x.Hidden
+	}
+	return false
+}
+
+func (x *Perspective) GetSaved() bool {
+	if x != nil {
+		return x.Saved
 	}
 	return false
 }
@@ -1740,6 +1750,209 @@ func (x *GetInviteResponse) GetInvite() *Invite {
 	return nil
 }
 
+type SavePerspectiveRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PerspectiveId string                 `protobuf:"bytes,1,opt,name=perspective_id,json=perspectiveId,proto3" json:"perspective_id,omitempty"`
+	// True saves, false unsaves.
+	On            bool `protobuf:"varint,2,opt,name=on,proto3" json:"on,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SavePerspectiveRequest) Reset() {
+	*x = SavePerspectiveRequest{}
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SavePerspectiveRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SavePerspectiveRequest) ProtoMessage() {}
+
+func (x *SavePerspectiveRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SavePerspectiveRequest.ProtoReflect.Descriptor instead.
+func (*SavePerspectiveRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_perspective_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *SavePerspectiveRequest) GetPerspectiveId() string {
+	if x != nil {
+		return x.PerspectiveId
+	}
+	return ""
+}
+
+func (x *SavePerspectiveRequest) GetOn() bool {
+	if x != nil {
+		return x.On
+	}
+	return false
+}
+
+type SavePerspectiveResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Saved         bool                   `protobuf:"varint,1,opt,name=saved,proto3" json:"saved,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SavePerspectiveResponse) Reset() {
+	*x = SavePerspectiveResponse{}
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SavePerspectiveResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SavePerspectiveResponse) ProtoMessage() {}
+
+func (x *SavePerspectiveResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SavePerspectiveResponse.ProtoReflect.Descriptor instead.
+func (*SavePerspectiveResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_perspective_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *SavePerspectiveResponse) GetSaved() bool {
+	if x != nil {
+		return x.Saved
+	}
+	return false
+}
+
+type ListSavedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageToken     string                 `protobuf:"bytes,1,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSavedRequest) Reset() {
+	*x = ListSavedRequest{}
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSavedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSavedRequest) ProtoMessage() {}
+
+func (x *ListSavedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSavedRequest.ProtoReflect.Descriptor instead.
+func (*ListSavedRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_perspective_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ListSavedRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListSavedRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type ListSavedResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Each saved story as ListByAuthor returns it, so a saved row reads like
+	// a profile row.
+	Perspectives  []*Perspective `protobuf:"bytes,1,rep,name=perspectives,proto3" json:"perspectives,omitempty"`
+	NextPageToken string         `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSavedResponse) Reset() {
+	*x = ListSavedResponse{}
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSavedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSavedResponse) ProtoMessage() {}
+
+func (x *ListSavedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_perspective_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSavedResponse.ProtoReflect.Descriptor instead.
+func (*ListSavedResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_perspective_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ListSavedResponse) GetPerspectives() []*Perspective {
+	if x != nil {
+		return x.Perspectives
+	}
+	return nil
+}
+
+func (x *ListSavedResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 var File_perspectiv_v1_perspective_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_perspective_proto_rawDesc = "" +
@@ -1759,7 +1972,7 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\bmy_claim\x18\a \x01(\x0e2\x1a.perspectiv.v1.ClaimStatusR\amyClaim\"6\n" +
 	"\x0eCharacterInput\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
-	"\x05label\x18\x02 \x01(\tR\x05label\"\x84\a\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\"\x9a\a\n" +
 	"\vPerspective\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06arc_id\x18\x02 \x01(\tR\x05arcId\x12\x1b\n" +
@@ -1789,7 +2002,8 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x14 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x18\n" +
 	"\adeleted\x18\x15 \x01(\bR\adeleted\x12\x16\n" +
-	"\x06hidden\x18\x16 \x01(\bR\x06hiddenB\a\n" +
+	"\x06hidden\x18\x16 \x01(\bR\x06hidden\x12\x14\n" +
+	"\x05saved\x18\x17 \x01(\bR\x05savedB\a\n" +
 	"\x05_hour\"\xc6\x03\n" +
 	"\x12PerspectiveSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
@@ -1898,7 +2112,19 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\x0fcharacter_label\x18\t \x01(\tR\x0echaracterLabelB\a\n" +
 	"\x05_hour\"B\n" +
 	"\x11GetInviteResponse\x12-\n" +
-	"\x06invite\x18\x01 \x01(\v2\x15.perspectiv.v1.InviteR\x06invite2\xb5\x06\n" +
+	"\x06invite\x18\x01 \x01(\v2\x15.perspectiv.v1.InviteR\x06invite\"O\n" +
+	"\x16SavePerspectiveRequest\x12%\n" +
+	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12\x0e\n" +
+	"\x02on\x18\x02 \x01(\bR\x02on\"/\n" +
+	"\x17SavePerspectiveResponse\x12\x14\n" +
+	"\x05saved\x18\x01 \x01(\bR\x05saved\"N\n" +
+	"\x10ListSavedRequest\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x01 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"{\n" +
+	"\x11ListSavedResponse\x12>\n" +
+	"\fperspectives\x18\x01 \x03(\v2\x1a.perspectiv.v1.PerspectiveR\fperspectives\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\xe7\a\n" +
 	"\x12PerspectiveService\x12N\n" +
 	"\tSaveDraft\x12\x1f.perspectiv.v1.SaveDraftRequest\x1a .perspectiv.v1.SaveDraftResponse\x12H\n" +
 	"\aPublish\x12\x1d.perspectiv.v1.PublishRequest\x1a\x1e.perspectiv.v1.PublishResponse\x12i\n" +
@@ -1908,7 +2134,9 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\bListMine\x12\x1e.perspectiv.v1.ListMineRequest\x1a\x1f.perspectiv.v1.ListMineResponse\x12W\n" +
 	"\fListByAuthor\x12\".perspectiv.v1.ListByAuthorRequest\x1a#.perspectiv.v1.ListByAuthorResponse\x12W\n" +
 	"\fCreateInvite\x12\".perspectiv.v1.CreateInviteRequest\x1a#.perspectiv.v1.CreateInviteResponse\x12N\n" +
-	"\tGetInvite\x12\x1f.perspectiv.v1.GetInviteRequest\x1a .perspectiv.v1.GetInviteResponseB\xa5\x01\n" +
+	"\tGetInvite\x12\x1f.perspectiv.v1.GetInviteRequest\x1a .perspectiv.v1.GetInviteResponse\x12`\n" +
+	"\x0fSavePerspective\x12%.perspectiv.v1.SavePerspectiveRequest\x1a&.perspectiv.v1.SavePerspectiveResponse\x12N\n" +
+	"\tListSaved\x12\x1f.perspectiv.v1.ListSavedRequest\x1a .perspectiv.v1.ListSavedResponseB\xa5\x01\n" +
 	"\x11com.perspectiv.v1B\x10PerspectiveProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -1923,7 +2151,7 @@ func file_perspectiv_v1_perspective_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_perspective_proto_rawDescData
 }
 
-var file_perspectiv_v1_perspective_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_perspectiv_v1_perspective_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_perspectiv_v1_perspective_proto_goTypes = []any{
 	(*Part)(nil),                             // 0: perspectiv.v1.Part
 	(*Character)(nil),                        // 1: perspectiv.v1.Character
@@ -1949,71 +2177,80 @@ var file_perspectiv_v1_perspective_proto_goTypes = []any{
 	(*GetInviteRequest)(nil),                 // 21: perspectiv.v1.GetInviteRequest
 	(*Invite)(nil),                           // 22: perspectiv.v1.Invite
 	(*GetInviteResponse)(nil),                // 23: perspectiv.v1.GetInviteResponse
-	(*UserRef)(nil),                          // 24: perspectiv.v1.UserRef
-	(ClaimStatus)(0),                         // 25: perspectiv.v1.ClaimStatus
-	(Genre)(0),                               // 26: perspectiv.v1.Genre
-	(PerspectiveStatus)(0),                   // 27: perspectiv.v1.PerspectiveStatus
-	(LoreStatus)(0),                          // 28: perspectiv.v1.LoreStatus
-	(*PlaceRef)(nil),                         // 29: perspectiv.v1.PlaceRef
-	(*ReactCount)(nil),                       // 30: perspectiv.v1.ReactCount
-	(*timestamppb.Timestamp)(nil),            // 31: google.protobuf.Timestamp
+	(*SavePerspectiveRequest)(nil),           // 24: perspectiv.v1.SavePerspectiveRequest
+	(*SavePerspectiveResponse)(nil),          // 25: perspectiv.v1.SavePerspectiveResponse
+	(*ListSavedRequest)(nil),                 // 26: perspectiv.v1.ListSavedRequest
+	(*ListSavedResponse)(nil),                // 27: perspectiv.v1.ListSavedResponse
+	(*UserRef)(nil),                          // 28: perspectiv.v1.UserRef
+	(ClaimStatus)(0),                         // 29: perspectiv.v1.ClaimStatus
+	(Genre)(0),                               // 30: perspectiv.v1.Genre
+	(PerspectiveStatus)(0),                   // 31: perspectiv.v1.PerspectiveStatus
+	(LoreStatus)(0),                          // 32: perspectiv.v1.LoreStatus
+	(*PlaceRef)(nil),                         // 33: perspectiv.v1.PlaceRef
+	(*ReactCount)(nil),                       // 34: perspectiv.v1.ReactCount
+	(*timestamppb.Timestamp)(nil),            // 35: google.protobuf.Timestamp
 }
 var file_perspectiv_v1_perspective_proto_depIdxs = []int32{
-	24, // 0: perspectiv.v1.Character.claimed_by:type_name -> perspectiv.v1.UserRef
-	25, // 1: perspectiv.v1.Character.my_claim:type_name -> perspectiv.v1.ClaimStatus
-	24, // 2: perspectiv.v1.Perspective.author:type_name -> perspectiv.v1.UserRef
-	26, // 3: perspectiv.v1.Perspective.genre:type_name -> perspectiv.v1.Genre
-	27, // 4: perspectiv.v1.Perspective.status:type_name -> perspectiv.v1.PerspectiveStatus
-	28, // 5: perspectiv.v1.Perspective.lore_status:type_name -> perspectiv.v1.LoreStatus
-	29, // 6: perspectiv.v1.Perspective.place:type_name -> perspectiv.v1.PlaceRef
+	28, // 0: perspectiv.v1.Character.claimed_by:type_name -> perspectiv.v1.UserRef
+	29, // 1: perspectiv.v1.Character.my_claim:type_name -> perspectiv.v1.ClaimStatus
+	28, // 2: perspectiv.v1.Perspective.author:type_name -> perspectiv.v1.UserRef
+	30, // 3: perspectiv.v1.Perspective.genre:type_name -> perspectiv.v1.Genre
+	31, // 4: perspectiv.v1.Perspective.status:type_name -> perspectiv.v1.PerspectiveStatus
+	32, // 5: perspectiv.v1.Perspective.lore_status:type_name -> perspectiv.v1.LoreStatus
+	33, // 6: perspectiv.v1.Perspective.place:type_name -> perspectiv.v1.PlaceRef
 	0,  // 7: perspectiv.v1.Perspective.parts:type_name -> perspectiv.v1.Part
 	1,  // 8: perspectiv.v1.Perspective.characters:type_name -> perspectiv.v1.Character
-	30, // 9: perspectiv.v1.Perspective.reacts:type_name -> perspectiv.v1.ReactCount
-	31, // 10: perspectiv.v1.Perspective.created_at:type_name -> google.protobuf.Timestamp
-	31, // 11: perspectiv.v1.Perspective.published_at:type_name -> google.protobuf.Timestamp
-	31, // 12: perspectiv.v1.Perspective.updated_at:type_name -> google.protobuf.Timestamp
-	24, // 13: perspectiv.v1.PerspectiveSummary.author:type_name -> perspectiv.v1.UserRef
-	26, // 14: perspectiv.v1.PerspectiveSummary.genre:type_name -> perspectiv.v1.Genre
-	28, // 15: perspectiv.v1.PerspectiveSummary.lore_status:type_name -> perspectiv.v1.LoreStatus
-	31, // 16: perspectiv.v1.PerspectiveSummary.published_at:type_name -> google.protobuf.Timestamp
-	26, // 17: perspectiv.v1.SaveDraftRequest.genre:type_name -> perspectiv.v1.Genre
+	34, // 9: perspectiv.v1.Perspective.reacts:type_name -> perspectiv.v1.ReactCount
+	35, // 10: perspectiv.v1.Perspective.created_at:type_name -> google.protobuf.Timestamp
+	35, // 11: perspectiv.v1.Perspective.published_at:type_name -> google.protobuf.Timestamp
+	35, // 12: perspectiv.v1.Perspective.updated_at:type_name -> google.protobuf.Timestamp
+	28, // 13: perspectiv.v1.PerspectiveSummary.author:type_name -> perspectiv.v1.UserRef
+	30, // 14: perspectiv.v1.PerspectiveSummary.genre:type_name -> perspectiv.v1.Genre
+	32, // 15: perspectiv.v1.PerspectiveSummary.lore_status:type_name -> perspectiv.v1.LoreStatus
+	35, // 16: perspectiv.v1.PerspectiveSummary.published_at:type_name -> google.protobuf.Timestamp
+	30, // 17: perspectiv.v1.SaveDraftRequest.genre:type_name -> perspectiv.v1.Genre
 	2,  // 18: perspectiv.v1.SaveDraftRequest.characters:type_name -> perspectiv.v1.CharacterInput
 	3,  // 19: perspectiv.v1.SaveDraftResponse.perspective:type_name -> perspectiv.v1.Perspective
-	26, // 20: perspectiv.v1.PublishRequest.genre:type_name -> perspectiv.v1.Genre
+	30, // 20: perspectiv.v1.PublishRequest.genre:type_name -> perspectiv.v1.Genre
 	2,  // 21: perspectiv.v1.PublishRequest.characters:type_name -> perspectiv.v1.CharacterInput
-	26, // 22: perspectiv.v1.PerspectiveServiceUpdateRequest.genre:type_name -> perspectiv.v1.Genre
+	30, // 22: perspectiv.v1.PerspectiveServiceUpdateRequest.genre:type_name -> perspectiv.v1.Genre
 	2,  // 23: perspectiv.v1.PerspectiveServiceUpdateRequest.characters:type_name -> perspectiv.v1.CharacterInput
 	3,  // 24: perspectiv.v1.PerspectiveServiceUpdateResponse.perspective:type_name -> perspectiv.v1.Perspective
 	3,  // 25: perspectiv.v1.PerspectiveServiceGetResponse.perspective:type_name -> perspectiv.v1.Perspective
-	27, // 26: perspectiv.v1.ListMineRequest.status:type_name -> perspectiv.v1.PerspectiveStatus
+	31, // 26: perspectiv.v1.ListMineRequest.status:type_name -> perspectiv.v1.PerspectiveStatus
 	3,  // 27: perspectiv.v1.ListMineResponse.perspectives:type_name -> perspectiv.v1.Perspective
 	3,  // 28: perspectiv.v1.ListByAuthorResponse.perspectives:type_name -> perspectiv.v1.Perspective
-	24, // 29: perspectiv.v1.Invite.inviter:type_name -> perspectiv.v1.UserRef
-	29, // 30: perspectiv.v1.Invite.place:type_name -> perspectiv.v1.PlaceRef
+	28, // 29: perspectiv.v1.Invite.inviter:type_name -> perspectiv.v1.UserRef
+	33, // 30: perspectiv.v1.Invite.place:type_name -> perspectiv.v1.PlaceRef
 	22, // 31: perspectiv.v1.GetInviteResponse.invite:type_name -> perspectiv.v1.Invite
-	5,  // 32: perspectiv.v1.PerspectiveService.SaveDraft:input_type -> perspectiv.v1.SaveDraftRequest
-	7,  // 33: perspectiv.v1.PerspectiveService.Publish:input_type -> perspectiv.v1.PublishRequest
-	9,  // 34: perspectiv.v1.PerspectiveService.Update:input_type -> perspectiv.v1.PerspectiveServiceUpdateRequest
-	11, // 35: perspectiv.v1.PerspectiveService.Delete:input_type -> perspectiv.v1.PerspectiveServiceDeleteRequest
-	13, // 36: perspectiv.v1.PerspectiveService.Get:input_type -> perspectiv.v1.PerspectiveServiceGetRequest
-	15, // 37: perspectiv.v1.PerspectiveService.ListMine:input_type -> perspectiv.v1.ListMineRequest
-	17, // 38: perspectiv.v1.PerspectiveService.ListByAuthor:input_type -> perspectiv.v1.ListByAuthorRequest
-	19, // 39: perspectiv.v1.PerspectiveService.CreateInvite:input_type -> perspectiv.v1.CreateInviteRequest
-	21, // 40: perspectiv.v1.PerspectiveService.GetInvite:input_type -> perspectiv.v1.GetInviteRequest
-	6,  // 41: perspectiv.v1.PerspectiveService.SaveDraft:output_type -> perspectiv.v1.SaveDraftResponse
-	8,  // 42: perspectiv.v1.PerspectiveService.Publish:output_type -> perspectiv.v1.PublishResponse
-	10, // 43: perspectiv.v1.PerspectiveService.Update:output_type -> perspectiv.v1.PerspectiveServiceUpdateResponse
-	12, // 44: perspectiv.v1.PerspectiveService.Delete:output_type -> perspectiv.v1.PerspectiveServiceDeleteResponse
-	14, // 45: perspectiv.v1.PerspectiveService.Get:output_type -> perspectiv.v1.PerspectiveServiceGetResponse
-	16, // 46: perspectiv.v1.PerspectiveService.ListMine:output_type -> perspectiv.v1.ListMineResponse
-	18, // 47: perspectiv.v1.PerspectiveService.ListByAuthor:output_type -> perspectiv.v1.ListByAuthorResponse
-	20, // 48: perspectiv.v1.PerspectiveService.CreateInvite:output_type -> perspectiv.v1.CreateInviteResponse
-	23, // 49: perspectiv.v1.PerspectiveService.GetInvite:output_type -> perspectiv.v1.GetInviteResponse
-	41, // [41:50] is the sub-list for method output_type
-	32, // [32:41] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	3,  // 32: perspectiv.v1.ListSavedResponse.perspectives:type_name -> perspectiv.v1.Perspective
+	5,  // 33: perspectiv.v1.PerspectiveService.SaveDraft:input_type -> perspectiv.v1.SaveDraftRequest
+	7,  // 34: perspectiv.v1.PerspectiveService.Publish:input_type -> perspectiv.v1.PublishRequest
+	9,  // 35: perspectiv.v1.PerspectiveService.Update:input_type -> perspectiv.v1.PerspectiveServiceUpdateRequest
+	11, // 36: perspectiv.v1.PerspectiveService.Delete:input_type -> perspectiv.v1.PerspectiveServiceDeleteRequest
+	13, // 37: perspectiv.v1.PerspectiveService.Get:input_type -> perspectiv.v1.PerspectiveServiceGetRequest
+	15, // 38: perspectiv.v1.PerspectiveService.ListMine:input_type -> perspectiv.v1.ListMineRequest
+	17, // 39: perspectiv.v1.PerspectiveService.ListByAuthor:input_type -> perspectiv.v1.ListByAuthorRequest
+	19, // 40: perspectiv.v1.PerspectiveService.CreateInvite:input_type -> perspectiv.v1.CreateInviteRequest
+	21, // 41: perspectiv.v1.PerspectiveService.GetInvite:input_type -> perspectiv.v1.GetInviteRequest
+	24, // 42: perspectiv.v1.PerspectiveService.SavePerspective:input_type -> perspectiv.v1.SavePerspectiveRequest
+	26, // 43: perspectiv.v1.PerspectiveService.ListSaved:input_type -> perspectiv.v1.ListSavedRequest
+	6,  // 44: perspectiv.v1.PerspectiveService.SaveDraft:output_type -> perspectiv.v1.SaveDraftResponse
+	8,  // 45: perspectiv.v1.PerspectiveService.Publish:output_type -> perspectiv.v1.PublishResponse
+	10, // 46: perspectiv.v1.PerspectiveService.Update:output_type -> perspectiv.v1.PerspectiveServiceUpdateResponse
+	12, // 47: perspectiv.v1.PerspectiveService.Delete:output_type -> perspectiv.v1.PerspectiveServiceDeleteResponse
+	14, // 48: perspectiv.v1.PerspectiveService.Get:output_type -> perspectiv.v1.PerspectiveServiceGetResponse
+	16, // 49: perspectiv.v1.PerspectiveService.ListMine:output_type -> perspectiv.v1.ListMineResponse
+	18, // 50: perspectiv.v1.PerspectiveService.ListByAuthor:output_type -> perspectiv.v1.ListByAuthorResponse
+	20, // 51: perspectiv.v1.PerspectiveService.CreateInvite:output_type -> perspectiv.v1.CreateInviteResponse
+	23, // 52: perspectiv.v1.PerspectiveService.GetInvite:output_type -> perspectiv.v1.GetInviteResponse
+	25, // 53: perspectiv.v1.PerspectiveService.SavePerspective:output_type -> perspectiv.v1.SavePerspectiveResponse
+	27, // 54: perspectiv.v1.PerspectiveService.ListSaved:output_type -> perspectiv.v1.ListSavedResponse
+	44, // [44:55] is the sub-list for method output_type
+	33, // [33:44] is the sub-list for method input_type
+	33, // [33:33] is the sub-list for extension type_name
+	33, // [33:33] is the sub-list for extension extendee
+	0,  // [0:33] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_perspective_proto_init() }
@@ -2036,7 +2273,7 @@ func file_perspectiv_v1_perspective_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_perspective_proto_rawDesc), len(file_perspectiv_v1_perspective_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   24,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

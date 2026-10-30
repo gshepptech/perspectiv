@@ -151,7 +151,9 @@ SELECT p.id, p.arc_id, p.author_id, p.genre, p.status, p.lore_status, p.lore_id,
                AND up.hidden_at IS NOT NULL)::boolean AS place_hidden,
        (SELECT count(*) FROM votes v WHERE v.perspective_id = p.id)::int AS upvotes,
        EXISTS (SELECT 1 FROM votes v WHERE v.perspective_id = p.id
-               AND v.user_id = sqlc.narg(viewer)::uuid)::boolean AS voted
+               AND v.user_id = sqlc.narg(viewer)::uuid)::boolean AS voted,
+       EXISTS (SELECT 1 FROM saved_perspectives s WHERE s.perspective_id = p.id
+               AND s.user_id = sqlc.narg(viewer)::uuid)::boolean AS saved
 FROM perspectives p
 JOIN users u ON u.id = p.author_id
 LEFT JOIN arcs a ON a.id = p.arc_id
@@ -304,3 +306,47 @@ WHERE i.code = $1;
 
 -- name: SetInviteCode :exec
 UPDATE perspectives SET invite_code = sqlc.arg(code)::text WHERE id = sqlc.arg(id)::uuid;
+
+-- name: SavePerspective :exec
+-- Saving twice keeps the first save and its time.
+INSERT INTO saved_perspectives (user_id, perspective_id)
+VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(perspective_id)::uuid)
+ON CONFLICT (user_id, perspective_id) DO NOTHING;
+
+-- name: UnsavePerspective :exec
+DELETE FROM saved_perspectives
+WHERE user_id = sqlc.arg(user_id)::uuid AND perspective_id = sqlc.arg(perspective_id)::uuid;
+
+-- name: ListSaved :many
+-- One member's saved stories that are readable now, most recently saved
+-- first, keyset-paginated on (saved_at, id); mine is served by
+-- saved_perspectives_user_created_idx. A save of a story that is a draft,
+-- deleted, hidden, or whose arc's place or any ancestor is hidden is left
+-- out but kept, so it returns when the story is restored: the rule
+-- ListByAuthor applies.
+WITH RECURSIVE mine AS (
+    SELECT s.perspective_id AS id, s.created_at AS saved_at, a.place_id
+    FROM saved_perspectives s
+    JOIN perspectives p ON p.id = s.perspective_id
+    JOIN arcs a ON a.id = p.arc_id
+    WHERE s.user_id = sqlc.arg(user_id)::uuid
+      AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND p.deleted_at IS NULL
+      AND p.hidden_at IS NULL
+      AND (sqlc.narg(after_at)::timestamptz IS NULL
+           OR (s.created_at, s.perspective_id) < (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
+), up AS (
+    SELECT m.id AS perspective_id, pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM mine m
+    JOIN places pl ON pl.id = m.place_id
+    UNION ALL
+    SELECT up.perspective_id, parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
+SELECT m.id, m.saved_at
+FROM mine m
+WHERE NOT EXISTS (SELECT 1 FROM up WHERE up.perspective_id = m.id AND up.hidden_at IS NOT NULL)
+ORDER BY m.saved_at DESC, m.id DESC
+LIMIT sqlc.arg(row_limit)::int;

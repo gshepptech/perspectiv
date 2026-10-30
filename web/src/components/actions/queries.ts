@@ -14,6 +14,9 @@ export function perspectiveQuery(perspectiveId: string) {
   };
 }
 
+/** Every page of the caller's Saved stories, as the Saved page reads them. */
+export const savedListKey = ["perspective", "listSaved"] as const;
+
 export const arcKey = (arcId: string) => ["arc", "getArc", { arcId }] as const;
 
 /**

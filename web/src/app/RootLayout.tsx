@@ -1,4 +1,4 @@
-import { BookOpen, CircleUser, Inbox, KeyRound, LogOut, PenLine, ScrollText, Settings, ShieldAlert, UserCheck, UserSearch } from "lucide-react";
+import { Bookmark, BookOpen, CircleUser, Inbox, KeyRound, LogOut, PenLine, ScrollText, Settings, ShieldAlert, UserCheck, UserSearch } from "lucide-react";
 import { useRef } from "react";
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from "react-router";
 
@@ -112,6 +112,9 @@ function AccountMenu({ username, isAdmin }: { username: string; isAdmin: boolean
       >
         <DropdownMenuLabel>Signed in as {username}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => go("/saved")}>
+          <Bookmark aria-hidden size={16} /> Saved
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => go("/settings")}>
           <Settings aria-hidden size={16} /> Settings
         </DropdownMenuItem>

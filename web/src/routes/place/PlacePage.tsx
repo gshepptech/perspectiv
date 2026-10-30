@@ -4,6 +4,7 @@ import { Crown, PenLine, Plus } from "lucide-react";
 import { useState, type RefObject } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 
+import { CanonName } from "@/components/reader/CanonName";
 import { formatDayBeside, genreLabel, loreStatusLabel, placeCategories, placeCategoryLabel, placeLabel } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -51,8 +52,7 @@ function isNotFound(err: unknown): boolean {
 
 /**
  * One day in the epic: its title, the opening of its canon's first story (or
- * its first story), then whether it has a canon and how many are in it. The
- * canon lore's name is not in EpicArc, so the row says "Canon" alone.
+ * its first story), then its canon by name and how many are in it.
  */
 function ArcItem({ arc }: { arc: EpicArc }) {
   return (
@@ -65,7 +65,7 @@ function ArcItem({ arc }: { arc: EpicArc }) {
         {arc.canonLoreId && (
           <span className="inline-flex items-center gap-1 font-medium text-ink">
             <Crown aria-hidden size={16} className="text-accent" />
-            Canon
+            <CanonName name={arc.canonLoreName} />
           </span>
         )}
         <span className="wrap-anywhere">{arc.place?.name}</span>

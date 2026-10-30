@@ -898,8 +898,8 @@ type ExportMyDataResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// A JSON object: the account, its stories with parts and characters,
 	// claims made and received, votes, reactions, thread posts, lores named,
-	// places and writers followed, blocks, reports filed, invites sent and
-	// notification settings.
+	// places and writers followed, stories saved, blocks, reports filed,
+	// invites sent and notification settings.
 	Json          string `protobuf:"bytes,1,opt,name=json,proto3" json:"json,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -323,9 +323,9 @@ than "Store") and how many stories it holds, so friends pick the same entry.
 Each day in the Ranked and Newest tabs is a row like a tale's: the day's
 title as the link, the opening of its canon's first story (or its first story)
 in the serif face clamped to two lines, then a `text-sm` line: "Canon" and
-a crown when the day has one, the place, the day, how many are in lore and
-the story count. The canon lore's name is not shown: `EpicArc`
-does not carry it.
+a crown when the day has one, followed by the canon lore's name in italics
+when its members have named it ("Canon: *The long queue*"), the place, the
+day, how many are in lore and the story count.
 
 ## Profile
 
@@ -404,6 +404,34 @@ two rows for the same browser are told apart.
 - **Inbox.** A followed writer's story reads "*writer* wrote a new story in
   *day*." and opens the story; its settings toggle is "A new story by a
   writer you follow".
+
+## Saving stories
+
+- **Save toggle.** Every readable story's action bar carries a "Save"
+  toggle in its second row, before Report, built like the Follow toggle:
+  `sm`, at least 44px tall, `ghost` with an outline lucide `Bookmark`
+  reading "Save" when off, `secondary` with a filled `Bookmark` reading
+  "Saved" when on, `aria-pressed` either way, and an accessible name that
+  adds the story ("Save otter's perspective", "Saved otter's perspective")
+  so a page of cards reads as distinct buttons. Like Report it is not
+  offered on the reader's own story, and never on a deleted or hidden
+  placeholder. A
+  signed-out reader who presses it is sent to sign in and comes back to the
+  story, as Report does. A refusal is a `role="alert"` line in `error`
+  under the bar.
+- **Saved page.** `/saved` (signed in only) is headed, and titled, "Saved
+  stories", with one `ink-muted` line under the heading: "Stories you saved
+  to read later, most recently saved first." Its rows are the profile's
+  rows (one link at least 44px tall: where and when, the day's title in the
+  serif face, the opening clamped to two lines, the standing), except that
+  the first line ends with the writer ("Joe's Diner · Oct 15 · by otter"),
+  since one list holds many writers. "Show more" brings 20 more and moves
+  focus to the first new row. A saved story that is deleted or hidden
+  leaves the list without a word and comes back if it is restored. With
+  none, the page says "You have not saved any stories yet. Press Save under
+  a story to keep it here."
+- **Way in.** The account menu lists "Saved" with a `Bookmark` icon first,
+  above Settings.
 
 ## Sign-up during the beta
 
@@ -536,7 +564,8 @@ are writing, each of which opens its place page.
 - **Where people are writing.** Under the hero, up to six place cards from
   the most remembered days anywhere, one card per place: the place name and
   its city, the day's title, a two-line quote of its opening in Literata, and
-  "Canon" or the story count. A card links to the place page, never straight
+  "Canon" (with the lore's name when it has one, as on the place page) or
+  the story count. A card links to the place page, never straight
   to a story, so the way in stays place first. Two columns from `sm`, three
   from `lg`. The section is left out when no place has a story.
 - **Places you follow** (signed in, when there are any) sits above "Where

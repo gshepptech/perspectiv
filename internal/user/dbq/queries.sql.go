@@ -162,6 +162,16 @@ func (q *Queries) DeleteFollowsOf(ctx context.Context, userID uuid.UUID) error {
 	return err
 }
 
+const deleteSavesOf = `-- name: DeleteSavesOf :exec
+DELETE FROM saved_perspectives WHERE user_id = $1::uuid
+`
+
+// Removes every story an account saved to read later.
+func (q *Queries) DeleteSavesOf(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteSavesOf, userID)
+	return err
+}
+
 const exportAccount = `-- name: ExportAccount :one
 SELECT jsonb_build_object(
   'exported_at', now(),
@@ -220,6 +230,9 @@ SELECT jsonb_build_object(
     SELECT jsonb_agg(jsonb_build_object('username', coalesce(fu.username, '[deleted]'), 'since', f.created_at) ORDER BY f.created_at)
     FROM user_follows f LEFT JOIN users fu ON fu.id = f.followee_id AND fu.deleted_at IS NULL
     WHERE f.follower_id = $1::uuid), '[]'::jsonb),
+  'saved_stories', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('perspective_id', sp.perspective_id, 'saved_at', sp.created_at) ORDER BY sp.created_at)
+    FROM saved_perspectives sp WHERE sp.user_id = $1::uuid), '[]'::jsonb),
   'blocked', coalesce((
     SELECT jsonb_agg(jsonb_build_object('username', coalesce(bu.username, '[deleted]'), 'since', b.created_at) ORDER BY b.created_at)
     FROM blocks b LEFT JOIN users bu ON bu.id = b.blocked_id AND bu.deleted_at IS NULL

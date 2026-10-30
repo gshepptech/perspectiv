@@ -189,6 +189,37 @@ func (h *Handler) GetInvite(ctx context.Context, req *connect.Request[perspectiv
 	return connect.NewResponse(&perspectivv1.GetInviteResponse{Invite: inv}), nil
 }
 
+// SavePerspective saves a readable story for the caller to read later, or
+// unsaves it.
+func (h *Handler) SavePerspective(ctx context.Context, req *connect.Request[perspectivv1.SavePerspectiveRequest]) (*connect.Response[perspectivv1.SavePerspectiveResponse], error) {
+	caller, err := signedIn(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	id, err := parseID("perspective_id", req.Msg.GetPerspectiveId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	saved, err := h.svc.Save(ctx, caller, id, req.Msg.GetOn())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.SavePerspectiveResponse{Saved: saved}), nil
+}
+
+// ListSaved pages the caller's saved stories, most recently saved first.
+func (h *Handler) ListSaved(ctx context.Context, req *connect.Request[perspectivv1.ListSavedRequest]) (*connect.Response[perspectivv1.ListSavedResponse], error) {
+	caller, err := signedIn(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	ps, next, err := h.svc.ListSaved(ctx, caller, req.Msg.GetPageToken(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ListSavedResponse{Perspectives: ps, NextPageToken: next}), nil
+}
+
 func signedIn(ctx context.Context) (uuid.UUID, error) {
 	c, ok := apiutil.CallerFrom(ctx)
 	if !ok {

@@ -149,6 +149,8 @@ message EpicArc {
   // The opening of the canon's first story, or of the first story when the
   // arc has no canon.
   string excerpt = 12;
+  // The canon lore's name; empty when the arc has no canon or it is unnamed.
+  string canon_lore_name = 13;
 }
 
 // EpicTale is one SOLO or REMOVED perspective in a place's TALES tab.

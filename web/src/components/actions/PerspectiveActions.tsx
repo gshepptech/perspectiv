@@ -16,6 +16,7 @@ import { perspectiveQuery } from "./queries";
 import { ReactBar } from "./ReactBar";
 import { RemoveVoteButton } from "./RemoveVoteButton";
 import { ReportDialog } from "./ReportDialog";
+import { SaveButton } from "./SaveButton";
 import { VoteButton } from "./VoteButton";
 
 /** What the page knows about the viewer's place in this perspective's arc. */
@@ -29,12 +30,12 @@ export type ViewerRights = {
 };
 
 /**
- * The actions under one perspective: up-vote, reacts, claim, remove vote and
- * report. Each is offered where the server would accept it. Upvote and claim
+ * The actions under one perspective: up-vote, reacts, claim, remove vote,
+ * save and report. Each is offered where the server would accept it. Upvote and claim
  * need a perspective in the same arc, so a reader without one (signed out
  * included) who presses either is told so in place, with the way to write
  * their side or sign in. A signed-out reader who reacts is told the same way
- * that reacting needs an account; report sends them to sign in. The server
+ * that reacting needs an account; save and report send them to sign in. The server
  * enforces every rule again; hiding a button is usability only.
  *
  * The listing summary has no vote, react or character state, so the full
@@ -157,6 +158,7 @@ export function PerspectiveActions({
           </p>
         )}
         {canVoteOut && <RemoveVoteButton perspectiveId={summary.id} authorName={authorName} />}
+        {p && !own && <SaveButton perspectiveId={summary.id} saved={p.saved} targetName={`${authorName}'s perspective`} />}
         {!own && (
           <ReportDialog
             targetKind={ReportTargetKind.PERSPECTIVE}
