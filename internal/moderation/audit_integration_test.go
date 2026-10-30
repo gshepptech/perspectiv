@@ -612,3 +612,49 @@ func TestMergePlace(t *testing.T) {
 		t.Fatalf("audit entries = %d, want 1", n)
 	}
 }
+
+// A merge never files a place under itself or under a place at its own
+// level, and never into a place a hidden ancestor hides.
+func TestMergePlaceKeepsTheHierarchy(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	w := e.world("writer")
+	admin := e.adminUser("ana")
+	place := func(kind, name string, parent uuid.UUID) uuid.UUID {
+		return e.id(`INSERT INTO places (kind, name, parent_id, timezone, source)
+			VALUES ($1, $2, $3, 'America/New_York', 'PLACE_SOURCE_OVERTURE') RETURNING id`, kind, name, parent)
+	}
+	city := place("PLACE_KIND_CITY", "Springfield", w.state)
+	town := place("PLACE_KIND_TOWN", "Old Town", city)
+	place("PLACE_KIND_STORE", "Deli", city)
+	otherCity := place("PLACE_KIND_CITY", "Shelbyville", w.state)
+	otherTown := place("PLACE_KIND_TOWN", "Riverside", otherCity)
+	hiddenParent := place("PLACE_KIND_CITY", "Hidden City", w.state)
+	underHidden := place("PLACE_KIND_CITY", "Twin", hiddenParent)
+	e.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, hiddenParent)
+	merge := func(from, into uuid.UUID) error {
+		_, err := e.admin(admin).MergePlace(context.Background(), connect.NewRequest(&perspectivv1.MergePlaceRequest{
+			PlaceId: from.String(), IntoPlaceId: into.String(), Reason: "duplicate",
+		}))
+		return err
+	}
+	tests := []struct {
+		name       string
+		from, into uuid.UUID
+		want       connect.Code
+	}{
+		{name: "into its own child", from: city, into: town, want: connect.CodeFailedPrecondition},
+		{name: "a town under another town", from: city, into: otherTown, want: connect.CodeFailedPrecondition},
+		{name: "into a place a hidden ancestor hides", from: otherCity, into: underHidden, want: connect.CodeNotFound},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			wantCode(t, merge(tc.from, tc.into), tc.want)
+		})
+	}
+	var parent uuid.UUID
+	e.scan(`SELECT parent_id FROM places WHERE id = $1`, []any{town}, &parent)
+	if parent != city {
+		t.Fatalf("town's parent = %v after refused merges, want the city", parent)
+	}
+}

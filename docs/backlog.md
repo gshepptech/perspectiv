@@ -20,6 +20,16 @@ Nothing in progress.
 
 ## Done
 
+- Security review fixes (waves 6 to 8): a place merge could file a city
+  under its own town (its children moved under themselves) or a town under
+  a town, and could merge into a place a hidden ancestor hides; the merge
+  now refuses a target inside the duplicate, compares the shallowest child
+  level, and requires the target's whole path visible. safeNext refused
+  "//" but not "/<tab>/host", which URL parsing turns into "//host"; it now
+  refuses tabs, newlines and backslashes anywhere. Search story counts no
+  longer count stories under hidden places. Verified by
+  TestMergePlaceKeepsTheHierarchy, TestSearchCountsSkipHiddenPlaces and the
+  safeNext tests.
 - Release check on k3s: the documented production path (deploy/k3s/e2e.sh)
   hung at helm --wait, because local-path binds a volume claim only on its
   first consumer and nothing used the backups claim before the first

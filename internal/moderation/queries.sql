@@ -99,16 +99,18 @@ WHERE p.id = @id::uuid AND p.kind = 'PLACE_KIND_STORE' AND p.hidden_at IS NULL
   AND NOT EXISTS (SELECT 1 FROM places parent WHERE parent.id = p.parent_id AND parent.kind = 'PLACE_KIND_MALL');
 
 -- name: LockPlacesForMerge :many
--- Both places of a merge, visible ones only, locked against a concurrent
--- write; with the duplicate's arc count and the deepest level of its
--- children (0 for none), for the merge's checks.
-SELECT p.id, p.kind,
+-- Both places of a merge, visible rows only, locked against a concurrent
+-- write; with the duplicate's arc count, the shallowest level among its
+-- children (0 for none), each place's path, and whether an ancestor is
+-- hidden, for the merge's checks.
+SELECT p.id, p.kind, p.path,
        (SELECT count(*) FROM arcs a WHERE a.place_id = p.id)::integer AS arcs,
-       coalesce((SELECT max(array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+       coalesce((SELECT min(array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
                                                  'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], c.kind))
                  FROM places c WHERE c.parent_id = p.id), 0)::integer AS child_level,
        array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
-                            'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind)::integer AS level
+                            'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind)::integer AS level,
+       EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(p.path) AND h.hidden_at IS NOT NULL)::boolean AS ancestor_hidden
 FROM places p
 WHERE p.id = ANY(@ids::uuid[]) AND p.hidden_at IS NULL
 FOR UPDATE;

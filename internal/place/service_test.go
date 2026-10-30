@@ -895,3 +895,31 @@ func TestSearchRanksStoriedPlacesFirst(t *testing.T) {
 		t.Fatalf("results = %v, want the storied place first with 2 stories", got)
 	}
 }
+
+// Stories under a hidden place are not readable, so a search does not count
+// them for the places above it.
+func TestSearchCountsSkipHiddenPlaces(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	c := client(t, h.pool)
+	venue := h.place(perspectivv1.PlaceKind_PLACE_KIND_MALL, "Quiet Arena", h.city)
+	stand := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "North Stand", venue)
+	by := h.user(true)
+	t0 := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	h.perspective(h.arc(stand, "2026-10-01", "Game day", by, t0), by, perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_PENDING, t0, "text")
+	count := func() int32 {
+		t.Helper()
+		res, err := c.SearchPlaces(context.Background(), as(uuid.Nil, &perspectivv1.SearchPlacesRequest{Query: "quiet arena"}))
+		if err != nil || len(res.Msg.GetPlaces()) != 1 {
+			t.Fatalf("SearchPlaces = %v, %v", res, err)
+		}
+		return res.Msg.GetPlaces()[0].GetStories()
+	}
+	if n := count(); n != 1 {
+		t.Fatalf("stories before hiding = %d, want 1", n)
+	}
+	h.hide(stand)
+	if n := count(); n != 0 {
+		t.Fatalf("stories after hiding the stand = %d, want 0", n)
+	}
+}

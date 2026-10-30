@@ -83,6 +83,8 @@ CROSS JOIN LATERAL (
     SELECT count(*)::integer AS stories FROM (
         SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
         WHERE a.place_path @> ARRAY[m.id]
+          -- Stories under a hidden place are not readable, so not counted.
+          AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
           AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
         LIMIT 100) x
 ) st

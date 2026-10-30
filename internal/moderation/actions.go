@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -245,11 +246,15 @@ func checkMerge(ctx context.Context, q *dbq.Queries, from, into uuid.UUID) error
 		}
 	}
 	switch {
-	case dup == nil || twin == nil:
+	case dup == nil || twin == nil || twin.AncestorHidden:
 		return apiutil.NotFound("both places must exist and be visible")
 	case dup.Arcs > 0:
 		return apiutil.FailedPrecondition("the duplicate has stories of its own; merge the other way, or hide it")
+	case slices.Contains(twin.Path, from):
+		// Its children would move under themselves.
+		return apiutil.FailedPrecondition("a place cannot be merged into a place inside it")
 	case dup.ChildLevel > 0 && dup.ChildLevel <= twin.Level:
+		// Every child, the broadest included, must sit lower than the twin.
 		return apiutil.FailedPrecondition("the places under the duplicate cannot be filed under the other place")
 	}
 	return nil

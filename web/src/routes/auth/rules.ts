@@ -18,10 +18,11 @@ export const passwordSchema = z.string().min(1, { error: "Enter a password." });
 /**
  * Where to go after signing in. Only a same-site path is followed: a value
  * that is absolute ("https://..."), protocol-relative ("//host") or that a
- * browser would normalise into one ("/\\host") falls back to the home page,
- * so a crafted login link cannot send a reader off the site.
+ * browser would normalise into one ("/\\host", or "/<tab>/host", since URL
+ * parsing drops tabs and newlines) falls back to the home page, so a crafted
+ * link cannot send a reader off the site.
  */
 export function safeNext(next: string | null): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return "/";
+  if (!next || !next.startsWith("/") || next.startsWith("//") || /[\\\t\n\r]/.test(next)) return "/";
   return next;
 }
