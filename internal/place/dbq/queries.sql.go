@@ -608,7 +608,8 @@ WITH RECURSIVE chain AS (
     JOIN chain c ON a.id = c.parent_id
     WHERE c.depth < 8
 )
-SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+       coalesce(p.category, '')::text AS category
 FROM places p
 WHERE p.id = $1::uuid
   AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.hidden_at IS NOT NULL)
@@ -622,6 +623,7 @@ type GetVisiblePlaceRow struct {
 	Timezone  string
 	Source    string
 	UserAdded bool
+	Category  string
 }
 
 // Place hierarchy reads, user-created places and the epic listings.
@@ -642,6 +644,7 @@ func (q *Queries) GetVisiblePlace(ctx context.Context, id uuid.UUID) (GetVisible
 		&i.Timezone,
 		&i.Source,
 		&i.UserAdded,
+		&i.Category,
 	)
 	return i, err
 }

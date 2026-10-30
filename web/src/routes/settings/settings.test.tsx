@@ -489,12 +489,15 @@ describe("SettingsPage signed-in devices", () => {
     });
     const list = await screen.findByRole("list", { name: "Signed-in devices" });
     const [mine, other] = within(list).getAllByRole("listitem");
-    expect(mine).toHaveTextContent("Firefox on macOSThis device");
+    expect(mine).toHaveTextContent("Firefox on macOS This device");
     expect(within(mine!).queryByRole("button")).not.toBeInTheDocument();
     expect(other).toHaveTextContent("Safari on iPhone");
-    await user.click(within(other!).getByRole("button", { name: "Sign out Safari on iPhone" }));
-    const status = await screen.findByRole("status", { name: "Devices status" });
-    await waitFor(() => expect(status).toHaveTextContent("Safari on iPhone is signed out."));
+    // The name carries the sign-in day, so two rows for one browser differ.
+    const signOut = within(other!).getByRole("button", { name: /^Sign out Safari on iPhone, signed in / });
+    expect(signOut).toHaveAccessibleName(`Sign out Safari on iPhone, signed in ${new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(phone.signedInAt))}`);
+    await user.click(signOut);
+    const status = await screen.findByText("Safari on iPhone is signed out.");
+    expect(status).toHaveAttribute("role", "status");
     expect(status).toHaveFocus();
     expect(api.sent("AuthService/RevokeSession")).toEqual([{ sessionId: "s-2" }]);
     await waitFor(() => expect(within(list).getAllByRole("listitem")).toHaveLength(1));

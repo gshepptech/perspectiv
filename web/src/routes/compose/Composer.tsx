@@ -84,6 +84,12 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
       ? dayArc.data?.minePerspectiveId
       : dayArc.data?.hours.find((h) => h.hour === chosenHour)?.minePerspectiveId;
   const alreadyWrote = !published && mineInArc && mineInArc !== perspective?.id ? mineInArc : "";
+  // Arriving from "Write your side", the page is new to the writer: the
+  // heading takes focus so the note under it is read next.
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (joining) heading.current?.focus();
+  }, [joining]);
   const characters = useFieldArray({ control: form.control, name: "characters", keyName: "key" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -208,7 +214,7 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
         className="mx-auto grid w-full max-w-measure min-w-0 gap-6"
       >
         <header className="grid gap-1">
-          <h1 id="compose-title" className="text-2xl sm:text-3xl">
+          <h1 id="compose-title" ref={heading} tabIndex={-1} className="text-2xl focus:outline-none sm:text-3xl">
             {published ? "Edit your perspective" : "Write a perspective"}
           </h1>
           <p className="text-ink-muted [overflow-wrap:anywhere]">
@@ -242,6 +248,18 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
         ) : (
           <WhenFields control={form.control} place={place} today={today} fixed={joining} />
         )}
+
+        {alreadyWrote && (
+          <p role="alert" className="rounded-md border border-warning p-3 text-sm">
+            You already have a story for {chosenHour === undefined ? "this day" : hourLabel(chosenHour)} here, and each
+            person has one story per day or hour.{" "}
+            <Link to={`/compose?perspectiveId=${encodeURIComponent(alreadyWrote)}`} className="font-medium text-accent underline underline-offset-4">
+              Edit yours
+            </Link>{" "}
+            instead, or pick another hour.
+          </p>
+        )}
+
 
         <FormField
           control={form.control}
@@ -350,21 +368,11 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
           </p>
         )}
 
-        {alreadyWrote && (
-          <p role="alert" className="rounded-md border border-warning p-3 text-sm">
-            You already have a story for {chosenHour === undefined ? "this day" : hourLabel(chosenHour)} here, and each
-            person has one story per day or hour.{" "}
-            <Link to={`/compose?perspectiveId=${encodeURIComponent(alreadyWrote)}`} className="font-medium text-accent underline underline-offset-4">
-              Edit yours
-            </Link>{" "}
-            instead, or pick another hour.
-          </p>
-        )}
-
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Button type="submit" pending={busy} disabled={Boolean(alreadyWrote)}>
             {published ? "Save changes" : "Publish"}
           </Button>
+          {alreadyWrote && <span className="text-sm text-ink-muted">Held: you already have a story for this day or hour.</span>}
           <SaveStatus state={autosave.state} published={published} />
         </div>
       </form>
@@ -434,6 +442,21 @@ function WhenFields({
   // A day that already has an arc keeps its title; asking for one would be
   // ignored, which is how a writer's title used to vanish without a word.
   const dayTitled = Boolean(day.data?.arcId);
+  if (fixed) {
+    // Joining someone's story: the day and hour are theirs, shown as text
+    // rather than as controls that look editable but are not.
+    return (
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        <p className="sm:col-span-2">
+          <span className="text-sm font-medium">When</span>
+          <br />
+          {isLocalDate(localDate) ? formatDay(localDate) : localDate}, {hour === undefined ? "the whole day" : hourLabel(hour)}
+          <span className="block text-sm text-ink-muted">Set to match their story: stories link only within the same day or hour.</span>
+        </p>
+        <DayArcNote place={place} localDate={localDate} hour={hour} />
+      </div>
+    );
+  }
   return (
     <div className="grid min-w-0 gap-4 sm:grid-cols-2">
       <FormField
@@ -443,7 +466,7 @@ function WhenFields({
           <FormItem className="min-w-0">
             <FormLabel>Day of your visit</FormLabel>
             <FormControl>
-              <Input type="date" max={today} required readOnly={fixed} aria-readonly={fixed} {...field} />
+              <Input type="date" max={today} required {...field} />
             </FormControl>
             <FormDescription className="[overflow-wrap:anywhere]">
               Today in {place.name} is {formatDay(today)}.
@@ -458,7 +481,7 @@ function WhenFields({
         render={({ field }) => (
           <FormItem className="min-w-0">
             <FormLabel>Hour</FormLabel>
-            <Select value={field.value} onValueChange={field.onChange} disabled={fixed}>
+            <Select value={field.value} onValueChange={field.onChange}>
               <FormControl>
                 <SelectTrigger onBlur={field.onBlur}>
                   <SelectValue />
@@ -473,11 +496,7 @@ function WhenFields({
                 ))}
               </SelectContent>
             </Select>
-            <FormDescription>
-              {fixed
-                ? "Set to match their story: stories link only within the same day or hour."
-                : "Optional, in local time. Fixed once published."}
-            </FormDescription>
+            <FormDescription>Optional, in local time. Fixed once published.</FormDescription>
           </FormItem>
         )}
       />

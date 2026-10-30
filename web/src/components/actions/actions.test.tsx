@@ -349,6 +349,8 @@ describe("claim", () => {
 
     // The refetched story shows the viewer's own claim as theirs.
     expect(within(screen.getByRole("dialog", { name: "Claim a character" })).getByText("Your claim, waiting for heron")).toBeInTheDocument();
+    // The pressed button gave way to that text, so focus sits on the confirmation.
+    expect(within(screen.getByRole("dialog", { name: "Claim a character" })).getByRole("status")).toHaveFocus();
 
     await userEvent.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());

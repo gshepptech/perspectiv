@@ -339,6 +339,12 @@ func TestGetPlace(t *testing.T) {
 	if p.GetName() != "White Oaks Mall" || len(p.GetAncestors()) != 3 || p.GetSource() != perspectivv1.PlaceSource_PLACE_SOURCE_OVERTURE {
 		t.Fatalf("place = %v", p)
 	}
+	// A categorised venue says what it is on its own page, as in search.
+	h.exec(`UPDATE places SET category = 'PLACE_CATEGORY_SPORTS_AND_RECREATION' WHERE id = $1`, h.mall)
+	res, err = c.GetPlace(ctx, as(uuid.Nil, &perspectivv1.GetPlaceRequest{PlaceId: h.mall.String()}))
+	if err != nil || res.Msg.GetPlace().GetCategory() != perspectivv1.PlaceCategory_PLACE_CATEGORY_SPORTS_AND_RECREATION {
+		t.Fatalf("category = %v, %v", res.Msg.GetPlace().GetCategory(), err)
+	}
 
 	h.hide(h.mall)
 	tests := []struct {

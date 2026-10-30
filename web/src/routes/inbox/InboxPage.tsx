@@ -102,7 +102,7 @@ export function Component() {
               variant="ghost"
               aria-pressed={unreadOnly === f.value}
               onClick={() => setUnreadOnly(f.value)}
-              className={cn("rounded-none border-b-2", unreadOnly === f.value ? "border-accent" : "border-transparent")}
+              className={cn("min-h-11 rounded-none border-b-2", unreadOnly === f.value ? "border-accent" : "border-transparent")}
             >
               {f.label}
             </Button>
@@ -111,6 +111,7 @@ export function Component() {
         <Button
           size="sm"
           variant="secondary"
+          className="min-h-11"
           disabled={!inbox.isSuccess || unreadCount === 0}
           pending={markRead.isPending}
           onClick={() => markRead.mutate("all")}

@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetSessionForTests } from "@/lib/session";
@@ -72,17 +73,39 @@ describe("publishing to claim a character in someone else's story", () => {
     const dialog = await screen.findByRole("dialog", { name: "Claim a character" });
     await waitFor(() => expect(within(dialog).getByRole("button", { name: "That was me: the kid in gold paint" })).toHaveFocus());
     expect(within(dialog).getByRole("listitem", { name: "the kid in gold paint" })).toHaveAttribute("aria-current", "true");
-    // Published is still said, with the way to the writer's own story.
-    const published = screen.getByText(/^Your story is published\./);
+    // The modal hides the page from a screen reader, so the dialog says it too.
+    expect(dialog).toHaveAccessibleDescription(/^Your story is published\. Now say which character was you\. /);
+    // Published is still said on the page, with the way to the writer's own story.
+    const published = screen.getByText(/^Your story is published\./, { selector: "p[role=status]" });
     expect(published).toHaveAttribute("role", "status");
     // Behind the modal claim dialog until it closes.
     expect(within(published).getByRole("link", { name: "Open your story", hidden: true })).toHaveAttribute("href", "/perspectives/p-mine");
     // The claim is read once, so a reload does not reopen the dialog.
     await waitFor(() => expect(router.state.location.pathname + router.state.location.search).toBe("/perspectives/p-other"));
-    expect(screen.getByText(/^Your story is published\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Your story is published\./, { selector: "p[role=status]" })).toBeInTheDocument();
     expect(api.callsTo("ArcService/GetArc")).not.toHaveLength(0);
     // Used once.
     expect(sessionStorage.getItem("perspectiv.afterPublish")).toBeNull();
+  });
+
+  it("says published only in the dialog that opened on the return, and keeps the page line after it closes", async () => {
+    const user = userEvent.setup();
+    rememberAfterPublish({ placeId: "pl-1", localDate: "2026-10-03" }, "/perspectives/p-other?claim=c-1");
+    installApi({
+      "PerspectiveService/Get": (body) => ok({ perspective: body.perspectiveId === "p-other" ? other : mine }),
+      "ArcService/ListOpenCharacters": () => ok({ characters: [] }),
+      "ArcService/GetArc": () => ok({ arc: { id: "arc-1", title: "Fourth quarter" }, viewer: { perspectiveId: "p-mine", loreId: "" } }),
+    });
+    renderRoute({ pathname: "/perspectives/p-mine", state: { justPublished: true } });
+    const dialog = await screen.findByRole("dialog", { name: "Claim a character" });
+    expect(within(dialog).getByText("Your story is published. Now say which character was you.")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("link", { name: "Open your story" })).toHaveAttribute("href", "/perspectives/p-mine");
+    await user.click(screen.getByRole("button", { name: "Claim a character" }));
+    const again = await screen.findByRole("dialog", { name: "Claim a character" });
+    expect(within(again).queryByText(/Your story is published/)).not.toBeInTheDocument();
+    expect(again).not.toHaveAccessibleDescription(/Your story is published/);
   });
 
   it("stays on the new story when the return was for another day", async () => {

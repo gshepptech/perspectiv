@@ -124,7 +124,7 @@ export function AuditList({
   if (entries.length === 0) return <p className="text-ink-muted">{empty}</p>;
   return (
     <>
-      <p ref={status} tabIndex={-1} role="status" aria-label="Audit status" className="text-sm text-success empty:hidden">
+      <p ref={status} tabIndex={-1} role="status" className="text-sm text-success empty:hidden">
         {note?.text}
       </p>
       <ul ref={more.list} aria-label={label}>

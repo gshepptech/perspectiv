@@ -17,7 +17,8 @@ WITH RECURSIVE chain AS (
     JOIN chain c ON a.id = c.parent_id
     WHERE c.depth < 8
 )
-SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
+SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+       coalesce(p.category, '')::text AS category
 FROM places p
 WHERE p.id = @id::uuid
   AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.hidden_at IS NOT NULL);

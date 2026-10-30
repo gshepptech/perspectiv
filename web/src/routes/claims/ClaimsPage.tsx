@@ -44,7 +44,7 @@ function StatusLabel({ status }: { status: ClaimStatus }) {
   }
 }
 
-const linkClass = "text-sm text-accent underline underline-offset-4";
+const linkClass = "inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4";
 
 /**
  * What happens next, once the reader has accepted a request: both stories
@@ -58,12 +58,16 @@ function Linked({ claim, lineRef }: { claim: Claim; lineRef: RefObject<HTMLParag
   const lore = loreId ? `/lores/${encodeURIComponent(loreId)}` : `/arcs/${encodeURIComponent(claim.arcId)}`;
   return (
     <div className="grid gap-1">
-      <p ref={lineRef} tabIndex={-1} role="status" className="inline-flex flex-wrap items-center gap-x-1 font-medium text-success">
-        <Check aria-hidden size={16} />
-        Linked. You are both in this story's lore now:{" "}
-        <Link to={lore} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
-          read it
-        </Link>
+      {/* The check is its own column, so at 375px the sentence wraps beside
+          it instead of dropping under it. */}
+      <p ref={lineRef} tabIndex={-1} role="status" className="flex items-baseline gap-1 font-medium text-success">
+        <Check aria-hidden size={16} className="relative top-[0.15em] shrink-0" />
+        <span className="min-w-0">
+          Linked. You are both in this story's lore now:{" "}
+          <Link to={lore} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
+            read it
+          </Link>
+        </span>
       </p>
       <p className="text-sm text-ink-muted">
         A lore needs {CANON_MIN_MEMBERS} members to compete for canon.{" "}
@@ -145,10 +149,10 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
       </div>
       {incoming && pending && (
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" pending={resolve.isPending} onClick={() => resolve.mutate(true)}>
+          <Button size="sm" className="min-h-11" pending={resolve.isPending} onClick={() => resolve.mutate(true)}>
             Accept
           </Button>
-          <Button size="sm" variant="danger" pending={resolve.isPending} onClick={() => setConfirmReject(true)}>
+          <Button size="sm" variant="danger" className="min-h-11" pending={resolve.isPending} onClick={() => setConfirmReject(true)}>
             Reject
           </Button>
         </div>

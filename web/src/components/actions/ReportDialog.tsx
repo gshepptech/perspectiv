@@ -1,7 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { Flag } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -55,6 +55,12 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
     mutationFn: (v: Values) =>
       clients.moderation.report({ targetKind, targetId, reason: Number(v.reason) as ReportReason, details: v.details }),
   });
+  // The form and its "Send report" button go away on success, so focus
+  // moves to the line that replaces them instead of falling out of the dialog.
+  const sent = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (report.isSuccess) sent.current?.focus();
+  }, [report.isSuccess]);
   return (
     <Dialog
       open={open}
@@ -81,7 +87,7 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
             : "Moderators review every report. Descriptions may not name real people or the handles of anyone who is not a Perspectiv user."}
         </DialogDescription>
         {report.isSuccess ? (
-          <p role="status" className="mt-4 text-sm font-medium text-success">
+          <p ref={sent} tabIndex={-1} role="status" className="mt-4 text-sm font-medium text-success">
             Report sent. A moderator will review it.
           </p>
         ) : (

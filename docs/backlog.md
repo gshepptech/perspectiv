@@ -20,6 +20,17 @@ Nothing in progress.
 
 ## Done
 
+- Accessibility and phone pass over waves 6 to 8 (axe-core found no WCAG
+  violations in 22 scans at 375 and 1280; these are the manual findings):
+  a place page now names a venue by its category (GetPlace never carried
+  it, so the header still said "Store"); the composer shows "you already
+  have a story here" right under the day, not 1,400px down, and says why
+  Publish is held; "Write your side" focuses the heading and shows the
+  fixed day and hour as text, not as controls that look editable; plus the
+  delegated web fixes for the merge dialog at 375, announcements behind the
+  claim dialog, focus after a claim or report, status lines read as
+  themselves, 44px targets, unique device sign-out names. Verified by
+  TestGetPlace, the composer tests and the web suite.
 - Security review fixes (waves 6 to 8): a place merge could file a city
   under its own town (its children moved under themselves) or a town under
   a town, and could merge into a place a hidden ancestor hides; the merge

@@ -117,8 +117,9 @@ describe("restoring hidden content", () => {
     const dialog = await screen.findByRole("dialog", { name: "Restore this perspective?" });
     await user.type(within(dialog).getByLabelText("Reason for the audit log"), "hidden by mistake");
     await user.click(within(dialog).getByRole("button", { name: "Restore perspective" }));
-    const status = await screen.findByRole("status", { name: "Audit status" });
-    await waitFor(() => expect(status).toHaveTextContent("The perspective is restored."));
+    const status = await screen.findByText("The perspective is restored.");
+    expect(status).toHaveAttribute("role", "status");
+    expect(status).not.toHaveAttribute("aria-label");
     expect(api.callsTo("ModerationService/Restore")[0]?.body).toMatchObject({
       targetKind: "AUDIT_TARGET_KIND_PERSPECTIVE",
       targetId: "p-7",

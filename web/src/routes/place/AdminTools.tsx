@@ -42,6 +42,12 @@ function MergeDialog({ place, onMerged }: { place: Place; onMerged: (into: Place
     },
   });
   const options = (found.data?.places ?? []).filter((p) => p.id !== place.id);
+  // Said once the search answers, so a screen reader hears what the list now holds.
+  const matches = !found.isSuccess
+    ? ""
+    : options.length === 0
+      ? "No other place matches."
+      : `${options.length} ${options.length === 1 ? "place matches" : "places match"}`;
   return (
     <Dialog
       open={open}
@@ -80,7 +86,12 @@ function MergeDialog({ place, onMerged }: { place: Place; onMerged: (into: Place
             Find the place to keep
             <Input value={text} onChange={(e) => setText(e.target.value)} autoComplete="off" />
           </label>
-          <fieldset className="grid max-h-60 gap-1 overflow-y-auto">
+          <p role="status" className="text-sm text-ink-muted empty:hidden">
+            {matches}
+          </p>
+          {/* A block, not a grid: a grid with a height cap squeezes its rows
+              until a place's second line overlaps the next place. */}
+          <fieldset className="max-h-60 min-w-0 space-y-1 overflow-y-auto">
             <legend className="sr-only">Place to keep</legend>
             {options.map((p) => (
               <label key={p.id} className="flex min-h-11 cursor-pointer items-start gap-3 py-1 text-base">
@@ -99,7 +110,6 @@ function MergeDialog({ place, onMerged }: { place: Place; onMerged: (into: Place
                 </span>
               </label>
             ))}
-            {found.isSuccess && options.length === 0 && <p className="text-sm text-ink-muted">No other place matches.</p>}
           </fieldset>
           <label htmlFor={reasonId} className="text-sm font-medium">
             Reason for the audit log
@@ -144,7 +154,7 @@ export function AdminTools({ place }: { place: Place }) {
       <h2 id="place-admin" className="text-lg">
         Admin
       </h2>
-      <p ref={status} tabIndex={-1} role="status" aria-label="Admin status" className="text-sm text-success empty:hidden">
+      <p ref={status} tabIndex={-1} role="status" className="text-sm text-success empty:hidden">
         {note?.text}
       </p>
       {place.kind === PlaceKind.STORE && (

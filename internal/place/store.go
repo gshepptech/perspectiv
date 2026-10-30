@@ -96,6 +96,7 @@ func (s *Store) Get(ctx context.Context, id uuid.UUID) (Place, error) {
 		return Place{}, fmt.Errorf("get place: %w", err)
 	}
 	ps := []Place{placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded)}
+	ps[0].Category = categoryOf(r.Category)
 	if err := s.withAncestors(ctx, ps); err != nil {
 		return Place{}, err
 	}

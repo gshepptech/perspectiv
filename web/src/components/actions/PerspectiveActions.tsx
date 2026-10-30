@@ -47,6 +47,7 @@ export function PerspectiveActions({
   withCast = true,
   claimOnArrival = false,
   claimCharacterId,
+  justPublished = false,
 }: {
   summary: PerspectiveSummary;
   rights: ViewerRights;
@@ -56,6 +57,8 @@ export function PerspectiveActions({
   claimOnArrival?: boolean;
   /** The character that "That was me" link quoted, picked out in the dialog. */
   claimCharacterId?: string;
+  /** The reader was sent back here right after publishing their own story. */
+  justPublished?: boolean;
 }) {
   const session = useSession();
   const gone = summary.deleted || summary.hidden;
@@ -124,12 +127,14 @@ export function PerspectiveActions({
             openOnArrival={claimOnArrival}
             highlight={claimCharacterId}
             returnFocusTo={mineLine}
+            justPublished={justPublished}
           />
         )}
         {claimBlocked && (
           <Button
             variant="secondary"
             size="sm"
+            className="min-h-11"
             aria-expanded={why === "claim"}
             aria-controls={why === "claim" ? whyId : undefined}
             onClick={() => toggle("claim")}

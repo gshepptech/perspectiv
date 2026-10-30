@@ -25,6 +25,7 @@ export function lastUsed(at: Date, now: Date): string {
 function DeviceRow({ s, onSignedOut }: { s: SessionInfo; onSignedOut: (device: string) => void }) {
   const queryClient = useQueryClient();
   const name = s.device || "A browser we did not recognise";
+  const signedIn = s.signedInAt ? day.format(timestampDate(s.signedInAt)) : "earlier";
   const signOut = useMutation({
     mutationFn: () => clients.auth.revokeSession({ sessionId: s.sessionId }),
     onSuccess: async () => {
@@ -37,17 +38,24 @@ function DeviceRow({ s, onSignedOut }: { s: SessionInfo; onSignedOut: (device: s
       <div className="min-w-0">
         <p className="font-medium [overflow-wrap:anywhere]">
           {name}
-          {s.current && <span className="ml-2 text-sm font-normal text-success">This device</span>}
+          {/* The space keeps it from reading "macOSThis device". */}
+          {s.current && (
+            <>
+              {" "}
+              <span className="ml-1 text-sm font-normal text-success">This device</span>
+            </>
+          )}
         </p>
         <p className="text-sm text-ink-muted">
-          Signed in {s.signedInAt ? day.format(timestampDate(s.signedInAt)) : "earlier"}
+          Signed in {signedIn}
           {s.lastUsedAt && !s.current && <>, last used {lastUsed(timestampDate(s.lastUsedAt), new Date())}</>}
         </p>
         <FormAlert message={signOut.error ? errorMessage(signOut.error) : null} />
       </div>
       {!s.current && (
         <Button variant="secondary" size="sm" className="min-h-11" pending={signOut.isPending} onClick={() => signOut.mutate()}>
-          Sign out <span className="sr-only">{name}</span>
+          {/* Two rows can share a browser, so the name carries when it signed in. */}
+          Sign out <span className="sr-only">{`${name}, signed in ${signedIn}`}</span>
         </Button>
       )}
     </li>
@@ -77,7 +85,7 @@ export function DeviceList() {
   }
   return (
     <>
-      <p ref={status} tabIndex={-1} role="status" aria-label="Devices status" className="text-sm text-success">
+      <p ref={status} tabIndex={-1} role="status" className="text-sm text-success empty:hidden">
         {note?.text}
       </p>
       <ul aria-label="Signed-in devices">

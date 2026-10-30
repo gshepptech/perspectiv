@@ -360,6 +360,9 @@ function ReaderActions({ p }: { p: Perspective }) {
     );
   }, [claimParam, setParams, location.state]);
   const claimCharacterId = arrival && arrival !== "1" ? arrival : undefined;
+  const state = location.state as ReadState;
+  // Sent back here from publishing (ReturnAfterPublish): the claim dialog says so too.
+  const justPublished = typeof state?.publishedId === "string" && state.publishedId !== "" && state.publishedId !== p.id;
   const summary = create(PerspectiveSummarySchema, {
     id: p.id,
     arcId: p.arcId,
@@ -379,6 +382,7 @@ function ReaderActions({ p }: { p: Perspective }) {
         withCast={false}
         claimOnArrival={arrival !== null}
         claimCharacterId={claimCharacterId}
+        justPublished={justPublished}
       />
     </section>
   );

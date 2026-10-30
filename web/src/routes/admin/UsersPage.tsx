@@ -65,8 +65,11 @@ function Standing({ u }: { u: AdminUserView }) {
 }
 
 /** One account as a moderator sees it, with the reports and actions about it. */
-/** What the last action on a dossier did; seq tells a repeat apart. */
-type Note = { text: string; seq: number };
+/**
+ * What the last action on a dossier did; seq tells a repeat apart. A lift
+ * is said under the standing it changed, a resolve above the reports.
+ */
+type Note = { text: string; seq: number; where: "standing" | "reports" };
 
 function Dossier({
   u,
@@ -80,11 +83,13 @@ function Dossier({
   onChanged: (text: string) => void;
 }) {
   const name = u.deleted ? "[deleted]" : u.username;
-  const status = useRef<HTMLParagraphElement>(null);
+  const standingStatus = useRef<HTMLParagraphElement>(null);
+  const reportsStatus = useRef<HTMLParagraphElement>(null);
   // A resolve or a lift closes its dialog and usually removes the button
   // that opened it, so focus goes to the line that says what happened.
   useEffect(() => {
-    if (note) status.current?.focus();
+    if (!note) return;
+    (note.where === "standing" ? standingStatus : reportsStatus).current?.focus();
   }, [note]);
   return (
     <article aria-labelledby="dossier-name" className="grid min-w-0 gap-6">
@@ -103,6 +108,9 @@ function Dossier({
             onDone={() => onChanged(`${name}'s suspension is lifted.`)}
           />
         )}
+        <p ref={standingStatus} tabIndex={-1} role="status" className="text-sm text-success empty:hidden">
+          {note?.where === "standing" ? note.text : ""}
+        </p>
       </div>
       <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
         <Fact term="Email">{u.emailHint || "None (account deleted)"}</Fact>
@@ -132,8 +140,8 @@ function Dossier({
         <h3 id="dossier-reports" className="text-xl">
           Reports against them
         </h3>
-        <p ref={status} tabIndex={-1} role="status" aria-label="Dossier status" className="text-sm text-success">
-          {note?.text}
+        <p ref={reportsStatus} tabIndex={-1} role="status" className="text-sm text-success empty:hidden">
+          {note?.where === "reports" ? note.text : ""}
         </p>
         <ReportList
           status={ReportStatus.UNSPECIFIED}
@@ -189,8 +197,8 @@ function Lookup({ query }: { query: string }) {
       </p>
     );
   }
-  const changed = (text: string) => {
-    setNote((n) => ({ text, seq: (n?.seq ?? 0) + 1 }));
+  const changed = (text: string, where: Note["where"]) => {
+    setNote((n) => ({ text, seq: (n?.seq ?? 0) + 1, where }));
     // The fresh lookup writes its own audit entry, so the actions list is
     // read after it.
     void queryClient
@@ -198,7 +206,12 @@ function Lookup({ query }: { query: string }) {
       .then(() => queryClient.invalidateQueries({ queryKey: auditKey }));
   };
   return (
-    <Dossier u={found.data.user} note={note} onResolved={(r) => changed(resolutionMessage(r))} onChanged={changed} />
+    <Dossier
+      u={found.data.user}
+      note={note}
+      onResolved={(r) => changed(resolutionMessage(r), "reports")}
+      onChanged={(text) => changed(text, "standing")}
+    />
   );
 }
 

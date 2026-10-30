@@ -594,6 +594,7 @@ describe("composer: one story per arc, and writing your side", () => {
     expect(alert).toHaveTextContent("You already have a story for this day here");
     expect(within(alert).getByRole("link", { name: "Edit yours" })).toHaveAttribute("href", "/compose?perspectiveId=p-mine");
     expect(screen.getByRole("button", { name: "Publish" })).toBeDisabled();
+    expect(screen.getByText(/Held: you already have a story/)).toBeInTheDocument();
   });
 
   it("fixes the day and hour to the story being joined, and says why", async () => {
@@ -601,8 +602,11 @@ describe("composer: one story per arc, and writing your side", () => {
       "ArcService/FindDayArc": () => ok({}),
     });
     expect(await screen.findByText(/Write your side of this day/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Day of your visit")).toHaveAttribute("readonly");
-    expect(screen.getByRole("combobox", { name: "Hour" })).toBeDisabled();
+    expect(screen.getByRole("heading", { level: 1, name: "Write a perspective" })).toHaveFocus();
+    // The day and hour are theirs, shown as text, not as controls.
+    expect(screen.queryByLabelText("Day of your visit")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "Hour" })).not.toBeInTheDocument();
+    expect(screen.getByText(/October 11, 2026, 13:00/)).toBeInTheDocument();
     expect(screen.getByText(/Set to match their story/)).toBeInTheDocument();
   });
 });

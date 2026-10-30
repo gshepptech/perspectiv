@@ -306,7 +306,10 @@ describe("reporting a duplicate place", () => {
     expect(calls("ModerationService/Report")).toEqual([]);
     await user.type(details, "/places/ci-spr-2");
     await user.click(within(dialog).getByRole("button", { name: "Send report" }));
-    expect(await within(dialog).findByRole("status")).toHaveTextContent("Report sent.");
+    const sent = await within(dialog).findByRole("status");
+    expect(sent).toHaveTextContent("Report sent.");
+    // The form and its button are gone, so focus lands on the line that replaced them.
+    await waitFor(() => expect(sent).toHaveFocus());
     expect(calls("ModerationService/Report")).toEqual([
       { targetKind: "REPORT_TARGET_KIND_PLACE", targetId: "ci-spr", reason: "REPORT_REASON_DUPLICATE_PLACE", details: "/places/ci-spr-2" },
     ]);
@@ -377,7 +380,11 @@ describe("admin tools on a place", () => {
     const dialog = await screen.findByRole("dialog", { name: "Make Prairie Books a venue?" });
     await user.type(within(dialog).getByLabelText("Reason for the audit log"), "a stadium with stands");
     await user.click(within(dialog).getByRole("button", { name: "Make a venue" }));
-    expect(await within(tools).findByRole("status", { name: "Admin status" })).toHaveTextContent("Prairie Books is a venue now.");
+    // No aria-label on the line, so focusing it reads the message itself.
+    const status = await within(tools).findByText("Prairie Books is a venue now.");
+    expect(status).toHaveAttribute("role", "status");
+    expect(status).not.toHaveAttribute("aria-label");
+    await waitFor(() => expect(status).toHaveFocus());
     expect(calls("ModerationService/MakeVenue")).toEqual([{ placeId: "so-bk", reason: "a stadium with stands" }]);
   });
 
@@ -395,6 +402,7 @@ describe("admin tools on a place", () => {
     const tools = await screen.findByRole("region", { name: "Admin" });
     await user.click(within(tools).getByRole("button", { name: "Merge into another place…" }));
     const dialog = await screen.findByRole("dialog", { name: "Merge this duplicate" });
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("1 place matches");
     await user.click(within(dialog).getByRole("button", { name: "Merge" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("Pick the place everyone should use.");
     await user.click(await within(dialog).findByRole("radio", { name: /12 stories/ }));
@@ -402,5 +410,16 @@ describe("admin tools on a place", () => {
     await user.click(within(dialog).getByRole("button", { name: "Merge" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/places/ci-spr-2"));
     expect(calls("ModerationService/MergePlace")).toEqual([{ placeId: "ci-spr", intoPlaceId: "ci-spr-2", reason: "same city" }]);
+  });
+
+  it("say in a polite status line when no other place matches the merge search", async () => {
+    const user = userEvent.setup();
+    placePage("/places/ci-spr", { "PlaceService/SearchPlaces": () => ({ body: { places: [{ ...springfield, stories: 0 }] } }) }, admin);
+    const tools = await screen.findByRole("region", { name: "Admin" });
+    await user.click(within(tools).getByRole("button", { name: "Merge into another place…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Merge this duplicate" });
+    const status = await within(dialog).findByRole("status");
+    await waitFor(() => expect(status).toHaveTextContent("No other place matches."));
+    expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
   });
 });

@@ -41,6 +41,12 @@ type Props = {
    * trigger: the line that now says who the viewer is in the story.
    */
   returnFocusTo?: RefObject<HTMLElement | null>;
+  /**
+   * The reader has just published their own story and was sent back here to
+   * claim. The dialog that opens on arrival hides the page's "Your story is
+   * published." from a screen reader, so the dialog says it too.
+   */
+  justPublished?: boolean;
 };
 
 /**
@@ -49,22 +55,43 @@ type Props = {
  * only offered while the viewer has no claim in it; a character someone else
  * holds shows who, and one the viewer was turned down for says so.
  */
-export function ClaimDialog({ perspectiveId, authorName, characters, offer, openOnArrival = false, highlight, returnFocusTo }: Props) {
+export function ClaimDialog({
+  perspectiveId,
+  authorName,
+  characters,
+  offer,
+  openOnArrival = false,
+  highlight,
+  returnFocusTo,
+  justPublished = false,
+}: Props) {
   const { gate } = useWriteGate();
   const ids = useId();
   const buttonId = (characterId: string) => `${ids}-claim-${characterId}`;
+  const publishedId = `${ids}-published`;
   const [open, setOpen] = useState(false);
+  // Only the dialog that opens on arrival from publishing says so; reopened
+  // by its trigger later, the page line has already been read.
+  const [published, setPublished] = useState(false);
   const arrived = useRef(false);
   useEffect(() => {
     if (!openOnArrival || !offer || arrived.current) return;
     arrived.current = true;
-    if (gate()) setOpen(true);
-  }, [openOnArrival, offer, gate]);
+    if (!gate()) return;
+    setPublished(justPublished);
+    setOpen(true);
+  }, [openOnArrival, offer, gate, justPublished]);
   const invalidate = useInvalidateAfterWrite();
+  // The pressed "That was me" turns into "Your claim, waiting…" once the
+  // story re-reads, so focus moves to the line that says the claim was sent.
+  const sent = useRef<HTMLParagraphElement>(null);
   const claim = useMutation({
     mutationFn: (characterId: string) => clients.lore.claimCharacter({ characterId }),
     onSettled: () => invalidate(perspectiveId),
   });
+  useEffect(() => {
+    if (claim.isSuccess) sent.current?.focus();
+  }, [claim.isSuccess]);
   const sorted = characters ? [...characters].sort((a, b) => a.position - b.position) : undefined;
   return (
     <Dialog
@@ -72,18 +99,20 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
       onOpenChange={(next) => {
         if (next && !gate()) return;
         if (next) claim.reset();
+        setPublished(false);
         setOpen(next);
       }}
     >
       {offer && (
         <DialogTrigger asChild>
-          <Button variant="secondary" size="sm">
+          <Button variant="secondary" size="sm" className="min-h-11">
             <UserCheck aria-hidden size={16} />
             Claim a character
           </Button>
         </DialogTrigger>
       )}
       <DialogContent
+        aria-describedby={published ? publishedId : undefined}
         onOpenAutoFocus={(e) => {
           const picked = highlight ? document.getElementById(buttonId(highlight)) : null;
           if (!picked) return;
@@ -99,6 +128,11 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
         }}
       >
         <DialogTitle>Claim a character</DialogTitle>
+        {published && (
+          <p id={publishedId} className="mt-2 rounded-md border border-success px-3 py-2 text-sm text-ink">
+            Your story is published. Now say which character was you.
+          </p>
+        )}
         <DialogDescription>
           If {authorName} described you, claim that character. {authorName} decides whether to accept.
         </DialogDescription>
@@ -135,6 +169,7 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
                   <Button
                     id={buttonId(c.id)}
                     size="sm"
+                    className="min-h-11"
                     aria-label={`That was me: ${c.label}`}
                     pending={claim.isPending || claim.isSuccess}
                     onClick={() => claim.mutate(c.id)}
@@ -147,7 +182,7 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
           </ul>
         )}
         {/* Always mounted, so screen readers announce the claim when it lands. */}
-        <p role="status" className="mt-4 text-sm font-medium text-success empty:hidden">
+        <p ref={sent} tabIndex={-1} role="status" className="mt-4 text-sm font-medium text-success empty:hidden">
           {claim.isSuccess ? `Claim sent. ${authorName} will accept or reject it.` : ""}
         </p>
         {claim.isError && (

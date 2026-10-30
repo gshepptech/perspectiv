@@ -177,9 +177,12 @@ describe("user lookup", () => {
     await user.type(within(dialog).getByRole("textbox", { name: "Reason for the audit log" }), "not spam");
     await user.click(within(dialog).getByRole("button", { name: "Resolve report" }));
 
-    const status = await screen.findByRole("status", { name: "Dossier status" });
-    await waitFor(() => expect(status).toHaveTextContent("Report resolved: dismiss."));
+    const status = await screen.findByText("Report resolved: dismiss.");
+    expect(status).toHaveAttribute("role", "status");
     await waitFor(() => expect(status).toHaveFocus());
+    // A resolve is said above the reports it changed.
+    const reports = within(dossier).getByRole("heading", { name: "Reports against them" });
+    expect(reports.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     await waitFor(() => expect(dossier).toHaveTextContent("0 open of 2"));
     expect(api.callsTo("ModerationService/LookupUser")).toHaveLength(2);
     expect(await within(dossier).findByRole("list", { name: "Actions about marlo" })).toHaveTextContent("warden dismissed a report");
@@ -216,9 +219,14 @@ describe("lifting a suspension", () => {
     expect(api.callsTo("ModerationService/LiftSuspension")).toHaveLength(0);
     await user.type(within(dialog).getByLabelText("Reason for the audit log"), "appeal upheld");
     await user.click(within(dialog).getByRole("button", { name: "Lift suspension" }));
-    const status = await screen.findByRole("status", { name: "Dossier status" });
-    await waitFor(() => expect(status).toHaveTextContent("marlo's suspension is lifted."));
+    const status = await screen.findByText("marlo's suspension is lifted.");
+    expect(status).toHaveAttribute("role", "status");
+    expect(status).not.toHaveAttribute("aria-label");
     expect(status).toHaveFocus();
+    // Said under the standing, where the button was, not down by the reports.
+    expect(status.parentElement).toContainElement(screen.getByRole("list", { name: "Standing" }));
+    const reports = screen.getByRole("heading", { name: "Reports against them" });
+    expect(reports.compareDocumentPosition(status) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     expect(api.callsTo("ModerationService/LiftSuspension")[0]?.body).toMatchObject({ userId: "u-9", reason: "appeal upheld" });
     await waitFor(() => expect(screen.queryByRole("button", { name: "Lift suspension…" })).not.toBeInTheDocument());
   });

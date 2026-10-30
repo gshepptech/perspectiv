@@ -133,7 +133,13 @@ an icon beside it.
 - **Focus:** every focusable element shows a 2px `accent` outline with a 2px
   offset on `:focus-visible`. Outlines are never removed.
 - **Targets:** buttons and links in navigation are at least 44px tall on touch
-  layouts.
+  layouts, and so are the action buttons and links in lists and dialogs
+  (Accept, Reject, Claim a character, That was me, the inbox's All, Unread
+  and Mark all read, a request's links to its two perspectives).
+- **Status lines** that take focus after an action carry `tabIndex={-1}` and
+  no `aria-label`, so focusing one reads its message. When an action removes
+  the control that had focus (a sent claim or report), focus moves to its
+  status line.
 - **Hover** styling appears only on elements that respond to a click.
 - **Selection** (current tab, current part, active filter) is shown by an
   underline or border in `accent` plus `aria-selected` or `aria-current`, never
@@ -210,6 +216,10 @@ lore page.
   publishing from that link the writer lands back on the story with the
   claim dialog up, and above the story a `status` line in a `success`
   border says "Your story is published." with an "Open your story" link.
+  Because the dialog hides the page from a screen reader, the dialog opened
+  this way starts, under its title, with a `success`-bordered line "Your
+  story is published. Now say which character was you." that is part of
+  its description; the page line stays for after the dialog closes.
 - **"That was me" names the character.** Every "That was me" link carries
   the character it quotes (`?claim=<characterId>`; a bare `?claim=1` still
   opens the dialog with nothing picked). The claim dialog then marks that
@@ -234,7 +244,10 @@ For admins only, the place page's sidebar ends with a dashed "Admin" box:
 a stadium or park) and "Merge into another place…" (find the twin, pick
 it, give a reason). Both confirm in a dialog with a required reason for the
 audit log; a merge lands on the kept place with a line saying what was
-merged into it.
+merged into it. In the merge dialog the matching places are one scrolling
+list (at most 15rem tall) whose rows each take the height of their two
+lines, never squeezed to fit; a polite `status` line above the list says
+"3 places match" or "No other place matches." as the search answers.
 
 ## Composer: joining the day
 
@@ -278,7 +291,9 @@ than "Store") and how many stories it holds, so friends pick the same entry.
 - **Requests** (`/claims`, headed "Requests" like its navigation item)
   keeps its two tabs. Once the reader accepts a request, the bare
   "Accepted" gives way to a `status` line in `success` with a check:
-  "Linked. You are both in this story's lore now: read it", linking to the
+  "Linked. You are both in this story's lore now: read it" (the check
+  stays on the first line beside "Linked." and the sentence wraps beside
+  it at 375px), linking to the
   lore (or the day when the lore is not known yet), then a `text-sm`
   hint: "A lore needs 4 members to compete for canon." with an "Invite
   who else was there" link to the reader's own story, where the invite
@@ -291,6 +306,15 @@ than "Store") and how many stories it holds, so friends pick the same entry.
   link", a `text-sm` `ink-muted` sentence under the byline says what it
   means: it joins a lore when someone it describes claims their
   character, or its author claims a character in another story that day.
+
+## Settings: signed-in devices
+
+Each device is a row: its browser and system, then "This device" in
+`success` for the current one, set apart by a space so it never reads
+"macOSThis device"; under it when it signed in and was last used. Every
+other row has its own "Sign out" whose accessible name adds the device and
+when it signed in ("Sign out Chrome on macOS, signed in Oct 3, 2026"), so
+two rows for the same browser are told apart.
 
 ## Sign-up during the beta
 
@@ -363,7 +387,9 @@ heading, a plain list of entries with `rule` dividers, "Show more" to page.
   same small dialog: what is being undone, a required "Reason for the
   audit log", and a primary button naming the action. On success the
   dialog closes, a status line says what changed and takes focus, and the
-  dossier or log re-reads, so the new entry appears at the top. A restore
+  dossier or log re-reads, so the new entry appears at the top. A lift's
+  line sits under the standing, where the button was; a resolve's line
+  stays above the reports. A restore
   of something already visible says so in the dialog instead.
 
 ## App icon
