@@ -31,6 +31,18 @@ if [ -e "$final" ]; then
 fi
 trap 'rm -f "$partial"' EXIT
 
+# A new pod's first connection can be refused while the NetworkPolicy
+# controller admits its address; wait for the server before dumping.
+tries=0
+until pg_isready -q; do
+	tries=$((tries + 1))
+	if [ "$tries" -ge 30 ]; then
+		echo "backup: $PGHOST did not accept connections within 60s" >&2
+		exit 1
+	fi
+	sleep 2
+done
+
 pg_dump --format=custom --file="$partial"
 pg_restore --list "$partial" >/dev/null
 mv "$partial" "$final"

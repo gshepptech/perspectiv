@@ -522,6 +522,13 @@ func TestBackupCronJob(t *testing.T) {
 		objs := manifests(t)
 		checkBackupSchedule(t, must(t, objs, "CronJob/perspectiv-postgres-backup"))
 		checkBackupStorage(t, objs)
+		// local-path binds a claim on its first consumer, and nothing else
+		// consumes the backups claim until the first run; helm --wait waits
+		// for every claim to bind, so the database pod mounts it read-only.
+		pg := container(t, podSpec(must(t, objs, "StatefulSet/perspectiv-postgres")), "containers", "postgres")
+		if !hasMount(pg, "/backups") {
+			t.Error("the postgres pod does not mount the backups claim, which then never binds under helm --wait")
+		}
 	})
 
 	t.Run("disabled", func(t *testing.T) {
@@ -529,6 +536,10 @@ func TestBackupCronJob(t *testing.T) {
 		objs := manifests(t, "--set", "postgres.backup.enabled=false")
 		if _, ok := objs["CronJob/perspectiv-postgres-backup"]; ok {
 			t.Error("backup CronJob rendered while disabled")
+		}
+		pg := container(t, podSpec(must(t, objs, "StatefulSet/perspectiv-postgres")), "containers", "postgres")
+		if hasMount(pg, "/backups") {
+			t.Error("the postgres pod mounts a backups claim that is not rendered")
 		}
 	})
 }

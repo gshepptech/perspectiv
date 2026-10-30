@@ -88,11 +88,24 @@ spec:
               mountPath: /var/run/postgresql
             - name: tmp
               mountPath: /tmp
+            {{- if .Values.postgres.backup.enabled }}
+            # The backups volume binds on its first consumer (local-path is
+            # WaitForFirstConsumer); mounting it here binds it at install, on
+            # the database's node, so helm --wait does not stall on it.
+            - name: backups
+              mountPath: /backups
+              readOnly: true
+            {{- end }}
       volumes:
         - name: run
           emptyDir: {}
         - name: tmp
           emptyDir: {}
+        {{- if .Values.postgres.backup.enabled }}
+        - name: backups
+          persistentVolumeClaim:
+            claimName: {{ include "perspectiv.fullname" . }}-postgres-backups
+        {{- end }}
   volumeClaimTemplates:
     - metadata:
         name: data

@@ -20,6 +20,15 @@ Nothing in progress.
 
 ## Done
 
+- Release check on k3s: the documented production path (deploy/k3s/e2e.sh)
+  hung at helm --wait, because local-path binds a volume claim only on its
+  first consumer and nothing used the backups claim before the first
+  nightly run; the database pod now mounts it read-only, so it binds at
+  install. The backup job's pg_dump was refused for its first second while
+  the network policy admitted the new pod; backup.sh now waits for
+  pg_isready (up to 60 s). With both, the full k3s run passes in 155 s;
+  migrations 21 to 26 on 638k places took 113 s against the 900 s deadline.
+  Verified by the k3s e2e run, TestBackupCronJob and the backup script test.
 - Second-walkthrough web fixes: after "Write your side" the story page says
   "Your story is published"; "That was me" carries the character, which the
   claim dialog opens on, once; a stadium's page header names its category;
