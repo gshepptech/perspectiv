@@ -4,3 +4,241 @@
 // source: queries.sql
 
 package dbq
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
+
+const checkDedupeMove = `-- name: CheckDedupeMove :one
+SELECT
+    coalesce((SELECT min(array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                              'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], c.kind))
+              FROM places c WHERE c.parent_id = $1::uuid), 0)::integer AS child_level,
+    coalesce((SELECT array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                          'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], s.kind)
+              FROM places s WHERE s.id = $2::uuid), 0)::integer AS survivor_level,
+    (SELECT count(*) FROM places c JOIN places t
+        ON t.parent_id = $2::uuid
+       AND lower(regexp_replace(btrim(t.name), '\s+', ' ', 'g'))
+           = lower(regexp_replace(btrim(c.name), '\s+', ' ', 'g'))
+     WHERE c.parent_id = $1::uuid)::integer AS name_clashes,
+    EXISTS (SELECT 1 FROM places s WHERE s.id = $2::uuid AND s.path @> ARRAY[$1::uuid])::boolean
+        AS survivor_inside
+`
+
+type CheckDedupeMoveParams struct {
+	LoserID    uuid.UUID
+	SurvivorID uuid.UUID
+}
+
+type CheckDedupeMoveRow struct {
+	ChildLevel     int32
+	SurvivorLevel  int32
+	NameClashes    int32
+	SurvivorInside bool
+}
+
+// Whether the places under loser can move under survivor: the shallowest
+// level among loser's children (0 for none; STATE is 1, STORE 5), the
+// survivor's level, how many children share a name with one of the
+// survivor's, and whether survivor sits inside loser.
+func (q *Queries) CheckDedupeMove(ctx context.Context, arg CheckDedupeMoveParams) (CheckDedupeMoveRow, error) {
+	row := q.db.QueryRow(ctx, checkDedupeMove, arg.LoserID, arg.SurvivorID)
+	var i CheckDedupeMoveRow
+	err := row.Scan(
+		&i.ChildLevel,
+		&i.SurvivorLevel,
+		&i.NameClashes,
+		&i.SurvivorInside,
+	)
+	return i, err
+}
+
+const hideDedupeLoser = `-- name: HideDedupeLoser :execrows
+UPDATE places p SET hidden_at = now()
+WHERE p.id = $1::uuid AND p.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM arcs a WHERE a.place_id = p.id)
+  AND NOT EXISTS (SELECT 1 FROM perspectives v WHERE v.place_id = p.id)
+`
+
+// Hides a duplicate, unless it holds an arc or a perspective row of any
+// status: nothing with stories or drafts is ever hidden by the dedupe.
+func (q *Queries) HideDedupeLoser(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, hideDedupeLoser, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const insertDedupeAudit = `-- name: InsertDedupeAudit :exec
+INSERT INTO moderation_audit (actor_id, action, target_kind, target_id, reason)
+VALUES (NULL, $1::text, $2::text, $3::uuid, $4::text)
+`
+
+type InsertDedupeAuditParams struct {
+	Action     string
+	TargetKind string
+	TargetID   uuid.UUID
+	Reason     string
+}
+
+// The audit row of one merge. No admin acted, so actor_id is NULL.
+func (q *Queries) InsertDedupeAudit(ctx context.Context, arg InsertDedupeAuditParams) error {
+	_, err := q.db.Exec(ctx, insertDedupeAudit,
+		arg.Action,
+		arg.TargetKind,
+		arg.TargetID,
+		arg.Reason,
+	)
+	return err
+}
+
+const listDedupeCandidates = `-- name: ListDedupeCandidates :many
+WITH arc_counts AS (
+    SELECT a.place_id, count(*) AS n FROM arcs a GROUP BY a.place_id
+), perspective_counts AS (
+    SELECT s.place_id, count(DISTINCT s.id) AS n
+    FROM (
+        SELECT v.id, v.place_id FROM perspectives v WHERE v.place_id IS NOT NULL
+        UNION ALL
+        SELECT v.id, a.place_id FROM perspectives v JOIN arcs a ON a.id = v.arc_id
+    ) s
+    GROUP BY s.place_id
+)
+SELECT p.id,
+       p.kind,
+       p.name,
+       coalesce(p.category, '')::text AS category,
+       p.lat::float8 AS lat,
+       p.lng::float8 AS lng,
+       coalesce(ac.n, 0)::integer AS arcs,
+       coalesce(pc.n, 0)::integer AS perspectives,
+       coalesce((SELECT array_agg(an.name ORDER BY array_position(p.path, an.id))
+                 FROM places an WHERE an.id = ANY(p.path) AND an.id <> p.id), '{}')::text[] AS ancestor_names
+FROM places p
+LEFT JOIN arc_counts ac ON ac.place_id = p.id
+LEFT JOIN perspective_counts pc ON pc.place_id = p.id
+WHERE p.kind IN ('PLACE_KIND_STORE', 'PLACE_KIND_MALL')
+  AND p.hidden_at IS NULL
+  AND p.lat IS NOT NULL AND p.lng IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(p.path) AND h.hidden_at IS NOT NULL)
+ORDER BY p.id
+`
+
+type ListDedupeCandidatesRow struct {
+	ID            uuid.UUID
+	Kind          string
+	Name          string
+	Category      string
+	Lat           float64
+	Lng           float64
+	Arcs          int32
+	Perspectives  int32
+	AncestorNames []string
+}
+
+// Every visible store and mall with coordinates, for placectl dedupe: with
+// its arcs, the perspectives filed at it (drafts and deleted rows included),
+// the names of the places above it, and when it was added. A place under a
+// hidden ancestor is not visible and is left out.
+func (q *Queries) ListDedupeCandidates(ctx context.Context) ([]ListDedupeCandidatesRow, error) {
+	rows, err := q.db.Query(ctx, listDedupeCandidates)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListDedupeCandidatesRow
+	for rows.Next() {
+		var i ListDedupeCandidatesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.Name,
+			&i.Category,
+			&i.Lat,
+			&i.Lng,
+			&i.Arcs,
+			&i.Perspectives,
+			&i.AncestorNames,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const lockDedupePlaces = `-- name: LockDedupePlaces :many
+SELECT p.id FROM places p
+WHERE p.id = ANY($1::uuid[]) AND p.hidden_at IS NULL
+ORDER BY p.id
+FOR UPDATE
+`
+
+// Locks the visible places of one merge against a concurrent write. The lock
+// also holds off a new arc or draft at them until the merge commits, since
+// their foreign keys must share-lock the row.
+func (q *Queries) LockDedupePlaces(ctx context.Context, ids []uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, lockDedupePlaces, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const moveDedupeChildren = `-- name: MoveDedupeChildren :execrows
+UPDATE places SET parent_id = $1::uuid WHERE parent_id = $2::uuid
+`
+
+type MoveDedupeChildrenParams struct {
+	IntoID uuid.UUID
+	FromID uuid.UUID
+}
+
+func (q *Queries) MoveDedupeChildren(ctx context.Context, arg MoveDedupeChildrenParams) (int64, error) {
+	result, err := q.db.Exec(ctx, moveDedupeChildren, arg.IntoID, arg.FromID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const moveDedupeFollows = `-- name: MoveDedupeFollows :exec
+WITH moved AS (
+    DELETE FROM place_follows WHERE place_id = $2::uuid
+    RETURNING user_id, created_at
+)
+INSERT INTO place_follows (user_id, place_id, created_at)
+SELECT m.user_id, $1::uuid, m.created_at FROM moved m
+ON CONFLICT (user_id, place_id) DO NOTHING
+`
+
+type MoveDedupeFollowsParams struct {
+	IntoID uuid.UUID
+	FromID uuid.UUID
+}
+
+// Moves a duplicate's followers to the place that stays; a user who already
+// follows it keeps the one follow.
+func (q *Queries) MoveDedupeFollows(ctx context.Context, arg MoveDedupeFollowsParams) error {
+	_, err := q.db.Exec(ctx, moveDedupeFollows, arg.IntoID, arg.FromID)
+	return err
+}

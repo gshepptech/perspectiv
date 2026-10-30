@@ -227,34 +227,32 @@ func TestImportReusesUserAddedSibling(t *testing.T) {
 }
 
 // A database failure part way through rolls the whole import back: the city
-// queued before the failing row is not written.
+// queued before the failing row is not written, and Houston keeps its name.
 func TestImportFailureWritesNothing(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	pool := testdb.New(t)
 	importFixtures(t, pool, openFixture(t, "us_divisions.ndjson"), strings.NewReader(""))
 
-	var texas uuid.UUID
-	if err := pool.QueryRow(ctx, `SELECT id FROM places WHERE name = 'Texas'`).Scan(&texas); err != nil {
-		t.Fatalf("find Texas: %v", err)
-	}
+	// Every row the importer writes is valid, so the failure is made: a
+	// trigger in this test's own database rejects one write.
 	if _, err := pool.Exec(ctx, `
-		INSERT INTO places (kind, name, parent_id, timezone, source)
-		VALUES ('PLACE_KIND_CITY', 'Space City', $1, 'America/Chicago', 'PLACE_SOURCE_USER')`, texas); err != nil {
-		t.Fatalf("insert Space City: %v", err)
+		CREATE FUNCTION reject_window_rock() RETURNS trigger LANGUAGE plpgsql AS $$
+		BEGIN RAISE EXCEPTION 'rejected %', NEW.name; END $$;
+		CREATE TRIGGER reject_window_rock BEFORE UPDATE ON places
+		    FOR EACH ROW WHEN (NEW.name = 'Window Rock') EXECUTE FUNCTION reject_window_rock();`); err != nil {
+		t.Fatalf("create trigger: %v", err)
 	}
-	// Austin is new; Houston is renamed onto the name Space City holds, which
-	// the places_parent_name_key index rejects.
 	divisions, err := os.ReadFile("testdata/us_divisions.ndjson")
 	if err != nil {
 		t.Fatal(err)
 	}
 	austin := `{"id":"div-austin","subtype":"locality","class":"city","country":"US","region":"US-TX","names":{"primary":"Austin"},"parent_division_id":"div-tx"}` + "\n"
-	renamed := austin + strings.Replace(string(divisions), `"primary":"Houston"`, `"primary":"Space City"`, 1)
+	renamed := austin + strings.Replace(string(divisions), `"primary":"Houston"`, `"primary":"Bayou City"`, 1)
 
 	_, err = importer.New(pool, zerolog.Nop()).Import(ctx, strings.NewReader(renamed), strings.NewReader(""))
-	if err == nil || !strings.Contains(err.Error(), "div-houston") {
-		t.Fatalf("Import error = %v, want a write failure naming div-houston", err)
+	if err == nil || !strings.Contains(err.Error(), "div-windowrock") {
+		t.Fatalf("Import error = %v, want a write failure naming div-windowrock", err)
 	}
 	got := readPlaces(t, pool)
 	if _, ok := got["Austin"]; ok {
@@ -262,5 +260,158 @@ func TestImportFailureWritesNothing(t *testing.T) {
 	}
 	if _, ok := got["Houston"]; !ok {
 		t.Error("Houston lost its name in a failed import")
+	}
+}
+
+// A re-imported row whose name, once cleaned, is another row's under the
+// same parent keeps its old name; the other row is untouched, and the rest
+// of the import is written rather than the whole transaction failing.
+func TestImportKeepsNameOnCollision(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	pool := testdb.New(t)
+	importFixtures(t, pool, openFixture(t, "us_divisions.ndjson"), strings.NewReader(""))
+
+	var pensacola, texas uuid.UUID
+	if err := pool.QueryRow(ctx, `SELECT id FROM places WHERE name = 'Pensacola'`).Scan(&pensacola); err != nil {
+		t.Fatalf("find Pensacola: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `SELECT id FROM places WHERE name = 'Texas'`).Scan(&texas); err != nil {
+		t.Fatalf("find Texas: %v", err)
+	}
+	// An earlier import wrote the store with its city in the name, and a
+	// user has since added the clean name; a user city holds the name a
+	// renamed Houston would take.
+	var oldImport, userRow, spaceCity uuid.UUID
+	for _, ins := range []struct {
+		dst  *uuid.UUID
+		sql  string
+		args []any
+	}{
+		{&oldImport, `INSERT INTO places (kind, name, parent_id, timezone, source, source_id)
+			VALUES ('PLACE_KIND_STORE', 'Joe''s Pizza, Pensacola', $1, 'America/Chicago', 'PLACE_SOURCE_FOURSQUARE', 'fsq-joe')
+			RETURNING id`, []any{pensacola}},
+		{&userRow, `INSERT INTO places (kind, name, parent_id, timezone, source, user_added)
+			VALUES ('PLACE_KIND_STORE', 'joe''s pizza', $1, 'America/Chicago', 'PLACE_SOURCE_USER', true)
+			RETURNING id`, []any{pensacola}},
+		{&spaceCity, `INSERT INTO places (kind, name, parent_id, timezone, source)
+			VALUES ('PLACE_KIND_CITY', 'Space City', $1, 'America/Chicago', 'PLACE_SOURCE_USER') RETURNING id`, []any{texas}},
+	} {
+		if err := pool.QueryRow(ctx, ins.sql, ins.args...).Scan(ins.dst); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	divisions, err := os.ReadFile("testdata/us_divisions.ndjson")
+	if err != nil {
+		t.Fatal(err)
+	}
+	renamed := strings.Replace(string(divisions), `"primary":"Houston"`, `"primary":"Space City"`, 1)
+	places := `{"fsq_place_id":"fsq-joe","name":"Joe's Pizza, Pensacola","locality":"Pensacola","region":"FL","country":"US"}
+{"fsq_place_id":"fsq-bayfront","name":"Bayfront Books","locality":"Pensacola","region":"FL","country":"US"}
+`
+	res := importFixtures(t, pool, strings.NewReader(renamed), strings.NewReader(places))
+	if res.Kept != 2 || res.Inserted != 1 {
+		t.Errorf("Result = %+v, want 2 kept (Joe's Pizza, Houston) and 1 inserted", res)
+	}
+	names := map[uuid.UUID]string{}
+	rows, err := pool.Query(ctx, `SELECT id, name FROM places`)
+	if err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	for rows.Next() {
+		var id uuid.UUID
+		var name string
+		if err := rows.Scan(&id, &name); err != nil {
+			t.Fatalf("scan: %v", err)
+		}
+		names[id] = name
+	}
+	rows.Close()
+	for id, want := range map[uuid.UUID]string{
+		oldImport: "Joe's Pizza, Pensacola", userRow: "joe's pizza", spaceCity: "Space City",
+	} {
+		if names[id] != want {
+			t.Errorf("row %s is named %q, want %q", id, names[id], want)
+		}
+	}
+	got := readPlaces(t, pool)
+	if _, ok := got["Houston"]; !ok {
+		t.Error("Houston was renamed onto Space City")
+	}
+	if _, ok := got["Bayfront Books"]; !ok {
+		t.Error("Bayfront Books was not written after a collision")
+	}
+}
+
+// A stadium first imported as a store becomes a sports MALL on re-import by
+// its source id; its arc is untouched, and a later import that lists it as a
+// store again does not turn the venue back into a store.
+func TestImportStadiumBecomesVenue(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	pool := testdb.New(t)
+	line := func(labels string) io.Reader {
+		return strings.NewReader(`{"fsq_place_id":"fsq-nrg","name":"NRG Stadium","latitude":29.68,"longitude":-95.41,` +
+			`"locality":"Houston","region":"TX","country":"US","fsq_category_labels":["` + labels + `"]}` + "\n")
+	}
+	importFixtures(t, pool, openFixture(t, "us_divisions.ndjson"), line("Retail > Gift Shop"))
+
+	var placeID, userID uuid.UUID
+	if err := pool.QueryRow(ctx, `SELECT id FROM places WHERE source_id = 'fsq-nrg'`).Scan(&placeID); err != nil {
+		t.Fatalf("find stadium: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO users (email, username, password_hash, age_confirmed_at)
+		VALUES ('fan@example.com', 'fan', 'x', now()) RETURNING id`).Scan(&userID); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	type arcRow struct {
+		id, place uuid.UUID
+		path      []uuid.UUID
+		title     string
+	}
+	readArc := func() arcRow {
+		t.Helper()
+		var a arcRow
+		if err := pool.QueryRow(ctx, `SELECT id, place_id, place_path, title FROM arcs`).Scan(&a.id, &a.place, &a.path, &a.title); err != nil {
+			t.Fatalf("read arc: %v", err)
+		}
+		return a
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO arcs (place_id, local_date, title, created_by)
+		VALUES ($1, '2026-02-08', 'Game night', $2)`, placeID, userID); err != nil {
+		t.Fatalf("insert arc: %v", err)
+	}
+	before := readArc()
+
+	cases := []struct {
+		name, labels, kind string
+	}{
+		{"listed as a stadium", "Arts and Entertainment > Stadium > Football Stadium", "PLACE_KIND_MALL"},
+		{"listed as a store again", "Retail > Gift Shop", "PLACE_KIND_MALL"},
+	}
+	for _, tc := range cases { // serial: each step re-imports into the same database
+		res := importFixtures(t, pool, openFixture(t, "us_divisions.ndjson"), line(tc.labels))
+		if res.Inserted != 0 {
+			t.Errorf("%s: inserted %d rows, want the stadium updated in place", tc.name, res.Inserted)
+		}
+		var id uuid.UUID
+		var kind string
+		var category *string
+		if err := pool.QueryRow(ctx, `SELECT id, kind, category FROM places WHERE source_id = 'fsq-nrg'`).
+			Scan(&id, &kind, &category); err != nil {
+			t.Fatalf("%s: read stadium: %v", tc.name, err)
+		}
+		if id != placeID || kind != tc.kind {
+			t.Errorf("%s: stadium is %s %s, want %s %s", tc.name, id, kind, placeID, tc.kind)
+		}
+		if tc.labels != "Retail > Gift Shop" && deref(category) != "PLACE_CATEGORY_SPORTS_AND_RECREATION" {
+			t.Errorf("%s: category = %s, want PLACE_CATEGORY_SPORTS_AND_RECREATION", tc.name, deref(category))
+		}
+		after := readArc()
+		if after.id != before.id || after.place != before.place || after.title != before.title ||
+			len(after.path) != len(before.path) || after.path[len(after.path)-1] != placeID {
+			t.Errorf("%s: arc changed from %+v to %+v", tc.name, before, after)
+		}
 	}
 }

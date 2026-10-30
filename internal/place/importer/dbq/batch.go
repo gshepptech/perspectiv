@@ -19,34 +19,45 @@ var (
 )
 
 const upsertImported = `-- name: UpsertImported :batchone
-WITH by_source AS (
+WITH clash AS (
+    SELECT EXISTS (
+        SELECT 1
+        FROM places o
+        WHERE o.parent_id IS NOT DISTINCT FROM $1::uuid
+          AND lower(regexp_replace(btrim(o.name), '\s+', ' ', 'g'))
+              = lower(regexp_replace(btrim($2::text), '\s+', ' ', 'g'))
+          AND (o.source <> $3::text OR o.source_id IS DISTINCT FROM $4::text)
+    ) AS taken
+), by_source AS (
     UPDATE places AS u
-    SET kind      = $1::text,
-        name      = $2::text,
-        parent_id = $3::uuid,
-        timezone  = $4::text,
-        lat       = $5::float8,
-        lng       = $6::float8,
-        category  = $7::text
-    WHERE u.source = $8::text AND u.source_id = $9::text
-    RETURNING u.id
+    SET kind      = CASE WHEN u.kind = 'PLACE_KIND_MALL' AND $5::text = 'PLACE_KIND_STORE'
+                         THEN u.kind ELSE $5::text END,
+        name      = CASE WHEN c.taken THEN u.name ELSE $2::text END,
+        parent_id = CASE WHEN c.taken THEN u.parent_id ELSE $1::uuid END,
+        timezone  = CASE WHEN c.taken THEN u.timezone ELSE $6::text END,
+        lat       = $7::float8,
+        lng       = $8::float8,
+        category  = $9::text
+    FROM clash c
+    WHERE u.source = $3::text AND u.source_id = $4::text
+    RETURNING u.id, c.taken
 ), by_name AS (
     SELECT p.id
     FROM places p
     WHERE NOT EXISTS (SELECT 1 FROM by_source)
-      AND p.parent_id IS NOT DISTINCT FROM $3::uuid
+      AND p.parent_id IS NOT DISTINCT FROM $1::uuid
       AND lower(regexp_replace(btrim(p.name), '\s+', ' ', 'g'))
           = lower(regexp_replace(btrim($2::text), '\s+', ' ', 'g'))
 ), inserted AS (
     INSERT INTO places (kind, name, parent_id, timezone, lat, lng, source, source_id, category)
-    SELECT $1::text, $2::text, $3::uuid, $4::text,
-           $5::float8, $6::float8, $8::text, $9::text,
-           $7::text
+    SELECT $5::text, $2::text, $1::uuid, $6::text,
+           $7::float8, $8::float8, $3::text, $4::text,
+           $9::text
     WHERE NOT EXISTS (SELECT 1 FROM by_source)
       AND NOT EXISTS (SELECT 1 FROM by_name)
     RETURNING id
 )
-SELECT id, 'updated'::text AS outcome FROM by_source
+SELECT id, (CASE WHEN taken THEN 'kept' ELSE 'updated' END)::text AS outcome FROM by_source
 UNION ALL
 SELECT id, 'matched'::text AS outcome FROM by_name
 UNION ALL
@@ -60,15 +71,15 @@ type UpsertImportedBatchResults struct {
 }
 
 type UpsertImportedParams struct {
-	Kind     string
-	Name     string
 	ParentID uuid.NullUUID
+	Name     string
+	Source   string
+	SourceID string
+	Kind     string
 	Timezone string
 	Lat      pgtype.Float8
 	Lng      pgtype.Float8
 	Category pgtype.Text
-	Source   string
-	SourceID string
 }
 
 type UpsertImportedRow struct {
@@ -78,23 +89,30 @@ type UpsertImportedRow struct {
 
 // Writes one imported place. Every imported row is keyed by (source,
 // source_id). Updates the row with this source id, else reuses the sibling with the same
-// normalised name, else inserts. outcome is updated, matched or inserted. A
-// matched row is left untouched: it belongs to its own source or its user.
+// normalised name, else inserts. outcome is updated, matched, inserted or
+// kept. A matched row is left untouched: it belongs to its own source or its
+// user.
+// An update whose name, under its parent, would collide with another row on
+// places_parent_name_key (a cleaned name that now equals a sibling's) keeps
+// the row's own name and parent and reports kept, so one collision never
+// fails the import; the other row is not touched either.
+// An update never turns a MALL back into a STORE: an admin's MakeVenue, or
+// an earlier import, may have given it places inside.
 // hidden_at and user_added are never written, so a re-import does not unhide
 // a place an admin hid.
 func (q *Queries) UpsertImported(ctx context.Context, arg []UpsertImportedParams) *UpsertImportedBatchResults {
 	batch := &pgx.Batch{}
 	for _, a := range arg {
 		vals := []interface{}{
-			a.Kind,
-			a.Name,
 			a.ParentID,
+			a.Name,
+			a.Source,
+			a.SourceID,
+			a.Kind,
 			a.Timezone,
 			a.Lat,
 			a.Lng,
 			a.Category,
-			a.Source,
-			a.SourceID,
 		}
 		batch.Queue(upsertImported, vals...)
 	}

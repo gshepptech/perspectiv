@@ -5,8 +5,10 @@ package main
 import (
 	"bytes"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,7 +35,7 @@ func TestPlacectlImportFixtures(t *testing.T) {
 	var stderr bytes.Buffer
 	code := run(context.Background(),
 		[]string{"import", "--divisions", fixture("us_divisions.ndjson"), "--places", fixture("us_places.ndjson")},
-		env(map[string]string{"DATABASE_URL": pool.Config().ConnString(), "LOG_LEVEL": "info"}), &stderr)
+		env(map[string]string{"DATABASE_URL": pool.Config().ConnString(), "LOG_LEVEL": "info"}), io.Discard, &stderr)
 	if code != exitOK {
 		t.Fatalf("exit = %d, want 0; stderr:\n%s", code, stderr.String())
 	}
@@ -91,7 +93,7 @@ func TestPlacectlImportFailuresWriteNothing(t *testing.T) {
 			var stderr bytes.Buffer
 			code := run(context.Background(),
 				[]string{"import", "--divisions", tc.divisions, "--places", tc.places},
-				env(map[string]string{"DATABASE_URL": pool.Config().ConnString()}), &stderr)
+				env(map[string]string{"DATABASE_URL": pool.Config().ConnString()}), io.Discard, &stderr)
 			if code != exitFailure {
 				t.Errorf("exit = %d, want %d; stderr:\n%s", code, exitFailure, stderr.String())
 			}
@@ -122,7 +124,7 @@ func TestPlacectlImportLeavesOutUnfiledPlaces(t *testing.T) {
 	var stderr bytes.Buffer
 	code := run(context.Background(),
 		[]string{"import", "--divisions", fixture("us_divisions.ndjson"), "--places", path},
-		env(map[string]string{"DATABASE_URL": pool.Config().ConnString(), "LOG_LEVEL": "info"}), &stderr)
+		env(map[string]string{"DATABASE_URL": pool.Config().ConnString(), "LOG_LEVEL": "info"}), io.Discard, &stderr)
 	if code != exitOK {
 		t.Fatalf("exit = %d, want 0; stderr:\n%s", code, stderr.String())
 	}
@@ -141,5 +143,53 @@ func TestPlacectlImportLeavesOutUnfiledPlaces(t *testing.T) {
 	}
 	if !bytes.Contains(stderr.Bytes(), []byte(`"unfiled":2`)) {
 		t.Errorf("commit log does not report 2 unfiled places:\n%s", stderr.String())
+	}
+}
+
+// placectl dedupe is a dry run by default and prints its summary; --apply
+// hides the copy, and a second run finds nothing more to merge.
+func TestPlacectlDedupe(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	pool := testdb.New(t)
+	dbEnv := env(map[string]string{"DATABASE_URL": pool.Config().ConnString()})
+	if code := run(ctx, []string{"import", "--divisions", fixture("us_divisions.ndjson"), "--places", fixture("us_places.ndjson")},
+		dbEnv, io.Discard, io.Discard); code != exitOK {
+		t.Fatalf("import exit = %d", code)
+	}
+	// A second listing of Desert Books, 30 m from the imported one.
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO places (kind, name, parent_id, timezone, lat, lng, source)
+		SELECT 'PLACE_KIND_STORE', 'Desert Books, El Paso', parent_id, timezone, lat + 0.0003, lng, 'PLACE_SOURCE_USER'
+		FROM places WHERE name = 'Desert Books'`); err != nil {
+		t.Fatalf("insert copy: %v", err)
+	}
+
+	cases := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{"dry run", []string{"dedupe"}, []string{"dry run, nothing written", "clusters:   1", "would merge: 1", `"Desert Books, El Paso" into`}},
+		{"apply", []string{"dedupe", "--apply"}, []string{"applied", "clusters:   1", "merged: 1"}},
+		{"second run", []string{"dedupe", "--apply"}, []string{"clusters:   0", "merged: 0"}},
+	}
+	for _, tc := range cases { // serial: each step sees the one before
+		var stdout, stderr bytes.Buffer
+		if code := run(ctx, tc.args, dbEnv, &stdout, &stderr); code != exitOK {
+			t.Fatalf("%s: exit = %d; stderr:\n%s", tc.name, code, stderr.String())
+		}
+		for _, w := range tc.want {
+			if !strings.Contains(stdout.String(), w) {
+				t.Errorf("%s: stdout does not contain %q:\n%s", tc.name, w, stdout.String())
+			}
+		}
+	}
+	var hidden int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM places WHERE hidden_at IS NOT NULL`).Scan(&hidden); err != nil {
+		t.Fatalf("count hidden: %v", err)
+	}
+	if hidden != 1 {
+		t.Errorf("%d places hidden, want the one copy", hidden)
 	}
 }

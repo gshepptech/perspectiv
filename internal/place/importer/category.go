@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -39,7 +40,60 @@ var outdoorCategories = map[string]bool{
 	"nature_reserve": true, "hiking_trail": true, "garden": true, "botanical_garden": true,
 }
 
+// sportsVenueCategories are the Overture categories of a venue people go to
+// watch a game or a race. Such a place is filed under sports and recreation
+// whatever group it sits in, and imported as a MALL so its stands, gates and
+// concessions can be added inside it, as an admin's MakeVenue does by hand.
+var sportsVenueCategories = map[string]bool{
+	"stadium_arena": true, "stadium": true, "arena": true, "ballpark": true,
+	"race_track": true, "sports_complex": true,
+}
+
+// fsqSportsVenueLabels are the Foursquare label segments of such a venue
+// ("Arts and Entertainment > Stadium > Baseball Stadium").
+var fsqSportsVenueLabels = map[string]bool{
+	"stadium": true, "baseball stadium": true, "basketball stadium": true, "football stadium": true,
+	"hockey arena": true, "soccer stadium": true, "tennis stadium": true, "track stadium": true,
+	"arena": true, "ballpark": true, "racetrack": true, "race track": true, "racecourse": true,
+	"sports complex": true,
+}
+
+// overtureCodes are every category id a record carries: basic_category,
+// the older categories.primary, taxonomy.primary and the taxonomy path.
+func overtureCodes(p *placeRecord) []string {
+	codes := []string{p.BasicCategory}
+	if p.Categories != nil {
+		codes = append(codes, p.Categories.Primary)
+	}
+	if p.Taxonomy != nil {
+		codes = append(codes, p.Taxonomy.Primary)
+		codes = append(codes, p.Taxonomy.Hierarchy...)
+	}
+	return codes
+}
+
+// overtureSportsVenue reports whether any of a record's categories is a
+// sports venue.
+func overtureSportsVenue(p *placeRecord) bool {
+	return slices.ContainsFunc(overtureCodes(p), func(c string) bool { return sportsVenueCategories[c] })
+}
+
+// fsqSportsVenue reports whether any segment of any label is a sports venue.
+func fsqSportsVenue(labels []string) bool {
+	for _, l := range labels {
+		for _, part := range strings.Split(l, ">") {
+			if fsqSportsVenueLabels[nameKey(part)] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func overtureCategory(p *placeRecord) perspectivv1.PlaceCategory {
+	if overtureSportsVenue(p) {
+		return perspectivv1.PlaceCategory_PLACE_CATEGORY_SPORTS_AND_RECREATION
+	}
 	cat := p.BasicCategory
 	var hierarchy []string
 	if p.Taxonomy != nil {
@@ -74,6 +128,9 @@ var fsqGroups = map[string]perspectivv1.PlaceCategory{
 }
 
 func fsqCategory(labels []string) perspectivv1.PlaceCategory {
+	if fsqSportsVenue(labels) {
+		return perspectivv1.PlaceCategory_PLACE_CATEGORY_SPORTS_AND_RECREATION
+	}
 	for _, l := range labels {
 		parts := strings.Split(l, ">")
 		last := nameKey(parts[len(parts)-1])

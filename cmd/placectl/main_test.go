@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,12 +50,16 @@ func TestRunExitCodesWithoutDatabase(t *testing.T) {
 		{"unparsable divisions", []string{"import", "--divisions", bad, "--places", fixture("us_places.ndjson")}, unreachable, exitFailure, "divisions file line 1"},
 		{"unparsable places", []string{"import", "--divisions", fixture("us_divisions.ndjson"), "--places", bad}, unreachable, exitFailure, "places file line 1"},
 		{"unresolved parent", []string{"import", "--divisions", orphan, "--places", fixture("us_places.ndjson")}, unreachable, exitFailure, "parent not resolved"},
+		{"dedupe unknown flag", []string{"dedupe", "--bogus"}, unreachable, exitUsage, "bogus"},
+		{"dedupe stray argument", []string{"dedupe", "now"}, unreachable, exitUsage, "usage"},
+		{"dedupe without DATABASE_URL", []string{"dedupe", "--apply"}, nil, exitUsage, "DATABASE_URL"},
+		{"dedupe unreachable database", []string{"dedupe"}, unreachable, exitFailure, "place dedupe failed"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			var stderr bytes.Buffer
-			got := run(context.Background(), tc.args, env(tc.env), &stderr)
+			got := run(context.Background(), tc.args, env(tc.env), io.Discard, &stderr)
 			if got != tc.want {
 				t.Errorf("exit = %d, want %d; stderr:\n%s", got, tc.want, stderr.String())
 			}

@@ -1,10 +1,12 @@
 package importer
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
@@ -66,6 +68,60 @@ type Plan struct {
 	// Unlisted counts US places left out because they are offices, services
 	// or care places nobody would write about (see visitable.go).
 	Unlisted int
+	// unfiled counts the Unfiled records per address locality and region.
+	unfiled map[string]*LocalityCount
+}
+
+// LocalityCount is how many places named one address locality that matched
+// no imported city or town.
+type LocalityCount struct {
+	// Locality is the address text as the first such record wrote it,
+	// with its region: "St Pete, FL".
+	Locality string
+	Count    int
+}
+
+// unfiledAt counts one unfiled record under its locality, grouped by
+// localityKey so spellings that file alike count together.
+func (p *Plan) unfiledAt(locality, region string) {
+	state, ok := stateCode(region)
+	if !ok {
+		state = strings.TrimSpace(region)
+	}
+	key := localityKey(locality) + "\x00" + state
+	c, ok := p.unfiled[key]
+	if !ok {
+		label := cleanName(locality)
+		if label == "" {
+			label = "(no locality)"
+		}
+		if state != "" {
+			label += ", " + state
+		}
+		c = &LocalityCount{Locality: label}
+		p.unfiled[key] = c
+	}
+	c.Count++
+}
+
+// UnfiledLocalities returns the n address localities that left the most
+// places unfiled, most first, so a city missing from the divisions file
+// shows up by name.
+func (p *Plan) UnfiledLocalities(n int) []LocalityCount {
+	out := make([]LocalityCount, 0, len(p.unfiled))
+	for _, c := range p.unfiled {
+		out = append(out, *c)
+	}
+	slices.SortFunc(out, func(a, b LocalityCount) int {
+		if a.Count != b.Count {
+			return cmp.Compare(b.Count, a.Count)
+		}
+		return strings.Compare(a.Locality, b.Locality)
+	})
+	if len(out) > n {
+		out = out[:n]
+	}
+	return out
 }
 
 // Nodes returns the nodes in write order: states, cities, towns, malls,
@@ -88,7 +144,7 @@ type builder struct {
 
 func newBuilder() *builder {
 	return &builder{
-		plan:     &Plan{merged: map[string]string{}},
+		plan:     &Plan{merged: map[string]string{}, unfiled: map[string]*LocalityCount{}},
 		siblings: map[string]string{},
 		byKey:    map[string]int{},
 		state:    map[string]string{},
@@ -214,7 +270,7 @@ func parseDivision(rec record) (*division, error) {
 	return &d, nil
 }
 
-// localityIndex finds a CITY or TOWN by state code and name key.
+// localityIndex finds a CITY or TOWN by state code and localityKey.
 type localityIndex map[string]map[string]string
 
 func (b *builder) addDivisions(r io.Reader) (localityIndex, error) {
@@ -273,8 +329,8 @@ func (l localityIndex) put(state, name, key string) {
 		m = map[string]string{}
 		l[state] = m
 	}
-	if _, taken := m[nameKey(name)]; !taken {
-		m[nameKey(name)] = key
+	if _, taken := m[localityKey(name)]; !taken {
+		m[localityKey(name)] = key
 	}
 }
 

@@ -17,6 +17,10 @@ import (
 // batchSize is how many upserts go to the server in one round trip.
 const batchSize = 1000
 
+// unfiledTop is how many address localities the import log names among the
+// places left unfiled.
+const unfiledTop = 20
+
 // Result counts what an import wrote.
 type Result struct {
 	// ByKind counts the plan's nodes per kind.
@@ -24,6 +28,10 @@ type Result struct {
 	// Inserted, Updated and Matched count rows by outcome: a new row, a row
 	// re-imported by its source id, or an existing same-named sibling reused.
 	Inserted, Updated, Matched int
+	// Kept counts rows re-imported by source id whose new name would have
+	// collided with another row under the same parent; each keeps its old
+	// name and parent, and the other row is untouched.
+	Kept int
 	// Merged counts input records folded into a same-named sibling.
 	Merged int
 	// Skipped counts records outside the United States.
@@ -84,7 +92,7 @@ func (im *Importer) Write(ctx context.Context, plan *Plan) (Result, error) {
 		for n < len(nodes) && n < batchSize && nodes[n].Kind == nodes[0].Kind {
 			n++
 		}
-		if err := writeBatch(ctx, tx, nodes[:n], ids, &res); err != nil {
+		if err := im.writeBatch(ctx, tx, nodes[:n], ids, &res); err != nil {
 			return Result{}, err
 		}
 		nodes = nodes[n:]
@@ -101,15 +109,24 @@ func (im *Importer) Write(ctx context.Context, plan *Plan) (Result, error) {
 		Int("inserted", res.Inserted).
 		Int("updated", res.Updated).
 		Int("matched", res.Matched).
+		Int("kept", res.Kept).
 		Int("merged", res.Merged).
 		Int("skipped", res.Skipped).
 		Int("unfiled", res.Unfiled).
 		Int("unlisted", res.Unlisted).
 		Msg("place import committed")
+	if top := plan.UnfiledLocalities(unfiledTop); len(top) > 0 {
+		names := make([]string, len(top))
+		for i, c := range top {
+			names[i] = fmt.Sprintf("%s: %d", c.Locality, c.Count)
+		}
+		im.log.Info().Int("unfiled", res.Unfiled).Strs("localities", names).
+			Msg("unfiled places by address locality, most first")
+	}
 	return res, nil
 }
 
-func writeBatch(ctx context.Context, tx pgx.Tx, nodes []Node, ids map[string]uuid.UUID, res *Result) error {
+func (im *Importer) writeBatch(ctx context.Context, tx pgx.Tx, nodes []Node, ids map[string]uuid.UUID, res *Result) error {
 	params := make([]dbq.UpsertImportedParams, len(nodes))
 	for i, n := range nodes {
 		p := dbq.UpsertImportedParams{
@@ -149,6 +166,10 @@ func writeBatch(ctx context.Context, tx pgx.Tx, nodes []Node, ids map[string]uui
 			res.Updated++
 		case "matched":
 			res.Matched++
+		case "kept":
+			res.Kept++
+			im.log.Warn().Str("place", nodes[i].Key).Str("name", nodes[i].Name).Str("id", row.ID.String()).
+				Msg("re-imported place kept its name: another place under its parent already holds this one")
 		}
 	})
 	return firstErr

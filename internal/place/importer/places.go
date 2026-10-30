@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
@@ -98,6 +99,9 @@ func parsePlace(rec record) (parsedPlace, error) {
 				out.kind = perspectivv1.PlaceKind_PLACE_KIND_MALL
 			}
 		}
+		if fsqSportsVenue(p.CategoryLabels) {
+			out.kind = perspectivv1.PlaceKind_PLACE_KIND_MALL
+		}
 	default:
 		id := p.ID
 		if id == "" {
@@ -113,13 +117,13 @@ func parsePlace(rec record) (parsedPlace, error) {
 			a := p.Addresses[0]
 			out.locality, out.region, out.country = a.Locality, a.Region, a.Country
 		}
-		if overtureIsMall(&p) {
+		if overtureIsMall(&p) || overtureSportsVenue(&p) {
 			out.kind = perspectivv1.PlaceKind_PLACE_KIND_MALL
 		}
 		out.listed = overtureListed(&p)
 		out.category = overtureCategory(&p)
 	}
-	out.name = cleanName(out.name)
+	out.name = cleanPlaceName(out.name, out.locality, out.region)
 	switch {
 	case out.name == "":
 		return parsedPlace{}, errors.New("name is required")
@@ -130,24 +134,7 @@ func parsePlace(rec record) (parsedPlace, error) {
 }
 
 func overtureIsMall(p *placeRecord) bool {
-	if overtureMallCategories[p.BasicCategory] {
-		return true
-	}
-	if p.Categories != nil && overtureMallCategories[p.Categories.Primary] {
-		return true
-	}
-	if p.Taxonomy == nil {
-		return false
-	}
-	if overtureMallCategories[p.Taxonomy.Primary] {
-		return true
-	}
-	for _, h := range p.Taxonomy.Hierarchy {
-		if overtureMallCategories[h] {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(overtureCodes(p), func(c string) bool { return overtureMallCategories[c] })
 }
 
 // addPlaces adds every US mall, then every US store. Neither dataset links a
@@ -189,6 +176,7 @@ func (b *builder) addPlaces(r io.Reader, locs localityIndex) error {
 		parentKey, state, ok := locs.lookup(p.region, p.locality)
 		if !ok {
 			b.plan.Unfiled++
+			b.plan.unfiledAt(p.locality, p.region)
 			continue
 		}
 		parent := b.node(parentKey)
@@ -214,7 +202,7 @@ func (l localityIndex) lookup(region, locality string) (key, state string, ok bo
 	if !ok || strings.TrimSpace(locality) == "" {
 		return "", "", false
 	}
-	key, ok = l[state][nameKey(locality)]
+	key, ok = l[state][localityKey(locality)]
 	return key, state, ok
 }
 

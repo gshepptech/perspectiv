@@ -20,6 +20,22 @@ Nothing in progress.
 
 ## Done
 
+- Place data quality in the importer: localities match through St/Saint,
+  Ft/Fort, Mt/Mount, case and punctuation (St. Petersburg places were
+  dropped as unfiled), and unfiled counts are logged by locality; names
+  lose a trailing own city or state and stray punctuation and all-lowercase
+  names are title-cased, with a collision keeping the existing name instead
+  of failing the import; stadiums, arenas, ballparks and race tracks import
+  as sports venues (mall level) and a re-import never demotes a venue; and
+  `placectl dedupe` (dry run unless --apply) hides storyless, draftless
+  near duplicates (200 m, 2 km for venues) into the best-ranked twin,
+  moving children and follows and auditing each. A dry run on a copy of the
+  dev data found 144 merges and touched nothing. The missing Tropicana
+  Field needs the source extract to confirm. Verified by the importer and
+  placectl tests at both tiers.
+- An admin merge counted only a duplicate's arcs, so it could hide a place
+  a draft was still filed at; it now counts drafts too. Verified by
+  TestMergePlaceKeepsTheHierarchy.
 - Accessibility and phone pass over waves 6 to 8 (axe-core found no WCAG
   violations in 22 scans at 375 and 1280; these are the manual findings):
   a place page now names a venue by its category (GetPlace never carried
