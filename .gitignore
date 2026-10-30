@@ -19,3 +19,6 @@
 /web/e2e/.auth/
 
 .DS_Store
+
+# TypeScript incremental build state.
+*.tsbuildinfo
