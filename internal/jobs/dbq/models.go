@@ -202,6 +202,7 @@ type Place struct {
 	CreatedBy *uuid.UUID
 	CreatedAt pgtype.Timestamptz
 	Category  pgtype.Text
+	Path      []uuid.UUID
 }
 
 type PlaceFollow struct {

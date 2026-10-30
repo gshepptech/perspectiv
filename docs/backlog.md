@@ -5,12 +5,11 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing (wave 4)
 
-15. **Query performance, part 2.** The structural fixes from the beta-scale
-    audit: lore groups computed in Go from claim edges (ArcGroups, 3.7 s on a
-    large group, under the arc lock), a `places.path` array so a search
-    scoped to a state stops walking 509k descendants (1.6 s), a readable
-    story count on arcs for ListStoriedChildren, and a capped label-first
-    plan for SearchCharacters (570 ms for a rare word in a big city).
+16. **Character search on common words.** SearchCharacters walks a big
+    city's stories in date order and filters labels row by row (570 ms for a
+    rare word in Miami at beta scale); matching labels first is fast for rare
+    words and slow for common ones, so it needs a capped label-first plan
+    with the current one as fallback.
 
 ## Out of scope for v1
 
@@ -25,6 +24,16 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Query performance, part 2: lore groups are found in Go from the arc's
+  accepted-claim edges with union-find instead of a recursive walk that
+  grew with the square of a group (3.7 s under the arc lock at beta
+  scale); places carry a `path` like arcs, kept by trigger, so a search
+  inside a state is one index lookup (1.6 s to 37 ms on 638k places). A
+  state's storied-children listing measured 93 ms with the hidden-places
+  index and is left as is. Verified by TestConnectedGroups,
+  TestConnectedGroupsLarge, TestPlacePath, the lore, vote, perspective and
+  place suites, and migration 22 up-down-up (the backfill takes about two
+  minutes on 638k places).
 - Query performance, part 1, from a plan audit at beta scale (225k
   stories, 638k places, 27k followers of Florida): the new-story fan-out
   to place followers uses NOT EXISTS (112 s to 79 ms); thread posts check

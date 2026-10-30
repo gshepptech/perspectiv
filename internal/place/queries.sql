@@ -47,17 +47,7 @@ ORDER BY c.place_id, c.depth DESC;
 -- STORE), then shorter names, then name and id. The top candidate_limit
 -- candidates are then checked for a hidden ancestor, and the first
 -- result_limit survivors returned.
-WITH RECURSIVE scope AS (
-    SELECT p.id, 0 AS depth
-    FROM places p
-    WHERE p.id = sqlc.narg(parent_id)::uuid AND p.hidden_at IS NULL
-    UNION ALL
-    SELECT ch.id, s.depth + 1
-    FROM places ch
-    JOIN scope s ON ch.parent_id = s.id
-    WHERE ch.hidden_at IS NULL AND s.depth < 8
-),
-candidates AS (
+WITH RECURSIVE candidates AS (
     SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
            (lower(p.name) = @exact::text) AS is_exact,
            (lower(p.name) LIKE @prefix::text) AS is_prefix,
@@ -67,8 +57,9 @@ candidates AS (
     WHERE p.hidden_at IS NULL
       AND lower(p.name) LIKE @contains::text
       AND (sqlc.narg(kind)::text IS NULL OR p.kind = sqlc.narg(kind)::text)
+      -- Below parent_id: its id is on the place's path (places_path_idx).
       AND (sqlc.narg(parent_id)::uuid IS NULL
-           OR p.id IN (SELECT scope.id FROM scope WHERE scope.depth > 0))
+           OR (p.path @> ARRAY[sqlc.narg(parent_id)::uuid] AND p.id <> sqlc.narg(parent_id)::uuid))
     ORDER BY is_exact DESC, is_prefix DESC, level, char_length(p.name), lower(p.name), p.id
     LIMIT @candidate_limit::integer
 ),

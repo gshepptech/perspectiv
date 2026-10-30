@@ -93,35 +93,16 @@ WHERE ch.id = c.character_id
   AND (p.deleted_at IS NOT NULL OR p.hidden_at IS NOT NULL
        OR cp.deleted_at IS NOT NULL OR cp.hidden_at IS NOT NULL);
 
--- name: ArcGroups :many
--- Connected groups of accepted claims in one arc. Every perspective touched
--- by an accepted claim is labelled with the lowest perspective id it can
--- reach over accepted claims taken in either direction; perspectives sharing
--- a label form one group. UNION drops repeated (root, node) pairs, so the
--- walk ends on cycles.
-WITH RECURSIVE edges AS (
-    SELECT ch.perspective_id AS a, c.claimant_perspective_id AS b
-    FROM claims c
-    JOIN characters ch ON ch.id = c.character_id
-    JOIN perspectives p ON p.id = ch.perspective_id
-    WHERE p.arc_id = sqlc.arg(arc_id)::uuid
-      AND c.status = sqlc.arg(accepted)::text
-),
-links AS (
-    SELECT a, b FROM edges
-    UNION
-    SELECT b, a FROM edges
-),
-reach (root, node) AS (
-    SELECT a, a FROM links
-    UNION
-    SELECT r.root, l.b FROM reach r JOIN links l ON l.a = r.node
-)
-SELECT r.node::uuid AS perspective_id,
-       min(r.root::text)::uuid AS group_key
-FROM reach r
-GROUP BY r.node
-ORDER BY group_key, perspective_id;
+-- name: ArcClaimEdges :many
+-- The accepted claims in one arc as perspective pairs: the declaring
+-- perspective and the claimant's. Groups are found from these in Go; a
+-- recursive walk here grew with the square of a group's size.
+SELECT ch.perspective_id AS declarer, c.claimant_perspective_id AS claimant
+FROM perspectives p
+JOIN characters ch ON ch.perspective_id = p.id
+JOIN claims c ON c.character_id = ch.id
+WHERE p.arc_id = sqlc.arg(arc_id)::uuid
+  AND c.status = sqlc.arg(accepted)::text;
 
 -- name: ArcMemberships :many
 -- The stored lore of every member in the arc.

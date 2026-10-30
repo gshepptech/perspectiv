@@ -12,57 +12,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const arcGroups = `-- name: ArcGroups :many
-WITH RECURSIVE edges AS (
-    SELECT ch.perspective_id AS a, c.claimant_perspective_id AS b
-    FROM claims c
-    JOIN characters ch ON ch.id = c.character_id
-    JOIN perspectives p ON p.id = ch.perspective_id
-    WHERE p.arc_id = $1::uuid
-      AND c.status = $2::text
-),
-links AS (
-    SELECT a, b FROM edges
-    UNION
-    SELECT b, a FROM edges
-),
-reach (root, node) AS (
-    SELECT a, a FROM links
-    UNION
-    SELECT r.root, l.b FROM reach r JOIN links l ON l.a = r.node
-)
-SELECT r.node::uuid AS perspective_id,
-       min(r.root::text)::uuid AS group_key
-FROM reach r
-GROUP BY r.node
-ORDER BY group_key, perspective_id
+const arcClaimEdges = `-- name: ArcClaimEdges :many
+SELECT ch.perspective_id AS declarer, c.claimant_perspective_id AS claimant
+FROM perspectives p
+JOIN characters ch ON ch.perspective_id = p.id
+JOIN claims c ON c.character_id = ch.id
+WHERE p.arc_id = $1::uuid
+  AND c.status = $2::text
 `
 
-type ArcGroupsParams struct {
+type ArcClaimEdgesParams struct {
 	ArcID    uuid.UUID
 	Accepted string
 }
 
-type ArcGroupsRow struct {
-	PerspectiveID uuid.UUID
-	GroupKey      uuid.UUID
+type ArcClaimEdgesRow struct {
+	Declarer uuid.UUID
+	Claimant uuid.UUID
 }
 
-// Connected groups of accepted claims in one arc. Every perspective touched
-// by an accepted claim is labelled with the lowest perspective id it can
-// reach over accepted claims taken in either direction; perspectives sharing
-// a label form one group. UNION drops repeated (root, node) pairs, so the
-// walk ends on cycles.
-func (q *Queries) ArcGroups(ctx context.Context, arg ArcGroupsParams) ([]ArcGroupsRow, error) {
-	rows, err := q.db.Query(ctx, arcGroups, arg.ArcID, arg.Accepted)
+// The accepted claims in one arc as perspective pairs: the declaring
+// perspective and the claimant's. Groups are found from these in Go; a
+// recursive walk here grew with the square of a group's size.
+func (q *Queries) ArcClaimEdges(ctx context.Context, arg ArcClaimEdgesParams) ([]ArcClaimEdgesRow, error) {
+	rows, err := q.db.Query(ctx, arcClaimEdges, arg.ArcID, arg.Accepted)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ArcGroupsRow
+	var items []ArcClaimEdgesRow
 	for rows.Next() {
-		var i ArcGroupsRow
-		if err := rows.Scan(&i.PerspectiveID, &i.GroupKey); err != nil {
+		var i ArcClaimEdgesRow
+		if err := rows.Scan(&i.Declarer, &i.Claimant); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

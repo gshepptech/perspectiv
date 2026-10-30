@@ -204,6 +204,7 @@ type Place struct {
 	CreatedBy *uuid.UUID
 	CreatedAt time.Time
 	Category  *string
+	Path      []uuid.UUID
 }
 
 type PlaceFollow struct {

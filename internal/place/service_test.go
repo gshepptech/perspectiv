@@ -834,10 +834,12 @@ func TestSearchCharacters(t *testing.T) {
 
 	t.Run("a hidden place below drops its stories", func(t *testing.T) {
 		t.Parallel()
-		hidden := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Hidden Gold Shop", h.town)
-		story(hidden, "2026-10-06", perspectivv1.LoreStatus_LORE_STATUS_PENDING, "the hidden goldsmith")
+		// A word no other case searches for: this story is visible under the
+		// city until the hide lands, and the cases above run alongside.
+		hidden := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Hidden Tin Shop", h.town)
+		story(hidden, "2026-10-06", perspectivv1.LoreStatus_LORE_STATUS_PENDING, "the hidden tinsmith")
 		h.hide(hidden)
-		got, err := search(h.city, "goldsmith")
+		got, err := search(h.city, "tinsmith")
 		if err != nil || len(got) != 0 {
 			t.Fatalf("found %v, %v; want nothing", got, err)
 		}

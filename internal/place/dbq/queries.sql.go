@@ -1023,28 +1023,19 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 }
 
 const searchPlaces = `-- name: SearchPlaces :many
-WITH RECURSIVE scope AS (
-    SELECT p.id, 0 AS depth
-    FROM places p
-    WHERE p.id = $2::uuid AND p.hidden_at IS NULL
-    UNION ALL
-    SELECT ch.id, s.depth + 1
-    FROM places ch
-    JOIN scope s ON ch.parent_id = s.id
-    WHERE ch.hidden_at IS NULL AND s.depth < 8
-),
-candidates AS (
+WITH RECURSIVE candidates AS (
     SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
-           (lower(p.name) = $3::text) AS is_exact,
-           (lower(p.name) LIKE $4::text) AS is_prefix,
+           (lower(p.name) = $2::text) AS is_exact,
+           (lower(p.name) LIKE $3::text) AS is_prefix,
            array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
                                 'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level
     FROM places p
     WHERE p.hidden_at IS NULL
-      AND lower(p.name) LIKE $5::text
-      AND ($6::text IS NULL OR p.kind = $6::text)
-      AND ($2::uuid IS NULL
-           OR p.id IN (SELECT scope.id FROM scope WHERE scope.depth > 0))
+      AND lower(p.name) LIKE $4::text
+      AND ($5::text IS NULL OR p.kind = $5::text)
+      -- Below parent_id: its id is on the place's path (places_path_idx).
+      AND ($6::uuid IS NULL
+           OR (p.path @> ARRAY[$6::uuid] AND p.id <> $6::uuid))
     ORDER BY is_exact DESC, is_prefix DESC, level, char_length(p.name), lower(p.name), p.id
     LIMIT $7::integer
 ),
@@ -1069,11 +1060,11 @@ LIMIT $1::integer
 
 type SearchPlacesParams struct {
 	ResultLimit    int32
-	ParentID       uuid.NullUUID
 	Exact          string
 	Prefix         string
 	Contains       string
 	Kind           pgtype.Text
+	ParentID       uuid.NullUUID
 	CandidateLimit int32
 }
 
@@ -1097,11 +1088,11 @@ type SearchPlacesRow struct {
 func (q *Queries) SearchPlaces(ctx context.Context, arg SearchPlacesParams) ([]SearchPlacesRow, error) {
 	rows, err := q.db.Query(ctx, searchPlaces,
 		arg.ResultLimit,
-		arg.ParentID,
 		arg.Exact,
 		arg.Prefix,
 		arg.Contains,
 		arg.Kind,
+		arg.ParentID,
 		arg.CandidateLimit,
 	)
 	if err != nil {

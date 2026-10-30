@@ -87,19 +87,20 @@ func (s *Service) RecomputeArc(ctx context.Context, tx pgx.Tx, arcID uuid.UUID) 
 	}); err != nil {
 		return apiutil.Internal(fmt.Errorf("reject claims on withdrawn perspectives: %w", err))
 	}
-	groupRows, err := q.ArcGroups(ctx, dbq.ArcGroupsParams{ArcID: arcID, Accepted: claimAccepted})
+	edges, err := q.ArcClaimEdges(ctx, dbq.ArcClaimEdgesParams{ArcID: arcID, Accepted: claimAccepted})
 	if err != nil {
-		return apiutil.Internal(fmt.Errorf("compute groups: %w", err))
+		return apiutil.Internal(fmt.Errorf("read accepted claims: %w", err))
 	}
 	current, err := q.ArcMemberships(ctx, arcID)
 	if err != nil {
 		return apiutil.Internal(fmt.Errorf("read memberships: %w", err))
 	}
 
-	groups := make(map[uuid.UUID][]uuid.UUID)
-	for _, r := range groupRows {
-		groups[r.GroupKey] = append(groups[r.GroupKey], r.PerspectiveID)
+	pairs := make([][2]uuid.UUID, len(edges))
+	for i, e := range edges {
+		pairs[i] = [2]uuid.UUID{e.Declarer, e.Claimant}
 	}
+	groups := connectedGroups(pairs)
 	was := make(map[uuid.UUID]uuid.UUID, len(current))
 	for _, r := range current {
 		was[r.PerspectiveID] = r.LoreID
@@ -185,6 +186,47 @@ func assignLores(groups map[uuid.UUID][]uuid.UUID, was map[uuid.UUID]uuid.UUID) 
 		taken[c.lore] = true
 	}
 	return assigned
+}
+
+// connectedGroups splits the perspectives joined by accepted claims into
+// connected groups, claims counting in either direction. Each group is keyed
+// by its lowest perspective id and lists its members in id order.
+func connectedGroups(edges [][2]uuid.UUID) map[uuid.UUID][]uuid.UUID {
+	parent := make(map[uuid.UUID]uuid.UUID)
+	var find func(uuid.UUID) uuid.UUID
+	find = func(x uuid.UUID) uuid.UUID {
+		p, ok := parent[x]
+		if !ok {
+			parent[x] = x
+			return x
+		}
+		if p == x {
+			return x
+		}
+		root := find(p)
+		parent[x] = root
+		return root
+	}
+	for _, e := range edges {
+		a, b := find(e[0]), find(e[1])
+		if a == b {
+			continue
+		}
+		// The lower id stays root, so a group's root is its lowest member.
+		if bytes.Compare(b[:], a[:]) < 0 {
+			a, b = b, a
+		}
+		parent[b] = a
+	}
+	groups := make(map[uuid.UUID][]uuid.UUID)
+	for node := range parent {
+		root := find(node)
+		groups[root] = append(groups[root], node)
+	}
+	for _, members := range groups {
+		slices.SortFunc(members, func(a, b uuid.UUID) int { return bytes.Compare(a[:], b[:]) })
+	}
+	return groups
 }
 
 func sortedKeys(groups map[uuid.UUID][]uuid.UUID) []uuid.UUID {

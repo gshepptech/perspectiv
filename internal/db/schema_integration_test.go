@@ -647,3 +647,35 @@ func TestEachTestGetsItsOwnDatabase(t *testing.T) {
 		})
 	}
 }
+
+// A place's path is itself and every place above it, state first, kept by
+// trigger on insert and when a place is filed under a new parent.
+func TestPlacePath(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t)
+	other := w.place("PLACE_KIND_STATE", "Vermont", nil)
+	mall := w.place("PLACE_KIND_MALL", "Crossgates", &w.city)
+	shop := w.place("PLACE_KIND_STORE", "Shoe Barn", &mall)
+	path := func(id uuid.UUID) []uuid.UUID {
+		t.Helper()
+		var p []uuid.UUID
+		if err := w.pool.QueryRow(context.Background(), `SELECT path FROM places WHERE id = $1`, id).Scan(&p); err != nil {
+			t.Fatalf("read path: %v", err)
+		}
+		return p
+	}
+	if got, want := path(shop), []uuid.UUID{w.state, w.city, mall, shop}; !slices.Equal(got, want) {
+		t.Fatalf("path = %v, want %v", got, want)
+	}
+	// Re-filing the city carries everything below it.
+	wantOK(t, w.exec(`UPDATE places SET parent_id = $1 WHERE id = $2`, other, w.city))
+	if got, want := path(shop), []uuid.UUID{other, w.city, mall, shop}; !slices.Equal(got, want) {
+		t.Fatalf("path after re-filing = %v, want %v", got, want)
+	}
+	if got, want := path(w.city), []uuid.UUID{other, w.city}; !slices.Equal(got, want) {
+		t.Fatalf("city path = %v, want %v", got, want)
+	}
+	if got, want := path(w.state), []uuid.UUID{w.state}; !slices.Equal(got, want) {
+		t.Fatalf("state path = %v, want %v", got, want)
+	}
+}
