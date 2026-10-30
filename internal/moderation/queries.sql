@@ -104,7 +104,9 @@ WHERE p.id = @id::uuid AND p.kind = 'PLACE_KIND_STORE' AND p.hidden_at IS NULL
 -- children (0 for none), each place's path, and whether an ancestor is
 -- hidden, for the merge's checks.
 SELECT p.id, p.kind, p.path,
-       (SELECT count(*) FROM arcs a WHERE a.place_id = p.id)::integer AS arcs,
+       -- Stories filed at the place: its arcs, and drafts not yet in one.
+       ((SELECT count(*) FROM arcs a WHERE a.place_id = p.id)
+        + (SELECT count(*) FROM perspectives v WHERE v.place_id = p.id AND v.deleted_at IS NULL))::integer AS arcs,
        coalesce((SELECT min(array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
                                                  'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], c.kind))
                  FROM places c WHERE c.parent_id = p.id), 0)::integer AS child_level,

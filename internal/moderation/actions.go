@@ -249,7 +249,7 @@ func checkMerge(ctx context.Context, q *dbq.Queries, from, into uuid.UUID) error
 	case dup == nil || twin == nil || twin.AncestorHidden:
 		return apiutil.NotFound("both places must exist and be visible")
 	case dup.Arcs > 0:
-		return apiutil.FailedPrecondition("the duplicate has stories of its own; merge the other way, or hide it")
+		return apiutil.FailedPrecondition("the duplicate has stories or drafts of its own; merge the other way, or hide it")
 	case slices.Contains(twin.Path, from):
 		// Its children would move under themselves.
 		return apiutil.FailedPrecondition("a place cannot be merged into a place inside it")

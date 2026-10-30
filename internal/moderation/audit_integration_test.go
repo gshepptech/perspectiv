@@ -638,11 +638,15 @@ func TestMergePlaceKeepsTheHierarchy(t *testing.T) {
 		}))
 		return err
 	}
+	// A draft still filed at a place keeps it from being merged away.
+	drafted := place("PLACE_KIND_MALL", "Drafted Twin", w.state)
+	e.exec(`INSERT INTO perspectives (author_id, place_id) VALUES ($1, $2)`, w.author, drafted)
 	tests := []struct {
 		name       string
 		from, into uuid.UUID
 		want       connect.Code
 	}{
+		{name: "a duplicate with a draft", from: drafted, into: otherCity, want: connect.CodeFailedPrecondition},
 		{name: "into its own child", from: city, into: town, want: connect.CodeFailedPrecondition},
 		{name: "a town under another town", from: city, into: otherTown, want: connect.CodeFailedPrecondition},
 		{name: "into a place a hidden ancestor hides", from: otherCity, into: underHidden, want: connect.CodeNotFound},
