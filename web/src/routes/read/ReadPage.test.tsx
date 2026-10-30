@@ -250,7 +250,7 @@ describe("reading a story to its end", () => {
       { position: 3, body: "He bought nothing." },
     ],
     characters: [
-      { id: "c-1", position: 1, label: "the man in the green coat", hasAcceptedClaim: true, claimedBy: { userId: "u-otter", username: "otter" } },
+      { id: "c-1", position: 1, label: "the man in the green coat", hasAcceptedClaim: true, claimedBy: { userId: "u-otter", username: "otter" }, claimedByStoryId: "p-otter" },
       { id: "c-2", position: 2, label: "a woman nobody knew", hasAcceptedClaim: true, claimedBy: { userId: "u-stranger", username: "stranger" } },
     ],
   };
@@ -297,7 +297,7 @@ describe("reading a story to its end", () => {
     expect(within(note).getByRole("link", { name: "How this day works" })).toHaveAttribute("href", "/arcs/arc-day#arc-how");
   });
 
-  it("opens a tagged person's own story of the day from the cast, and their profile when the day does not show it", async () => {
+  it("opens a tagged person's own story of the day from the cast, and their profile when it is not readable", async () => {
     renderApp("/perspectives/p-wren", withArc(short));
     const cast = await screen.findByRole("list", { name: "Cast" });
     expect(await within(cast).findByRole("link", { name: "otter’s story" })).toHaveAttribute("href", "/perspectives/p-otter");

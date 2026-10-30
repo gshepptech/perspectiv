@@ -147,8 +147,8 @@ an icon beside it.
   page (`/arcs/:id#arc-how`), which scrolls to that section and moves focus to
   its heading.
 - **Cast tags open the claimant's story.** An accepted claim's tag links to
-  the claimant's own story of that day when the arc's first pages include it
-  (link named "otter's story"); otherwise it links to their profile.
+  the claimant's own story of that day while it is readable (link named
+  "otter's story"); otherwise it links to their profile.
 
 ## Page titles
 

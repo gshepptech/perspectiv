@@ -50,7 +50,7 @@ const handlers = (posts: unknown[] = []) => ({
     body.perspectiveId === "p-wren"
       ? {
           body: story("p-wren", wren, "The power went out.", [
-            { id: "c-1", position: 1, label: "the guy in the yellow raincoat", hasAcceptedClaim: true, claimedBy: otter },
+            { id: "c-1", position: 1, label: "the guy in the yellow raincoat", hasAcceptedClaim: true, claimedBy: otter, claimedByStoryId: "p-otter" },
           ]),
         }
       : { body: story("p-otter", otter, "I don't sing.") },
@@ -76,7 +76,7 @@ describe("lore page", () => {
     expect(within(thread).getByText("Anyone can read this thread. Only the people who wrote about this day can post in it.")).toBeInTheDocument();
     expect(within(thread).queryByText(/Write your/)).toBeNull();
     expect(document.title).toBe("Open mic night · Perspectiv");
-    // A tag opens the claimant's own story, which is in this lore.
+    // A tag opens the claimant's own story of the day.
     const wrens = screen.getByRole("article", { name: "wren's perspective" });
     expect(await within(wrens).findByRole("link", { name: "otter’s story" })).toHaveAttribute("href", "/perspectives/p-otter");
   });

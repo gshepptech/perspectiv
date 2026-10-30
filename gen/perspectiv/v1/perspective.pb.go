@@ -94,9 +94,12 @@ type Character struct {
 	ClaimedBy *UserRef `protobuf:"bytes,6,opt,name=claimed_by,json=claimedBy,proto3" json:"claimed_by,omitempty"`
 	// The viewer's own claim on this character, if any: PENDING, ACCEPTED or
 	// REJECTED. UNSPECIFIED when the viewer has none or is signed out.
-	MyClaim       ClaimStatus `protobuf:"varint,7,opt,name=my_claim,json=myClaim,proto3,enum=perspectiv.v1.ClaimStatus" json:"my_claim,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	MyClaim ClaimStatus `protobuf:"varint,7,opt,name=my_claim,json=myClaim,proto3,enum=perspectiv.v1.ClaimStatus" json:"my_claim,omitempty"`
+	// The claimant's own story of the same day, when claimed_by is set and
+	// that story is readable; empty otherwise.
+	ClaimedByStoryId string `protobuf:"bytes,8,opt,name=claimed_by_story_id,json=claimedByStoryId,proto3" json:"claimed_by_story_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Character) Reset() {
@@ -176,6 +179,13 @@ func (x *Character) GetMyClaim() ClaimStatus {
 		return x.MyClaim
 	}
 	return ClaimStatus_CLAIM_STATUS_UNSPECIFIED
+}
+
+func (x *Character) GetClaimedByStoryId() string {
+	if x != nil {
+		return x.ClaimedByStoryId
+	}
+	return ""
 }
 
 // CharacterInput declares a character when saving or publishing.
@@ -1960,7 +1970,7 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\x1fperspectiv/v1/perspective.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x19perspectiv/v1/place.proto\x1a\x19perspectiv/v1/react.proto\x1a\x18perspectiv/v1/user.proto\"6\n" +
 	"\x04Part\x12\x1a\n" +
 	"\bposition\x18\x01 \x01(\x05R\bposition\x12\x12\n" +
-	"\x04body\x18\x02 \x01(\tR\x04body\"\x95\x02\n" +
+	"\x04body\x18\x02 \x01(\tR\x04body\"\xc4\x02\n" +
 	"\tCharacter\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bposition\x18\x02 \x01(\x05R\bposition\x12\x14\n" +
@@ -1969,7 +1979,8 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\x11has_pending_claim\x18\x05 \x01(\bR\x0fhasPendingClaim\x125\n" +
 	"\n" +
 	"claimed_by\x18\x06 \x01(\v2\x16.perspectiv.v1.UserRefR\tclaimedBy\x125\n" +
-	"\bmy_claim\x18\a \x01(\x0e2\x1a.perspectiv.v1.ClaimStatusR\amyClaim\"6\n" +
+	"\bmy_claim\x18\a \x01(\x0e2\x1a.perspectiv.v1.ClaimStatusR\amyClaim\x12-\n" +
+	"\x13claimed_by_story_id\x18\b \x01(\tR\x10claimedByStoryId\"6\n" +
 	"\x0eCharacterInput\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05label\x18\x02 \x01(\tR\x05label\"\x9a\a\n" +

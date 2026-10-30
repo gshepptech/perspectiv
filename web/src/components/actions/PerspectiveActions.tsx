@@ -46,7 +46,6 @@ export function PerspectiveActions({
   summary,
   rights,
   withCast = true,
-  storyOf,
   claimOnArrival = false,
   claimCharacterId,
   justPublished = false,
@@ -55,8 +54,6 @@ export function PerspectiveActions({
   rights: ViewerRights;
   /** False when the page already shows the story's cast. */
   withCast?: boolean;
-  /** Each claimant's story of the day by user id, so a cast tag opens it. */
-  storyOf?: ReadonlyMap<string, string>;
   /** Opens the claim dialog on arrival (a "That was me" link). */
   claimOnArrival?: boolean;
   /** The character that "That was me" link quoted, picked out in the dialog. */
@@ -103,7 +100,7 @@ export function PerspectiveActions({
 
   return (
     <div className="mt-3 flex flex-col gap-3 border-t border-rule pt-3">
-      {p && withCast && <Cast characters={p.characters} storyOf={storyOf} />}
+      {p && withCast && <Cast characters={p.characters} />}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <VoteButton
           perspectiveId={summary.id}

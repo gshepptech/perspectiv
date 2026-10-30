@@ -20,6 +20,11 @@ Nothing in progress.
 
 ## Done
 
+- Cast tags link the claimant's own story from the server: each character
+  carries claimed_by_story_id while that story is readable, so the tag no
+  longer depends on the story being on the day's first page, and the
+  client-side lookup is gone. Verified by TestCharacterClaimedBy (accepted,
+  pending, hidden story, deleted account) and the reader and lore tests.
 - Day listings name their canon: a place page row and a front-page card
   read "Canon: *The long queue*" once the canon lore's members name it, and
   plain "Canon" otherwise or after a moderator clears the name. Verified by

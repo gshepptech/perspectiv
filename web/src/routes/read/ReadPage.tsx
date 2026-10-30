@@ -24,7 +24,7 @@ import { useDocumentTitle } from "@/lib/title";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { takeAfterPublish } from "@/routes/compose/links";
 
-import { MoreFromDay, storiesByAuthor } from "./MoreFromDay";
+import { MoreFromDay } from "./MoreFromDay";
 
 /**
  * A deleted or hidden perspective. Its heading takes focus, so an author who
@@ -346,7 +346,7 @@ export function Component() {
           <>
             <Byline p={p} arc={arc.data} />
             <StandingNote p={p} arc={arc.data} />
-            <Cast characters={p.characters} storyOf={storiesByAuthor(arc.data)} className="mt-3" />
+            <Cast characters={p.characters} className="mt-3" />
           </>
         }
         parts={bodies}

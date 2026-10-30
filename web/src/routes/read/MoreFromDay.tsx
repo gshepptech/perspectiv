@@ -13,25 +13,6 @@ function dayStories(res: GetArcResponse): PerspectiveSummary[] {
   return [...(res.canon?.perspectives ?? []), ...res.sublores.flatMap((l) => l.perspectives), ...res.unlinked, ...res.tales];
 }
 
-/**
- * Each writer's story in the arc by their user id, from the arc's first
- * pages and its lores' members. One person writes once per arc, so the
- * story is theirs for that day; someone on a later page is simply missing.
- */
-export function storiesByAuthor(res: GetArcResponse | undefined): Map<string, string> {
-  const byAuthor = new Map<string, string>();
-  if (!res) return byAuthor;
-  for (const s of dayStories(res)) {
-    if (s.author?.userId && !s.deleted && !s.hidden) byAuthor.set(s.author.userId, s.id);
-  }
-  for (const l of [res.canon, ...res.sublores]) {
-    for (const m of l?.lore?.members ?? []) {
-      if (m.user?.userId && !byAuthor.has(m.user.userId)) byAuthor.set(m.user.userId, m.perspectiveId);
-    }
-  }
-  return byAuthor;
-}
-
 const linkClass = "inline-flex min-h-11 items-center gap-1 font-medium text-accent underline underline-offset-4";
 
 /**

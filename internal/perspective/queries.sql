@@ -176,12 +176,18 @@ SELECT ch.id, ch.perspective_id, ch.position, ch.label,
                AND c.status = 'CLAIM_STATUS_PENDING')::boolean AS has_pending,
        acc_u.id AS claimed_by_id,
        acc_u.username AS claimed_by_username,
+       -- The claimant's own story of the day, when it is readable. A claim
+       -- is made from the same arc, so its place is visible whenever the
+       -- character's story is.
+       cp.id AS claimed_by_story_id,
        COALESCE((SELECT c.status FROM claims c
                  WHERE c.character_id = ch.id AND c.claimant_user_id = sqlc.narg(viewer)::uuid
                  ORDER BY c.created_at DESC LIMIT 1), '')::text AS my_claim
 FROM characters ch
 LEFT JOIN claims acc ON acc.character_id = ch.id AND acc.status = 'CLAIM_STATUS_ACCEPTED'
 LEFT JOIN users acc_u ON acc_u.id = acc.claimant_user_id AND acc_u.deleted_at IS NULL
+LEFT JOIN perspectives cp ON cp.id = acc.claimant_perspective_id AND acc_u.id IS NOT NULL
+    AND cp.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND cp.deleted_at IS NULL AND cp.hidden_at IS NULL
 WHERE ch.perspective_id = ANY(sqlc.arg(ids)::uuid[])
 ORDER BY ch.perspective_id, ch.position;
 

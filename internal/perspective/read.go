@@ -247,6 +247,9 @@ func loadContent(ctx context.Context, q *dbq.Queries, viewer *uuid.UUID, ids []u
 		if ch.ClaimedByID != nil && ch.ClaimedByUsername != nil {
 			out.ClaimedBy = &perspectivv1.UserRef{UserId: ch.ClaimedByID.String(), Username: *ch.ClaimedByUsername}
 		}
+		if ch.ClaimedByStoryID != nil {
+			out.ClaimedByStoryId = ch.ClaimedByStoryID.String()
+		}
 		c.characters[ch.PerspectiveID] = append(c.characters[ch.PerspectiveID], out)
 	}
 	reacts, err := q.ReactCountsOf(ctx, dbq.ReactCountsOfParams{Viewer: viewer, Ids: ids})

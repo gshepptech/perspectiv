@@ -58,7 +58,7 @@ function Cast({ stories, memberIds }: { stories: Perspective[]; memberIds: Set<s
   );
 }
 
-function Story({ p, rights, storyOf }: { p: Perspective; rights: ViewerRights; storyOf: ReadonlyMap<string, string> }) {
+function Story({ p, rights }: { p: Perspective; rights: ViewerRights }) {
   const parts = [...p.parts].sort((a, b) => a.position - b.position);
   const summary = create(PerspectiveSummarySchema, {
     id: p.id,
@@ -91,7 +91,7 @@ function Story({ p, rights, storyOf }: { p: Perspective; rights: ViewerRights; s
           Read it page by page
         </Link>
       </p>
-      <PerspectiveActions summary={summary} rights={rights} storyOf={storyOf} />
+      <PerspectiveActions summary={summary} rights={rights} />
     </article>
   );
 }
@@ -171,8 +171,6 @@ export function Component() {
   const title = lore.name || dayTitle || "A lore";
   const member = !!session && viewer?.loreId === lore.id;
   const span = arcSpan(arc.data?.arc ? arc.data.arc.hour : first?.hour);
-  // Each member's story by their user id, so a cast tag opens the claimant's story.
-  const storyOf = new Map(lore.members.flatMap((m) => (m.user?.userId ? [[m.user.userId, m.perspectiveId] as const] : [])));
 
   return (
     <article aria-labelledby="lore-title" className="mx-auto min-w-0 max-w-3xl">
@@ -225,7 +223,7 @@ export function Component() {
         </h2>
         <div className="mt-4 grid gap-6">
           {loaded.map((p) => (
-            <Story key={p.id} p={p} rights={rights} storyOf={storyOf} />
+            <Story key={p.id} p={p} rights={rights} />
           ))}
         </div>
       </section>

@@ -69,6 +69,9 @@ message Character {
   // The viewer's own claim on this character, if any: PENDING, ACCEPTED or
   // REJECTED. UNSPECIFIED when the viewer has none or is signed out.
   ClaimStatus my_claim = 7;
+  // The claimant's own story of the same day, when claimed_by is set and
+  // that story is readable; empty otherwise.
+  string claimed_by_story_id = 8;
 }
 
 // CharacterInput declares a character when saving or publishing.
