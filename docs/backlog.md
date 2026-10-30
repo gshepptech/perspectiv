@@ -7,12 +7,6 @@ moves to Done in the same commit as the work, with what was verified.
 
 Nothing in progress.
 
-## Next
-
-- **E2E sign-up budget.** The e2e suite now uses all 10 sign-ups an hour
-  the server allows one address; a new spec needing its own account must
-  sign in to an existing one, or the limit becomes configurable for e2e.
-
 ## Out of scope for v1
 
 - Full-text search over stories: the spec leaves it out (A-057); place
@@ -26,6 +20,14 @@ Nothing in progress.
 
 ## Done
 
+- E2E sign-up budget: each e2e account signs up from its own
+  documentation-range address (the browser reaches the server over loopback
+  through Vite, so the rightmost X-Forwarded-For is the one counted), so new
+  specs can add accounts without exhausting one address's hourly sign-up
+  limit. Verified by the e2e suite (14 passed) and the signup counters: one
+  per address.
+- Place dedupe applied to the dev data: 144 storyless near duplicates
+  hidden into their twins, each audited; a second run finds nothing.
 - Spec audit (162 FR, AC and OT items: 158 met with tests, none unmet):
   a member who deletes their story in an arc may write there again (the
   one-story rule now ignores deleted stories; a moderator's hide still
