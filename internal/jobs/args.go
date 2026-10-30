@@ -27,6 +27,10 @@ const (
 	// TemplateDigest is a daily summary; Data carries the notification items
 	// as a JSON list and their count.
 	TemplateDigest = "digest"
+	// TemplateChangeEmail confirms a new address; TemplateEmailChangeNotice
+	// tells the old one. Data carries the link.
+	TemplateChangeEmail       = "change_email"
+	TemplateEmailChangeNotice = "email_change_notice"
 )
 
 // ExpiryArgs schedules the PENDING to SOLO check for one perspective.

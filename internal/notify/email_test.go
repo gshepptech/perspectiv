@@ -103,6 +103,20 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 			wantText:    []string{baseURL + "/reset-password?token=r1"},
 		},
 		{
+			name:        "email change confirmation goes to the new address's page",
+			args:        jobs.EmailArgs{To: "new@example.test", Template: jobs.TemplateChangeEmail, Data: map[string]string{"token": "c1"}},
+			wantSubject: "Confirm your new email",
+			wantText:    []string{baseURL + "/confirm-email?token=c1"},
+		},
+		{
+			name: "email change notice points the old address at a password reset",
+			args: jobs.EmailArgs{To: "old@example.test", Template: jobs.TemplateEmailChangeNotice, Data: map[string]string{
+				"link": baseURL + "/forgot-password",
+			}},
+			wantSubject: "Your Perspectiv email is being changed",
+			wantText:    []string{"If it was not, reset your password now.", baseURL + "/forgot-password"},
+		},
+		{
 			name: "claim received names the claimant and the arc (FR-037)",
 			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
 				"kind": "NOTIFICATION_KIND_CLAIM_RECEIVED", "actor": "sam", "arc_title": "Rainy Tuesday", "path": "/claims",

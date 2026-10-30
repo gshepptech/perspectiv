@@ -17,6 +17,16 @@ service AuthService {
   rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
   rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
   rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  // Changes the caller's password, given the current one, and signs out
+  // every other device.
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  // Starts changing the caller's email, given their password: the new
+  // address gets a confirmation link and the old one a notice.
+  rpc RequestEmailChange(RequestEmailChangeRequest) returns (RequestEmailChangeResponse);
+  // Public. Confirms an email change from the link sent to the new address.
+  rpc ConfirmEmailChange(ConfirmEmailChangeRequest) returns (ConfirmEmailChangeResponse);
+  // Signs the caller out on every device, this one included.
+  rpc SignOutEverywhere(SignOutEverywhereRequest) returns (SignOutEverywhereResponse);
   // Public. Whether signing up needs an access code (the invite-only beta).
   rpc GetSignUpInfo(GetSignUpInfoRequest) returns (GetSignUpInfoResponse);
   // Public. Asks for a place in the beta. Always answers OK, whether or not
@@ -200,3 +210,27 @@ message InviteFromWaitlistRequest {
 message InviteFromWaitlistResponse {
   WaitlistEntry entry = 1;
 }
+
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+}
+
+message ChangePasswordResponse {}
+
+message RequestEmailChangeRequest {
+  string new_email = 1;
+  string current_password = 2;
+}
+
+message RequestEmailChangeResponse {}
+
+message ConfirmEmailChangeRequest {
+  string token = 1;
+}
+
+message ConfirmEmailChangeResponse {}
+
+message SignOutEverywhereRequest {}
+
+message SignOutEverywhereResponse {}

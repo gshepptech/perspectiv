@@ -12,6 +12,7 @@ import { NotificationsSection } from "./NotificationsSection";
 import { ProfileSection } from "./ProfileSection";
 import { myProfileQuery } from "./queries";
 import { Section } from "./Section";
+import { SecuritySection } from "./SecuritySection";
 import { UsernameSection } from "./UsernameSection";
 
 function AccountSection({ account }: { account: Account }) {
@@ -63,6 +64,7 @@ export function Component() {
           <AccountSection account={me.data.account} />
           <ProfileSection profile={me.data.profile} />
           <UsernameSection profile={me.data.profile} account={me.data.account} />
+          <SecuritySection email={me.data.account.email} />
           <NotificationsSection />
           <BlocksSection blocked={me.data.account.blocked} />
           <Section title="Your data">

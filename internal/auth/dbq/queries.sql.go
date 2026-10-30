@@ -31,6 +31,33 @@ func (q *Queries) ActorStanding(ctx context.Context, id uuid.UUID) (ActorStandin
 	return i, err
 }
 
+const consumeEmailChangeToken = `-- name: ConsumeEmailChangeToken :one
+UPDATE email_tokens et
+SET used_at = now()
+FROM users u
+WHERE et.token_hash = $1
+  AND et.purpose = 'change_email'
+  AND et.used_at IS NULL
+  AND et.expires_at > now()
+  AND u.id = et.user_id
+  AND u.deleted_at IS NULL
+RETURNING et.user_id, et.new_email::text AS new_email
+`
+
+type ConsumeEmailChangeTokenRow struct {
+	UserID   uuid.UUID
+	NewEmail string
+}
+
+// Marks an unused, unexpired change_email token used and returns its user
+// and the new address, provided the account still exists.
+func (q *Queries) ConsumeEmailChangeToken(ctx context.Context, tokenHash []byte) (ConsumeEmailChangeTokenRow, error) {
+	row := q.db.QueryRow(ctx, consumeEmailChangeToken, tokenHash)
+	var i ConsumeEmailChangeTokenRow
+	err := row.Scan(&i.UserID, &i.NewEmail)
+	return i, err
+}
+
 const consumeEmailToken = `-- name: ConsumeEmailToken :one
 UPDATE email_tokens et
 SET used_at = now()
@@ -92,6 +119,22 @@ type DeleteStaleRateWindowsParams struct {
 func (q *Queries) DeleteStaleRateWindows(ctx context.Context, arg DeleteStaleRateWindowsParams) error {
 	_, err := q.db.Exec(ctx, deleteStaleRateWindows, arg.Action, arg.Subject, arg.CurrentWindow)
 	return err
+}
+
+const emailTaken = `-- name: EmailTaken :one
+SELECT EXISTS (SELECT 1 FROM users WHERE lower(email) = lower($1::text) AND id <> $2::uuid)::boolean AS taken
+`
+
+type EmailTakenParams struct {
+	Email string
+	ID    uuid.UUID
+}
+
+func (q *Queries) EmailTaken(ctx context.Context, arg EmailTakenParams) (bool, error) {
+	row := q.db.QueryRow(ctx, emailTaken, arg.Email, arg.ID)
+	var taken bool
+	err := row.Scan(&taken)
+	return taken, err
 }
 
 const getLiveSessionRole = `-- name: GetLiveSessionRole :one
@@ -288,6 +331,28 @@ func (q *Queries) InsertAccessCode(ctx context.Context, arg InsertAccessCodePara
 		&i.RevokedAt,
 	)
 	return i, err
+}
+
+const insertEmailChangeToken = `-- name: InsertEmailChangeToken :exec
+INSERT INTO email_tokens (user_id, purpose, token_hash, expires_at, new_email)
+VALUES ($1::uuid, 'change_email', $2, $3, $4::text)
+`
+
+type InsertEmailChangeTokenParams struct {
+	UserID    uuid.UUID
+	TokenHash []byte
+	ExpiresAt time.Time
+	NewEmail  string
+}
+
+func (q *Queries) InsertEmailChangeToken(ctx context.Context, arg InsertEmailChangeTokenParams) error {
+	_, err := q.db.Exec(ctx, insertEmailChangeToken,
+		arg.UserID,
+		arg.TokenHash,
+		arg.ExpiresAt,
+		arg.NewEmail,
+	)
+	return err
 }
 
 const insertEmailToken = `-- name: InsertEmailToken :exec
@@ -629,6 +694,40 @@ func (q *Queries) RevokeAccessCode(ctx context.Context, code string) (RevokeAcce
 	return i, err
 }
 
+const revokeOtherRefreshTokens = `-- name: RevokeOtherRefreshTokens :exec
+UPDATE refresh_tokens rt
+SET revoked_at = now()
+FROM sessions s
+WHERE rt.session_id = s.id AND s.user_id = $1::uuid
+  AND s.id <> $2::uuid AND rt.revoked_at IS NULL
+`
+
+type RevokeOtherRefreshTokensParams struct {
+	UserID uuid.UUID
+	Keep   uuid.UUID
+}
+
+func (q *Queries) RevokeOtherRefreshTokens(ctx context.Context, arg RevokeOtherRefreshTokensParams) error {
+	_, err := q.db.Exec(ctx, revokeOtherRefreshTokens, arg.UserID, arg.Keep)
+	return err
+}
+
+const revokeOtherSessions = `-- name: RevokeOtherSessions :exec
+UPDATE sessions SET revoked_at = now()
+WHERE user_id = $1::uuid AND id <> $2::uuid AND revoked_at IS NULL
+`
+
+type RevokeOtherSessionsParams struct {
+	UserID uuid.UUID
+	Keep   uuid.UUID
+}
+
+// Signs out every other device: all the user's live sessions but keep.
+func (q *Queries) RevokeOtherSessions(ctx context.Context, arg RevokeOtherSessionsParams) error {
+	_, err := q.db.Exec(ctx, revokeOtherSessions, arg.UserID, arg.Keep)
+	return err
+}
+
 const revokeSession = `-- name: RevokeSession :exec
 UPDATE sessions SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL
 `
@@ -674,6 +773,21 @@ UPDATE sessions SET last_used_at = now() WHERE id = $1
 
 func (q *Queries) TouchSession(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, touchSession, id)
+	return err
+}
+
+const updateEmail = `-- name: UpdateEmail :exec
+UPDATE users SET email = $1::text, email_verified_at = now() WHERE id = $2::uuid
+`
+
+type UpdateEmailParams struct {
+	Email string
+	ID    uuid.UUID
+}
+
+// The new address was proven by its confirmation link, so it is verified.
+func (q *Queries) UpdateEmail(ctx context.Context, arg UpdateEmailParams) error {
+	_, err := q.db.Exec(ctx, updateEmail, arg.Email, arg.ID)
 	return err
 }
 

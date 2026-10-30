@@ -184,6 +184,34 @@ describe("VerifyEmailPage", () => {
   });
 });
 
+describe("ConfirmEmailPage", () => {
+  it("confirms the new email from the link once", async () => {
+    const { api } = renderRoute("/confirm-email?token=abc123", { "AuthService/ConfirmEmailChange": () => ok() });
+    expect(await screen.findByRole("heading", { name: "Your email is changed" })).toBeInTheDocument();
+    expect(api.sent("AuthService/ConfirmEmailChange")).toEqual([{ token: "abc123" }]);
+  });
+
+  it("says plainly when another account took the address first", async () => {
+    renderRoute("/confirm-email?token=abc", {
+      "AuthService/ConfirmEmailChange": () => fail("already_exists", "an account with that email already exists"),
+    });
+    expect(await screen.findByRole("heading", { name: "This link no longer works" })).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveTextContent(/Another account started using that address/);
+  });
+
+  it("explains an expired, used or replaced link", async () => {
+    renderRoute("/confirm-email?token=old", { "AuthService/ConfirmEmailChange": () => fail("invalid_argument", "expired") });
+    expect(await screen.findByRole("heading", { name: "This link no longer works" })).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveTextContent(/a newer change replaced it/);
+  });
+
+  it("asks nothing of the server when the link has no token", async () => {
+    const { api } = renderRoute("/confirm-email");
+    expect(await screen.findByRole("heading", { name: "This link no longer works" })).toBeInTheDocument();
+    expect(api.sent("AuthService/ConfirmEmailChange")).toHaveLength(0);
+  });
+});
+
 describe("ForgotPasswordPage", () => {
   it("sends the email and answers the same way whether or not an account exists", async () => {
     const { api, user } = renderRoute("/forgot-password", { "AuthService/RequestPasswordReset": () => ok() });

@@ -140,6 +140,7 @@ func TestEnumValues(t *testing.T) {
 // ListFollowing the places a user follows.
 var services = map[string][]string{
 	"AuthService": {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword",
+		"ChangePassword", "RequestEmailChange", "ConfirmEmailChange", "SignOutEverywhere",
 		"GetSignUpInfo", "JoinWaitlist", "CreateAccessCode", "ListAccessCodes", "RevokeAccessCode", "ListWaitlist", "InviteFromWaitlist"},
 	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount", "ExportMyData"},
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters"},

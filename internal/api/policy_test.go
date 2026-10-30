@@ -83,6 +83,9 @@ func TestRoutePolicies(t *testing.T) {
 		// Joining the waitlist shares sign-up's budget: both create rows for
 		// anyone who asks.
 		"/perspectiv.v1.AuthService/JoinWaitlist": api.LimitSignup,
+		// Both take the current password, so they share login's guessing limit.
+		"/perspectiv.v1.AuthService/ChangePassword":     api.LimitLogin,
+		"/perspectiv.v1.AuthService/RequestEmailChange": api.LimitLogin,
 		// Searching descriptions is public and scans text; it is bounded per
 		// address like the other public writes.
 		"/perspectiv.v1.PlaceService/SearchCharacters": api.LimitSearch,

@@ -49,6 +49,18 @@ const (
 	// AuthServiceResetPasswordProcedure is the fully-qualified name of the AuthService's ResetPassword
 	// RPC.
 	AuthServiceResetPasswordProcedure = "/perspectiv.v1.AuthService/ResetPassword"
+	// AuthServiceChangePasswordProcedure is the fully-qualified name of the AuthService's
+	// ChangePassword RPC.
+	AuthServiceChangePasswordProcedure = "/perspectiv.v1.AuthService/ChangePassword"
+	// AuthServiceRequestEmailChangeProcedure is the fully-qualified name of the AuthService's
+	// RequestEmailChange RPC.
+	AuthServiceRequestEmailChangeProcedure = "/perspectiv.v1.AuthService/RequestEmailChange"
+	// AuthServiceConfirmEmailChangeProcedure is the fully-qualified name of the AuthService's
+	// ConfirmEmailChange RPC.
+	AuthServiceConfirmEmailChangeProcedure = "/perspectiv.v1.AuthService/ConfirmEmailChange"
+	// AuthServiceSignOutEverywhereProcedure is the fully-qualified name of the AuthService's
+	// SignOutEverywhere RPC.
+	AuthServiceSignOutEverywhereProcedure = "/perspectiv.v1.AuthService/SignOutEverywhere"
 	// AuthServiceGetSignUpInfoProcedure is the fully-qualified name of the AuthService's GetSignUpInfo
 	// RPC.
 	AuthServiceGetSignUpInfoProcedure = "/perspectiv.v1.AuthService/GetSignUpInfo"
@@ -82,6 +94,16 @@ type AuthServiceClient interface {
 	VerifyEmail(context.Context, *connect.Request[v1.VerifyEmailRequest]) (*connect.Response[v1.VerifyEmailResponse], error)
 	RequestPasswordReset(context.Context, *connect.Request[v1.RequestPasswordResetRequest]) (*connect.Response[v1.RequestPasswordResetResponse], error)
 	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
+	// Changes the caller's password, given the current one, and signs out
+	// every other device.
+	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
+	// Starts changing the caller's email, given their password: the new
+	// address gets a confirmation link and the old one a notice.
+	RequestEmailChange(context.Context, *connect.Request[v1.RequestEmailChangeRequest]) (*connect.Response[v1.RequestEmailChangeResponse], error)
+	// Public. Confirms an email change from the link sent to the new address.
+	ConfirmEmailChange(context.Context, *connect.Request[v1.ConfirmEmailChangeRequest]) (*connect.Response[v1.ConfirmEmailChangeResponse], error)
+	// Signs the caller out on every device, this one included.
+	SignOutEverywhere(context.Context, *connect.Request[v1.SignOutEverywhereRequest]) (*connect.Response[v1.SignOutEverywhereResponse], error)
 	// Public. Whether signing up needs an access code (the invite-only beta).
 	GetSignUpInfo(context.Context, *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error)
 	// Public. Asks for a place in the beta. Always answers OK, whether or not
@@ -152,6 +174,30 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
 			connect.WithClientOptions(opts...),
 		),
+		changePassword: connect.NewClient[v1.ChangePasswordRequest, v1.ChangePasswordResponse](
+			httpClient,
+			baseURL+AuthServiceChangePasswordProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ChangePassword")),
+			connect.WithClientOptions(opts...),
+		),
+		requestEmailChange: connect.NewClient[v1.RequestEmailChangeRequest, v1.RequestEmailChangeResponse](
+			httpClient,
+			baseURL+AuthServiceRequestEmailChangeProcedure,
+			connect.WithSchema(authServiceMethods.ByName("RequestEmailChange")),
+			connect.WithClientOptions(opts...),
+		),
+		confirmEmailChange: connect.NewClient[v1.ConfirmEmailChangeRequest, v1.ConfirmEmailChangeResponse](
+			httpClient,
+			baseURL+AuthServiceConfirmEmailChangeProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ConfirmEmailChange")),
+			connect.WithClientOptions(opts...),
+		),
+		signOutEverywhere: connect.NewClient[v1.SignOutEverywhereRequest, v1.SignOutEverywhereResponse](
+			httpClient,
+			baseURL+AuthServiceSignOutEverywhereProcedure,
+			connect.WithSchema(authServiceMethods.ByName("SignOutEverywhere")),
+			connect.WithClientOptions(opts...),
+		),
 		getSignUpInfo: connect.NewClient[v1.GetSignUpInfoRequest, v1.GetSignUpInfoResponse](
 			httpClient,
 			baseURL+AuthServiceGetSignUpInfoProcedure,
@@ -206,6 +252,10 @@ type authServiceClient struct {
 	verifyEmail          *connect.Client[v1.VerifyEmailRequest, v1.VerifyEmailResponse]
 	requestPasswordReset *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
 	resetPassword        *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
+	changePassword       *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	requestEmailChange   *connect.Client[v1.RequestEmailChangeRequest, v1.RequestEmailChangeResponse]
+	confirmEmailChange   *connect.Client[v1.ConfirmEmailChangeRequest, v1.ConfirmEmailChangeResponse]
+	signOutEverywhere    *connect.Client[v1.SignOutEverywhereRequest, v1.SignOutEverywhereResponse]
 	getSignUpInfo        *connect.Client[v1.GetSignUpInfoRequest, v1.GetSignUpInfoResponse]
 	joinWaitlist         *connect.Client[v1.JoinWaitlistRequest, v1.JoinWaitlistResponse]
 	createAccessCode     *connect.Client[v1.CreateAccessCodeRequest, v1.CreateAccessCodeResponse]
@@ -248,6 +298,26 @@ func (c *authServiceClient) RequestPasswordReset(ctx context.Context, req *conne
 // ResetPassword calls perspectiv.v1.AuthService.ResetPassword.
 func (c *authServiceClient) ResetPassword(ctx context.Context, req *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error) {
 	return c.resetPassword.CallUnary(ctx, req)
+}
+
+// ChangePassword calls perspectiv.v1.AuthService.ChangePassword.
+func (c *authServiceClient) ChangePassword(ctx context.Context, req *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error) {
+	return c.changePassword.CallUnary(ctx, req)
+}
+
+// RequestEmailChange calls perspectiv.v1.AuthService.RequestEmailChange.
+func (c *authServiceClient) RequestEmailChange(ctx context.Context, req *connect.Request[v1.RequestEmailChangeRequest]) (*connect.Response[v1.RequestEmailChangeResponse], error) {
+	return c.requestEmailChange.CallUnary(ctx, req)
+}
+
+// ConfirmEmailChange calls perspectiv.v1.AuthService.ConfirmEmailChange.
+func (c *authServiceClient) ConfirmEmailChange(ctx context.Context, req *connect.Request[v1.ConfirmEmailChangeRequest]) (*connect.Response[v1.ConfirmEmailChangeResponse], error) {
+	return c.confirmEmailChange.CallUnary(ctx, req)
+}
+
+// SignOutEverywhere calls perspectiv.v1.AuthService.SignOutEverywhere.
+func (c *authServiceClient) SignOutEverywhere(ctx context.Context, req *connect.Request[v1.SignOutEverywhereRequest]) (*connect.Response[v1.SignOutEverywhereResponse], error) {
+	return c.signOutEverywhere.CallUnary(ctx, req)
 }
 
 // GetSignUpInfo calls perspectiv.v1.AuthService.GetSignUpInfo.
@@ -295,6 +365,16 @@ type AuthServiceHandler interface {
 	VerifyEmail(context.Context, *connect.Request[v1.VerifyEmailRequest]) (*connect.Response[v1.VerifyEmailResponse], error)
 	RequestPasswordReset(context.Context, *connect.Request[v1.RequestPasswordResetRequest]) (*connect.Response[v1.RequestPasswordResetResponse], error)
 	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
+	// Changes the caller's password, given the current one, and signs out
+	// every other device.
+	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
+	// Starts changing the caller's email, given their password: the new
+	// address gets a confirmation link and the old one a notice.
+	RequestEmailChange(context.Context, *connect.Request[v1.RequestEmailChangeRequest]) (*connect.Response[v1.RequestEmailChangeResponse], error)
+	// Public. Confirms an email change from the link sent to the new address.
+	ConfirmEmailChange(context.Context, *connect.Request[v1.ConfirmEmailChangeRequest]) (*connect.Response[v1.ConfirmEmailChangeResponse], error)
+	// Signs the caller out on every device, this one included.
+	SignOutEverywhere(context.Context, *connect.Request[v1.SignOutEverywhereRequest]) (*connect.Response[v1.SignOutEverywhereResponse], error)
 	// Public. Whether signing up needs an access code (the invite-only beta).
 	GetSignUpInfo(context.Context, *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error)
 	// Public. Asks for a place in the beta. Always answers OK, whether or not
@@ -361,6 +441,30 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceChangePasswordHandler := connect.NewUnaryHandler(
+		AuthServiceChangePasswordProcedure,
+		svc.ChangePassword,
+		connect.WithSchema(authServiceMethods.ByName("ChangePassword")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceRequestEmailChangeHandler := connect.NewUnaryHandler(
+		AuthServiceRequestEmailChangeProcedure,
+		svc.RequestEmailChange,
+		connect.WithSchema(authServiceMethods.ByName("RequestEmailChange")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceConfirmEmailChangeHandler := connect.NewUnaryHandler(
+		AuthServiceConfirmEmailChangeProcedure,
+		svc.ConfirmEmailChange,
+		connect.WithSchema(authServiceMethods.ByName("ConfirmEmailChange")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceSignOutEverywhereHandler := connect.NewUnaryHandler(
+		AuthServiceSignOutEverywhereProcedure,
+		svc.SignOutEverywhere,
+		connect.WithSchema(authServiceMethods.ByName("SignOutEverywhere")),
+		connect.WithHandlerOptions(opts...),
+	)
 	authServiceGetSignUpInfoHandler := connect.NewUnaryHandler(
 		AuthServiceGetSignUpInfoProcedure,
 		svc.GetSignUpInfo,
@@ -419,6 +523,14 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceRequestPasswordResetHandler.ServeHTTP(w, r)
 		case AuthServiceResetPasswordProcedure:
 			authServiceResetPasswordHandler.ServeHTTP(w, r)
+		case AuthServiceChangePasswordProcedure:
+			authServiceChangePasswordHandler.ServeHTTP(w, r)
+		case AuthServiceRequestEmailChangeProcedure:
+			authServiceRequestEmailChangeHandler.ServeHTTP(w, r)
+		case AuthServiceConfirmEmailChangeProcedure:
+			authServiceConfirmEmailChangeHandler.ServeHTTP(w, r)
+		case AuthServiceSignOutEverywhereProcedure:
+			authServiceSignOutEverywhereHandler.ServeHTTP(w, r)
 		case AuthServiceGetSignUpInfoProcedure:
 			authServiceGetSignUpInfoHandler.ServeHTTP(w, r)
 		case AuthServiceJoinWaitlistProcedure:
@@ -468,6 +580,22 @@ func (UnimplementedAuthServiceHandler) RequestPasswordReset(context.Context, *co
 
 func (UnimplementedAuthServiceHandler) ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.ResetPassword is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.ChangePassword is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) RequestEmailChange(context.Context, *connect.Request[v1.RequestEmailChangeRequest]) (*connect.Response[v1.RequestEmailChangeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.RequestEmailChange is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ConfirmEmailChange(context.Context, *connect.Request[v1.ConfirmEmailChangeRequest]) (*connect.Response[v1.ConfirmEmailChangeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.ConfirmEmailChange is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) SignOutEverywhere(context.Context, *connect.Request[v1.SignOutEverywhereRequest]) (*connect.Response[v1.SignOutEverywhereResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.SignOutEverywhere is not implemented"))
 }
 
 func (UnimplementedAuthServiceHandler) GetSignUpInfo(context.Context, *connect.Request[v1.GetSignUpInfoRequest]) (*connect.Response[v1.GetSignUpInfoResponse], error) {

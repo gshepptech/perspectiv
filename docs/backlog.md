@@ -5,8 +5,6 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing (wave 2)
 
-8. **Account security.** Change password while signed in, change email with
-   verification of the new address, and sign out of every device.
 9. **Mobile pass.** Every main screen checked at 375px for overflow, tap
    targets and reading comfort, and fixed (review delegated).
 
@@ -27,6 +25,16 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Done
 
+- Account security: Settings has "Sign-in and security". Changing the
+  password takes the current one (counted by the login lockout), retires
+  reset links and signs out every other device. Changing email takes the
+  password, mails a 48-hour link to the new address and a notice to the old
+  one, and changes nothing until the link is followed; a newer request
+  replaces an older one, and an address taken in the meantime is refused.
+  "Sign out everywhere" revokes every session. Verified by TestChangePassword,
+  TestChangePasswordHonoursLockout, TestEmailChange, TestEmailChangeRaces,
+  TestSignOutEverywhere, the template tests and the settings and
+  /confirm-email unit tests.
 - A livelier beta: five more seed days (Tampa, Key West, Jacksonville,
   Saint Petersburg, Sarasota) with 26 new writers, three canon lores, two
   contenders, four tales, named lores and thread posts. Characters are

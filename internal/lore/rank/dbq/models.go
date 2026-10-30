@@ -85,6 +85,7 @@ type EmailToken struct {
 	CreatedAt pgtype.Timestamptz
 	ExpiresAt pgtype.Timestamptz
 	UsedAt    pgtype.Timestamptz
+	NewEmail  pgtype.Text
 }
 
 type Invite struct {

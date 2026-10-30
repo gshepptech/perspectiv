@@ -169,3 +169,59 @@ func (h *Handler) ResetPassword(ctx context.Context, req *connect.Request[perspe
 	}
 	return connect.NewResponse(&perspectivv1.ResetPasswordResponse{}), nil
 }
+
+// callerOrDeny is the signed-in caller. The policy table already refuses an
+// anonymous call to these methods; this keeps a misrouted one closed too.
+func callerOrDeny(ctx context.Context) (apiutil.Caller, error) {
+	c, ok := apiutil.CallerFrom(ctx)
+	if !ok {
+		return apiutil.Caller{}, apiutil.ToConnect(apiutil.Unauthenticated("sign in first"))
+	}
+	return c, nil
+}
+
+// ChangePassword sets a new password and signs out every other device.
+func (h *Handler) ChangePassword(ctx context.Context, req *connect.Request[perspectivv1.ChangePasswordRequest]) (*connect.Response[perspectivv1.ChangePasswordResponse], error) {
+	c, err := callerOrDeny(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := h.svc.ChangePassword(ctx, c, req.Msg.GetCurrentPassword(), req.Msg.GetNewPassword()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ChangePasswordResponse{}), nil
+}
+
+// RequestEmailChange emails a confirmation link to the new address.
+func (h *Handler) RequestEmailChange(ctx context.Context, req *connect.Request[perspectivv1.RequestEmailChangeRequest]) (*connect.Response[perspectivv1.RequestEmailChangeResponse], error) {
+	c, err := callerOrDeny(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := h.svc.RequestEmailChange(ctx, c, req.Msg.GetNewEmail(), req.Msg.GetCurrentPassword()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.RequestEmailChangeResponse{}), nil
+}
+
+// ConfirmEmailChange follows the link sent to the new address.
+func (h *Handler) ConfirmEmailChange(ctx context.Context, req *connect.Request[perspectivv1.ConfirmEmailChangeRequest]) (*connect.Response[perspectivv1.ConfirmEmailChangeResponse], error) {
+	if err := h.svc.ConfirmEmailChange(ctx, req.Msg.GetToken()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ConfirmEmailChangeResponse{}), nil
+}
+
+// SignOutEverywhere revokes every session and clears this browser's cookie.
+func (h *Handler) SignOutEverywhere(ctx context.Context, _ *connect.Request[perspectivv1.SignOutEverywhereRequest]) (*connect.Response[perspectivv1.SignOutEverywhereResponse], error) {
+	c, err := callerOrDeny(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := h.svc.SignOutEverywhere(ctx, c); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	res := connect.NewResponse(&perspectivv1.SignOutEverywhereResponse{})
+	res.Header().Add("Set-Cookie", h.clearCookie().String())
+	return res, nil
+}

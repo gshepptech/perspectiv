@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/auth.proto.
  */
 export const file_perspectiv_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChhwZXJzcGVjdGl2L3YxL2F1dGgucHJvdG8SDXBlcnNwZWN0aXYudjEiawoLU2Vzc2lvblVzZXISDwoHdXNlcl9pZBgBIAEoCRIQCgh1c2VybmFtZRgCIAEoCRIhCgRyb2xlGAMgASgOMhMucGVyc3BlY3Rpdi52MS5Sb2xlEhYKDmVtYWlsX3ZlcmlmaWVkGAQgASgIIn8KDVNpZ25VcFJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSFQoNYWdlX2NvbmZpcm1lZBgEIAEoCBITCgthY2Nlc3NfY29kZRgFIAEoCRIPCgd3ZWJzaXRlGAYgASgJIiEKDlNpZ25VcFJlc3BvbnNlEg8KB3VzZXJfaWQYASABKAkiLwoMTG9naW5SZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIowBCg1Mb2dpblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRI7ChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEdXNlchgDIAEoCzIaLnBlcnNwZWN0aXYudjEuU2Vzc2lvblVzZXIiDwoNTG9nb3V0UmVxdWVzdCIQCg5Mb2dvdXRSZXNwb25zZSIQCg5SZWZyZXNoUmVxdWVzdCKOAQoPUmVmcmVzaFJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRI7ChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEdXNlchgDIAEoCzIaLnBlcnNwZWN0aXYudjEuU2Vzc2lvblVzZXIiIwoSVmVyaWZ5RW1haWxSZXF1ZXN0Eg0KBXRva2VuGAEgASgJIhUKE1ZlcmlmeUVtYWlsUmVzcG9uc2UiLAobUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIh4KHFJlcXVlc3RQYXNzd29yZFJlc2V0UmVzcG9uc2UiOwoUUmVzZXRQYXNzd29yZFJlcXVlc3QSDQoFdG9rZW4YASABKAkSFAoMbmV3X3Bhc3N3b3JkGAIgASgJIhcKFVJlc2V0UGFzc3dvcmRSZXNwb25zZSIWChRHZXRTaWduVXBJbmZvUmVxdWVzdCIsChVHZXRTaWduVXBJbmZvUmVzcG9uc2USEwoLaW52aXRlX29ubHkYASABKAgiQwoTSm9pbldhaXRsaXN0UmVxdWVzdBINCgVlbWFpbBgBIAEoCRIMCgRub3RlGAIgASgJEg8KB3dlYnNpdGUYAyABKAkiFgoUSm9pbldhaXRsaXN0UmVzcG9uc2UiuQEKCkFjY2Vzc0NvZGUSDAoEY29kZRgBIAEoCRIMCgRub3RlGAIgASgJEhAKCG1heF91c2VzGAMgASgFEgwKBHVzZXMYBCABKAUSLgoKY3JlYXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDwoHcmV2b2tlZBgHIAEoCCJgChdDcmVhdGVBY2Nlc3NDb2RlUmVxdWVzdBIMCgRjb2RlGAEgASgJEgwKBG5vdGUYAiABKAkSEAoIbWF4X3VzZXMYAyABKAUSFwoPZXhwaXJlc19pbl9kYXlzGAQgASgFIkMKGENyZWF0ZUFjY2Vzc0NvZGVSZXNwb25zZRInCgRjb2RlGAEgASgLMhkucGVyc3BlY3Rpdi52MS5BY2Nlc3NDb2RlIj8KFkxpc3RBY2Nlc3NDb2Rlc1JlcXVlc3QSEgoKcGFnZV90b2tlbhgBIAEoCRIRCglwYWdlX3NpemUYAiABKAUiXAoXTGlzdEFjY2Vzc0NvZGVzUmVzcG9uc2USKAoFY29kZXMYASADKAsyGS5wZXJzcGVjdGl2LnYxLkFjY2Vzc0NvZGUSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIicKF1Jldm9rZUFjY2Vzc0NvZGVSZXF1ZXN0EgwKBGNvZGUYASABKAkiQwoYUmV2b2tlQWNjZXNzQ29kZVJlc3BvbnNlEicKBGNvZGUYASABKAsyGS5wZXJzcGVjdGl2LnYxLkFjY2Vzc0NvZGUiqwEKDVdhaXRsaXN0RW50cnkSCgoCaWQYASABKAkSEgoKZW1haWxfaGludBgCIAEoCRIMCgRub3RlGAMgASgJEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmludml0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgwKBGNvZGUYBiABKAkiUgoTTGlzdFdhaXRsaXN0UmVxdWVzdBIUCgx3YWl0aW5nX29ubHkYASABKAgSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUiXgoUTGlzdFdhaXRsaXN0UmVzcG9uc2USLQoHZW50cmllcxgBIAMoCzIcLnBlcnNwZWN0aXYudjEuV2FpdGxpc3RFbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiJwoZSW52aXRlRnJvbVdhaXRsaXN0UmVxdWVzdBIKCgJpZBgBIAEoCSJJChpJbnZpdGVGcm9tV2FpdGxpc3RSZXNwb25zZRIrCgVlbnRyeRgBIAEoCzIcLnBlcnNwZWN0aXYudjEuV2FpdGxpc3RFbnRyeTLxCQoLQXV0aFNlcnZpY2USRQoGU2lnblVwEhwucGVyc3BlY3Rpdi52MS5TaWduVXBSZXF1ZXN0Gh0ucGVyc3BlY3Rpdi52MS5TaWduVXBSZXNwb25zZRJCCgVMb2dpbhIbLnBlcnNwZWN0aXYudjEuTG9naW5SZXF1ZXN0GhwucGVyc3BlY3Rpdi52MS5Mb2dpblJlc3BvbnNlEkUKBkxvZ291dBIcLnBlcnNwZWN0aXYudjEuTG9nb3V0UmVxdWVzdBodLnBlcnNwZWN0aXYudjEuTG9nb3V0UmVzcG9uc2USSAoHUmVmcmVzaBIdLnBlcnNwZWN0aXYudjEuUmVmcmVzaFJlcXVlc3QaHi5wZXJzcGVjdGl2LnYxLlJlZnJlc2hSZXNwb25zZRJUCgtWZXJpZnlFbWFpbBIhLnBlcnNwZWN0aXYudjEuVmVyaWZ5RW1haWxSZXF1ZXN0GiIucGVyc3BlY3Rpdi52MS5WZXJpZnlFbWFpbFJlc3BvbnNlEm8KFFJlcXVlc3RQYXNzd29yZFJlc2V0EioucGVyc3BlY3Rpdi52MS5SZXF1ZXN0UGFzc3dvcmRSZXNldFJlcXVlc3QaKy5wZXJzcGVjdGl2LnYxLlJlcXVlc3RQYXNzd29yZFJlc2V0UmVzcG9uc2USWgoNUmVzZXRQYXNzd29yZBIjLnBlcnNwZWN0aXYudjEuUmVzZXRQYXNzd29yZFJlcXVlc3QaJC5wZXJzcGVjdGl2LnYxLlJlc2V0UGFzc3dvcmRSZXNwb25zZRJaCg1HZXRTaWduVXBJbmZvEiMucGVyc3BlY3Rpdi52MS5HZXRTaWduVXBJbmZvUmVxdWVzdBokLnBlcnNwZWN0aXYudjEuR2V0U2lnblVwSW5mb1Jlc3BvbnNlElcKDEpvaW5XYWl0bGlzdBIiLnBlcnNwZWN0aXYudjEuSm9pbldhaXRsaXN0UmVxdWVzdBojLnBlcnNwZWN0aXYudjEuSm9pbldhaXRsaXN0UmVzcG9uc2USYwoQQ3JlYXRlQWNjZXNzQ29kZRImLnBlcnNwZWN0aXYudjEuQ3JlYXRlQWNjZXNzQ29kZVJlcXVlc3QaJy5wZXJzcGVjdGl2LnYxLkNyZWF0ZUFjY2Vzc0NvZGVSZXNwb25zZRJgCg9MaXN0QWNjZXNzQ29kZXMSJS5wZXJzcGVjdGl2LnYxLkxpc3RBY2Nlc3NDb2Rlc1JlcXVlc3QaJi5wZXJzcGVjdGl2LnYxLkxpc3RBY2Nlc3NDb2Rlc1Jlc3BvbnNlEmMKEFJldm9rZUFjY2Vzc0NvZGUSJi5wZXJzcGVjdGl2LnYxLlJldm9rZUFjY2Vzc0NvZGVSZXF1ZXN0GicucGVyc3BlY3Rpdi52MS5SZXZva2VBY2Nlc3NDb2RlUmVzcG9uc2USVwoMTGlzdFdhaXRsaXN0EiIucGVyc3BlY3Rpdi52MS5MaXN0V2FpdGxpc3RSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5MaXN0V2FpdGxpc3RSZXNwb25zZRJpChJJbnZpdGVGcm9tV2FpdGxpc3QSKC5wZXJzcGVjdGl2LnYxLkludml0ZUZyb21XYWl0bGlzdFJlcXVlc3QaKS5wZXJzcGVjdGl2LnYxLkludml0ZUZyb21XYWl0bGlzdFJlc3BvbnNlQp4BChFjb20ucGVyc3BlY3Rpdi52MUIJQXV0aFByb3RvUAFaKXBlcnNwZWN0aXYvZ2VuL3BlcnNwZWN0aXYvdjE7cGVyc3BlY3RpdnYxogIDUFhYqgINUGVyc3BlY3Rpdi5WMcoCDVBlcnNwZWN0aXZcVjHiAhlQZXJzcGVjdGl2XFYxXEdQQk1ldGFkYXRh6gIOUGVyc3BlY3Rpdjo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_perspectiv_v1_enums]);
+  fileDesc("ChhwZXJzcGVjdGl2L3YxL2F1dGgucHJvdG8SDXBlcnNwZWN0aXYudjEiawoLU2Vzc2lvblVzZXISDwoHdXNlcl9pZBgBIAEoCRIQCgh1c2VybmFtZRgCIAEoCRIhCgRyb2xlGAMgASgOMhMucGVyc3BlY3Rpdi52MS5Sb2xlEhYKDmVtYWlsX3ZlcmlmaWVkGAQgASgIIn8KDVNpZ25VcFJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSFQoNYWdlX2NvbmZpcm1lZBgEIAEoCBITCgthY2Nlc3NfY29kZRgFIAEoCRIPCgd3ZWJzaXRlGAYgASgJIiEKDlNpZ25VcFJlc3BvbnNlEg8KB3VzZXJfaWQYASABKAkiLwoMTG9naW5SZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIowBCg1Mb2dpblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRI7ChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEdXNlchgDIAEoCzIaLnBlcnNwZWN0aXYudjEuU2Vzc2lvblVzZXIiDwoNTG9nb3V0UmVxdWVzdCIQCg5Mb2dvdXRSZXNwb25zZSIQCg5SZWZyZXNoUmVxdWVzdCKOAQoPUmVmcmVzaFJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRI7ChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEdXNlchgDIAEoCzIaLnBlcnNwZWN0aXYudjEuU2Vzc2lvblVzZXIiIwoSVmVyaWZ5RW1haWxSZXF1ZXN0Eg0KBXRva2VuGAEgASgJIhUKE1ZlcmlmeUVtYWlsUmVzcG9uc2UiLAobUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIh4KHFJlcXVlc3RQYXNzd29yZFJlc2V0UmVzcG9uc2UiOwoUUmVzZXRQYXNzd29yZFJlcXVlc3QSDQoFdG9rZW4YASABKAkSFAoMbmV3X3Bhc3N3b3JkGAIgASgJIhcKFVJlc2V0UGFzc3dvcmRSZXNwb25zZSIWChRHZXRTaWduVXBJbmZvUmVxdWVzdCIsChVHZXRTaWduVXBJbmZvUmVzcG9uc2USEwoLaW52aXRlX29ubHkYASABKAgiQwoTSm9pbldhaXRsaXN0UmVxdWVzdBINCgVlbWFpbBgBIAEoCRIMCgRub3RlGAIgASgJEg8KB3dlYnNpdGUYAyABKAkiFgoUSm9pbldhaXRsaXN0UmVzcG9uc2UiuQEKCkFjY2Vzc0NvZGUSDAoEY29kZRgBIAEoCRIMCgRub3RlGAIgASgJEhAKCG1heF91c2VzGAMgASgFEgwKBHVzZXMYBCABKAUSLgoKY3JlYXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDwoHcmV2b2tlZBgHIAEoCCJgChdDcmVhdGVBY2Nlc3NDb2RlUmVxdWVzdBIMCgRjb2RlGAEgASgJEgwKBG5vdGUYAiABKAkSEAoIbWF4X3VzZXMYAyABKAUSFwoPZXhwaXJlc19pbl9kYXlzGAQgASgFIkMKGENyZWF0ZUFjY2Vzc0NvZGVSZXNwb25zZRInCgRjb2RlGAEgASgLMhkucGVyc3BlY3Rpdi52MS5BY2Nlc3NDb2RlIj8KFkxpc3RBY2Nlc3NDb2Rlc1JlcXVlc3QSEgoKcGFnZV90b2tlbhgBIAEoCRIRCglwYWdlX3NpemUYAiABKAUiXAoXTGlzdEFjY2Vzc0NvZGVzUmVzcG9uc2USKAoFY29kZXMYASADKAsyGS5wZXJzcGVjdGl2LnYxLkFjY2Vzc0NvZGUSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIicKF1Jldm9rZUFjY2Vzc0NvZGVSZXF1ZXN0EgwKBGNvZGUYASABKAkiQwoYUmV2b2tlQWNjZXNzQ29kZVJlc3BvbnNlEicKBGNvZGUYASABKAsyGS5wZXJzcGVjdGl2LnYxLkFjY2Vzc0NvZGUiqwEKDVdhaXRsaXN0RW50cnkSCgoCaWQYASABKAkSEgoKZW1haWxfaGludBgCIAEoCRIMCgRub3RlGAMgASgJEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmludml0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgwKBGNvZGUYBiABKAkiUgoTTGlzdFdhaXRsaXN0UmVxdWVzdBIUCgx3YWl0aW5nX29ubHkYASABKAgSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUiXgoUTGlzdFdhaXRsaXN0UmVzcG9uc2USLQoHZW50cmllcxgBIAMoCzIcLnBlcnNwZWN0aXYudjEuV2FpdGxpc3RFbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiJwoZSW52aXRlRnJvbVdhaXRsaXN0UmVxdWVzdBIKCgJpZBgBIAEoCSJJChpJbnZpdGVGcm9tV2FpdGxpc3RSZXNwb25zZRIrCgVlbnRyeRgBIAEoCzIcLnBlcnNwZWN0aXYudjEuV2FpdGxpc3RFbnRyeSJHChVDaGFuZ2VQYXNzd29yZFJlcXVlc3QSGAoQY3VycmVudF9wYXNzd29yZBgBIAEoCRIUCgxuZXdfcGFzc3dvcmQYAiABKAkiGAoWQ2hhbmdlUGFzc3dvcmRSZXNwb25zZSJIChlSZXF1ZXN0RW1haWxDaGFuZ2VSZXF1ZXN0EhEKCW5ld19lbWFpbBgBIAEoCRIYChBjdXJyZW50X3Bhc3N3b3JkGAIgASgJIhwKGlJlcXVlc3RFbWFpbENoYW5nZVJlc3BvbnNlIioKGUNvbmZpcm1FbWFpbENoYW5nZVJlcXVlc3QSDQoFdG9rZW4YASABKAkiHAoaQ29uZmlybUVtYWlsQ2hhbmdlUmVzcG9uc2UiGgoYU2lnbk91dEV2ZXJ5d2hlcmVSZXF1ZXN0IhsKGVNpZ25PdXRFdmVyeXdoZXJlUmVzcG9uc2Uyjg0KC0F1dGhTZXJ2aWNlEkUKBlNpZ25VcBIcLnBlcnNwZWN0aXYudjEuU2lnblVwUmVxdWVzdBodLnBlcnNwZWN0aXYudjEuU2lnblVwUmVzcG9uc2USQgoFTG9naW4SGy5wZXJzcGVjdGl2LnYxLkxvZ2luUmVxdWVzdBocLnBlcnNwZWN0aXYudjEuTG9naW5SZXNwb25zZRJFCgZMb2dvdXQSHC5wZXJzcGVjdGl2LnYxLkxvZ291dFJlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLkxvZ291dFJlc3BvbnNlEkgKB1JlZnJlc2gSHS5wZXJzcGVjdGl2LnYxLlJlZnJlc2hSZXF1ZXN0Gh4ucGVyc3BlY3Rpdi52MS5SZWZyZXNoUmVzcG9uc2USVAoLVmVyaWZ5RW1haWwSIS5wZXJzcGVjdGl2LnYxLlZlcmlmeUVtYWlsUmVxdWVzdBoiLnBlcnNwZWN0aXYudjEuVmVyaWZ5RW1haWxSZXNwb25zZRJvChRSZXF1ZXN0UGFzc3dvcmRSZXNldBIqLnBlcnNwZWN0aXYudjEuUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXF1ZXN0GisucGVyc3BlY3Rpdi52MS5SZXF1ZXN0UGFzc3dvcmRSZXNldFJlc3BvbnNlEloKDVJlc2V0UGFzc3dvcmQSIy5wZXJzcGVjdGl2LnYxLlJlc2V0UGFzc3dvcmRSZXF1ZXN0GiQucGVyc3BlY3Rpdi52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2USXQoOQ2hhbmdlUGFzc3dvcmQSJC5wZXJzcGVjdGl2LnYxLkNoYW5nZVBhc3N3b3JkUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuQ2hhbmdlUGFzc3dvcmRSZXNwb25zZRJpChJSZXF1ZXN0RW1haWxDaGFuZ2USKC5wZXJzcGVjdGl2LnYxLlJlcXVlc3RFbWFpbENoYW5nZVJlcXVlc3QaKS5wZXJzcGVjdGl2LnYxLlJlcXVlc3RFbWFpbENoYW5nZVJlc3BvbnNlEmkKEkNvbmZpcm1FbWFpbENoYW5nZRIoLnBlcnNwZWN0aXYudjEuQ29uZmlybUVtYWlsQ2hhbmdlUmVxdWVzdBopLnBlcnNwZWN0aXYudjEuQ29uZmlybUVtYWlsQ2hhbmdlUmVzcG9uc2USZgoRU2lnbk91dEV2ZXJ5d2hlcmUSJy5wZXJzcGVjdGl2LnYxLlNpZ25PdXRFdmVyeXdoZXJlUmVxdWVzdBooLnBlcnNwZWN0aXYudjEuU2lnbk91dEV2ZXJ5d2hlcmVSZXNwb25zZRJaCg1HZXRTaWduVXBJbmZvEiMucGVyc3BlY3Rpdi52MS5HZXRTaWduVXBJbmZvUmVxdWVzdBokLnBlcnNwZWN0aXYudjEuR2V0U2lnblVwSW5mb1Jlc3BvbnNlElcKDEpvaW5XYWl0bGlzdBIiLnBlcnNwZWN0aXYudjEuSm9pbldhaXRsaXN0UmVxdWVzdBojLnBlcnNwZWN0aXYudjEuSm9pbldhaXRsaXN0UmVzcG9uc2USYwoQQ3JlYXRlQWNjZXNzQ29kZRImLnBlcnNwZWN0aXYudjEuQ3JlYXRlQWNjZXNzQ29kZVJlcXVlc3QaJy5wZXJzcGVjdGl2LnYxLkNyZWF0ZUFjY2Vzc0NvZGVSZXNwb25zZRJgCg9MaXN0QWNjZXNzQ29kZXMSJS5wZXJzcGVjdGl2LnYxLkxpc3RBY2Nlc3NDb2Rlc1JlcXVlc3QaJi5wZXJzcGVjdGl2LnYxLkxpc3RBY2Nlc3NDb2Rlc1Jlc3BvbnNlEmMKEFJldm9rZUFjY2Vzc0NvZGUSJi5wZXJzcGVjdGl2LnYxLlJldm9rZUFjY2Vzc0NvZGVSZXF1ZXN0GicucGVyc3BlY3Rpdi52MS5SZXZva2VBY2Nlc3NDb2RlUmVzcG9uc2USVwoMTGlzdFdhaXRsaXN0EiIucGVyc3BlY3Rpdi52MS5MaXN0V2FpdGxpc3RSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5MaXN0V2FpdGxpc3RSZXNwb25zZRJpChJJbnZpdGVGcm9tV2FpdGxpc3QSKC5wZXJzcGVjdGl2LnYxLkludml0ZUZyb21XYWl0bGlzdFJlcXVlc3QaKS5wZXJzcGVjdGl2LnYxLkludml0ZUZyb21XYWl0bGlzdFJlc3BvbnNlQp4BChFjb20ucGVyc3BlY3Rpdi52MUIJQXV0aFByb3RvUAFaKXBlcnNwZWN0aXYvZ2VuL3BlcnNwZWN0aXYvdjE7cGVyc3BlY3RpdnYxogIDUFhYqgINUGVyc3BlY3Rpdi5WMcoCDVBlcnNwZWN0aXZcVjHiAhlQZXJzcGVjdGl2XFYxXEdQQk1ldGFkYXRh6gIOUGVyc3BlY3Rpdjo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_perspectiv_v1_enums]);
 
 /**
  * SessionUser is the signed-in caller as the web app's session sees it.
@@ -730,6 +730,132 @@ export const InviteFromWaitlistResponseSchema: GenMessage<InviteFromWaitlistResp
   messageDesc(file_perspectiv_v1_auth, 30);
 
 /**
+ * @generated from message perspectiv.v1.ChangePasswordRequest
+ */
+export type ChangePasswordRequest = Message<"perspectiv.v1.ChangePasswordRequest"> & {
+  /**
+   * @generated from field: string current_password = 1;
+   */
+  currentPassword: string;
+
+  /**
+   * @generated from field: string new_password = 2;
+   */
+  newPassword: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ChangePasswordRequest.
+ * Use `create(ChangePasswordRequestSchema)` to create a new message.
+ */
+export const ChangePasswordRequestSchema: GenMessage<ChangePasswordRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 31);
+
+/**
+ * @generated from message perspectiv.v1.ChangePasswordResponse
+ */
+export type ChangePasswordResponse = Message<"perspectiv.v1.ChangePasswordResponse"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.ChangePasswordResponse.
+ * Use `create(ChangePasswordResponseSchema)` to create a new message.
+ */
+export const ChangePasswordResponseSchema: GenMessage<ChangePasswordResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 32);
+
+/**
+ * @generated from message perspectiv.v1.RequestEmailChangeRequest
+ */
+export type RequestEmailChangeRequest = Message<"perspectiv.v1.RequestEmailChangeRequest"> & {
+  /**
+   * @generated from field: string new_email = 1;
+   */
+  newEmail: string;
+
+  /**
+   * @generated from field: string current_password = 2;
+   */
+  currentPassword: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.RequestEmailChangeRequest.
+ * Use `create(RequestEmailChangeRequestSchema)` to create a new message.
+ */
+export const RequestEmailChangeRequestSchema: GenMessage<RequestEmailChangeRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 33);
+
+/**
+ * @generated from message perspectiv.v1.RequestEmailChangeResponse
+ */
+export type RequestEmailChangeResponse = Message<"perspectiv.v1.RequestEmailChangeResponse"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.RequestEmailChangeResponse.
+ * Use `create(RequestEmailChangeResponseSchema)` to create a new message.
+ */
+export const RequestEmailChangeResponseSchema: GenMessage<RequestEmailChangeResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 34);
+
+/**
+ * @generated from message perspectiv.v1.ConfirmEmailChangeRequest
+ */
+export type ConfirmEmailChangeRequest = Message<"perspectiv.v1.ConfirmEmailChangeRequest"> & {
+  /**
+   * @generated from field: string token = 1;
+   */
+  token: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ConfirmEmailChangeRequest.
+ * Use `create(ConfirmEmailChangeRequestSchema)` to create a new message.
+ */
+export const ConfirmEmailChangeRequestSchema: GenMessage<ConfirmEmailChangeRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 35);
+
+/**
+ * @generated from message perspectiv.v1.ConfirmEmailChangeResponse
+ */
+export type ConfirmEmailChangeResponse = Message<"perspectiv.v1.ConfirmEmailChangeResponse"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.ConfirmEmailChangeResponse.
+ * Use `create(ConfirmEmailChangeResponseSchema)` to create a new message.
+ */
+export const ConfirmEmailChangeResponseSchema: GenMessage<ConfirmEmailChangeResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 36);
+
+/**
+ * @generated from message perspectiv.v1.SignOutEverywhereRequest
+ */
+export type SignOutEverywhereRequest = Message<"perspectiv.v1.SignOutEverywhereRequest"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.SignOutEverywhereRequest.
+ * Use `create(SignOutEverywhereRequestSchema)` to create a new message.
+ */
+export const SignOutEverywhereRequestSchema: GenMessage<SignOutEverywhereRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 37);
+
+/**
+ * @generated from message perspectiv.v1.SignOutEverywhereResponse
+ */
+export type SignOutEverywhereResponse = Message<"perspectiv.v1.SignOutEverywhereResponse"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.SignOutEverywhereResponse.
+ * Use `create(SignOutEverywhereResponseSchema)` to create a new message.
+ */
+export const SignOutEverywhereResponseSchema: GenMessage<SignOutEverywhereResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 38);
+
+/**
  * AuthService signs users up and in. The access token is returned in the body
  * for the browser to hold in memory; the refresh token travels only as an
  * HttpOnly cookie and never appears in a message.
@@ -794,6 +920,48 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof ResetPasswordRequestSchema;
     output: typeof ResetPasswordResponseSchema;
+  },
+  /**
+   * Changes the caller's password, given the current one, and signs out
+   * every other device.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.ChangePassword
+   */
+  changePassword: {
+    methodKind: "unary";
+    input: typeof ChangePasswordRequestSchema;
+    output: typeof ChangePasswordResponseSchema;
+  },
+  /**
+   * Starts changing the caller's email, given their password: the new
+   * address gets a confirmation link and the old one a notice.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.RequestEmailChange
+   */
+  requestEmailChange: {
+    methodKind: "unary";
+    input: typeof RequestEmailChangeRequestSchema;
+    output: typeof RequestEmailChangeResponseSchema;
+  },
+  /**
+   * Public. Confirms an email change from the link sent to the new address.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.ConfirmEmailChange
+   */
+  confirmEmailChange: {
+    methodKind: "unary";
+    input: typeof ConfirmEmailChangeRequestSchema;
+    output: typeof ConfirmEmailChangeResponseSchema;
+  },
+  /**
+   * Signs the caller out on every device, this one included.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.SignOutEverywhere
+   */
+  signOutEverywhere: {
+    methodKind: "unary";
+    input: typeof SignOutEverywhereRequestSchema;
+    output: typeof SignOutEverywhereResponseSchema;
   },
   /**
    * Public. Whether signing up needs an access code (the invite-only beta).

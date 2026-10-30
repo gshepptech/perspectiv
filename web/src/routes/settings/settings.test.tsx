@@ -284,6 +284,74 @@ describe("SettingsPage delete account", () => {
   });
 });
 
+describe("SettingsPage sign-in and security", () => {
+  it("changes the password with the current one and says other devices are signed out", async () => {
+    const { api, user } = settings({ "AuthService/ChangePassword": () => ok() });
+    const form = await screen.findByRole("form", { name: "Change password" });
+    await user.type(within(form).getByLabelText("Current password"), "old secret here");
+    await user.type(within(form).getByLabelText("New password"), "a new long secret");
+    await user.type(within(form).getByLabelText("Repeat new password"), "a new long secret");
+    await user.click(within(form).getByRole("button", { name: "Change password" }));
+    expect(await within(form).findByRole("status")).toHaveTextContent("Every other device is signed out.");
+    expect(api.sent("AuthService/ChangePassword")).toEqual([{ currentPassword: "old secret here", newPassword: "a new long secret" }]);
+    expect(within(form).getByLabelText("Current password")).toHaveValue("");
+  });
+
+  it("refuses differing new passwords before asking the server", async () => {
+    const { api, user } = settings();
+    const form = await screen.findByRole("form", { name: "Change password" });
+    await user.type(within(form).getByLabelText("Current password"), "old secret here");
+    await user.type(within(form).getByLabelText("New password"), "a new long secret");
+    await user.type(within(form).getByLabelText("Repeat new password"), "a new long secreT");
+    await user.click(within(form).getByRole("button", { name: "Change password" }));
+    expect(await within(form).findByText("The two passwords differ.")).toBeInTheDocument();
+    expect(api.sent("AuthService/ChangePassword")).toHaveLength(0);
+  });
+
+  it("words a wrong current password as a typo", async () => {
+    const { user } = settings({ "AuthService/ChangePassword": () => fail("permission_denied", "wrong") });
+    const form = await screen.findByRole("form", { name: "Change password" });
+    await user.type(within(form).getByLabelText("Current password"), "not it");
+    await user.type(within(form).getByLabelText("New password"), "a new long secret");
+    await user.type(within(form).getByLabelText("Repeat new password"), "a new long secret");
+    await user.click(within(form).getByRole("button", { name: "Change password" }));
+    expect(await within(form).findByRole("alert")).toHaveTextContent("Your current password is not right.");
+  });
+
+  it("sends a confirmation link to the new email and keeps the old one shown", async () => {
+    const { api, user } = settings({ "AuthService/RequestEmailChange": () => ok() });
+    const form = await screen.findByRole("form", { name: "Change email" });
+    expect(form).toHaveTextContent("Your email stays wren@example.com until you follow it.");
+    await user.type(within(form).getByLabelText("New email"), "wren@new.example");
+    await user.type(within(form).getByLabelText("Current password"), "my secret");
+    await user.click(within(form).getByRole("button", { name: "Send confirmation link" }));
+    expect(await within(form).findByRole("status")).toHaveTextContent("Check wren@new.example for a link");
+    expect(api.sent("AuthService/RequestEmailChange")).toEqual([{ newEmail: "wren@new.example", currentPassword: "my secret" }]);
+  });
+
+  it("shows the server's reason when the new email is taken", async () => {
+    const { user } = settings({
+      "AuthService/RequestEmailChange": () => fail("already_exists", "an account with that email already exists"),
+    });
+    const form = await screen.findByRole("form", { name: "Change email" });
+    await user.type(within(form).getByLabelText("New email"), "taken@example.com");
+    await user.type(within(form).getByLabelText("Current password"), "my secret");
+    await user.click(within(form).getByRole("button", { name: "Send confirmation link" }));
+    expect(await within(form).findByRole("alert")).toHaveTextContent("an account with that email already exists");
+  });
+
+  it("signs out everywhere after confirming, and lands on sign in", async () => {
+    const { api, router, user } = settings({ "AuthService/SignOutEverywhere": () => ok() });
+    await user.click(await screen.findByRole("button", { name: "Sign out everywhere…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Sign out everywhere?" });
+    await user.click(within(dialog).getByRole("button", { name: "Sign out everywhere" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+    expect(api.sent("AuthService/SignOutEverywhere")).toHaveLength(1);
+    expect(currentSession()).toBeNull();
+    expect(getAccessToken()).toBeNull();
+  });
+});
+
 describe("SettingsPage layout", () => {
   it("OT-037: fits a 375px viewport with a long email and many blocks", async () => {
     const { view } = settings({

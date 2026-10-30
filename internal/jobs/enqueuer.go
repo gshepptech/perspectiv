@@ -41,7 +41,8 @@ func (e *Enqueuer) EmailTx(ctx context.Context, tx pgx.Tx, a EmailArgs) error {
 		return errors.New("enqueue email: recipient is required")
 	}
 	switch a.Template {
-	case TemplateVerifyEmail, TemplatePasswordReset, TemplateNotification, TemplateBetaInvite, TemplateDigest:
+	case TemplateVerifyEmail, TemplatePasswordReset, TemplateNotification, TemplateBetaInvite, TemplateDigest,
+		TemplateChangeEmail, TemplateEmailChangeNotice:
 	default:
 		return fmt.Errorf("enqueue email: unknown template %q", a.Template)
 	}

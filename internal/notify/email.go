@@ -137,6 +137,16 @@ func (w *emailWorker) render(a jobs.EmailArgs) (mailer.Message, error) {
 			"You're invited to Perspectiv",
 			"A place in the Perspectiv beta is yours. Perspectiv is where people who were at the same place on the same day each write what they saw, and find the strangers who were in their story.",
 			"Create your account")
+	case jobs.TemplateChangeEmail:
+		c, err = w.accountContent(a.Data, "/confirm-email",
+			"Confirm your new email",
+			"Confirm this address to make it the email of your Perspectiv account. Until you do, your account keeps its old address.",
+			"Confirm new email")
+	case jobs.TemplateEmailChangeNotice:
+		c, err = w.accountContent(a.Data, "/forgot-password",
+			"Your Perspectiv email is being changed",
+			"Someone signed in to your Perspectiv account asked to change its email away from this address. If it was you, there is nothing to do. If it was not, reset your password now.",
+			"Reset your password")
 	case jobs.TemplateDigest:
 		c, err = w.digestContent(a.Data)
 	case jobs.TemplateNotification:

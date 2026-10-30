@@ -87,6 +87,7 @@ type EmailToken struct {
 	CreatedAt time.Time
 	ExpiresAt time.Time
 	UsedAt    *time.Time
+	NewEmail  *string
 }
 
 type Invite struct {

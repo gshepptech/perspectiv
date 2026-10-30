@@ -43,6 +43,7 @@ export const pages: readonly Page[] = [
   { path: "/verify-email", module: "auth/VerifyEmailPage" },
   { path: "/forgot-password", module: "auth/ForgotPasswordPage" },
   { path: "/reset-password", module: "auth/ResetPasswordPage" },
+  { path: "/confirm-email", module: "auth/ConfirmEmailPage" },
   { path: "/settings", module: "settings/SettingsPage", signedIn: true },
   { path: "/terms", module: "legal/TermsPage" },
   { path: "/privacy", module: "legal/PrivacyPage" },

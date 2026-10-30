@@ -199,3 +199,40 @@ SELECT id, email, note, created_at, invited_at, code FROM waitlist WHERE id = sq
 UPDATE waitlist SET invited_at = now(), code = sqlc.arg(code)::text
 WHERE id = sqlc.arg(id)::uuid
 RETURNING id, email, note, created_at, invited_at, code;
+
+-- name: RevokeOtherSessions :exec
+-- Signs out every other device: all the user's live sessions but keep.
+UPDATE sessions SET revoked_at = now()
+WHERE user_id = sqlc.arg(user_id)::uuid AND id <> sqlc.arg(keep)::uuid AND revoked_at IS NULL;
+
+-- name: RevokeOtherRefreshTokens :exec
+UPDATE refresh_tokens rt
+SET revoked_at = now()
+FROM sessions s
+WHERE rt.session_id = s.id AND s.user_id = sqlc.arg(user_id)::uuid
+  AND s.id <> sqlc.arg(keep)::uuid AND rt.revoked_at IS NULL;
+
+-- name: InsertEmailChangeToken :exec
+INSERT INTO email_tokens (user_id, purpose, token_hash, expires_at, new_email)
+VALUES (sqlc.arg(user_id)::uuid, 'change_email', sqlc.arg(token_hash), sqlc.arg(expires_at), sqlc.arg(new_email)::text);
+
+-- name: ConsumeEmailChangeToken :one
+-- Marks an unused, unexpired change_email token used and returns its user
+-- and the new address, provided the account still exists.
+UPDATE email_tokens et
+SET used_at = now()
+FROM users u
+WHERE et.token_hash = sqlc.arg(token_hash)
+  AND et.purpose = 'change_email'
+  AND et.used_at IS NULL
+  AND et.expires_at > now()
+  AND u.id = et.user_id
+  AND u.deleted_at IS NULL
+RETURNING et.user_id, et.new_email::text AS new_email;
+
+-- name: UpdateEmail :exec
+-- The new address was proven by its confirmation link, so it is verified.
+UPDATE users SET email = sqlc.arg(email)::text, email_verified_at = now() WHERE id = sqlc.arg(id)::uuid;
+
+-- name: EmailTaken :one
+SELECT EXISTS (SELECT 1 FROM users WHERE lower(email) = lower(sqlc.arg(email)::text) AND id <> sqlc.arg(id)::uuid)::boolean AS taken;
