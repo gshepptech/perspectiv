@@ -912,6 +912,198 @@ func (x *ListOpenCharactersResponse) GetCharacters() []*OpenCharacter {
 	return nil
 }
 
+type FindDayArcRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	PlaceId string                 `protobuf:"bytes,1,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
+	// Place-local calendar day, YYYY-MM-DD.
+	LocalDate     string `protobuf:"bytes,2,opt,name=local_date,json=localDate,proto3" json:"local_date,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FindDayArcRequest) Reset() {
+	*x = FindDayArcRequest{}
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindDayArcRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindDayArcRequest) ProtoMessage() {}
+
+func (x *FindDayArcRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindDayArcRequest.ProtoReflect.Descriptor instead.
+func (*FindDayArcRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *FindDayArcRequest) GetPlaceId() string {
+	if x != nil {
+		return x.PlaceId
+	}
+	return ""
+}
+
+func (x *FindDayArcRequest) GetLocalDate() string {
+	if x != nil {
+		return x.LocalDate
+	}
+	return ""
+}
+
+// DayArcHour is one hour arc of a day with its readable story count.
+type DayArcHour struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Hour             int32                  `protobuf:"varint,1,opt,name=hour,proto3" json:"hour,omitempty"`
+	ArcId            string                 `protobuf:"bytes,2,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	Title            string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	PerspectiveCount int32                  `protobuf:"varint,4,opt,name=perspective_count,json=perspectiveCount,proto3" json:"perspective_count,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DayArcHour) Reset() {
+	*x = DayArcHour{}
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DayArcHour) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DayArcHour) ProtoMessage() {}
+
+func (x *DayArcHour) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DayArcHour.ProtoReflect.Descriptor instead.
+func (*DayArcHour) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *DayArcHour) GetHour() int32 {
+	if x != nil {
+		return x.Hour
+	}
+	return 0
+}
+
+func (x *DayArcHour) GetArcId() string {
+	if x != nil {
+		return x.ArcId
+	}
+	return ""
+}
+
+func (x *DayArcHour) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *DayArcHour) GetPerspectiveCount() int32 {
+	if x != nil {
+		return x.PerspectiveCount
+	}
+	return 0
+}
+
+type FindDayArcResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty when nobody has written at the place that day.
+	ArcId string `protobuf:"bytes,1,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// Readable stories written for the whole day.
+	PerspectiveCount int32         `protobuf:"varint,3,opt,name=perspective_count,json=perspectiveCount,proto3" json:"perspective_count,omitempty"`
+	Hours            []*DayArcHour `protobuf:"bytes,4,rep,name=hours,proto3" json:"hours,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *FindDayArcResponse) Reset() {
+	*x = FindDayArcResponse{}
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindDayArcResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindDayArcResponse) ProtoMessage() {}
+
+func (x *FindDayArcResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_arc_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindDayArcResponse.ProtoReflect.Descriptor instead.
+func (*FindDayArcResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_arc_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *FindDayArcResponse) GetArcId() string {
+	if x != nil {
+		return x.ArcId
+	}
+	return ""
+}
+
+func (x *FindDayArcResponse) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *FindDayArcResponse) GetPerspectiveCount() int32 {
+	if x != nil {
+		return x.PerspectiveCount
+	}
+	return 0
+}
+
+func (x *FindDayArcResponse) GetHours() []*DayArcHour {
+	if x != nil {
+		return x.Hours
+	}
+	return nil
+}
+
 var File_perspectiv_v1_arc_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_arc_proto_rawDesc = "" +
@@ -989,10 +1181,27 @@ const file_perspectiv_v1_arc_proto_rawDesc = "" +
 	"\x1aListOpenCharactersResponse\x12<\n" +
 	"\n" +
 	"characters\x18\x01 \x03(\v2\x1c.perspectiv.v1.OpenCharacterR\n" +
-	"characters2\xfc\x02\n" +
+	"characters\"M\n" +
+	"\x11FindDayArcRequest\x12\x19\n" +
+	"\bplace_id\x18\x01 \x01(\tR\aplaceId\x12\x1d\n" +
+	"\n" +
+	"local_date\x18\x02 \x01(\tR\tlocalDate\"z\n" +
+	"\n" +
+	"DayArcHour\x12\x12\n" +
+	"\x04hour\x18\x01 \x01(\x05R\x04hour\x12\x15\n" +
+	"\x06arc_id\x18\x02 \x01(\tR\x05arcId\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12+\n" +
+	"\x11perspective_count\x18\x04 \x01(\x05R\x10perspectiveCount\"\x9f\x01\n" +
+	"\x12FindDayArcResponse\x12\x15\n" +
+	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12+\n" +
+	"\x11perspective_count\x18\x03 \x01(\x05R\x10perspectiveCount\x12/\n" +
+	"\x05hours\x18\x04 \x03(\v2\x19.perspectiv.v1.DayArcHourR\x05hours2\xcf\x03\n" +
 	"\n" +
 	"ArcService\x12E\n" +
-	"\x06GetArc\x12\x1c.perspectiv.v1.GetArcRequest\x1a\x1d.perspectiv.v1.GetArcResponse\x12]\n" +
+	"\x06GetArc\x12\x1c.perspectiv.v1.GetArcRequest\x1a\x1d.perspectiv.v1.GetArcResponse\x12Q\n" +
+	"\n" +
+	"FindDayArc\x12 .perspectiv.v1.FindDayArcRequest\x1a!.perspectiv.v1.FindDayArcResponse\x12]\n" +
 	"\x0eListArcSection\x12$.perspectiv.v1.ListArcSectionRequest\x1a%.perspectiv.v1.ListArcSectionResponse\x12]\n" +
 	"\x0eRetitleHourArc\x12$.perspectiv.v1.RetitleHourArcRequest\x1a%.perspectiv.v1.RetitleHourArcResponse\x12i\n" +
 	"\x12ListOpenCharacters\x12(.perspectiv.v1.ListOpenCharactersRequest\x1a).perspectiv.v1.ListOpenCharactersResponseB\x9d\x01\n" +
@@ -1010,7 +1219,7 @@ func file_perspectiv_v1_arc_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_arc_proto_rawDescData
 }
 
-var file_perspectiv_v1_arc_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_perspectiv_v1_arc_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_perspectiv_v1_arc_proto_goTypes = []any{
 	(*Arc)(nil),                        // 0: perspectiv.v1.Arc
 	(*ArcLore)(nil),                    // 1: perspectiv.v1.ArcLore
@@ -1025,49 +1234,55 @@ var file_perspectiv_v1_arc_proto_goTypes = []any{
 	(*ListOpenCharactersRequest)(nil),  // 10: perspectiv.v1.ListOpenCharactersRequest
 	(*OpenCharacter)(nil),              // 11: perspectiv.v1.OpenCharacter
 	(*ListOpenCharactersResponse)(nil), // 12: perspectiv.v1.ListOpenCharactersResponse
-	(*PlaceRef)(nil),                   // 13: perspectiv.v1.PlaceRef
-	(*UserRef)(nil),                    // 14: perspectiv.v1.UserRef
-	(*timestamppb.Timestamp)(nil),      // 15: google.protobuf.Timestamp
-	(*Lore)(nil),                       // 16: perspectiv.v1.Lore
-	(*PerspectiveSummary)(nil),         // 17: perspectiv.v1.PerspectiveSummary
-	(ArcSection)(0),                    // 18: perspectiv.v1.ArcSection
+	(*FindDayArcRequest)(nil),          // 13: perspectiv.v1.FindDayArcRequest
+	(*DayArcHour)(nil),                 // 14: perspectiv.v1.DayArcHour
+	(*FindDayArcResponse)(nil),         // 15: perspectiv.v1.FindDayArcResponse
+	(*PlaceRef)(nil),                   // 16: perspectiv.v1.PlaceRef
+	(*UserRef)(nil),                    // 17: perspectiv.v1.UserRef
+	(*timestamppb.Timestamp)(nil),      // 18: google.protobuf.Timestamp
+	(*Lore)(nil),                       // 19: perspectiv.v1.Lore
+	(*PerspectiveSummary)(nil),         // 20: perspectiv.v1.PerspectiveSummary
+	(ArcSection)(0),                    // 21: perspectiv.v1.ArcSection
 }
 var file_perspectiv_v1_arc_proto_depIdxs = []int32{
-	13, // 0: perspectiv.v1.Arc.place:type_name -> perspectiv.v1.PlaceRef
-	13, // 1: perspectiv.v1.Arc.place_chain:type_name -> perspectiv.v1.PlaceRef
-	14, // 2: perspectiv.v1.Arc.created_by:type_name -> perspectiv.v1.UserRef
-	15, // 3: perspectiv.v1.Arc.created_at:type_name -> google.protobuf.Timestamp
-	16, // 4: perspectiv.v1.ArcLore.lore:type_name -> perspectiv.v1.Lore
-	17, // 5: perspectiv.v1.ArcLore.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
+	16, // 0: perspectiv.v1.Arc.place:type_name -> perspectiv.v1.PlaceRef
+	16, // 1: perspectiv.v1.Arc.place_chain:type_name -> perspectiv.v1.PlaceRef
+	17, // 2: perspectiv.v1.Arc.created_by:type_name -> perspectiv.v1.UserRef
+	18, // 3: perspectiv.v1.Arc.created_at:type_name -> google.protobuf.Timestamp
+	19, // 4: perspectiv.v1.ArcLore.lore:type_name -> perspectiv.v1.Lore
+	20, // 5: perspectiv.v1.ArcLore.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
 	0,  // 6: perspectiv.v1.HourArc.arc:type_name -> perspectiv.v1.Arc
 	1,  // 7: perspectiv.v1.HourArc.canon:type_name -> perspectiv.v1.ArcLore
 	0,  // 8: perspectiv.v1.GetArcResponse.arc:type_name -> perspectiv.v1.Arc
 	1,  // 9: perspectiv.v1.GetArcResponse.canon:type_name -> perspectiv.v1.ArcLore
 	1,  // 10: perspectiv.v1.GetArcResponse.sublores:type_name -> perspectiv.v1.ArcLore
-	17, // 11: perspectiv.v1.GetArcResponse.tales:type_name -> perspectiv.v1.PerspectiveSummary
-	17, // 12: perspectiv.v1.GetArcResponse.unlinked:type_name -> perspectiv.v1.PerspectiveSummary
+	20, // 11: perspectiv.v1.GetArcResponse.tales:type_name -> perspectiv.v1.PerspectiveSummary
+	20, // 12: perspectiv.v1.GetArcResponse.unlinked:type_name -> perspectiv.v1.PerspectiveSummary
 	2,  // 13: perspectiv.v1.GetArcResponse.hours:type_name -> perspectiv.v1.HourArc
 	4,  // 14: perspectiv.v1.GetArcResponse.viewer:type_name -> perspectiv.v1.ArcViewer
-	18, // 15: perspectiv.v1.ListArcSectionRequest.section:type_name -> perspectiv.v1.ArcSection
+	21, // 15: perspectiv.v1.ListArcSectionRequest.section:type_name -> perspectiv.v1.ArcSection
 	1,  // 16: perspectiv.v1.ListArcSectionResponse.sublores:type_name -> perspectiv.v1.ArcLore
-	17, // 17: perspectiv.v1.ListArcSectionResponse.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
+	20, // 17: perspectiv.v1.ListArcSectionResponse.perspectives:type_name -> perspectiv.v1.PerspectiveSummary
 	2,  // 18: perspectiv.v1.ListArcSectionResponse.hours:type_name -> perspectiv.v1.HourArc
 	0,  // 19: perspectiv.v1.RetitleHourArcResponse.arc:type_name -> perspectiv.v1.Arc
-	14, // 20: perspectiv.v1.OpenCharacter.author:type_name -> perspectiv.v1.UserRef
+	17, // 20: perspectiv.v1.OpenCharacter.author:type_name -> perspectiv.v1.UserRef
 	11, // 21: perspectiv.v1.ListOpenCharactersResponse.characters:type_name -> perspectiv.v1.OpenCharacter
-	3,  // 22: perspectiv.v1.ArcService.GetArc:input_type -> perspectiv.v1.GetArcRequest
-	6,  // 23: perspectiv.v1.ArcService.ListArcSection:input_type -> perspectiv.v1.ListArcSectionRequest
-	8,  // 24: perspectiv.v1.ArcService.RetitleHourArc:input_type -> perspectiv.v1.RetitleHourArcRequest
-	10, // 25: perspectiv.v1.ArcService.ListOpenCharacters:input_type -> perspectiv.v1.ListOpenCharactersRequest
-	5,  // 26: perspectiv.v1.ArcService.GetArc:output_type -> perspectiv.v1.GetArcResponse
-	7,  // 27: perspectiv.v1.ArcService.ListArcSection:output_type -> perspectiv.v1.ListArcSectionResponse
-	9,  // 28: perspectiv.v1.ArcService.RetitleHourArc:output_type -> perspectiv.v1.RetitleHourArcResponse
-	12, // 29: perspectiv.v1.ArcService.ListOpenCharacters:output_type -> perspectiv.v1.ListOpenCharactersResponse
-	26, // [26:30] is the sub-list for method output_type
-	22, // [22:26] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	14, // 22: perspectiv.v1.FindDayArcResponse.hours:type_name -> perspectiv.v1.DayArcHour
+	3,  // 23: perspectiv.v1.ArcService.GetArc:input_type -> perspectiv.v1.GetArcRequest
+	13, // 24: perspectiv.v1.ArcService.FindDayArc:input_type -> perspectiv.v1.FindDayArcRequest
+	6,  // 25: perspectiv.v1.ArcService.ListArcSection:input_type -> perspectiv.v1.ListArcSectionRequest
+	8,  // 26: perspectiv.v1.ArcService.RetitleHourArc:input_type -> perspectiv.v1.RetitleHourArcRequest
+	10, // 27: perspectiv.v1.ArcService.ListOpenCharacters:input_type -> perspectiv.v1.ListOpenCharactersRequest
+	5,  // 28: perspectiv.v1.ArcService.GetArc:output_type -> perspectiv.v1.GetArcResponse
+	15, // 29: perspectiv.v1.ArcService.FindDayArc:output_type -> perspectiv.v1.FindDayArcResponse
+	7,  // 30: perspectiv.v1.ArcService.ListArcSection:output_type -> perspectiv.v1.ListArcSectionResponse
+	9,  // 31: perspectiv.v1.ArcService.RetitleHourArc:output_type -> perspectiv.v1.RetitleHourArcResponse
+	12, // 32: perspectiv.v1.ArcService.ListOpenCharacters:output_type -> perspectiv.v1.ListOpenCharactersResponse
+	28, // [28:33] is the sub-list for method output_type
+	23, // [23:28] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_arc_proto_init() }
@@ -1087,7 +1302,7 @@ func file_perspectiv_v1_arc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_arc_proto_rawDesc), len(file_perspectiv_v1_arc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

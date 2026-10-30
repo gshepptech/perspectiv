@@ -1,6 +1,6 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 
 import type { Place } from "@/gen/perspectiv/v1/place_pb";
@@ -9,6 +9,7 @@ import { clients } from "@/lib/connect";
 
 import { blankValues, valuesFromPerspective } from "./composeForm";
 import { Composer } from "./Composer";
+import { rememberAfterPublish } from "./links";
 import { isLocalDate, parseHour, todayIn } from "./localDate";
 import { PlacePicker } from "./PlacePicker";
 
@@ -110,7 +111,9 @@ function Existing({ perspectiveId, ...shared }: Shared & { perspectiveId: string
  * hour (0 to 23, default the whole day); with neither, the author first picks
  * a place. add (a name, possibly empty) and in (a place id) open the picker's
  * add form at once, prefilled: search results and place pages link here when
- * the place someone was at is not listed.
+ * the place someone was at is not listed. return (a same-site path) is where
+ * the writer goes once the new perspective is published: the story they
+ * wanted to claim a character in.
  */
 export function Component() {
   const [params, setParams] = useSearchParams();
@@ -119,6 +122,13 @@ export function Component() {
   const placeId = params.get("placeId") ?? "";
   const dateParam = params.get("date");
   const hour = parseHour(params.get("hour"));
+  const back = params.get("return");
+
+  // The story page acts on this right after publishing, so it has to
+  // outlive this page; it only applies to a perspective at this place, day and hour.
+  useEffect(() => {
+    if (back && placeId && isLocalDate(dateParam)) rememberAfterPublish({ placeId, localDate: dateParam, hour }, back);
+  }, [back, placeId, dateParam, hour]);
 
   // When autosave names a new draft, its id goes into the address so a reload
   // reopens it. That address change must not reload the form the author is

@@ -50,6 +50,9 @@ type Place struct {
 	Source    perspectivv1.PlaceSource
 	UserAdded bool
 	Category  perspectivv1.PlaceCategory
+	// Stories counts readable stories at the place and below, up to 100;
+	// set by Search only.
+	Stories   int32
 	Ancestors []Ref
 	// sortKey is the name the children list orders and pages by; set by
 	// Children only.
@@ -173,6 +176,8 @@ func (s *Store) Search(ctx context.Context, q SearchQuery) ([]Place, error) {
 	ps := make([]Place, len(rows))
 	for i, r := range rows {
 		ps[i] = placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded)
+		ps[i].Category = categoryOf(r.Category)
+		ps[i].Stories = r.Stories
 	}
 	if err := s.withAncestors(ctx, ps); err != nil {
 		return nil, err

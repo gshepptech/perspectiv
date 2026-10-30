@@ -58,6 +58,7 @@ function openStory(
     arcBody?: ReturnType<typeof dayArcResponse>;
     loreMembers?: number;
     signedOut?: boolean;
+    path?: string;
   } = {},
 ) {
   const store = opts.store ?? {};
@@ -65,7 +66,7 @@ function openStory(
   const arcBody = opts.arcBody ?? dayArcResponse();
   const canonLore = arcBody.canon.lore;
   const members = canonLore.members.slice(0, opts.loreMembers ?? canonLore.members.length);
-  return renderApp(storyRoute, `/perspectives/${id}`, {
+  return renderApp(storyRoute, opts.path ?? `/perspectives/${id}`, {
     signedIn: !opts.signedOut,
     routes: {
       "ArcService/GetArc": () => ({ body: arcBody }),
@@ -164,9 +165,7 @@ describe("on a story's own page", () => {
 
 describe("signed-out reader on a story's page", () => {
   for (const [label, name] of [
-    ["upvote", /^Upvote/],
     ["react", /^Heart/],
-    ["claim", "Claim a character"],
     ["report", /^Report:/],
   ] as const) {
     it(`AC-009: the ${label} action redirects to login without calling the server`, async () => {
@@ -180,6 +179,77 @@ describe("signed-out reader on a story's page", () => {
       expect(api.calls.some((c) => /^(VoteService|ReactService|LoreService|ModerationService)/.test(c.procedure))).toBe(false);
     });
   }
+
+  // Upvote and claim need a perspective in the arc too, so signing in alone
+  // would not be enough: the reader is told why, with the way to sign in.
+  for (const [label, name, why, back] of [
+    ["upvote", /^Upvote/, "Only people who wrote about this day can upvote its stories.", "%2Fperspectives%2Fp-otter"],
+    ["claim", "Claim a character", "To say this was you, write your side of this day first.", "%2Fperspectives%2Fp-otter%3Fclaim%3D1"],
+  ] as const) {
+    it(`AC-009: the ${label} action says why and offers sign-in and sign-up, without calling the server`, async () => {
+      const { api } = await openStory("p-otter", OTTER, {
+        signedOut: true,
+        over: { characters: [{ id: "c-any", position: 1, label: "a stranger" }] },
+      });
+      const actions = await story();
+      const button = await within(actions).findByRole("button", { name });
+      expect(button).toHaveAttribute("aria-expanded", "false");
+      await userEvent.click(button);
+      expect(button).toHaveAttribute("aria-expanded", "true");
+      expect(actions).toHaveTextContent(why);
+      expect(within(actions).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", `/login?next=${back}`);
+      expect(within(actions).getByRole("link", { name: "Create an account" })).toHaveAttribute("href", `/signup?next=${back}`);
+      expect(api.calls.some((c) => /^(VoteService|LoreService)/.test(c.procedure))).toBe(false);
+    });
+  }
+});
+
+describe("a signed-in reader with no perspective in the arc", () => {
+  const characters = [{ id: "c-1", position: 1, label: "The barista in the green apron" }];
+  const outsider = () => {
+    const arcBody = dayArcResponse();
+    arcBody.viewer = { perspectiveId: "", loreId: "" };
+    return arcBody;
+  };
+
+  it("is told why on Upvote, with the composer for this place and day", async () => {
+    const { api } = await openStory("p-otter", OTTER, {
+      arcBody: outsider(),
+      over: { place: { id: "pl-9", name: "Moonbean" }, localDate: "2026-10-01" },
+    });
+    const actions = await story();
+    await userEvent.click(await within(actions).findByRole("button", { name: /^Upvote/ }));
+    expect(actions).toHaveTextContent("Only people who wrote about this day can upvote its stories. Write your side first.");
+    expect(within(actions).getByRole("link", { name: "Write your side" })).toHaveAttribute(
+      "href",
+      "/compose?placeId=pl-9&date=2026-10-01&return=%2Fperspectives%2Fp-otter",
+    );
+    expect(api.calls.some((c) => c.procedure.startsWith("VoteService"))).toBe(false);
+  });
+
+  it("arriving from \"That was me\", sees why in place of the claim dialog, focused, with a way back to claim", async () => {
+    await openStory("p-heron", HERON, {
+      arcBody: outsider(),
+      over: { characters, place: { id: "pl-9", name: "Moonbean" }, localDate: "2026-10-01", hour: 21 },
+      path: "/perspectives/p-heron?claim=1",
+    });
+    const actions = await story();
+    const why = await within(actions).findByText(/^To say this was you, write your side of this day first\./);
+    await waitFor(() => expect(why.closest("div")).toHaveFocus());
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(within(actions).getByRole("button", { name: "Claim a character" })).toHaveAttribute("aria-expanded", "true");
+    expect(within(actions).getByRole("link", { name: "Write your side" })).toHaveAttribute(
+      "href",
+      "/compose?placeId=pl-9&date=2026-10-01&hour=21&return=%2Fperspectives%2Fp-heron%3Fclaim%3D1",
+    );
+  });
+
+  it("is offered no claim when nobody in the story is open to claim", async () => {
+    await openStory("p-heron", HERON, { arcBody: outsider(), over: { characters: [{ ...characters[0], hasAcceptedClaim: true }] } });
+    const actions = await story();
+    await within(actions).findByRole("button", { name: /^Heart/ });
+    expect(within(actions).queryByRole("button", { name: "Claim a character" })).toBeNull();
+  });
 });
 
 describe("react", () => {
@@ -334,14 +404,21 @@ describe("claim from a \"That was me\" link", () => {
     expect(within(dialog).getByRole("listitem", { name: "The barista in the green apron" })).toBeInTheDocument();
   });
 
-  it("sends a signed-out reader to sign in instead", async () => {
+  it("tells a signed-out reader why, with sign-in and sign-up that come back to claim", async () => {
     const store: Store = {};
     store["p-heron"] = perspective("p-heron", { author: HERON, loreId: "lore-canon", characters }).perspective;
     await renderApp(storyRoute, "/perspectives/p-heron?claim=1", {
       routes: { "ArcService/GetArc": () => ({ body: dayArcResponse() }), "PerspectiveService/Get": getFrom(store) },
     });
-    expect(await screen.findByTestId("login")).toHaveTextContent("next=%2Fperspectives%2Fp-heron%3Fclaim%3D1");
+    const actions = await story();
+    expect(await within(actions).findByText(/^To say this was you, write your side of this day first\./)).toBeInTheDocument();
+    expect(within(actions).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login?next=%2Fperspectives%2Fp-heron%3Fclaim%3D1");
+    expect(within(actions).getByRole("link", { name: "Create an account" })).toHaveAttribute(
+      "href",
+      "/signup?next=%2Fperspectives%2Fp-heron%3Fclaim%3D1",
+    );
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.queryByTestId("login")).toBeNull();
   });
 });
 

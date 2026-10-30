@@ -2,9 +2,11 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Info, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useFieldArray, useForm, useWatch, type Control } from "react-hook-form";
 import { useNavigate, useSearchParams } from "react-router";
 
+import { formatDay } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
@@ -28,7 +30,7 @@ import {
   type ComposeValues,
 } from "./composeForm";
 import { genreLabel, genres } from "./genres";
-import { hourLabel } from "./localDate";
+import { hourLabel, isLocalDate } from "./localDate";
 
 const hours = Array.from({ length: 24 }, (_, h) => h);
 
@@ -333,7 +335,57 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
   );
 }
 
+/**
+ * What already exists for the place on the chosen day, so a writer joins
+ * the people who were there: the day's title and how many stories it and
+ * each of its hours hold. Stories link only within one arc, so the note says
+ * where the others are.
+ */
+function DayArcNote({ place, localDate, hour }: { place: Place; localDate: string; hour: number | undefined }) {
+  const valid = isLocalDate(localDate);
+  const day = useQuery({
+    queryKey: ["arc", "findDayArc", { placeId: place.id, localDate }],
+    queryFn: ({ signal }) => clients.arc.findDayArc({ placeId: place.id, localDate }, { signal }),
+    enabled: valid,
+  });
+  if (!valid || !day.data) return null;
+  const d = day.data;
+  if (!d.arcId) {
+    return <p className="text-sm text-ink-muted sm:col-span-2">Nobody has written about {place.name} on this day yet. You start it, so give the day a title.</p>;
+  }
+  const stories = (n: number) => (n === 1 ? "1 story" : `${n} stories`);
+  const hours = d.hours.filter((h) => h.perspectiveCount > 0);
+  const atHour = hour === undefined ? undefined : d.hours.find((h) => h.hour === hour);
+  let where: string;
+  if (hour === undefined) {
+    where = "Writing for the whole day puts your story with theirs, where you can find each other.";
+  } else if (atHour) {
+    where = `You join ${hourLabel(hour)}, “${atHour.title}” (${stories(atHour.perspectiveCount)}). Stories link only within one hour or the whole day.`;
+  } else {
+    where = `Nobody has written for ${hourLabel(hour)} yet. Stories link only within one hour or the whole day, so choose an hour only if your story belongs to it.`;
+  }
+  return (
+    <div className="grid gap-1 rounded-md border border-rule p-3 text-sm sm:col-span-2" aria-live="polite">
+      <p>
+        This day is <span className="font-serif italic">“{d.title}”</span>: {stories(d.perspectiveCount)} for the whole day
+        {hours.length > 0 && <>, {hours.map((h) => `${stories(h.perspectiveCount)} at ${hourLabel(h.hour)}`).join(", ")}</>}.
+      </p>
+      <p className="text-ink-muted">{where}</p>
+    </div>
+  );
+}
+
 function WhenFields({ control, place, today }: { control: Control<ComposeValues>; place: Place; today: string }) {
+  const localDate = useWatch({ control, name: "localDate" }) ?? "";
+  const hour = hourOf({ hour: useWatch({ control, name: "hour" }) ?? DAY });
+  const day = useQuery({
+    queryKey: ["arc", "findDayArc", { placeId: place.id, localDate }],
+    queryFn: ({ signal }) => clients.arc.findDayArc({ placeId: place.id, localDate }, { signal }),
+    enabled: isLocalDate(localDate),
+  });
+  // A day that already has an arc keeps its title; asking for one would be
+  // ignored, which is how a writer's title used to vanish without a word.
+  const dayTitled = Boolean(day.data?.arcId);
   return (
     <div className="grid min-w-0 gap-4 sm:grid-cols-2">
       <FormField
@@ -346,7 +398,7 @@ function WhenFields({ control, place, today }: { control: Control<ComposeValues>
               <Input type="date" max={today} required {...field} />
             </FormControl>
             <FormDescription className="[overflow-wrap:anywhere]">
-              Today in {place.name} is {today}.
+              Today in {place.name} is {formatDay(today)}.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -377,6 +429,8 @@ function WhenFields({ control, place, today }: { control: Control<ComposeValues>
           </FormItem>
         )}
       />
+      <DayArcNote place={place} localDate={localDate} hour={hour} />
+      {!dayTitled && (
       <FormField
         control={control}
         name="title"
@@ -387,13 +441,14 @@ function WhenFields({ control, place, today }: { control: Control<ComposeValues>
               <Input {...field} autoComplete="off" />
             </FormControl>
             <FormDescription>
-              Needed only if you are the first to write about this place on this day: 3 to 80 characters, more than
-              the place name or the date.
+              You are the first to write about this place on this day: 3 to 80 characters, more than the place name
+              or the date.
             </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
+      )}
     </div>
   );
 }

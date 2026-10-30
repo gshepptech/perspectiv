@@ -1,10 +1,12 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { ConnectError } from "@connectrpc/connect";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CircleDashed, X } from "lucide-react";
 import { useId, useState } from "react";
 import { Link } from "react-router";
 
+import { invalidateAfterWrite, perspectiveQuery } from "@/components/actions/queries";
+import { CANON_MIN_MEMBERS } from "@/components/actions/rights";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/Dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
@@ -44,13 +46,55 @@ function StatusLabel({ status }: { status: ClaimStatus }) {
 
 const linkClass = "text-sm text-accent underline underline-offset-4";
 
+/**
+ * What happens next, once the reader has accepted a request: both stories
+ * are in one lore now (the server links them as it accepts), and a lore
+ * competes for canon once it has enough members. The lore is read from the
+ * reader's own story; until that answers, the day stands in for it.
+ */
+function Linked({ claim }: { claim: Claim }) {
+  const story = useQuery(perspectiveQuery(claim.perspectiveId));
+  const loreId = story.data?.loreId ?? "";
+  const lore = loreId ? `/lores/${encodeURIComponent(loreId)}` : `/arcs/${encodeURIComponent(claim.arcId)}`;
+  return (
+    <div className="grid gap-1">
+      <p role="status" className="inline-flex flex-wrap items-center gap-x-1 font-medium text-success">
+        <Check aria-hidden size={16} />
+        Linked. You are both in this story's lore now:{" "}
+        <Link to={lore} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
+          read it
+        </Link>
+      </p>
+      <p className="text-sm text-ink-muted">
+        A lore needs {CANON_MIN_MEMBERS} members to compete for canon.{" "}
+        <Link
+          to={`/perspectives/${encodeURIComponent(claim.perspectiveId)}?invite=1`}
+          className="inline-flex min-h-11 items-center text-accent underline underline-offset-4"
+        >
+          Invite who else was there
+        </Link>
+      </p>
+    </div>
+  );
+}
+
 function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
   const headingId = useId();
   const queryClient = useQueryClient();
   const [confirmReject, setConfirmReject] = useState(false);
+  // Accepted here, just now: the next step replaces the bare status.
+  const [accepted, setAccepted] = useState(false);
   const resolve = useMutation({
     mutationFn: (accept: boolean) => clients.lore.resolveClaim({ claimId: claim.id, accept }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: claimsKey }),
+    onSuccess: (res, accept) => {
+      if (accept && res.status === ClaimStatus.ACCEPTED) setAccepted(true);
+      // Accepting changes both stories' lore standing.
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: claimsKey }),
+        invalidateAfterWrite(queryClient, claim.perspectiveId),
+        invalidateAfterWrite(queryClient, claim.claimantPerspectiveId),
+      ]);
+    },
     onSettled: () => setConfirmReject(false),
   });
   const claimant = claim.claimant?.username ?? "someone";
@@ -71,8 +115,9 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
           </>
         )}
       </p>
+      {accepted && <Linked claim={claim} />}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        <StatusLabel status={claim.status} />
+        {!accepted && <StatusLabel status={claim.status} />}
         {claim.createdAt && (
           <span className="text-sm text-ink-muted">{dateFormat.format(timestampDate(claim.createdAt))}</span>
         )}
@@ -170,8 +215,9 @@ function ClaimList({ direction }: { direction: ClaimDirection }) {
 }
 
 /**
- * /claims: claims other writers made on the caller's characters, which the
- * caller accepts or rejects, and the claims the caller made. Only usernames
+ * /claims, headed "Requests" like its navigation item: claims other writers
+ * made on the caller's characters, which the caller accepts or rejects, and
+ * the claims the caller made. Only usernames
  * appear here, never an email or a real name.
  */
 export function Component() {
@@ -179,13 +225,13 @@ export function Component() {
   return (
     <section aria-labelledby="claims-title" className="mx-auto grid w-full max-w-measure min-w-0 gap-4">
       <h1 id="claims-title" className="text-2xl sm:text-3xl">
-        Claims
+        Requests
       </h1>
       <p className="text-ink-muted">
-        A claim says “that character was me”. Accepting one links both perspectives into the same lore.
+        A request says “that character was me”. Accepting one links both perspectives into the same lore.
       </p>
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList aria-label="Claims">
+        <TabsList aria-label="Requests">
           <TabsTrigger value="incoming">On your characters</TabsTrigger>
           <TabsTrigger value="outgoing">Your claims</TabsTrigger>
         </TabsList>

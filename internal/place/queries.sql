@@ -49,6 +49,7 @@ ORDER BY c.place_id, c.depth DESC;
 -- result_limit survivors returned.
 WITH RECURSIVE candidates AS (
     SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+           coalesce(p.category, '') AS category,
            (lower(p.name) = @exact::text) AS is_exact,
            (lower(p.name) LIKE @prefix::text) AS is_prefix,
            array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
@@ -73,12 +74,23 @@ up AS (
     JOIN places a ON a.id = u.ancestor_id
     WHERE a.parent_id IS NOT NULL AND u.depth < 8
 )
-SELECT m.id, m.kind, m.name, m.parent_id, m.timezone, m.source, m.user_added
+SELECT m.id, m.kind, m.name, m.parent_id, m.timezone, m.source, m.user_added, m.category::text AS category,
+       st.stories
 FROM candidates m
+-- Readable stories at the place and below, counted up to 100: enough to
+-- tell friends which of several same-named entries everyone writes in.
+CROSS JOIN LATERAL (
+    SELECT count(*)::integer AS stories FROM (
+        SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
+        WHERE a.place_path @> ARRAY[m.id]
+          AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+        LIMIT 100) x
+) st
 WHERE NOT EXISTS (
     SELECT 1 FROM up u JOIN places a ON a.id = u.ancestor_id
     WHERE u.place_id = m.id AND a.hidden_at IS NOT NULL)
-ORDER BY m.is_exact DESC, m.is_prefix DESC, m.level, char_length(m.name), lower(m.name), m.id
+-- Within each match tier, places with stories first.
+ORDER BY m.is_exact DESC, m.is_prefix DESC, (st.stories > 0) DESC, m.level, char_length(m.name), lower(m.name), m.id
 LIMIT @result_limit::integer;
 
 -- name: ListStates :many

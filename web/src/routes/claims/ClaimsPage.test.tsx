@@ -51,22 +51,56 @@ describe("claims inbox", () => {
     expect(api.callsTo("LoreService/ListClaims")[0]?.body).toMatchObject({ direction: "CLAIM_DIRECTION_INCOMING" });
   });
 
-  it("accepts a pending claim and shows the new status", async () => {
+  it("accepts a pending claim and says what comes next: the lore to read and who else to invite", async () => {
     const user = userEvent.setup();
     let status = "CLAIM_STATUS_PENDING";
+    let loreId = "";
     const api = installApi({
+      "LoreService/ListClaims": () => ok({ claims: [claim({ status })] }),
+      "LoreService/ResolveClaim": () => {
+        status = "CLAIM_STATUS_ACCEPTED";
+        loreId = "lore-9";
+        return ok({ status });
+      },
+      "PerspectiveService/Get": () => ok({ perspective: { id: "p-mine", arcId: "arc-1", loreId } }),
+    });
+    renderRoute("/claims");
+    const item = await screen.findByRole("listitem", { name: /marlo/ });
+    await user.click(within(item).getByRole("button", { name: "Accept" }));
+    const linked = await within(item).findByRole("status");
+    expect(linked).toHaveTextContent("Linked. You are both in this story's lore now: read it");
+    await waitFor(() => expect(within(linked).getByRole("link", { name: "read it" })).toHaveAttribute("href", "/lores/lore-9"));
+    expect(item).toHaveTextContent("A lore needs 4 members to compete for canon.");
+    expect(within(item).getByRole("link", { name: "Invite who else was there" })).toHaveAttribute(
+      "href",
+      "/perspectives/p-mine?invite=1",
+    );
+    expect(api.callsTo("LoreService/ResolveClaim")[0]?.body).toEqual({ claimId: "cl-1", accept: true });
+    expect(within(item).queryByRole("button", { name: "Accept" })).toBeNull();
+  });
+
+  it("points at the day while the lore is not known yet", async () => {
+    const user = userEvent.setup();
+    let status = "CLAIM_STATUS_PENDING";
+    installApi({
       "LoreService/ListClaims": () => ok({ claims: [claim({ status })] }),
       "LoreService/ResolveClaim": () => {
         status = "CLAIM_STATUS_ACCEPTED";
         return ok({ status });
       },
+      "PerspectiveService/Get": () => apiError("unavailable", "down"),
     });
     renderRoute("/claims");
     const item = await screen.findByRole("listitem", { name: /marlo/ });
     await user.click(within(item).getByRole("button", { name: "Accept" }));
-    await waitFor(() => expect(screen.getByRole("listitem", { name: /marlo/ })).toHaveTextContent("Accepted"));
-    expect(api.callsTo("LoreService/ResolveClaim")[0]?.body).toEqual({ claimId: "cl-1", accept: true });
-    expect(within(screen.getByRole("listitem", { name: /marlo/ })).queryByRole("button", { name: "Accept" })).toBeNull();
+    const linked = await within(item).findByRole("status");
+    expect(within(linked).getByRole("link", { name: "read it" })).toHaveAttribute("href", "/arcs/arc-1");
+  });
+
+  it("is headed Requests, like its navigation item", async () => {
+    installApi({ "LoreService/ListClaims": listClaims({}) });
+    renderRoute("/claims");
+    expect(await screen.findByRole("heading", { level: 1, name: "Requests" })).toBeInTheDocument();
   });
 
   it("asks before rejecting, can be backed out of with Escape, and rejects on confirm", async () => {

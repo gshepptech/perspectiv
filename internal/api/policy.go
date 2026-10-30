@@ -98,6 +98,7 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.PlaceService/SearchCharacters": {Access: Public, RateLimit: LimitSearch},
 
 	"/perspectiv.v1.ArcService/GetArc":             {Access: Public},
+	"/perspectiv.v1.ArcService/FindDayArc":         {Access: Public},
 	"/perspectiv.v1.ArcService/ListArcSection":     {Access: Public},
 	"/perspectiv.v1.ArcService/ListOpenCharacters": {Access: Public},
 	"/perspectiv.v1.ArcService/RetitleHourArc":     {Access: User, Verified: true},
@@ -140,4 +141,6 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.ModerationService/LookupUser":     {Access: Admin, RateLimit: LimitSearch},
 	"/perspectiv.v1.ModerationService/LiftSuspension": {Access: Admin},
 	"/perspectiv.v1.ModerationService/Restore":        {Access: Admin},
+	"/perspectiv.v1.ModerationService/MakeVenue":      {Access: Admin},
+	"/perspectiv.v1.ModerationService/MergePlace":     {Access: Admin},
 }

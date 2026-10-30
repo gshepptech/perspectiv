@@ -197,6 +197,60 @@ describe("landing page (AC-006, OT-036)", () => {
     expect(screen.getByText("Anyone can read. Sign up to write your side.")).toBeInTheDocument();
   });
 
+  it("welcomes a returning member back with what is waiting on them, their writing, then the search", async () => {
+    const mine = {
+      perspectives: [
+        {
+          id: "p-2",
+          arcId: "arc-2",
+          arcTitle: "The night the lights went out",
+          status: "PERSPECTIVE_STATUS_PUBLISHED",
+          place: { id: "ci-spr", kind: "PLACE_KIND_CITY", name: "Springfield" },
+          localDate: "2026-02-02",
+        },
+      ],
+    };
+    const { calls } = renderApp(
+      "/",
+      {
+        "PlaceService/ListChildren": () => ({ body: states }),
+        "PerspectiveService/ListMine": () => ({ body: mine }),
+        "NotifyService/ListInbox": () => ({ body: { unreadCount: 2 } }),
+        "LoreService/ListClaims": () => ({ body: { claims: [{ id: "cl-1", status: "CLAIM_STATUS_PENDING" }] } }),
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    expect(await screen.findByRole("heading", { level: 1, name: "Welcome back, wren" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Same place. Same day. Every side of the story." })).toBeNull();
+    expect(screen.queryByRole("figure", { name: /Example/ })).toBeNull();
+    const waiting = await screen.findByRole("list", { name: "Waiting on you" });
+    await waitFor(() => expect(waiting).toHaveTextContent("2 unread notifications"));
+    expect(within(waiting).getByRole("link", { name: "Open your inbox" })).toHaveAttribute("href", "/inbox");
+    await waitFor(() => expect(waiting).toHaveTextContent("1 request waiting on you"));
+    expect(within(waiting).getByRole("link", { name: "Review requests" })).toHaveAttribute("href", "/claims");
+    expect(calls("LoreService/ListClaims")[0]).toMatchObject({ direction: "CLAIM_DIRECTION_INCOMING", status: "CLAIM_STATUS_PENDING" });
+    // Their writing comes before the search.
+    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    const search = screen.getByRole("search");
+    expect(yours.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("tells a returning member when nothing is waiting on them", async () => {
+    renderApp(
+      "/",
+      {
+        "PlaceService/ListChildren": () => ({ body: states }),
+        "PerspectiveService/ListMine": () => ({ body: { perspectives: [] } }),
+        "NotifyService/ListInbox": () => ({ body: { unreadCount: 0 } }),
+        "LoreService/ListClaims": () => ({ body: { claims: [] } }),
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    const waiting = await screen.findByRole("list", { name: "Waiting on you" });
+    expect(waiting).toHaveTextContent("Nothing is waiting on you.");
+    expect(screen.getByRole("searchbox", { name: "Search places" })).toBeInTheDocument();
+  });
+
   it("offers to add a place that search does not find", async () => {
     const user = userEvent.setup();
     landing(() => ({ body: { places: [] } }));

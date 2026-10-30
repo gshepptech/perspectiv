@@ -3,9 +3,16 @@
 What is left before a public beta, in the order it is being worked. An item
 moves to Done in the same commit as the work, with what was verified.
 
-## Doing (wave 4)
+## Doing
 
 Nothing in progress.
+
+## Next (wave 7)
+
+27. **"This is the same place" reports.** Members can report a duplicate
+    place for an admin to merge (the admin merge exists).
+28. **"Were you here?"** One tap to say you were at a place on a day and
+    see its "Is this you?" list before writing anything.
 
 ## Out of scope for v1
 
@@ -20,6 +27,29 @@ Nothing in progress.
 
 ## Done
 
+- The first-time user (wave 6, from a newcomer walkthrough): "That was me"
+  and upvote explain what a newcomer must do first and offer "Write your
+  side", returning to the story with the claim open after publishing; the
+  next page survives sign-in, sign-up and email verification; returning
+  members get a "Welcome back" home with unread and waiting requests and
+  their stories first, and an unread badge on Inbox; phone navigation is
+  labelled, "Claims" is "Requests"; the password rule shows before submit;
+  inbox rows are one link and mark themselves read; accepting a request
+  says what happens next and offers an invite. Admins can make an imported
+  store a venue that holds places and merge a storyless duplicate into its
+  twin from the place page, both audited (migration 25). Verified by the
+  web suite, TestMakeVenue, TestMergePlace and e2e.
+- One venue, one place in search: results carry the place's story count
+  (capped at 100) and rank places with stories first within each match
+  tier, and a store with a category reads as what it is ("Sports in Tampa,
+  Florida"). Verified by TestSearchPlaces and the label tests.
+- Hour and day stories meet: the composer asks FindDayArc what exists for
+  the place that day and says it ("This day is “…”: 2 stories for the whole
+  day, 1 story at 13:00") with where the writer's story will go, and shows
+  the title field only when nobody has written that day, so a title is no
+  longer dropped silently. Claims still link only within one arc: hour arcs
+  keep their own lore (spec A-015, A-019), so the composer steers writers to
+  the whole day instead. Verified by TestFindDayArc and the composer tests.
 - Security review fixes (unsubscribe, audit, retention, metrics): a worker
   no longer starts without JWT_SECRET, since the unsubscribe links it signs
   are checked by the API with a key from it; and a user lookup that finds

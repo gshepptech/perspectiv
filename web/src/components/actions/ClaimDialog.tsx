@@ -26,8 +26,8 @@ type Props = {
   offer: boolean;
   /**
    * Opens the dialog once on arrival, for a link that says "That was me"
-   * (the arc page's "Is this you?" list). A signed-out reader is sent to
-   * sign in instead.
+   * (the arc page's "Is this you?" list). The dialog is only mounted for a
+   * reader who may claim here; anyone else is told why in place (JoinFirst).
    */
   openOnArrival?: boolean;
   /**

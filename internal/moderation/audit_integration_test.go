@@ -491,3 +491,124 @@ func TestRestore(t *testing.T) {
 		t.Fatalf("restore audit entries = %d, want 3", n)
 	}
 }
+
+// An admin makes an imported store a venue so places can be added inside it;
+// a store inside a mall, a mall, or a missing place cannot become one.
+func TestMakeVenue(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	w := e.world("writer")
+	admin := e.adminUser("ana")
+	mall := e.id(`INSERT INTO places (kind, name, parent_id, timezone, source)
+		VALUES ('PLACE_KIND_MALL', 'Westfield', $1, 'America/New_York', 'PLACE_SOURCE_OVERTURE') RETURNING id`, w.state)
+	inMall := e.id(`INSERT INTO places (kind, name, parent_id, timezone, source)
+		VALUES ('PLACE_KIND_STORE', 'Shoe Barn', $1, 'America/New_York', 'PLACE_SOURCE_OVERTURE') RETURNING id`, mall)
+	venue := func(as, place uuid.UUID, reason string) error {
+		_, err := e.admin(as).MakeVenue(context.Background(), connect.NewRequest(&perspectivv1.MakeVenueRequest{
+			PlaceId: place.String(), Reason: reason,
+		}))
+		return err
+	}
+	refusals := []struct {
+		name   string
+		as     uuid.UUID
+		place  uuid.UUID
+		reason string
+		want   connect.Code
+	}{
+		{name: "no reason", as: admin, place: w.store, want: connect.CodeInvalidArgument},
+		{name: "a store inside a mall", as: admin, place: inMall, reason: "x", want: connect.CodeFailedPrecondition},
+		{name: "already a mall", as: admin, place: mall, reason: "x", want: connect.CodeFailedPrecondition},
+		{name: "no such place", as: admin, place: uuid.New(), reason: "x", want: connect.CodeFailedPrecondition},
+		{name: "not an admin", as: w.author, place: w.store, reason: "x", want: connect.CodePermissionDenied},
+	}
+	for _, tc := range refusals {
+		t.Run(tc.name, func(t *testing.T) {
+			wantCode(t, venue(tc.as, tc.place, tc.reason), tc.want)
+		})
+	}
+	if err := venue(admin, w.store, "a stadium with stands"); err != nil {
+		t.Fatalf("MakeVenue: %v", err)
+	}
+	var kind string
+	e.scan(`SELECT kind FROM places WHERE id = $1`, []any{w.store}, &kind)
+	if kind != "PLACE_KIND_MALL" {
+		t.Fatalf("kind = %s, want PLACE_KIND_MALL", kind)
+	}
+	if n := e.count(`SELECT count(*) FROM arcs WHERE place_id = $1`, w.store); n != 1 {
+		t.Fatalf("arcs at the venue = %d, want its one arc kept", n)
+	}
+	if n := e.count(`SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_MAKE_VENUE' AND target_id = $1`, w.store); n != 1 {
+		t.Fatalf("audit entries = %d, want 1", n)
+	}
+}
+
+// An admin merges a duplicate with no stories into its twin: places under it
+// move to the twin and it is hidden. A duplicate with stories, a twin too low
+// for its children, and a name clash are refused and change nothing.
+func TestMergePlace(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	w := e.world("writer") // w.store has an arc
+	admin := e.adminUser("ana")
+	place := func(kind, name string, parent uuid.UUID) uuid.UUID {
+		return e.id(`INSERT INTO places (kind, name, parent_id, timezone, source)
+			VALUES ($1, $2, $3, 'America/New_York', 'PLACE_SOURCE_OVERTURE') RETURNING id`, kind, name, parent)
+	}
+	twin := place("PLACE_KIND_MALL", "Stadium", w.state)
+	dup := place("PLACE_KIND_MALL", "Stadium.", w.state)
+	gate := place("PLACE_KIND_STORE", "Gate A", dup)
+	merge := func(as, from, into uuid.UUID, reason string) error {
+		_, err := e.admin(as).MergePlace(context.Background(), connect.NewRequest(&perspectivv1.MergePlaceRequest{
+			PlaceId: from.String(), IntoPlaceId: into.String(), Reason: reason,
+		}))
+		return err
+	}
+	clashTwin := place("PLACE_KIND_MALL", "Arena", w.state)
+	clashDup := place("PLACE_KIND_MALL", "Arena.", w.state)
+	place("PLACE_KIND_STORE", "Box office", clashTwin)
+	place("PLACE_KIND_STORE", "Box office", clashDup)
+
+	refusals := []struct {
+		name       string
+		as         uuid.UUID
+		from, into uuid.UUID
+		reason     string
+		want       connect.Code
+	}{
+		{name: "no reason", as: admin, from: dup, into: twin, want: connect.CodeInvalidArgument},
+		{name: "into itself", as: admin, from: dup, into: dup, reason: "x", want: connect.CodeInvalidArgument},
+		{name: "the duplicate has stories", as: admin, from: w.store, into: twin, reason: "x", want: connect.CodeFailedPrecondition},
+		{name: "children cannot go under a store", as: admin, from: dup, into: w.store, reason: "x", want: connect.CodeFailedPrecondition},
+		{name: "a name clash", as: admin, from: clashDup, into: clashTwin, reason: "x", want: connect.CodeFailedPrecondition},
+		{name: "a missing place", as: admin, from: dup, into: uuid.New(), reason: "x", want: connect.CodeNotFound},
+		{name: "not an admin", as: w.author, from: dup, into: twin, reason: "x", want: connect.CodePermissionDenied},
+	}
+	for _, tc := range refusals {
+		t.Run(tc.name, func(t *testing.T) {
+			wantCode(t, merge(tc.as, tc.from, tc.into, tc.reason), tc.want)
+		})
+	}
+	if n := e.count(`SELECT count(*) FROM places WHERE hidden_at IS NOT NULL`); n != 0 {
+		t.Fatalf("refused merges hid %d places", n)
+	}
+
+	if err := merge(admin, dup, twin, "the same stadium"); err != nil {
+		t.Fatalf("MergePlace: %v", err)
+	}
+	var parent uuid.UUID
+	var hidden bool
+	e.scan(`SELECT parent_id FROM places WHERE id = $1`, []any{gate}, &parent)
+	e.scan(`SELECT hidden_at IS NOT NULL FROM places WHERE id = $1`, []any{dup}, &hidden)
+	if parent != twin || !hidden {
+		t.Fatalf("after merge: gate under %v, duplicate hidden %v", parent, hidden)
+	}
+	var path []uuid.UUID
+	e.scan(`SELECT path FROM places WHERE id = $1`, []any{gate}, &path)
+	if len(path) != 3 || path[1] != twin {
+		t.Fatalf("gate path = %v, want it under the twin", path)
+	}
+	if n := e.count(`SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_MERGE_PLACE' AND target_id = $1`, dup); n != 1 {
+		t.Fatalf("audit entries = %d, want 1", n)
+	}
+}

@@ -20,6 +20,7 @@ import { type Perspective, PerspectiveSummarySchema } from "@/gen/perspectiv/v1/
 import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
 import { AuthorLink } from "@/components/reader/AuthorLink";
+import { takeAfterPublish } from "@/routes/compose/links";
 
 /**
  * A deleted or hidden perspective. Its heading takes focus, so an author who
@@ -85,6 +86,35 @@ function Byline({ p }: { p: Perspective }) {
   );
 }
 
+/** What "Waiting for a link" in the byline means, said under it. */
+function WaitingForLink({ p }: { p: Perspective }) {
+  if (p.loreStatus !== LoreStatus.PENDING) return null;
+  return (
+    <p className="mt-1 text-sm text-ink-muted">
+      Waiting for a link: this story joins a lore when someone it describes claims their character, or when its author
+      claims a character in another story from that day.
+    </p>
+  );
+}
+
+/**
+ * Right after publishing from a story the writer wanted to claim a character
+ * in ("write your side first"), they go back to that story with the claim
+ * dialog up. Where they stand in the arc has just changed, so every cached
+ * arc read is dropped first and the story reads it fresh.
+ */
+function ReturnAfterPublish({ p }: { p: Perspective }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const to = takeAfterPublish({ placeId: p.place?.id ?? "", localDate: p.localDate, hour: p.hour });
+    if (!to) return;
+    queryClient.removeQueries({ queryKey: ["arc"] });
+    void navigate(to, { replace: true });
+  }, [p, navigate, queryClient]);
+  return null;
+}
+
 function BackLink({ p }: { p: Perspective }) {
   if (!p.arcId) return null;
   return (
@@ -122,6 +152,8 @@ function Missing({ title, detail }: { title: string; detail: string }) {
  */
 function AuthorActions({ p }: { p: Perspective }) {
   const isDraft = p.status === PerspectiveStatus.DRAFT;
+  // "Invite who else was there" on the requests page links here with ?invite=1.
+  const [params] = useSearchParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -136,7 +168,7 @@ function AuthorActions({ p }: { p: Perspective }) {
   const noun = isDraft ? "draft" : "perspective";
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {!isDraft && <InviteDialog p={p} />}
+      {!isDraft && <InviteDialog p={p} openOnArrival={params.get("invite") === "1"} />}
       <Link to={`/compose?perspectiveId=${encodeURIComponent(p.id)}`} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
         {isDraft ? "Edit draft" : "Edit"}
       </Link>
@@ -242,6 +274,7 @@ export function Component() {
           <AuthorActions p={p} />
         </div>
       )}
+      {justPublished && mine && !isDraft && <ReturnAfterPublish p={p} />}
       {justPublished && mine && !isDraft && p.arcId && (
         <p role="status" className="mx-auto mb-4 max-w-measure rounded-xl border border-success p-4 text-ink">
           Published. Others were there too?{" "}
@@ -262,6 +295,7 @@ export function Component() {
         byline={
           <>
             <Byline p={p} />
+            <WaitingForLink p={p} />
             <Cast characters={p.characters} className="mt-3" />
           </>
         }

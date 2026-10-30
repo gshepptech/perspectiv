@@ -15,7 +15,7 @@ import type { PerspectiveSummary } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
 import { cn } from "@/lib/cn";
 import { useSession, type Session } from "@/lib/session";
-
+import { composeHref } from "@/routes/compose/links";
 
 import { dateLabel, hourLabel } from "./labels";
 import { OpenCharacters } from "./OpenCharacters";
@@ -82,12 +82,6 @@ function MoreButton({ label, more }: { label: string; more: ReturnType<typeof us
       )}
     </>
   );
-}
-
-function composeHref(arc: Arc): string {
-  const q = new URLSearchParams({ placeId: arc.place?.id ?? "", date: arc.localDate });
-  if (arc.hour !== undefined) q.set("hour", String(arc.hour));
-  return `/compose?${q.toString()}`;
 }
 
 function Section({ id, title, intro, children }: { id: string; title: string; intro?: string; children: ReactNode }) {
@@ -349,6 +343,9 @@ function HowItWorks({ arc, res, rights }: { arc: Arc; res: GetArcResponse; right
       {session && !rights.participant && (
         <p className="mt-2 text-ink-muted">Only people with a perspective here can upvote or claim characters. Anyone signed in can react.</p>
       )}
+      {!session && (
+        <p className="mt-2 text-ink-muted">Anyone can read. To upvote or claim a character, sign in and write your side of this day.</p>
+      )}
       {arc.place && (
         <div className="mt-3">
           <ReportDialog targetKind={ReportTargetKind.PLACE} targetId={arc.place.id} targetLabel={arc.place.name} triggerLabel="Report place" />
@@ -424,7 +421,7 @@ function ArcView({ res }: { res: GetArcResponse }) {
             </Button>
           ) : (
             <Button asChild size="sm" className="min-h-11">
-              <Link to={composeHref(arc)}>
+              <Link to={composeHref({ placeId: arc.place?.id ?? "", localDate: arc.localDate, hour: arc.hour })}>
                 <PenLine aria-hidden size={16} />
                 Write your perspective
               </Link>

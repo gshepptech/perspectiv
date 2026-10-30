@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/arc.proto.
  */
 export const file_perspectiv_v1_arc: GenFile = /*@__PURE__*/
-  fileDesc("ChdwZXJzcGVjdGl2L3YxL2FyYy5wcm90bxINcGVyc3BlY3Rpdi52MSLbAgoDQXJjEgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEiYKBXBsYWNlGAMgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhIsCgtwbGFjZV9jaGFpbhgEIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSEgoKbG9jYWxfZGF0ZRgFIAEoCRIRCgRob3VyGAYgASgFSACIAQESFQoNcGFyZW50X2FyY19pZBgHIAEoCRIVCg1jYW5vbl9sb3JlX2lkGAggASgJEhMKC2Nhbm9uX3Njb3JlGAkgASgBEhQKDG1lbWJlcl9jb3VudBgKIAEoBRIqCgpjcmVhdGVkX2J5GAsgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmEi4KCmNyZWF0ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgcKBV9ob3VyImUKB0FyY0xvcmUSIQoEbG9yZRgBIAEoCzITLnBlcnNwZWN0aXYudjEuTG9yZRI3CgxwZXJzcGVjdGl2ZXMYAiADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeSJsCgdIb3VyQXJjEh8KA2FyYxgBIAEoCzISLnBlcnNwZWN0aXYudjEuQXJjEiUKBWNhbm9uGAIgASgLMhYucGVyc3BlY3Rpdi52MS5BcmNMb3JlEhkKEXBlcnNwZWN0aXZlX2NvdW50GAMgASgFIjIKDUdldEFyY1JlcXVlc3QSDgoGYXJjX2lkGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBSI0CglBcmNWaWV3ZXISFgoOcGVyc3BlY3RpdmVfaWQYASABKAkSDwoHbG9yZV9pZBgCIAEoCSK8AwoOR2V0QXJjUmVzcG9uc2USHwoDYXJjGAEgASgLMhIucGVyc3BlY3Rpdi52MS5BcmMSJQoFY2Fub24YAiABKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSKAoIc3VibG9yZXMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSMAoFdGFsZXMYBCADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeRIzCgh1bmxpbmtlZBgFIAMoCzIhLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTdW1tYXJ5EiUKBWhvdXJzGAYgAygLMhYucGVyc3BlY3Rpdi52MS5Ib3VyQXJjEiAKGHN1YmxvcmVzX25leHRfcGFnZV90b2tlbhgHIAEoCRIdChV0YWxlc19uZXh0X3BhZ2VfdG9rZW4YCCABKAkSIAoYdW5saW5rZWRfbmV4dF9wYWdlX3Rva2VuGAkgASgJEh0KFWhvdXJzX25leHRfcGFnZV90b2tlbhgKIAEoCRIoCgZ2aWV3ZXIYCyABKAsyGC5wZXJzcGVjdGl2LnYxLkFyY1ZpZXdlciJ6ChVMaXN0QXJjU2VjdGlvblJlcXVlc3QSDgoGYXJjX2lkGAEgASgJEioKB3NlY3Rpb24YAiABKA4yGS5wZXJzcGVjdGl2LnYxLkFyY1NlY3Rpb24SEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUiuwEKFkxpc3RBcmNTZWN0aW9uUmVzcG9uc2USKAoIc3VibG9yZXMYASADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSNwoMcGVyc3BlY3RpdmVzGAIgAygLMiEucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVN1bW1hcnkSJQoFaG91cnMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkhvdXJBcmMSFwoPbmV4dF9wYWdlX3Rva2VuGAQgASgJIjYKFVJldGl0bGVIb3VyQXJjUmVxdWVzdBIOCgZhcmNfaWQYASABKAkSDQoFdGl0bGUYAiABKAkiOQoWUmV0aXRsZUhvdXJBcmNSZXNwb25zZRIfCgNhcmMYASABKAsyEi5wZXJzcGVjdGl2LnYxLkFyYyIrChlMaXN0T3BlbkNoYXJhY3RlcnNSZXF1ZXN0Eg4KBmFyY19pZBgBIAEoCSJ0Cg1PcGVuQ2hhcmFjdGVyEhQKDGNoYXJhY3Rlcl9pZBgBIAEoCRINCgVsYWJlbBgCIAEoCRIWCg5wZXJzcGVjdGl2ZV9pZBgDIAEoCRImCgZhdXRob3IYBCABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYiTgoaTGlzdE9wZW5DaGFyYWN0ZXJzUmVzcG9uc2USMAoKY2hhcmFjdGVycxgBIAMoCzIcLnBlcnNwZWN0aXYudjEuT3BlbkNoYXJhY3RlcjL8AgoKQXJjU2VydmljZRJFCgZHZXRBcmMSHC5wZXJzcGVjdGl2LnYxLkdldEFyY1JlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLkdldEFyY1Jlc3BvbnNlEl0KDkxpc3RBcmNTZWN0aW9uEiQucGVyc3BlY3Rpdi52MS5MaXN0QXJjU2VjdGlvblJlcXVlc3QaJS5wZXJzcGVjdGl2LnYxLkxpc3RBcmNTZWN0aW9uUmVzcG9uc2USXQoOUmV0aXRsZUhvdXJBcmMSJC5wZXJzcGVjdGl2LnYxLlJldGl0bGVIb3VyQXJjUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuUmV0aXRsZUhvdXJBcmNSZXNwb25zZRJpChJMaXN0T3BlbkNoYXJhY3RlcnMSKC5wZXJzcGVjdGl2LnYxLkxpc3RPcGVuQ2hhcmFjdGVyc1JlcXVlc3QaKS5wZXJzcGVjdGl2LnYxLkxpc3RPcGVuQ2hhcmFjdGVyc1Jlc3BvbnNlQp0BChFjb20ucGVyc3BlY3Rpdi52MUIIQXJjUHJvdG9QAVopcGVyc3BlY3Rpdi9nZW4vcGVyc3BlY3Rpdi92MTtwZXJzcGVjdGl2djGiAgNQWFiqAg1QZXJzcGVjdGl2LlYxygINUGVyc3BlY3RpdlxWMeICGVBlcnNwZWN0aXZcVjFcR1BCTWV0YWRhdGHqAg5QZXJzcGVjdGl2OjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_lore, file_perspectiv_v1_perspective, file_perspectiv_v1_place, file_perspectiv_v1_user]);
+  fileDesc("ChdwZXJzcGVjdGl2L3YxL2FyYy5wcm90bxINcGVyc3BlY3Rpdi52MSLbAgoDQXJjEgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEiYKBXBsYWNlGAMgASgLMhcucGVyc3BlY3Rpdi52MS5QbGFjZVJlZhIsCgtwbGFjZV9jaGFpbhgEIAMoCzIXLnBlcnNwZWN0aXYudjEuUGxhY2VSZWYSEgoKbG9jYWxfZGF0ZRgFIAEoCRIRCgRob3VyGAYgASgFSACIAQESFQoNcGFyZW50X2FyY19pZBgHIAEoCRIVCg1jYW5vbl9sb3JlX2lkGAggASgJEhMKC2Nhbm9uX3Njb3JlGAkgASgBEhQKDG1lbWJlcl9jb3VudBgKIAEoBRIqCgpjcmVhdGVkX2J5GAsgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmEi4KCmNyZWF0ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgcKBV9ob3VyImUKB0FyY0xvcmUSIQoEbG9yZRgBIAEoCzITLnBlcnNwZWN0aXYudjEuTG9yZRI3CgxwZXJzcGVjdGl2ZXMYAiADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeSJsCgdIb3VyQXJjEh8KA2FyYxgBIAEoCzISLnBlcnNwZWN0aXYudjEuQXJjEiUKBWNhbm9uGAIgASgLMhYucGVyc3BlY3Rpdi52MS5BcmNMb3JlEhkKEXBlcnNwZWN0aXZlX2NvdW50GAMgASgFIjIKDUdldEFyY1JlcXVlc3QSDgoGYXJjX2lkGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBSI0CglBcmNWaWV3ZXISFgoOcGVyc3BlY3RpdmVfaWQYASABKAkSDwoHbG9yZV9pZBgCIAEoCSK8AwoOR2V0QXJjUmVzcG9uc2USHwoDYXJjGAEgASgLMhIucGVyc3BlY3Rpdi52MS5BcmMSJQoFY2Fub24YAiABKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSKAoIc3VibG9yZXMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSMAoFdGFsZXMYBCADKAsyIS5wZXJzcGVjdGl2LnYxLlBlcnNwZWN0aXZlU3VtbWFyeRIzCgh1bmxpbmtlZBgFIAMoCzIhLnBlcnNwZWN0aXYudjEuUGVyc3BlY3RpdmVTdW1tYXJ5EiUKBWhvdXJzGAYgAygLMhYucGVyc3BlY3Rpdi52MS5Ib3VyQXJjEiAKGHN1YmxvcmVzX25leHRfcGFnZV90b2tlbhgHIAEoCRIdChV0YWxlc19uZXh0X3BhZ2VfdG9rZW4YCCABKAkSIAoYdW5saW5rZWRfbmV4dF9wYWdlX3Rva2VuGAkgASgJEh0KFWhvdXJzX25leHRfcGFnZV90b2tlbhgKIAEoCRIoCgZ2aWV3ZXIYCyABKAsyGC5wZXJzcGVjdGl2LnYxLkFyY1ZpZXdlciJ6ChVMaXN0QXJjU2VjdGlvblJlcXVlc3QSDgoGYXJjX2lkGAEgASgJEioKB3NlY3Rpb24YAiABKA4yGS5wZXJzcGVjdGl2LnYxLkFyY1NlY3Rpb24SEgoKcGFnZV90b2tlbhgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUiuwEKFkxpc3RBcmNTZWN0aW9uUmVzcG9uc2USKAoIc3VibG9yZXMYASADKAsyFi5wZXJzcGVjdGl2LnYxLkFyY0xvcmUSNwoMcGVyc3BlY3RpdmVzGAIgAygLMiEucGVyc3BlY3Rpdi52MS5QZXJzcGVjdGl2ZVN1bW1hcnkSJQoFaG91cnMYAyADKAsyFi5wZXJzcGVjdGl2LnYxLkhvdXJBcmMSFwoPbmV4dF9wYWdlX3Rva2VuGAQgASgJIjYKFVJldGl0bGVIb3VyQXJjUmVxdWVzdBIOCgZhcmNfaWQYASABKAkSDQoFdGl0bGUYAiABKAkiOQoWUmV0aXRsZUhvdXJBcmNSZXNwb25zZRIfCgNhcmMYASABKAsyEi5wZXJzcGVjdGl2LnYxLkFyYyIrChlMaXN0T3BlbkNoYXJhY3RlcnNSZXF1ZXN0Eg4KBmFyY19pZBgBIAEoCSJ0Cg1PcGVuQ2hhcmFjdGVyEhQKDGNoYXJhY3Rlcl9pZBgBIAEoCRINCgVsYWJlbBgCIAEoCRIWCg5wZXJzcGVjdGl2ZV9pZBgDIAEoCRImCgZhdXRob3IYBCABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYiTgoaTGlzdE9wZW5DaGFyYWN0ZXJzUmVzcG9uc2USMAoKY2hhcmFjdGVycxgBIAMoCzIcLnBlcnNwZWN0aXYudjEuT3BlbkNoYXJhY3RlciI5ChFGaW5kRGF5QXJjUmVxdWVzdBIQCghwbGFjZV9pZBgBIAEoCRISCgpsb2NhbF9kYXRlGAIgASgJIlQKCkRheUFyY0hvdXISDAoEaG91chgBIAEoBRIOCgZhcmNfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSGQoRcGVyc3BlY3RpdmVfY291bnQYBCABKAUieAoSRmluZERheUFyY1Jlc3BvbnNlEg4KBmFyY19pZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIZChFwZXJzcGVjdGl2ZV9jb3VudBgDIAEoBRIoCgVob3VycxgEIAMoCzIZLnBlcnNwZWN0aXYudjEuRGF5QXJjSG91cjLPAwoKQXJjU2VydmljZRJFCgZHZXRBcmMSHC5wZXJzcGVjdGl2LnYxLkdldEFyY1JlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLkdldEFyY1Jlc3BvbnNlElEKCkZpbmREYXlBcmMSIC5wZXJzcGVjdGl2LnYxLkZpbmREYXlBcmNSZXF1ZXN0GiEucGVyc3BlY3Rpdi52MS5GaW5kRGF5QXJjUmVzcG9uc2USXQoOTGlzdEFyY1NlY3Rpb24SJC5wZXJzcGVjdGl2LnYxLkxpc3RBcmNTZWN0aW9uUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuTGlzdEFyY1NlY3Rpb25SZXNwb25zZRJdCg5SZXRpdGxlSG91ckFyYxIkLnBlcnNwZWN0aXYudjEuUmV0aXRsZUhvdXJBcmNSZXF1ZXN0GiUucGVyc3BlY3Rpdi52MS5SZXRpdGxlSG91ckFyY1Jlc3BvbnNlEmkKEkxpc3RPcGVuQ2hhcmFjdGVycxIoLnBlcnNwZWN0aXYudjEuTGlzdE9wZW5DaGFyYWN0ZXJzUmVxdWVzdBopLnBlcnNwZWN0aXYudjEuTGlzdE9wZW5DaGFyYWN0ZXJzUmVzcG9uc2VCnQEKEWNvbS5wZXJzcGVjdGl2LnYxQghBcmNQcm90b1ABWilwZXJzcGVjdGl2L2dlbi9wZXJzcGVjdGl2L3YxO3BlcnNwZWN0aXZ2MaICA1BYWKoCDVBlcnNwZWN0aXYuVjHKAg1QZXJzcGVjdGl2XFYx4gIZUGVyc3BlY3RpdlxWMVxHUEJNZXRhZGF0YeoCDlBlcnNwZWN0aXY6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_lore, file_perspectiv_v1_perspective, file_perspectiv_v1_place, file_perspectiv_v1_user]);
 
 /**
  * Arc is one place and one place-local day, or one hour child of a day arc.
@@ -482,6 +482,100 @@ export const ListOpenCharactersResponseSchema: GenMessage<ListOpenCharactersResp
   messageDesc(file_perspectiv_v1_arc, 12);
 
 /**
+ * @generated from message perspectiv.v1.FindDayArcRequest
+ */
+export type FindDayArcRequest = Message<"perspectiv.v1.FindDayArcRequest"> & {
+  /**
+   * @generated from field: string place_id = 1;
+   */
+  placeId: string;
+
+  /**
+   * Place-local calendar day, YYYY-MM-DD.
+   *
+   * @generated from field: string local_date = 2;
+   */
+  localDate: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.FindDayArcRequest.
+ * Use `create(FindDayArcRequestSchema)` to create a new message.
+ */
+export const FindDayArcRequestSchema: GenMessage<FindDayArcRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_arc, 13);
+
+/**
+ * DayArcHour is one hour arc of a day with its readable story count.
+ *
+ * @generated from message perspectiv.v1.DayArcHour
+ */
+export type DayArcHour = Message<"perspectiv.v1.DayArcHour"> & {
+  /**
+   * @generated from field: int32 hour = 1;
+   */
+  hour: number;
+
+  /**
+   * @generated from field: string arc_id = 2;
+   */
+  arcId: string;
+
+  /**
+   * @generated from field: string title = 3;
+   */
+  title: string;
+
+  /**
+   * @generated from field: int32 perspective_count = 4;
+   */
+  perspectiveCount: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.DayArcHour.
+ * Use `create(DayArcHourSchema)` to create a new message.
+ */
+export const DayArcHourSchema: GenMessage<DayArcHour> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_arc, 14);
+
+/**
+ * @generated from message perspectiv.v1.FindDayArcResponse
+ */
+export type FindDayArcResponse = Message<"perspectiv.v1.FindDayArcResponse"> & {
+  /**
+   * Empty when nobody has written at the place that day.
+   *
+   * @generated from field: string arc_id = 1;
+   */
+  arcId: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * Readable stories written for the whole day.
+   *
+   * @generated from field: int32 perspective_count = 3;
+   */
+  perspectiveCount: number;
+
+  /**
+   * @generated from field: repeated perspectiv.v1.DayArcHour hours = 4;
+   */
+  hours: DayArcHour[];
+};
+
+/**
+ * Describes the message perspectiv.v1.FindDayArcResponse.
+ * Use `create(FindDayArcResponseSchema)` to create a new message.
+ */
+export const FindDayArcResponseSchema: GenMessage<FindDayArcResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_arc, 15);
+
+/**
  * ArcService reads an arc page: canon first, then sublores, then tales.
  *
  * @generated from service perspectiv.v1.ArcService
@@ -497,6 +591,18 @@ export const ArcService: GenService<{
     methodKind: "unary";
     input: typeof GetArcRequestSchema;
     output: typeof GetArcResponseSchema;
+  },
+  /**
+   * Public. What already exists for a place on a day: the day arc and its
+   * hours with their story counts, so a writer joins the others instead of
+   * starting apart.
+   *
+   * @generated from rpc perspectiv.v1.ArcService.FindDayArc
+   */
+  findDayArc: {
+    methodKind: "unary";
+    input: typeof FindDayArcRequestSchema;
+    output: typeof FindDayArcResponseSchema;
   },
   /**
    * Public. The next page of one list on an arc page.

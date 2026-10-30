@@ -1061,6 +1061,7 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 const searchPlaces = `-- name: SearchPlaces :many
 WITH RECURSIVE candidates AS (
     SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+           coalesce(p.category, '') AS category,
            (lower(p.name) = $2::text) AS is_exact,
            (lower(p.name) LIKE $3::text) AS is_prefix,
            array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
@@ -1085,12 +1086,20 @@ up AS (
     JOIN places a ON a.id = u.ancestor_id
     WHERE a.parent_id IS NOT NULL AND u.depth < 8
 )
-SELECT m.id, m.kind, m.name, m.parent_id, m.timezone, m.source, m.user_added
+SELECT m.id, m.kind, m.name, m.parent_id, m.timezone, m.source, m.user_added, m.category::text AS category,
+       st.stories
 FROM candidates m
+CROSS JOIN LATERAL (
+    SELECT count(*)::integer AS stories FROM (
+        SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
+        WHERE a.place_path @> ARRAY[m.id]
+          AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+        LIMIT 100) x
+) st
 WHERE NOT EXISTS (
     SELECT 1 FROM up u JOIN places a ON a.id = u.ancestor_id
     WHERE u.place_id = m.id AND a.hidden_at IS NOT NULL)
-ORDER BY m.is_exact DESC, m.is_prefix DESC, m.level, char_length(m.name), lower(m.name), m.id
+ORDER BY m.is_exact DESC, m.is_prefix DESC, (st.stories > 0) DESC, m.level, char_length(m.name), lower(m.name), m.id
 LIMIT $1::integer
 `
 
@@ -1112,6 +1121,8 @@ type SearchPlacesRow struct {
 	Timezone  string
 	Source    string
 	UserAdded bool
+	Category  string
+	Stories   int32
 }
 
 // Typeahead. Candidates are visible-by-row places whose lowercased name
@@ -1121,6 +1132,9 @@ type SearchPlacesRow struct {
 // STORE), then shorter names, then name and id. The top candidate_limit
 // candidates are then checked for a hidden ancestor, and the first
 // result_limit survivors returned.
+// Readable stories at the place and below, counted up to 100: enough to
+// tell friends which of several same-named entries everyone writes in.
+// Within each match tier, places with stories first.
 func (q *Queries) SearchPlaces(ctx context.Context, arg SearchPlacesParams) ([]SearchPlacesRow, error) {
 	rows, err := q.db.Query(ctx, searchPlaces,
 		arg.ResultLimit,
@@ -1146,6 +1160,8 @@ func (q *Queries) SearchPlaces(ctx context.Context, arg SearchPlacesParams) ([]S
 			&i.Timezone,
 			&i.Source,
 			&i.UserAdded,
+			&i.Category,
+			&i.Stories,
 		); err != nil {
 			return nil, err
 		}

@@ -91,6 +91,31 @@ UPDATE places SET hidden_at = NULL WHERE id = @id::uuid AND hidden_at IS NOT NUL
 -- name: RestoreLorePost :execrows
 UPDATE lore_posts SET hidden_at = NULL WHERE id = @id::uuid AND hidden_at IS NOT NULL;
 
+-- name: MakeVenue :execrows
+-- Turns a visible store into a mall-level venue, unless it already sits
+-- inside a mall (a venue cannot hold a venue).
+UPDATE places p SET kind = 'PLACE_KIND_MALL'
+WHERE p.id = @id::uuid AND p.kind = 'PLACE_KIND_STORE' AND p.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places parent WHERE parent.id = p.parent_id AND parent.kind = 'PLACE_KIND_MALL');
+
+-- name: LockPlacesForMerge :many
+-- Both places of a merge, visible ones only, locked against a concurrent
+-- write; with the duplicate's arc count and the deepest level of its
+-- children (0 for none), for the merge's checks.
+SELECT p.id, p.kind,
+       (SELECT count(*) FROM arcs a WHERE a.place_id = p.id)::integer AS arcs,
+       coalesce((SELECT max(array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                                 'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], c.kind))
+                 FROM places c WHERE c.parent_id = p.id), 0)::integer AS child_level,
+       array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                            'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind)::integer AS level
+FROM places p
+WHERE p.id = ANY(@ids::uuid[]) AND p.hidden_at IS NULL
+FOR UPDATE;
+
+-- name: MovePlaceChildren :exec
+UPDATE places SET parent_id = @into_id::uuid WHERE parent_id = @from_id::uuid;
+
 -- name: LiftSuspension :execrows
 -- Clears a live account's suspension; no row when it was not suspended.
 UPDATE users SET suspended_at = NULL WHERE id = @id::uuid AND suspended_at IS NOT NULL AND deleted_at IS NULL;

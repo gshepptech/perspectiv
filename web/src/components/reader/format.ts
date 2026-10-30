@@ -19,9 +19,15 @@ export function placeKindLabel(kind: PlaceKind): string {
   }
 }
 
-/** "Mall in Springfield, Illinois": the kind, then the ancestors from the nearest up to the state. */
-export function placeChain(kind: PlaceKind, ancestors: readonly PlaceRef[]): string {
-  const label = placeKindLabel(kind);
+/**
+ * "Mall in Springfield, Illinois": the kind, then the ancestors from the
+ * nearest up to the state. A store or venue with a category says what it is
+ * instead ("Sports in Tampa, Florida"), since a stadium or a park is not a
+ * store or a mall to anyone who was there.
+ */
+export function placeChain(kind: PlaceKind, ancestors: readonly PlaceRef[], category = PlaceCategory.UNSPECIFIED): string {
+  const named = (kind === PlaceKind.STORE || kind === PlaceKind.MALL) && category !== PlaceCategory.UNSPECIFIED;
+  const label = named ? placeCategoryLabel(category) : placeKindLabel(kind);
   if (ancestors.length === 0) return label;
   return `${label} in ${[...ancestors].reverse().map((a) => a.name).join(", ")}`;
 }
@@ -144,4 +150,11 @@ export function placeCategoryLabel(c: PlaceCategory): string {
       return unhandled;
     }
   }
+}
+
+/** How many stories a search result has; the server counts up to 100. */
+export function storiesLabel(n: number): string {
+  if (n <= 0) return "No stories yet";
+  if (n >= 100) return "100+ stories";
+  return n === 1 ? "1 story" : `${n} stories`;
 }

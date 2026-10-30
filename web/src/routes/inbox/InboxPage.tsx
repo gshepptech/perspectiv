@@ -19,26 +19,38 @@ function Row({ n, onOpen }: { n: Notification; onOpen: (n: Notification) => void
   const { text, to } = describeNotification(n);
   const unread = !n.readAt;
   const at = n.createdAt ? timestampDate(n.createdAt) : null;
-  return (
-    <li className={cn("min-w-0 border-l-2 py-3 pl-3", unread ? "border-accent" : "border-transparent")}>
-      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+  const body = (
+    <>
+      <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
         {unread && <span className="rounded-sm bg-accent px-1.5 text-sm font-medium text-accent-ink">New</span>}
-        {to ? (
-          <Link
-            to={to}
-            onClick={() => onOpen(n)}
-            className={cn("min-w-0 break-words text-ink underline-offset-4 hover:underline", unread && "font-medium")}
-          >
-            {text}
-          </Link>
-        ) : (
-          <span className={cn("min-w-0 break-words", unread && "font-medium")}>{text}</span>
-        )}
-      </div>
+        <span
+          className={cn(
+            "min-w-0 break-words text-ink",
+            to && "underline-offset-4 group-hover:underline group-focus-visible:underline",
+            unread && "font-medium",
+          )}
+        >
+          {text}
+        </span>
+      </span>
       {at && (
         <time dateTime={at.toISOString()} className="mt-1 block text-sm text-ink-muted">
           {when.format(at)}
         </time>
+      )}
+    </>
+  );
+  const row = cn("block min-h-11 min-w-0 border-l-2 py-3 pl-3", unread ? "border-accent" : "border-transparent");
+  return (
+    <li className="min-w-0">
+      {to ? (
+        // The whole row is the link. Following it any way (a click, Enter,
+        // a middle click into a new tab) marks the notification read.
+        <Link to={to} onClick={() => onOpen(n)} onAuxClick={() => onOpen(n)} className={cn(row, "group")}>
+          {body}
+        </Link>
+      ) : (
+        <div className={row}>{body}</div>
       )}
     </li>
   );

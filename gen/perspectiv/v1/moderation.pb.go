@@ -1214,6 +1214,194 @@ func (*RestoreResponse) Descriptor() ([]byte, []int) {
 	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{16}
 }
 
+type MakeVenueRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	PlaceId string                 `protobuf:"bytes,1,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
+	// Why; written to the audit entry.
+	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MakeVenueRequest) Reset() {
+	*x = MakeVenueRequest{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MakeVenueRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MakeVenueRequest) ProtoMessage() {}
+
+func (x *MakeVenueRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MakeVenueRequest.ProtoReflect.Descriptor instead.
+func (*MakeVenueRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *MakeVenueRequest) GetPlaceId() string {
+	if x != nil {
+		return x.PlaceId
+	}
+	return ""
+}
+
+func (x *MakeVenueRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type MakeVenueResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MakeVenueResponse) Reset() {
+	*x = MakeVenueResponse{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MakeVenueResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MakeVenueResponse) ProtoMessage() {}
+
+func (x *MakeVenueResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MakeVenueResponse.ProtoReflect.Descriptor instead.
+func (*MakeVenueResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{18}
+}
+
+type MergePlaceRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The duplicate; it must have no arcs of its own.
+	PlaceId string `protobuf:"bytes,1,opt,name=place_id,json=placeId,proto3" json:"place_id,omitempty"`
+	// The place everyone should use.
+	IntoPlaceId string `protobuf:"bytes,2,opt,name=into_place_id,json=intoPlaceId,proto3" json:"into_place_id,omitempty"`
+	// Why; written to the audit entry.
+	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MergePlaceRequest) Reset() {
+	*x = MergePlaceRequest{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergePlaceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergePlaceRequest) ProtoMessage() {}
+
+func (x *MergePlaceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MergePlaceRequest.ProtoReflect.Descriptor instead.
+func (*MergePlaceRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *MergePlaceRequest) GetPlaceId() string {
+	if x != nil {
+		return x.PlaceId
+	}
+	return ""
+}
+
+func (x *MergePlaceRequest) GetIntoPlaceId() string {
+	if x != nil {
+		return x.IntoPlaceId
+	}
+	return ""
+}
+
+func (x *MergePlaceRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type MergePlaceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MergePlaceResponse) Reset() {
+	*x = MergePlaceResponse{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergePlaceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergePlaceResponse) ProtoMessage() {}
+
+func (x *MergePlaceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MergePlaceResponse.ProtoReflect.Descriptor instead.
+func (*MergePlaceResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{20}
+}
+
 var File_perspectiv_v1_moderation_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_moderation_proto_rawDesc = "" +
@@ -1322,7 +1510,16 @@ const file_perspectiv_v1_moderation_proto_rawDesc = "" +
 	"targetKind\x12\x1b\n" +
 	"\ttarget_id\x18\x02 \x01(\tR\btargetId\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\"\x11\n" +
-	"\x0fRestoreResponse2\xcf\x04\n" +
+	"\x0fRestoreResponse\"E\n" +
+	"\x10MakeVenueRequest\x12\x19\n" +
+	"\bplace_id\x18\x01 \x01(\tR\aplaceId\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x13\n" +
+	"\x11MakeVenueResponse\"j\n" +
+	"\x11MergePlaceRequest\x12\x19\n" +
+	"\bplace_id\x18\x01 \x01(\tR\aplaceId\x12\"\n" +
+	"\rinto_place_id\x18\x02 \x01(\tR\vintoPlaceId\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\x14\n" +
+	"\x12MergePlaceResponse2\xf2\x05\n" +
 	"\x11ModerationService\x12E\n" +
 	"\x06Report\x12\x1c.perspectiv.v1.ReportRequest\x1a\x1d.perspectiv.v1.ReportResponse\x12T\n" +
 	"\vListReports\x12!.perspectiv.v1.ListReportsRequest\x1a\".perspectiv.v1.ListReportsResponse\x12H\n" +
@@ -1331,7 +1528,10 @@ const file_perspectiv_v1_moderation_proto_rawDesc = "" +
 	"\n" +
 	"LookupUser\x12 .perspectiv.v1.LookupUserRequest\x1a!.perspectiv.v1.LookupUserResponse\x12]\n" +
 	"\x0eLiftSuspension\x12$.perspectiv.v1.LiftSuspensionRequest\x1a%.perspectiv.v1.LiftSuspensionResponse\x12H\n" +
-	"\aRestore\x12\x1d.perspectiv.v1.RestoreRequest\x1a\x1e.perspectiv.v1.RestoreResponseB\xa4\x01\n" +
+	"\aRestore\x12\x1d.perspectiv.v1.RestoreRequest\x1a\x1e.perspectiv.v1.RestoreResponse\x12N\n" +
+	"\tMakeVenue\x12\x1f.perspectiv.v1.MakeVenueRequest\x1a .perspectiv.v1.MakeVenueResponse\x12Q\n" +
+	"\n" +
+	"MergePlace\x12 .perspectiv.v1.MergePlaceRequest\x1a!.perspectiv.v1.MergePlaceResponseB\xa4\x01\n" +
 	"\x11com.perspectiv.v1B\x0fModerationProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -1346,7 +1546,7 @@ func file_perspectiv_v1_moderation_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_moderation_proto_rawDescData
 }
 
-var file_perspectiv_v1_moderation_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_perspectiv_v1_moderation_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_perspectiv_v1_moderation_proto_goTypes = []any{
 	(*Report)(nil),                 // 0: perspectiv.v1.Report
 	(*ReportRequest)(nil),          // 1: perspectiv.v1.ReportRequest
@@ -1365,44 +1565,48 @@ var file_perspectiv_v1_moderation_proto_goTypes = []any{
 	(*LiftSuspensionResponse)(nil), // 14: perspectiv.v1.LiftSuspensionResponse
 	(*RestoreRequest)(nil),         // 15: perspectiv.v1.RestoreRequest
 	(*RestoreResponse)(nil),        // 16: perspectiv.v1.RestoreResponse
-	(*UserRef)(nil),                // 17: perspectiv.v1.UserRef
-	(ReportTargetKind)(0),          // 18: perspectiv.v1.ReportTargetKind
-	(ReportReason)(0),              // 19: perspectiv.v1.ReportReason
-	(ReportStatus)(0),              // 20: perspectiv.v1.ReportStatus
-	(ModerationAction)(0),          // 21: perspectiv.v1.ModerationAction
-	(*timestamppb.Timestamp)(nil),  // 22: google.protobuf.Timestamp
-	(AuditAction)(0),               // 23: perspectiv.v1.AuditAction
-	(AuditTargetKind)(0),           // 24: perspectiv.v1.AuditTargetKind
-	(Role)(0),                      // 25: perspectiv.v1.Role
+	(*MakeVenueRequest)(nil),       // 17: perspectiv.v1.MakeVenueRequest
+	(*MakeVenueResponse)(nil),      // 18: perspectiv.v1.MakeVenueResponse
+	(*MergePlaceRequest)(nil),      // 19: perspectiv.v1.MergePlaceRequest
+	(*MergePlaceResponse)(nil),     // 20: perspectiv.v1.MergePlaceResponse
+	(*UserRef)(nil),                // 21: perspectiv.v1.UserRef
+	(ReportTargetKind)(0),          // 22: perspectiv.v1.ReportTargetKind
+	(ReportReason)(0),              // 23: perspectiv.v1.ReportReason
+	(ReportStatus)(0),              // 24: perspectiv.v1.ReportStatus
+	(ModerationAction)(0),          // 25: perspectiv.v1.ModerationAction
+	(*timestamppb.Timestamp)(nil),  // 26: google.protobuf.Timestamp
+	(AuditAction)(0),               // 27: perspectiv.v1.AuditAction
+	(AuditTargetKind)(0),           // 28: perspectiv.v1.AuditTargetKind
+	(Role)(0),                      // 29: perspectiv.v1.Role
 }
 var file_perspectiv_v1_moderation_proto_depIdxs = []int32{
-	17, // 0: perspectiv.v1.Report.reporter:type_name -> perspectiv.v1.UserRef
-	18, // 1: perspectiv.v1.Report.target_kind:type_name -> perspectiv.v1.ReportTargetKind
-	19, // 2: perspectiv.v1.Report.reason:type_name -> perspectiv.v1.ReportReason
-	20, // 3: perspectiv.v1.Report.status:type_name -> perspectiv.v1.ReportStatus
-	17, // 4: perspectiv.v1.Report.resolved_by:type_name -> perspectiv.v1.UserRef
-	21, // 5: perspectiv.v1.Report.resolution:type_name -> perspectiv.v1.ModerationAction
-	22, // 6: perspectiv.v1.Report.created_at:type_name -> google.protobuf.Timestamp
-	22, // 7: perspectiv.v1.Report.resolved_at:type_name -> google.protobuf.Timestamp
-	18, // 8: perspectiv.v1.ReportRequest.target_kind:type_name -> perspectiv.v1.ReportTargetKind
-	19, // 9: perspectiv.v1.ReportRequest.reason:type_name -> perspectiv.v1.ReportReason
-	20, // 10: perspectiv.v1.ListReportsRequest.status:type_name -> perspectiv.v1.ReportStatus
+	21, // 0: perspectiv.v1.Report.reporter:type_name -> perspectiv.v1.UserRef
+	22, // 1: perspectiv.v1.Report.target_kind:type_name -> perspectiv.v1.ReportTargetKind
+	23, // 2: perspectiv.v1.Report.reason:type_name -> perspectiv.v1.ReportReason
+	24, // 3: perspectiv.v1.Report.status:type_name -> perspectiv.v1.ReportStatus
+	21, // 4: perspectiv.v1.Report.resolved_by:type_name -> perspectiv.v1.UserRef
+	25, // 5: perspectiv.v1.Report.resolution:type_name -> perspectiv.v1.ModerationAction
+	26, // 6: perspectiv.v1.Report.created_at:type_name -> google.protobuf.Timestamp
+	26, // 7: perspectiv.v1.Report.resolved_at:type_name -> google.protobuf.Timestamp
+	22, // 8: perspectiv.v1.ReportRequest.target_kind:type_name -> perspectiv.v1.ReportTargetKind
+	23, // 9: perspectiv.v1.ReportRequest.reason:type_name -> perspectiv.v1.ReportReason
+	24, // 10: perspectiv.v1.ListReportsRequest.status:type_name -> perspectiv.v1.ReportStatus
 	0,  // 11: perspectiv.v1.ListReportsResponse.reports:type_name -> perspectiv.v1.Report
-	21, // 12: perspectiv.v1.ResolveRequest.action:type_name -> perspectiv.v1.ModerationAction
+	25, // 12: perspectiv.v1.ResolveRequest.action:type_name -> perspectiv.v1.ModerationAction
 	0,  // 13: perspectiv.v1.ResolveResponse.report:type_name -> perspectiv.v1.Report
-	17, // 14: perspectiv.v1.AuditEntry.actor:type_name -> perspectiv.v1.UserRef
-	23, // 15: perspectiv.v1.AuditEntry.action:type_name -> perspectiv.v1.AuditAction
-	24, // 16: perspectiv.v1.AuditEntry.target_kind:type_name -> perspectiv.v1.AuditTargetKind
-	22, // 17: perspectiv.v1.AuditEntry.at:type_name -> google.protobuf.Timestamp
-	23, // 18: perspectiv.v1.ListAuditLogRequest.action:type_name -> perspectiv.v1.AuditAction
+	21, // 14: perspectiv.v1.AuditEntry.actor:type_name -> perspectiv.v1.UserRef
+	27, // 15: perspectiv.v1.AuditEntry.action:type_name -> perspectiv.v1.AuditAction
+	28, // 16: perspectiv.v1.AuditEntry.target_kind:type_name -> perspectiv.v1.AuditTargetKind
+	26, // 17: perspectiv.v1.AuditEntry.at:type_name -> google.protobuf.Timestamp
+	27, // 18: perspectiv.v1.ListAuditLogRequest.action:type_name -> perspectiv.v1.AuditAction
 	7,  // 19: perspectiv.v1.ListAuditLogResponse.entries:type_name -> perspectiv.v1.AuditEntry
-	25, // 20: perspectiv.v1.AdminUserView.role:type_name -> perspectiv.v1.Role
-	22, // 21: perspectiv.v1.AdminUserView.joined_at:type_name -> google.protobuf.Timestamp
-	22, // 22: perspectiv.v1.AdminUserView.suspended_at:type_name -> google.protobuf.Timestamp
-	22, // 23: perspectiv.v1.AdminUserView.last_sign_in_at:type_name -> google.protobuf.Timestamp
+	29, // 20: perspectiv.v1.AdminUserView.role:type_name -> perspectiv.v1.Role
+	26, // 21: perspectiv.v1.AdminUserView.joined_at:type_name -> google.protobuf.Timestamp
+	26, // 22: perspectiv.v1.AdminUserView.suspended_at:type_name -> google.protobuf.Timestamp
+	26, // 23: perspectiv.v1.AdminUserView.last_sign_in_at:type_name -> google.protobuf.Timestamp
 	11, // 24: perspectiv.v1.LookupUserResponse.user:type_name -> perspectiv.v1.AdminUserView
 	11, // 25: perspectiv.v1.LiftSuspensionResponse.user:type_name -> perspectiv.v1.AdminUserView
-	24, // 26: perspectiv.v1.RestoreRequest.target_kind:type_name -> perspectiv.v1.AuditTargetKind
+	28, // 26: perspectiv.v1.RestoreRequest.target_kind:type_name -> perspectiv.v1.AuditTargetKind
 	1,  // 27: perspectiv.v1.ModerationService.Report:input_type -> perspectiv.v1.ReportRequest
 	3,  // 28: perspectiv.v1.ModerationService.ListReports:input_type -> perspectiv.v1.ListReportsRequest
 	5,  // 29: perspectiv.v1.ModerationService.Resolve:input_type -> perspectiv.v1.ResolveRequest
@@ -1410,15 +1614,19 @@ var file_perspectiv_v1_moderation_proto_depIdxs = []int32{
 	10, // 31: perspectiv.v1.ModerationService.LookupUser:input_type -> perspectiv.v1.LookupUserRequest
 	13, // 32: perspectiv.v1.ModerationService.LiftSuspension:input_type -> perspectiv.v1.LiftSuspensionRequest
 	15, // 33: perspectiv.v1.ModerationService.Restore:input_type -> perspectiv.v1.RestoreRequest
-	2,  // 34: perspectiv.v1.ModerationService.Report:output_type -> perspectiv.v1.ReportResponse
-	4,  // 35: perspectiv.v1.ModerationService.ListReports:output_type -> perspectiv.v1.ListReportsResponse
-	6,  // 36: perspectiv.v1.ModerationService.Resolve:output_type -> perspectiv.v1.ResolveResponse
-	9,  // 37: perspectiv.v1.ModerationService.ListAuditLog:output_type -> perspectiv.v1.ListAuditLogResponse
-	12, // 38: perspectiv.v1.ModerationService.LookupUser:output_type -> perspectiv.v1.LookupUserResponse
-	14, // 39: perspectiv.v1.ModerationService.LiftSuspension:output_type -> perspectiv.v1.LiftSuspensionResponse
-	16, // 40: perspectiv.v1.ModerationService.Restore:output_type -> perspectiv.v1.RestoreResponse
-	34, // [34:41] is the sub-list for method output_type
-	27, // [27:34] is the sub-list for method input_type
+	17, // 34: perspectiv.v1.ModerationService.MakeVenue:input_type -> perspectiv.v1.MakeVenueRequest
+	19, // 35: perspectiv.v1.ModerationService.MergePlace:input_type -> perspectiv.v1.MergePlaceRequest
+	2,  // 36: perspectiv.v1.ModerationService.Report:output_type -> perspectiv.v1.ReportResponse
+	4,  // 37: perspectiv.v1.ModerationService.ListReports:output_type -> perspectiv.v1.ListReportsResponse
+	6,  // 38: perspectiv.v1.ModerationService.Resolve:output_type -> perspectiv.v1.ResolveResponse
+	9,  // 39: perspectiv.v1.ModerationService.ListAuditLog:output_type -> perspectiv.v1.ListAuditLogResponse
+	12, // 40: perspectiv.v1.ModerationService.LookupUser:output_type -> perspectiv.v1.LookupUserResponse
+	14, // 41: perspectiv.v1.ModerationService.LiftSuspension:output_type -> perspectiv.v1.LiftSuspensionResponse
+	16, // 42: perspectiv.v1.ModerationService.Restore:output_type -> perspectiv.v1.RestoreResponse
+	18, // 43: perspectiv.v1.ModerationService.MakeVenue:output_type -> perspectiv.v1.MakeVenueResponse
+	20, // 44: perspectiv.v1.ModerationService.MergePlace:output_type -> perspectiv.v1.MergePlaceResponse
+	36, // [36:45] is the sub-list for method output_type
+	27, // [27:36] is the sub-list for method input_type
 	27, // [27:27] is the sub-list for extension type_name
 	27, // [27:27] is the sub-list for extension extendee
 	0,  // [0:27] is the sub-list for field type_name
@@ -1437,7 +1645,7 @@ func file_perspectiv_v1_moderation_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_moderation_proto_rawDesc), len(file_perspectiv_v1_moderation_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -54,6 +54,12 @@ const (
 	// ModerationServiceRestoreProcedure is the fully-qualified name of the ModerationService's Restore
 	// RPC.
 	ModerationServiceRestoreProcedure = "/perspectiv.v1.ModerationService/Restore"
+	// ModerationServiceMakeVenueProcedure is the fully-qualified name of the ModerationService's
+	// MakeVenue RPC.
+	ModerationServiceMakeVenueProcedure = "/perspectiv.v1.ModerationService/MakeVenue"
+	// ModerationServiceMergePlaceProcedure is the fully-qualified name of the ModerationService's
+	// MergePlace RPC.
+	ModerationServiceMergePlaceProcedure = "/perspectiv.v1.ModerationService/MergePlace"
 )
 
 // ModerationServiceClient is a client for the perspectiv.v1.ModerationService service.
@@ -75,6 +81,14 @@ type ModerationServiceClient interface {
 	// again; writes an audit entry with the reason. Claims rejected while it
 	// was hidden stay rejected.
 	Restore(context.Context, *connect.Request[v1.RestoreRequest]) (*connect.Response[v1.RestoreResponse], error)
+	// ADMIN only. Makes a store a venue (a mall-level place) so places can be
+	// added inside it: a stadium's stands, a park's rides. Its stories and
+	// arcs stay where they are. Writes an audit entry with the reason.
+	MakeVenue(context.Context, *connect.Request[v1.MakeVenueRequest]) (*connect.Response[v1.MakeVenueResponse], error)
+	// ADMIN only. Merges a duplicate place that has no arcs of its own into
+	// its twin: places filed under it move to the twin, and it is hidden.
+	// Writes an audit entry with the reason.
+	MergePlace(context.Context, *connect.Request[v1.MergePlaceRequest]) (*connect.Response[v1.MergePlaceResponse], error)
 }
 
 // NewModerationServiceClient constructs a client for the perspectiv.v1.ModerationService service.
@@ -130,6 +144,18 @@ func NewModerationServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(moderationServiceMethods.ByName("Restore")),
 			connect.WithClientOptions(opts...),
 		),
+		makeVenue: connect.NewClient[v1.MakeVenueRequest, v1.MakeVenueResponse](
+			httpClient,
+			baseURL+ModerationServiceMakeVenueProcedure,
+			connect.WithSchema(moderationServiceMethods.ByName("MakeVenue")),
+			connect.WithClientOptions(opts...),
+		),
+		mergePlace: connect.NewClient[v1.MergePlaceRequest, v1.MergePlaceResponse](
+			httpClient,
+			baseURL+ModerationServiceMergePlaceProcedure,
+			connect.WithSchema(moderationServiceMethods.ByName("MergePlace")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -142,6 +168,8 @@ type moderationServiceClient struct {
 	lookupUser     *connect.Client[v1.LookupUserRequest, v1.LookupUserResponse]
 	liftSuspension *connect.Client[v1.LiftSuspensionRequest, v1.LiftSuspensionResponse]
 	restore        *connect.Client[v1.RestoreRequest, v1.RestoreResponse]
+	makeVenue      *connect.Client[v1.MakeVenueRequest, v1.MakeVenueResponse]
+	mergePlace     *connect.Client[v1.MergePlaceRequest, v1.MergePlaceResponse]
 }
 
 // Report calls perspectiv.v1.ModerationService.Report.
@@ -179,6 +207,16 @@ func (c *moderationServiceClient) Restore(ctx context.Context, req *connect.Requ
 	return c.restore.CallUnary(ctx, req)
 }
 
+// MakeVenue calls perspectiv.v1.ModerationService.MakeVenue.
+func (c *moderationServiceClient) MakeVenue(ctx context.Context, req *connect.Request[v1.MakeVenueRequest]) (*connect.Response[v1.MakeVenueResponse], error) {
+	return c.makeVenue.CallUnary(ctx, req)
+}
+
+// MergePlace calls perspectiv.v1.ModerationService.MergePlace.
+func (c *moderationServiceClient) MergePlace(ctx context.Context, req *connect.Request[v1.MergePlaceRequest]) (*connect.Response[v1.MergePlaceResponse], error) {
+	return c.mergePlace.CallUnary(ctx, req)
+}
+
 // ModerationServiceHandler is an implementation of the perspectiv.v1.ModerationService service.
 type ModerationServiceHandler interface {
 	Report(context.Context, *connect.Request[v1.ReportRequest]) (*connect.Response[v1.ReportResponse], error)
@@ -198,6 +236,14 @@ type ModerationServiceHandler interface {
 	// again; writes an audit entry with the reason. Claims rejected while it
 	// was hidden stay rejected.
 	Restore(context.Context, *connect.Request[v1.RestoreRequest]) (*connect.Response[v1.RestoreResponse], error)
+	// ADMIN only. Makes a store a venue (a mall-level place) so places can be
+	// added inside it: a stadium's stands, a park's rides. Its stories and
+	// arcs stay where they are. Writes an audit entry with the reason.
+	MakeVenue(context.Context, *connect.Request[v1.MakeVenueRequest]) (*connect.Response[v1.MakeVenueResponse], error)
+	// ADMIN only. Merges a duplicate place that has no arcs of its own into
+	// its twin: places filed under it move to the twin, and it is hidden.
+	// Writes an audit entry with the reason.
+	MergePlace(context.Context, *connect.Request[v1.MergePlaceRequest]) (*connect.Response[v1.MergePlaceResponse], error)
 }
 
 // NewModerationServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -249,6 +295,18 @@ func NewModerationServiceHandler(svc ModerationServiceHandler, opts ...connect.H
 		connect.WithSchema(moderationServiceMethods.ByName("Restore")),
 		connect.WithHandlerOptions(opts...),
 	)
+	moderationServiceMakeVenueHandler := connect.NewUnaryHandler(
+		ModerationServiceMakeVenueProcedure,
+		svc.MakeVenue,
+		connect.WithSchema(moderationServiceMethods.ByName("MakeVenue")),
+		connect.WithHandlerOptions(opts...),
+	)
+	moderationServiceMergePlaceHandler := connect.NewUnaryHandler(
+		ModerationServiceMergePlaceProcedure,
+		svc.MergePlace,
+		connect.WithSchema(moderationServiceMethods.ByName("MergePlace")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.ModerationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ModerationServiceReportProcedure:
@@ -265,6 +323,10 @@ func NewModerationServiceHandler(svc ModerationServiceHandler, opts ...connect.H
 			moderationServiceLiftSuspensionHandler.ServeHTTP(w, r)
 		case ModerationServiceRestoreProcedure:
 			moderationServiceRestoreHandler.ServeHTTP(w, r)
+		case ModerationServiceMakeVenueProcedure:
+			moderationServiceMakeVenueHandler.ServeHTTP(w, r)
+		case ModerationServiceMergePlaceProcedure:
+			moderationServiceMergePlaceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -300,4 +362,12 @@ func (UnimplementedModerationServiceHandler) LiftSuspension(context.Context, *co
 
 func (UnimplementedModerationServiceHandler) Restore(context.Context, *connect.Request[v1.RestoreRequest]) (*connect.Response[v1.RestoreResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ModerationService.Restore is not implemented"))
+}
+
+func (UnimplementedModerationServiceHandler) MakeVenue(context.Context, *connect.Request[v1.MakeVenueRequest]) (*connect.Response[v1.MakeVenueResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ModerationService.MakeVenue is not implemented"))
+}
+
+func (UnimplementedModerationServiceHandler) MergePlace(context.Context, *connect.Request[v1.MergePlaceRequest]) (*connect.Response[v1.MergePlaceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ModerationService.MergePlace is not implemented"))
 }

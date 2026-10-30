@@ -323,3 +323,52 @@ describe("were you in someone's story?", () => {
     await waitFor(() => expect(within(panel).getByRole("status")).toHaveTextContent("Nobody unclaimed matches “zebra” here yet."));
   });
 });
+
+describe("admin tools on a place", () => {
+  const admin = { refresh: () => sessionReply({ token: "tok", role: "ROLE_ADMIN" }) };
+
+  it("are not shown to a member", async () => {
+    placePage("/places/ci-spr", {}, { refresh: () => sessionReply({ token: "tok" }) });
+    await screen.findByRole("heading", { level: 1, name: "Springfield" });
+    expect(screen.queryByRole("region", { name: "Admin" })).not.toBeInTheDocument();
+  });
+
+  it("make an imported store a venue, with a reason", async () => {
+    const user = userEvent.setup();
+    const { calls } = placePage(
+      "/places/so-bk",
+      { "PlaceService/GetPlace": () => ({ body: { place: { ...store, parentId: "ci-spr" } } }), "ModerationService/MakeVenue": () => ({ body: {} }) },
+      admin,
+    );
+    const tools = await screen.findByRole("region", { name: "Admin" });
+    await user.click(within(tools).getByRole("button", { name: "Make this a venue…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Make Prairie Books a venue?" });
+    await user.type(within(dialog).getByLabelText("Reason for the audit log"), "a stadium with stands");
+    await user.click(within(dialog).getByRole("button", { name: "Make a venue" }));
+    expect(await within(tools).findByRole("status", { name: "Admin status" })).toHaveTextContent("Prairie Books is a venue now.");
+    expect(calls("ModerationService/MakeVenue")).toEqual([{ placeId: "so-bk", reason: "a stadium with stands" }]);
+  });
+
+  it("merge a duplicate into the place picked from a search, then open it", async () => {
+    const user = userEvent.setup();
+    const twin = { id: "ci-spr-2", kind: "PLACE_KIND_CITY", name: "Springfield", stories: 12, ancestors: [illinois] };
+    const { calls, router } = placePage(
+      "/places/ci-spr",
+      {
+        "PlaceService/SearchPlaces": () => ({ body: { places: [{ ...springfield, stories: 0 }, twin] } }),
+        "ModerationService/MergePlace": () => ({ body: {} }),
+      },
+      admin,
+    );
+    const tools = await screen.findByRole("region", { name: "Admin" });
+    await user.click(within(tools).getByRole("button", { name: "Merge into another place…" }));
+    const dialog = await screen.findByRole("dialog", { name: "Merge this duplicate" });
+    await user.click(within(dialog).getByRole("button", { name: "Merge" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Pick the place everyone should use.");
+    await user.click(await within(dialog).findByRole("radio", { name: /12 stories/ }));
+    await user.type(within(dialog).getByLabelText("Reason for the audit log"), "same city");
+    await user.click(within(dialog).getByRole("button", { name: "Merge" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/places/ci-spr-2"));
+    expect(calls("ModerationService/MergePlace")).toEqual([{ placeId: "ci-spr", intoPlaceId: "ci-spr-2", reason: "same city" }]);
+  });
+});

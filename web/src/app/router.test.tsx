@@ -1,3 +1,4 @@
+import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider, useLoaderData, useLocation } from "react-router";
@@ -6,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { connectError, installFakeApi, sessionReply, type FakeHandler } from "@/lib/fakeApi.testutil";
 import { currentSession, resetSessionForTests } from "@/lib/session";
 
+import { createQueryClient } from "./queryClient";
 import { buildRoutes, globPageLoader, pages, type PageLoader, type RouteModule } from "./router";
 
 beforeEach(() => resetSessionForTests());
@@ -37,7 +39,14 @@ function renderAt(path: string, opts: { refresh?: FakeHandler; load?: PageLoader
     ...opts.extra,
   });
   const router = createMemoryRouter(buildRoutes(load), { initialEntries: [path] });
-  render(<RouterProvider router={router} />);
+  // The shell reads the unread count, as main.tsx provides a query client for.
+  const client = createQueryClient();
+  client.setDefaultOptions({ queries: { retry: false } });
+  render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
   return { router, requested, api };
 }
 
@@ -176,6 +185,20 @@ describe("shell", () => {
     await user.click(screen.getByRole("button", { name: "Account: wren" }));
     await screen.findByRole("menuitem", { name: "Settings" });
     expect(screen.queryByRole("menuitem", { name: "Reports" })).not.toBeInTheDocument();
+  });
+
+  it("names every member item in visible words, calls claims Requests and counts unread notifications on Inbox", async () => {
+    renderAt("/", { refresh: signedIn(), extra: { "NotifyService/ListInbox": () => ({ body: { unreadCount: 2 } }) } });
+    await screen.findByTestId("page");
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).getByRole("link", { name: "Requests" })).toHaveAttribute("href", "/claims");
+    const inbox = await within(nav).findByRole("link", { name: "Inbox, 2 unread" });
+    expect(inbox).toHaveAttribute("href", "/inbox");
+    expect(inbox).toHaveTextContent("2");
+    // The words show at phone width too: none is screen-reader only.
+    for (const word of ["Write", "Requests", "Inbox", "Account"]) {
+      expect(within(nav).getByText(word)).not.toHaveClass("sr-only");
+    }
   });
 
   it("offers Reports to an admin", async () => {

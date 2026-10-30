@@ -93,7 +93,7 @@ function ChangePassword() {
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
-              <FormDescription>At least 10 characters. Other devices are signed out when it changes.</FormDescription>
+              <FormDescription>At least 10 characters; a common password is refused. Other devices are signed out when it changes.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

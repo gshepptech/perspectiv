@@ -3,6 +3,7 @@ package arc
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -103,4 +104,21 @@ func parseArcID(s string) (uuid.UUID, error) {
 		return uuid.Nil, apiutil.InvalidArg("arc_id is not a valid id")
 	}
 	return id, nil
+}
+
+// FindDayArc says what already exists for a place on a day. It is public.
+func (h *Handler) FindDayArc(ctx context.Context, req *connect.Request[perspectivv1.FindDayArcRequest]) (*connect.Response[perspectivv1.FindDayArcResponse], error) {
+	placeID, err := uuid.Parse(req.Msg.GetPlaceId())
+	if err != nil {
+		return nil, apiutil.ToConnect(apiutil.InvalidArg("place_id is not a valid id"))
+	}
+	day, err := time.Parse(dateLayout, req.Msg.GetLocalDate())
+	if err != nil {
+		return nil, apiutil.ToConnect(apiutil.InvalidArg("local_date must be YYYY-MM-DD"))
+	}
+	resp, err := h.svc.FindDayArc(ctx, placeID, day)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(resp), nil
 }

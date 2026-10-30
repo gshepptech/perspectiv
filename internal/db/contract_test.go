@@ -116,7 +116,7 @@ func TestEnumValues(t *testing.T) {
 			want: []string{"AUDIT_ACTION_UNSPECIFIED", "AUDIT_ACTION_HIDE_PERSPECTIVE", "AUDIT_ACTION_HIDE_PLACE", "AUDIT_ACTION_SUSPEND_USER",
 				"AUDIT_ACTION_DISMISS", "AUDIT_ACTION_HIDE_LORE_POST", "AUDIT_ACTION_CLEAR_LORE_NAME", "AUDIT_ACTION_ADMIN_GRANT",
 				"AUDIT_ACTION_ACCESS_CODE_CREATE", "AUDIT_ACTION_ACCESS_CODE_REVOKE", "AUDIT_ACTION_WAITLIST_INVITE", "AUDIT_ACTION_USER_LOOKUP",
-				"AUDIT_ACTION_LIFT_SUSPENSION", "AUDIT_ACTION_RESTORE"},
+				"AUDIT_ACTION_LIFT_SUSPENSION", "AUDIT_ACTION_RESTORE", "AUDIT_ACTION_MAKE_VENUE", "AUDIT_ACTION_MERGE_PLACE"},
 		},
 		{
 			name: "audit target kind",
@@ -158,13 +158,13 @@ var services = map[string][]string{
 		"GetSignUpInfo", "JoinWaitlist", "CreateAccessCode", "ListAccessCodes", "RevokeAccessCode", "ListWaitlist", "InviteFromWaitlist"},
 	"UserService":        {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount", "ExportMyData"},
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters"},
-	"ArcService":         {"GetArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},
+	"ArcService":         {"GetArc", "FindDayArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},
 	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite"},
 	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore"},
 	"VoteService":        {"Vote", "VoteRemove"},
 	"ReactService":       {"React"},
 	"NotifyService":      {"ListInbox", "MarkRead", "GetPreferences", "UpdatePreferences", "Unsubscribe"},
-	"ModerationService":  {"Report", "ListReports", "Resolve", "ListAuditLog", "LookupUser", "LiftSuspension", "Restore"},
+	"ModerationService":  {"Report", "ListReports", "Resolve", "ListAuditLog", "LookupUser", "LiftSuspension", "Restore", "MakeVenue", "MergePlace"},
 }
 
 func service(t *testing.T, name string) protoreflect.ServiceDescriptor {

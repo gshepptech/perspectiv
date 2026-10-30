@@ -193,3 +193,39 @@ func (h *Handler) Restore(ctx context.Context, req *connect.Request[perspectivv1
 	}
 	return connect.NewResponse(&perspectivv1.RestoreResponse{}), nil
 }
+
+// MakeVenue makes a store a venue that can hold places. ADMIN only.
+func (h *Handler) MakeVenue(ctx context.Context, req *connect.Request[perspectivv1.MakeVenueRequest]) (*connect.Response[perspectivv1.MakeVenueResponse], error) {
+	caller, err := callerID(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	place, err := parseID("place_id", req.Msg.GetPlaceId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	if err := h.svc.MakeVenue(ctx, caller, place, req.Msg.GetReason()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.MakeVenueResponse{}), nil
+}
+
+// MergePlace folds a duplicate place into its twin. ADMIN only.
+func (h *Handler) MergePlace(ctx context.Context, req *connect.Request[perspectivv1.MergePlaceRequest]) (*connect.Response[perspectivv1.MergePlaceResponse], error) {
+	caller, err := callerID(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	from, err := parseID("place_id", req.Msg.GetPlaceId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	into, err := parseID("into_place_id", req.Msg.GetIntoPlaceId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	if err := h.svc.MergePlace(ctx, caller, from, into, req.Msg.GetReason()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.MergePlaceResponse{}), nil
+}

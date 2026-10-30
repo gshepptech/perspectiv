@@ -28,10 +28,15 @@ type Props = {
    * pressed; aria-pressed says whether the viewer's vote is on.
    */
   targetName?: string;
+  /**
+   * The bar only: the viewer may not vote yet, and pressing Upvote reveals
+   * why (the panel `controls` names) instead of voting or leaving the page.
+   */
+  blocked?: { expanded: boolean; controls: string; onPress: () => void };
 };
 
 /** The up-vote toggle. There is no downvote: pressing it again clears the vote. */
-export function VoteButton({ perspectiveId, upvotes: upvotesProp, voted: votedProp, canVote, variant = "bar", targetName }: Props) {
+export function VoteButton({ perspectiveId, upvotes: upvotesProp, voted: votedProp, canVote, variant = "bar", targetName, blocked }: Props) {
   const label = targetName ? `Upvote ${targetName}` : "Upvote";
   const { gate } = useWriteGate();
   const client = useQueryClient();
@@ -104,6 +109,20 @@ export function VoteButton({ perspectiveId, upvotes: upvotesProp, voted: votedPr
           }}
         >
           <ArrowBigUp aria-hidden size={16} fill={voted ? "currentColor" : "none"} />
+          Upvote
+        </Button>
+      )}
+      {!canVote && blocked && (
+        <Button
+          variant="secondary"
+          size="sm"
+          aria-label={label}
+          aria-expanded={blocked.expanded}
+          aria-controls={blocked.expanded ? blocked.controls : undefined}
+          className="min-h-11"
+          onClick={blocked.onPress}
+        >
+          <ArrowBigUp aria-hidden size={16} />
           Upvote
         </Button>
       )}

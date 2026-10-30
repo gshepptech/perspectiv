@@ -27,6 +27,56 @@ func (q *Queries) CountVisiblePerspectives(ctx context.Context, arcID uuid.NullU
 	return visible, err
 }
 
+const dayArcStories = `-- name: DayArcStories :many
+SELECT a.id, a.hour, a.title,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS stories
+FROM arcs a
+WHERE a.place_id = $1::uuid AND a.local_date = $2::date
+ORDER BY a.hour NULLS FIRST
+`
+
+type DayArcStoriesParams struct {
+	PlaceID   uuid.UUID
+	LocalDate pgtype.Date
+}
+
+type DayArcStoriesRow struct {
+	ID      uuid.UUID
+	Hour    pgtype.Int2
+	Title   string
+	Stories int32
+}
+
+// A place's arcs on one day, the day arc first and then its hours in order,
+// each with its count of readable stories. Empty when nobody has written
+// there that day.
+func (q *Queries) DayArcStories(ctx context.Context, arg DayArcStoriesParams) ([]DayArcStoriesRow, error) {
+	rows, err := q.db.Query(ctx, dayArcStories, arg.PlaceID, arg.LocalDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DayArcStoriesRow
+	for rows.Next() {
+		var i DayArcStoriesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Hour,
+			&i.Title,
+			&i.Stories,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getArcLore = `-- name: GetArcLore :one
 SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
        coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username

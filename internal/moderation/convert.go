@@ -153,7 +153,9 @@ func validAuditAction(a perspectivv1.AuditAction) bool {
 		perspectivv1.AuditAction_AUDIT_ACTION_WAITLIST_INVITE,
 		perspectivv1.AuditAction_AUDIT_ACTION_USER_LOOKUP,
 		perspectivv1.AuditAction_AUDIT_ACTION_LIFT_SUSPENSION,
-		perspectivv1.AuditAction_AUDIT_ACTION_RESTORE:
+		perspectivv1.AuditAction_AUDIT_ACTION_RESTORE,
+		perspectivv1.AuditAction_AUDIT_ACTION_MAKE_VENUE,
+		perspectivv1.AuditAction_AUDIT_ACTION_MERGE_PLACE:
 		return true
 	case perspectivv1.AuditAction_AUDIT_ACTION_UNSPECIFIED:
 	}

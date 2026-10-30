@@ -870,3 +870,28 @@ func TestSearchCharacters(t *testing.T) {
 		}
 	})
 }
+
+// Same-named places: the one with stories comes first, with its count, so
+// friends searching for one venue pick the same entry.
+func TestSearchRanksStoriedPlacesFirst(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	c := client(t, h.pool)
+	ctx := context.Background()
+	quiet := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Twin Stadium", h.mall)
+	busy := h.place(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Twin Stadium", h.otherCity)
+	by := h.user(true)
+	t0 := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	a := h.arc(busy, "2026-10-01", "Game day", by, t0)
+	h.perspective(a, by, perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_PENDING, t0, "text")
+	h.perspective(a, h.user(true), perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_PENDING, t0, "text")
+	res, err := c.SearchPlaces(ctx, as(uuid.Nil, &perspectivv1.SearchPlacesRequest{Query: "twin stadium"}))
+	if err != nil {
+		t.Fatalf("SearchPlaces: %v", err)
+	}
+	got := res.Msg.GetPlaces()
+	if len(got) != 2 || got[0].GetId() != busy.String() || got[0].GetStories() != 2 ||
+		got[1].GetId() != quiet.String() || got[1].GetStories() != 0 {
+		t.Fatalf("results = %v, want the storied place first with 2 stories", got)
+	}
+}

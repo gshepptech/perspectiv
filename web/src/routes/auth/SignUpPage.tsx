@@ -13,7 +13,8 @@ import { clients } from "@/lib/connect";
 
 import { AuthHeading, AuthPanel, FormAlert, linkClass } from "./AuthPanel";
 import { errorMessage } from "./errors";
-import { emailSchema, passwordSchema, usernameSchema } from "./rules";
+import { rememberAfterVerify } from "./afterVerify";
+import { emailSchema, passwordSchema, safeNext, usernameSchema } from "./rules";
 import { Honeypot } from "./Honeypot";
 import { Waitlist } from "./Waitlist";
 
@@ -65,7 +66,12 @@ function Terms() {
   );
 }
 
-function CheckEmail({ email }: { email: string }) {
+/** The sign-in page, carrying where the reader was headed. */
+function signInHref(next: string): string {
+  return next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`;
+}
+
+function CheckEmail({ email, next }: { email: string; next: string }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => heading.current?.focus(), []);
   return (
@@ -76,7 +82,7 @@ function CheckEmail({ email }: { email: string }) {
         can sign in and read, but not publish, claim, vote, react or report.
       </p>
       <p className="mt-6">
-        <Link to="/login" className={linkClass}>
+        <Link to={signInHref(next)} className={linkClass}>
           Sign in
         </Link>
       </p>
@@ -86,6 +92,7 @@ function CheckEmail({ email }: { email: string }) {
 
 export function Component() {
   const [params] = useSearchParams();
+  const next = safeNext(params.get("next"));
   const info = useQuery({
     queryKey: ["auth", "getSignUpInfo"],
     queryFn: ({ signal }) => clients.auth.getSignUpInfo({}, { signal }),
@@ -97,6 +104,8 @@ export function Component() {
   });
   const signUp = useMutation({
     mutationFn: (values: Values) => clients.auth.signUp({ ...values, accessCode: inviteOnly ? values.accessCode.trim() : "" }),
+    // The verification link opens a new tab; it picks up from here.
+    onSuccess: () => rememberAfterVerify(next),
   });
   const submit = form.handleSubmit((v) => {
     if (inviteOnly && v.accessCode.trim() === "") {
@@ -106,7 +115,7 @@ export function Component() {
     signUp.mutate(v);
   });
 
-  if (signUp.isSuccess) return <CheckEmail email={signUp.variables.email} />;
+  if (signUp.isSuccess) return <CheckEmail email={signUp.variables.email} next={next} />;
 
   return (
     <AuthPanel>
@@ -168,6 +177,7 @@ export function Component() {
                 <FormControl>
                   <Input type="password" autoComplete="new-password" {...field} />
                 </FormControl>
+                <FormDescription>At least 10 characters; a common password is refused.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -205,7 +215,7 @@ export function Component() {
       {inviteOnly && <Waitlist />}
       <p className="mt-6 text-sm text-ink-muted">
         Already a member?{" "}
-        <Link to="/login" className={linkClass}>
+        <Link to={signInHref(next)} className={linkClass}>
           Sign in
         </Link>
       </p>

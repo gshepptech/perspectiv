@@ -29,13 +29,17 @@ export function Component() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const arrived = useLocation().state as LoginState | null;
+  // Where the reader was headed goes on to sign-up, so a new member is not
+  // dropped on the home page after verifying.
+  const next = safeNext(params.get("next"));
+  const signUpTo = next === "/" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`;
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", password: "" } });
   const login = useMutation({
     mutationFn: async (values: Values) => {
       const session = signIn(await clients.auth.login(values));
       if (!session) throw new Error("the server answered without a session");
     },
-    onSuccess: () => navigate(safeNext(params.get("next")), { replace: true }),
+    onSuccess: () => navigate(next, { replace: true }),
   });
 
   return (
@@ -96,7 +100,7 @@ export function Component() {
       </p>
       <p className="mt-2 text-sm text-ink-muted">
         New here?{" "}
-        <Link to="/signup" className={cn(linkClass, targetClass)}>
+        <Link to={signUpTo} className={cn(linkClass, targetClass)}>
           Create an account
         </Link>
       </p>

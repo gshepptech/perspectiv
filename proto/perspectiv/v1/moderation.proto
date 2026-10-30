@@ -25,6 +25,14 @@ service ModerationService {
   // again; writes an audit entry with the reason. Claims rejected while it
   // was hidden stay rejected.
   rpc Restore(RestoreRequest) returns (RestoreResponse);
+  // ADMIN only. Makes a store a venue (a mall-level place) so places can be
+  // added inside it: a stadium's stands, a park's rides. Its stories and
+  // arcs stay where they are. Writes an audit entry with the reason.
+  rpc MakeVenue(MakeVenueRequest) returns (MakeVenueResponse);
+  // ADMIN only. Merges a duplicate place that has no arcs of its own into
+  // its twin: places filed under it move to the twin, and it is hidden.
+  // Writes an audit entry with the reason.
+  rpc MergePlace(MergePlaceRequest) returns (MergePlaceResponse);
 }
 
 // Report is one user report as the admin queue shows it.
@@ -173,3 +181,22 @@ message RestoreRequest {
 }
 
 message RestoreResponse {}
+
+message MakeVenueRequest {
+  string place_id = 1;
+  // Why; written to the audit entry.
+  string reason = 2;
+}
+
+message MakeVenueResponse {}
+
+message MergePlaceRequest {
+  // The duplicate; it must have no arcs of its own.
+  string place_id = 1;
+  // The place everyone should use.
+  string into_place_id = 2;
+  // Why; written to the audit entry.
+  string reason = 3;
+}
+
+message MergePlaceResponse {}

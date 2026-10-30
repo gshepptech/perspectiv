@@ -116,6 +116,10 @@ export function auditActionLabel(action: AuditAction): string {
       return "lifted a suspension";
     case AuditAction.RESTORE:
       return "restored hidden content";
+    case AuditAction.MAKE_VENUE:
+      return "made a place a venue";
+    case AuditAction.MERGE_PLACE:
+      return "merged a duplicate place";
     case AuditAction.DISMISS:
       return "dismissed a report";
     case AuditAction.HIDE_LORE_POST:
@@ -146,6 +150,8 @@ export const auditActions: AuditAction[] = [
   AuditAction.SUSPEND_USER,
   AuditAction.LIFT_SUSPENSION,
   AuditAction.RESTORE,
+  AuditAction.MAKE_VENUE,
+  AuditAction.MERGE_PLACE,
   AuditAction.DISMISS,
   AuditAction.ADMIN_GRANT,
   AuditAction.ACCESS_CODE_CREATE,

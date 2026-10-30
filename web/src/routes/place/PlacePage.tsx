@@ -2,7 +2,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Crown, PenLine, Plus } from "lucide-react";
 import { useState, type RefObject } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { Link, useLocation, useParams, useSearchParams } from "react-router";
 
 import { formatDayBeside, genreLabel, loreStatusLabel, placeCategories, placeCategoryLabel, placeKindLabel } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +17,7 @@ import { useShowMore } from "@/lib/showMore";
 import { AuthorLink } from "@/components/reader/AuthorLink";
 import { useDebounced } from "@/routes/compose/search";
 
+import { AdminTools } from "./AdminTools";
 import { FindYourself } from "./FindYourself";
 import { FollowButton } from "./FollowButton";
 
@@ -320,6 +321,8 @@ function Children({ place }: { place: Place }) {
  */
 export function Component() {
   const { placeId = "" } = useParams();
+  // An admin's merge lands here from the hidden duplicate.
+  const mergedFrom = (useLocation().state as { mergedFrom?: string } | null)?.mergedFrom;
   const [params, setParams] = useSearchParams();
   const tab = parseTab(params.get("tab"));
   const genre = parseGenre(params.get("genre"));
@@ -439,8 +442,14 @@ export function Component() {
           </Tabs>
         </section>
         <aside className="grid min-w-0 content-start gap-6">
+          {mergedFrom && (
+            <p role="status" className="rounded-md border border-success p-3 text-sm">
+              “{mergedFrom}” was merged into this place.
+            </p>
+          )}
           <FindYourself placeId={place.id} placeName={place.name} />
           <Children place={place} />
+          <AdminTools place={place} />
         </aside>
       </div>
     </div>

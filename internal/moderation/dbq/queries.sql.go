@@ -623,6 +623,56 @@ func (q *Queries) LockActiveUserByUsername(ctx context.Context, username string)
 	return i, err
 }
 
+const lockPlacesForMerge = `-- name: LockPlacesForMerge :many
+SELECT p.id, p.kind,
+       (SELECT count(*) FROM arcs a WHERE a.place_id = p.id)::integer AS arcs,
+       coalesce((SELECT max(array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                                 'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], c.kind))
+                 FROM places c WHERE c.parent_id = p.id), 0)::integer AS child_level,
+       array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                            'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind)::integer AS level
+FROM places p
+WHERE p.id = ANY($1::uuid[]) AND p.hidden_at IS NULL
+FOR UPDATE
+`
+
+type LockPlacesForMergeRow struct {
+	ID         uuid.UUID
+	Kind       string
+	Arcs       int32
+	ChildLevel int32
+	Level      int32
+}
+
+// Both places of a merge, visible ones only, locked against a concurrent
+// write; with the duplicate's arc count and the deepest level of its
+// children (0 for none), for the merge's checks.
+func (q *Queries) LockPlacesForMerge(ctx context.Context, ids []uuid.UUID) ([]LockPlacesForMergeRow, error) {
+	rows, err := q.db.Query(ctx, lockPlacesForMerge, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LockPlacesForMergeRow
+	for rows.Next() {
+		var i LockPlacesForMergeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.Arcs,
+			&i.ChildLevel,
+			&i.Level,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockReport = `-- name: LockReport :one
 SELECT id, target_kind, target_id, status
 FROM reports
@@ -688,12 +738,42 @@ func (q *Queries) LorePostReportable(ctx context.Context, id uuid.UUID) (bool, e
 	return ok, err
 }
 
+const makeVenue = `-- name: MakeVenue :execrows
+UPDATE places p SET kind = 'PLACE_KIND_MALL'
+WHERE p.id = $1::uuid AND p.kind = 'PLACE_KIND_STORE' AND p.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places parent WHERE parent.id = p.parent_id AND parent.kind = 'PLACE_KIND_MALL')
+`
+
+// Turns a visible store into a mall-level venue, unless it already sits
+// inside a mall (a venue cannot hold a venue).
+func (q *Queries) MakeVenue(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, makeVenue, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const markArcLoreDirty = `-- name: MarkArcLoreDirty :exec
 UPDATE arcs SET lore_dirty_at = now() WHERE id = $1::uuid
 `
 
 func (q *Queries) MarkArcLoreDirty(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, markArcLoreDirty, id)
+	return err
+}
+
+const movePlaceChildren = `-- name: MovePlaceChildren :exec
+UPDATE places SET parent_id = $1::uuid WHERE parent_id = $2::uuid
+`
+
+type MovePlaceChildrenParams struct {
+	IntoID uuid.UUID
+	FromID uuid.UUID
+}
+
+func (q *Queries) MovePlaceChildren(ctx context.Context, arg MovePlaceChildrenParams) error {
+	_, err := q.db.Exec(ctx, movePlaceChildren, arg.IntoID, arg.FromID)
 	return err
 }
 

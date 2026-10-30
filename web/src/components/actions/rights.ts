@@ -31,5 +31,6 @@ export function useStoryRights(arcId: string, loreId: string): ViewerRights {
   return {
     participant: !!session && !!viewer?.perspectiveId,
     loreVoter: sameLore && (lore.data?.lore?.memberCount ?? 0) >= CANON_MIN_MEMBERS,
+    pending: !!session && arcId !== "" && arc.isPending,
   };
 }

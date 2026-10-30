@@ -100,7 +100,7 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
   await expect(anaCardForBen).toContainText("1 upvote");
 
   // Ana accepts all three claims from her claims inbox.
-  await ana.page.getByRole("link", { name: "Claims", exact: true }).click();
+  await ana.page.getByRole("link", { name: "Requests", exact: true }).click();
   const incoming = ana.page.getByRole("list", { name: "Claims on your characters" });
   for (const [who, label] of [
     [benAcct, BARISTA],
@@ -110,7 +110,7 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
     const item = incoming.getByRole("listitem").filter({ hasText: `${who.username} says they are` });
     await expect(item).toContainText(label);
     await item.getByRole("button", { name: "Accept" }).click();
-    await expect(item.getByText("Accepted")).toBeVisible();
+    await expect(item.getByText(/^Linked\./)).toBeVisible();
   }
   const acceptedAt = Date.now();
 

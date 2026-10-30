@@ -14,6 +14,10 @@ service ArcService {
   // Public. The arc, its canon, the first page of each list and, for a
   // signed-in caller, where they stand in the arc.
   rpc GetArc(GetArcRequest) returns (GetArcResponse);
+  // Public. What already exists for a place on a day: the day arc and its
+  // hours with their story counts, so a writer joins the others instead of
+  // starting apart.
+  rpc FindDayArc(FindDayArcRequest) returns (FindDayArcResponse);
   // Public. The next page of one list on an arc page.
   rpc ListArcSection(ListArcSectionRequest) returns (ListArcSectionResponse);
   rpc RetitleHourArc(RetitleHourArcRequest) returns (RetitleHourArcResponse);
@@ -138,4 +142,27 @@ message ListOpenCharactersResponse {
   // In the order their stories were published, then as each story lists
   // them; at most 200.
   repeated OpenCharacter characters = 1;
+}
+
+message FindDayArcRequest {
+  string place_id = 1;
+  // Place-local calendar day, YYYY-MM-DD.
+  string local_date = 2;
+}
+
+// DayArcHour is one hour arc of a day with its readable story count.
+message DayArcHour {
+  int32 hour = 1;
+  string arc_id = 2;
+  string title = 3;
+  int32 perspective_count = 4;
+}
+
+message FindDayArcResponse {
+  // Empty when nobody has written at the place that day.
+  string arc_id = 1;
+  string title = 2;
+  // Readable stories written for the whole day.
+  int32 perspective_count = 3;
+  repeated DayArcHour hours = 4;
 }

@@ -75,6 +75,8 @@ func TestRoutePolicies(t *testing.T) {
 		"/perspectiv.v1.ModerationService/LookupUser":     true,
 		"/perspectiv.v1.ModerationService/LiftSuspension": true,
 		"/perspectiv.v1.ModerationService/Restore":        true,
+		"/perspectiv.v1.ModerationService/MakeVenue":      true,
+		"/perspectiv.v1.ModerationService/MergePlace":     true,
 		"/perspectiv.v1.AuthService/CreateAccessCode":     true,
 		"/perspectiv.v1.AuthService/ListAccessCodes":      true,
 		"/perspectiv.v1.AuthService/RevokeAccessCode":     true,

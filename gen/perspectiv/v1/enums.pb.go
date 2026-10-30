@@ -920,6 +920,10 @@ const (
 	AuditAction_AUDIT_ACTION_LIFT_SUSPENSION AuditAction = 12
 	// An admin made hidden content readable again; the target kind says what.
 	AuditAction_AUDIT_ACTION_RESTORE AuditAction = 13
+	// An admin made an imported store a venue that can hold places.
+	AuditAction_AUDIT_ACTION_MAKE_VENUE AuditAction = 14
+	// An admin merged a duplicate place with no stories into its twin.
+	AuditAction_AUDIT_ACTION_MERGE_PLACE AuditAction = 15
 )
 
 // Enum value maps for AuditAction.
@@ -939,6 +943,8 @@ var (
 		11: "AUDIT_ACTION_USER_LOOKUP",
 		12: "AUDIT_ACTION_LIFT_SUSPENSION",
 		13: "AUDIT_ACTION_RESTORE",
+		14: "AUDIT_ACTION_MAKE_VENUE",
+		15: "AUDIT_ACTION_MERGE_PLACE",
 	}
 	AuditAction_value = map[string]int32{
 		"AUDIT_ACTION_UNSPECIFIED":        0,
@@ -955,6 +961,8 @@ var (
 		"AUDIT_ACTION_USER_LOOKUP":        11,
 		"AUDIT_ACTION_LIFT_SUSPENSION":    12,
 		"AUDIT_ACTION_RESTORE":            13,
+		"AUDIT_ACTION_MAKE_VENUE":         14,
+		"AUDIT_ACTION_MERGE_PLACE":        15,
 	}
 )
 
@@ -1355,7 +1363,7 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\x1eMODERATION_ACTION_SUSPEND_USER\x10\x03\x12\x1d\n" +
 	"\x19MODERATION_ACTION_DISMISS\x10\x04\x12$\n" +
 	" MODERATION_ACTION_HIDE_LORE_POST\x10\x05\x12%\n" +
-	"!MODERATION_ACTION_CLEAR_LORE_NAME\x10\x06*\xcb\x03\n" +
+	"!MODERATION_ACTION_CLEAR_LORE_NAME\x10\x06*\x86\x04\n" +
 	"\vAuditAction\x12\x1c\n" +
 	"\x18AUDIT_ACTION_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dAUDIT_ACTION_HIDE_PERSPECTIVE\x10\x01\x12\x1b\n" +
@@ -1371,7 +1379,9 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\x12\x1c\n" +
 	"\x18AUDIT_ACTION_USER_LOOKUP\x10\v\x12 \n" +
 	"\x1cAUDIT_ACTION_LIFT_SUSPENSION\x10\f\x12\x18\n" +
-	"\x14AUDIT_ACTION_RESTORE\x10\r*\x9b\x02\n" +
+	"\x14AUDIT_ACTION_RESTORE\x10\r\x12\x1b\n" +
+	"\x17AUDIT_ACTION_MAKE_VENUE\x10\x0e\x12\x1c\n" +
+	"\x18AUDIT_ACTION_MERGE_PLACE\x10\x0f*\x9b\x02\n" +
 	"\x0fAuditTargetKind\x12!\n" +
 	"\x1dAUDIT_TARGET_KIND_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dAUDIT_TARGET_KIND_PERSPECTIVE\x10\x01\x12\x1b\n" +

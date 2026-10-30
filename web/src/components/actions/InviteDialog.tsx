@@ -22,11 +22,14 @@ export function inviteURL(code: string): string {
 export function InviteDialog({
   p,
   trigger = "Invite who was there",
+  openOnArrival = false,
 }: {
   p: Perspective;
   trigger?: string;
+  /** Opens the dialog on arrival, for a link that says "Invite who else was there". */
+  openOnArrival?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(openOnArrival);
   const [characterId, setCharacterId] = useState("");
   const [copied, setCopied] = useState(false);
   const groupId = useId();

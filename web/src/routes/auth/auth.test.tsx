@@ -3,10 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { currentSession, getAccessToken, resetSessionForTests } from "@/lib/session";
 
+import { readAfterVerify, rememberAfterVerify } from "./afterVerify";
 import { expectFitsPhone, fail, ok, preloadAccountRoutes, renderRoute, sessionBody } from "./harness.testutil";
 
 preloadAccountRoutes();
-beforeEach(() => resetSessionForTests());
+beforeEach(() => {
+  resetSessionForTests();
+  localStorage.clear();
+});
 afterEach(() => vi.unstubAllGlobals());
 
 const inbox = { "NotifyService/ListInbox": () => ok({ notifications: [], unreadCount: 0 }) };
@@ -53,6 +57,46 @@ describe("SignUpPage", () => {
     expect(api.sent("AuthService/SignUp")).toEqual([
       { email: "wren@example.com", username: "wren_writes", password: "a long enough secret", ageConfirmed: true },
     ]);
+  });
+
+  it("says the password rule before the form is sent", async () => {
+    renderRoute("/signup");
+    expect(await screen.findByLabelText("Password")).toHaveAccessibleDescription("At least 10 characters; a common password is refused.");
+  });
+
+  it("keeps where the reader was headed through sign-up, for the page the emailed link opens", async () => {
+    const { user } = renderRoute(`/signup?next=${encodeURIComponent("/perspectives/p-1?claim=1")}`, {
+      "AuthService/SignUp": () => ok({ userId: "u-1" }),
+    });
+    await screen.findByRole("heading", { name: "Sign up" });
+    expect(within(screen.getByRole("main")).getByRole("link", { name: "Sign in" })).toHaveAttribute(
+      "href",
+      "/login?next=%2Fperspectives%2Fp-1%3Fclaim%3D1",
+    );
+    await user.type(await screen.findByLabelText("Email"), "wren@example.com");
+    await user.type(screen.getByLabelText("Username"), "wren_writes");
+    await user.type(screen.getByLabelText("Password"), "a long enough secret");
+    await user.click(screen.getByRole("checkbox", { name: /I am 18 or over/ }));
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await screen.findByRole("heading", { name: "Check your email" });
+    expect(within(screen.getByRole("main")).getByRole("link", { name: "Sign in" })).toHaveAttribute(
+      "href",
+      "/login?next=%2Fperspectives%2Fp-1%3Fclaim%3D1",
+    );
+    expect(JSON.parse(localStorage.getItem("perspectiv.afterVerify") ?? "{}")).toMatchObject({ to: "/perspectives/p-1?claim=1" });
+  });
+
+  it("keeps nothing for an off-site next", async () => {
+    const { user } = renderRoute(`/signup?next=${encodeURIComponent("//evil.example/x")}`, {
+      "AuthService/SignUp": () => ok({ userId: "u-1" }),
+    });
+    await user.type(await screen.findByLabelText("Email"), "wren@example.com");
+    await user.type(screen.getByLabelText("Username"), "wren_writes");
+    await user.type(screen.getByLabelText("Password"), "a long enough secret");
+    await user.click(screen.getByRole("checkbox", { name: /I am 18 or over/ }));
+    await user.click(screen.getByRole("button", { name: "Sign up" }));
+    await screen.findByRole("heading", { name: "Check your email" });
+    expect(localStorage.getItem("perspectiv.afterVerify")).toBeNull();
   });
 
   it("checks the username rules before asking the server", async () => {
@@ -138,6 +182,15 @@ describe("LoginPage", () => {
     expect(within(main).getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/signup");
   });
 
+  it("carries where the reader was headed on to Create an account", async () => {
+    renderRoute(`/login?next=${encodeURIComponent("/perspectives/p-1?claim=1")}`);
+    const main = await screen.findByRole("main");
+    expect(await within(main).findByRole("link", { name: "Create an account" })).toHaveAttribute(
+      "href",
+      "/signup?next=%2Fperspectives%2Fp-1%3Fclaim%3D1",
+    );
+  });
+
   it("OT-037: fits a 375px viewport", async () => {
     const { view } = renderRoute("/login");
     await screen.findByRole("heading", { name: "Sign in" });
@@ -163,7 +216,36 @@ describe("VerifyEmailPage", () => {
     });
     await screen.findByRole("heading", { name: "Your email is verified" });
     expect(currentSession()?.emailVerified).toBe(true);
-    expect(api.calls.map((c) => c.procedure)).toEqual(["AuthService/Refresh", "AuthService/VerifyEmail", "AuthService/Refresh"]);
+    // The shell's unread badge reads the inbox too; that is not the verify flow.
+    const flow = api.calls.map((c) => c.procedure).filter((p) => p.startsWith("AuthService/"));
+    expect(flow).toEqual(["AuthService/Refresh", "AuthService/VerifyEmail", "AuthService/Refresh"]);
+  });
+
+  it("offers to continue where the reader was, through sign-in when this tab is signed out", async () => {
+    localStorage.setItem("perspectiv.afterVerify", JSON.stringify({ to: "/perspectives/p-1?claim=1", at: Date.now() }));
+    renderRoute("/verify-email?token=abc123", { "AuthService/VerifyEmail": () => ok() });
+    await screen.findByRole("heading", { name: "Your email is verified" });
+    expect(screen.getByRole("link", { name: "Continue where you were" })).toHaveAttribute(
+      "href",
+      "/login?next=%2Fperspectives%2Fp-1%3Fclaim%3D1",
+    );
+    // Offered once: it is given up once the email is verified.
+    expect(localStorage.getItem("perspectiv.afterVerify")).toBeNull();
+  });
+
+  it("continues straight there when this tab is signed in", async () => {
+    localStorage.setItem("perspectiv.afterVerify", JSON.stringify({ to: "/arcs/a-1", at: Date.now() }));
+    renderRoute("/verify-email?token=abc123", { "AuthService/VerifyEmail": () => ok(), ...inbox }, { signedIn: true });
+    await screen.findByRole("heading", { name: "Your email is verified" });
+    expect(screen.getByRole("link", { name: "Continue where you were" })).toHaveAttribute("href", "/arcs/a-1");
+  });
+
+  it("ignores a kept path that is off-site", async () => {
+    localStorage.setItem("perspectiv.afterVerify", JSON.stringify({ to: "//evil.example/", at: Date.now() }));
+    renderRoute("/verify-email?token=abc123", { "AuthService/VerifyEmail": () => ok() });
+    await screen.findByRole("heading", { name: "Your email is verified" });
+    expect(screen.queryByRole("link", { name: "Continue where you were" })).toBeNull();
+    expect(within(screen.getByRole("main")).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
   });
 
   it("explains an expired or used link and offers a way on", async () => {
@@ -181,6 +263,25 @@ describe("VerifyEmailPage", () => {
   it("shows the route error when the server is unreachable", async () => {
     renderRoute("/verify-email?token=abc", { "AuthService/VerifyEmail": () => fail("unavailable") });
     expect(await screen.findByRole("heading", { name: "Perspectiv is unreachable" })).toBeInTheDocument();
+  });
+});
+
+describe("the path kept for the verify page", () => {
+  it("lapses after a week and is read back otherwise", () => {
+    const now = Date.parse("2026-10-20T12:00:00Z");
+    rememberAfterVerify("/arcs/a-1", now);
+    expect(readAfterVerify({ now: now + 6 * 24 * 3600_000 })).toBe("/arcs/a-1");
+    expect(readAfterVerify({ now: now + 8 * 24 * 3600_000 })).toBeNull();
+  });
+
+  it("keeps nothing for the home page and survives a browser that refuses storage", () => {
+    rememberAfterVerify("/");
+    expect(localStorage.getItem("perspectiv.afterVerify")).toBeNull();
+    const refuse = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    expect(readAfterVerify()).toBeNull();
+    refuse.mockRestore();
   });
 });
 
@@ -245,6 +346,13 @@ describe("ResetPasswordPage", () => {
     expect(await screen.findByRole("heading", { name: "Your password is changed" })).toBeInTheDocument();
     expect(within(screen.getByRole("main")).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login");
     expect(api.sent("AuthService/ResetPassword")).toEqual([{ token: "t-9", newPassword: "another long secret" }]);
+  });
+
+  it("says the password rule before the form is sent", async () => {
+    renderRoute("/reset-password?token=t-9");
+    expect(await screen.findByLabelText("New password")).toHaveAccessibleDescription(
+      "At least 10 characters; a common password is refused.",
+    );
   });
 
   it("catches a mistyped repeat before asking the server", async () => {

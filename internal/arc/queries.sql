@@ -248,3 +248,15 @@ WHERE p.arc_id = sqlc.arg(arc_id)::uuid
           AND cl.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
 ORDER BY p.published_at, p.id, c.position
 LIMIT 200;
+
+-- name: DayArcStories :many
+-- A place's arcs on one day, the day arc first and then its hours in order,
+-- each with its count of readable stories. Empty when nobody has written
+-- there that day.
+SELECT a.id, a.hour, a.title,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS stories
+FROM arcs a
+WHERE a.place_id = sqlc.arg(place_id)::uuid AND a.local_date = sqlc.arg(local_date)::date
+ORDER BY a.hour NULLS FIRST;

@@ -60,6 +60,15 @@ Running prose is left-aligned, never justified, with `hyphens: auto`.
 - **Shell:** a single-row header (wordmark left, primary navigation and the
   account menu right), then `<main id="main">`, then a one-line footer. A skip
   link to `#main` is the first focusable element.
+- **Primary navigation** for a member is Write, Requests, Inbox and the
+  account menu, each an icon with a visible word. Below `sm` the word sits
+  under its 20px icon in `text-xs` and the navigation may wrap under the
+  wordmark; from `sm` the word sits beside the icon. Requests uses
+  `UserCheck` and the account menu `CircleUser`, so no two items share an
+  icon. The account item reads "Account" on phones and the username from
+  `sm`. Unread notifications show as a count badge on the Inbox icon
+  (`accent` fill, `accent-ink` text, bold), and the link's accessible name
+  carries it ("Inbox, 2 unread"); with none unread there is no badge.
 - **Breakpoints:** Tailwind defaults. Layout is single column below `md`
   (768px); from `md` the arc and place pages MAY use a two-column layout whose
   reading column keeps the measure.
@@ -184,11 +193,44 @@ lore page.
   none; the viewer's own characters are never listed. Below `lg`, where the
   sidebar falls under every story, it is a closed one-line disclosure under
   the header instead ("Is this you? 2 people nobody has claimed yet").
+- **Not yet able to claim or upvote.** On a story's page, a reader with no
+  perspective in its arc, or a signed-out reader, still sees "Claim a
+  character" (when the story has someone open to claim) and "Upvote".
+  Pressing either opens a bordered `surface` note in place under the
+  actions instead of a dialog or a silent redirect: "To say this was you,
+  write your side of this day first. Your story and theirs link once they
+  accept." (for upvote: "Only people who wrote about this day can upvote
+  its stories. Write your side first."), then a primary "Write your side"
+  link to the composer for that place and day, or, signed out, "Sign in"
+  and "Create an account" links that return to the story. Arriving from
+  "That was me" opens the claim note at once and moves focus to it. After
+  publishing from that link the writer lands back on the story with the
+  claim dialog up.
 - **Sidebar:** the four steps of how a day becomes canon, the number of
   stories and lores, who may do what here in one sentence, and "Report place".
   A day arc's hours sit in the feed, after the canon.
 - **Flairs** are words in `text-sm` with an icon where one exists; canon uses
   `accent`, pending uses `warning`, never colour alone.
+
+## Place page: admin tools
+
+For admins only, the place page's sidebar ends with a dashed "Admin" box:
+"Make this a venue…" on an imported store (so places can be added inside
+a stadium or park) and "Merge into another place…" (find the twin, pick
+it, give a reason). Both confirm in a dialog with a required reason for the
+audit log; a merge lands on the kept place with a line saying what was
+merged into it.
+
+## Composer: joining the day
+
+Under the day and hour, a bordered note says what already exists for the
+place that day: "This day is “Title”: 2 stories for the whole day, 1 story
+at 13:00", then where the writer's story will go. Stories link only within
+one arc, so the note steers toward the whole day unless the story belongs
+to an hour. The arc title field shows only when nobody has written that day
+yet; a day that has an arc keeps its title, never silently drops the
+writer's. Search results say what a place is (a stadium's category rather
+than "Store") and how many stories it holds, so friends pick the same entry.
 
 ## Place page sidebar
 
@@ -199,6 +241,27 @@ lore page.
   Under two characters nothing is searched; an empty result says so in a
   `status` line.
 - The list of places inside follows it.
+
+## Inbox and requests
+
+- **Inbox rows.** A notification with a page is one link the full width of
+  its row, at least 44px tall: the "New" tag, the sentence and the time
+  all sit inside it, so a press anywhere on the row opens it. Only the
+  sentence underlines on hover. Following the link, by any click or by
+  Enter, marks the notification read. A notification with no page is plain
+  text and has no hover.
+- **Requests** (`/claims`, headed "Requests" like its navigation item)
+  keeps its two tabs. Once the reader accepts a request, the bare
+  "Accepted" gives way to a `status` line in `success` with a check:
+  "Linked. You are both in this story's lore now: read it", linking to the
+  lore (or the day when the lore is not known yet), then a `text-sm`
+  hint: "A lore needs 4 members to compete for canon." with an "Invite
+  who else was there" link to the reader's own story, where the invite
+  dialog opens.
+- **Waiting for a link.** Where a story's byline says "Waiting for a
+  link", a `text-sm` `ink-muted` sentence under the byline says what it
+  means: it joins a lore when someone it describes claims their
+  character, or its author claims a character in another story that day.
 
 ## Sign-up during the beta
 
@@ -215,6 +278,11 @@ While sign-up is invite-only (the server says so through GetSignUpInfo):
 - The invite page offers a signed-out visitor "New here? Sign up with this
   invite", carrying the invite's code to the sign-up form.
 - While sign-up is open none of this shows.
+- **Keeping the journey.** A reader sent to sign in from a page keeps that
+  page through "Create an account", sign-up and email verification: the
+  verified page offers "Continue where you were" (through sign-in when the
+  tab is signed out). The password field says its rule before submit: "At
+  least 10 characters; a common password is refused."
 
 ## Admin: beta access
 
@@ -331,7 +399,15 @@ are writing, each of which opens its place page.
   people are writing": one pill per place with a bell icon, linking to it.
   A place page carries a "Follow" toggle beside "Write about this place",
   `aria-pressed`, reading "Following" with a filled style when on.
-- "Your perspectives" (signed in) and "Browse by state" follow as before.
+- **Returning members** do not see the visitor hero, the example or the
+  how-it-works notes. The page leads with a compact "Welcome back" block:
+  the page heading "Welcome back, *username*" at the page-title size, then
+  one line per thing waiting, each a count in bold and a link ("2 unread
+  notifications · Open your inbox", "1 request waiting on you · Review
+  requests"), or "Nothing is waiting on you." when both are zero. "Your
+  perspectives" follows it, then the search field, then "Places you
+  follow", "Where people are writing" and "Browse by state".
+- "Browse by state" closes the page for everyone.
 - Nothing animates, and everything keeps the 16px gutter with no sideways
   scroll at 375px.
 

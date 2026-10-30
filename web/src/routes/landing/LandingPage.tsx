@@ -3,7 +3,7 @@ import { Plus, Search } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
-import { formatDayBeside, placeChain } from "@/components/reader/format";
+import { formatDayBeside, placeChain, storiesLabel } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
@@ -15,6 +15,7 @@ import { useSession } from "@/lib/session";
 import { ExampleArc, HowItWorks } from "./ExampleArc";
 import { Following } from "./Following";
 import { Storied } from "./Storied";
+import { WelcomeBack } from "./WelcomeBack";
 
 const DEBOUNCE_MS = 200;
 
@@ -60,7 +61,9 @@ function SearchResults({ query }: { query: string }) {
                 className="flex min-h-11 min-w-0 flex-col justify-center py-2 hover:bg-surface sm:px-2"
               >
                 <span className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">{place.name}</span>
-                <span className="text-sm wrap-anywhere text-ink-muted">{placeChain(place.kind, place.ancestors)}</span>
+                <span className="text-sm wrap-anywhere text-ink-muted">
+                  {placeChain(place.kind, place.ancestors, place.category)} · {storiesLabel(place.stories)}
+                </span>
               </Link>
             </li>
           ))}
@@ -198,6 +201,48 @@ export function Component() {
     setParams(query ? { q: query } : {}, { replace: true });
   }, [query, params, setParams]);
 
+  const search = (
+    <>
+      <form role="search" className="mt-8" onSubmit={(e) => e.preventDefault()}>
+        <label htmlFor={inputId} className="sr-only">
+          Search places
+        </label>
+        <div className="relative">
+          <Search aria-hidden size={20} className="pointer-events-none absolute top-1/2 left-5 -translate-y-1/2 text-ink-muted" />
+          <Input
+            id={inputId}
+            type="search"
+            autoComplete="off"
+            placeholder="A store, mall, town or city"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="min-h-14 rounded-full pr-5 pl-13 text-lg shadow-sm"
+          />
+        </div>
+      </form>
+      {query ? (
+        <SearchResults query={query} />
+      ) : (
+        !session && <p className="mt-3 text-sm text-ink-muted">Anyone can read. Sign up to write your side.</p>
+      )}
+    </>
+  );
+
+  // A returning member already knows what Perspectiv is: what is waiting on
+  // them and their own writing come first, then the search.
+  if (session) {
+    return (
+      <section className="mx-auto min-w-0 max-w-shell pt-6 pb-16 sm:pt-10" aria-labelledby="landing-title">
+        <WelcomeBack username={session.username} />
+        <YourPerspectives />
+        <div className="max-w-2xl min-w-0">{search}</div>
+        <Following />
+        <Storied />
+        <BrowseStates />
+      </section>
+    );
+  }
+
   return (
     <section className="mx-auto min-w-0 max-w-shell pt-6 pb-16 sm:pt-12" aria-labelledby="landing-title">
       {/* Phones read hero, example, then notes; from lg the notes sit under the search. */}
@@ -210,28 +255,7 @@ export function Component() {
             Perspectiv is where people who were in the same place at the same time each write what they saw, and find
             the strangers who were in their story.
           </p>
-          <form role="search" className="mt-8" onSubmit={(e) => e.preventDefault()}>
-            <label htmlFor={inputId} className="sr-only">
-              Search places
-            </label>
-            <div className="relative">
-              <Search aria-hidden size={20} className="pointer-events-none absolute top-1/2 left-5 -translate-y-1/2 text-ink-muted" />
-              <Input
-                id={inputId}
-                type="search"
-                autoComplete="off"
-                placeholder="A store, mall, town or city"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                className="min-h-14 rounded-full pr-5 pl-13 text-lg shadow-sm"
-              />
-            </div>
-          </form>
-          {query ? (
-            <SearchResults query={query} />
-          ) : (
-            !session && <p className="mt-3 text-sm text-ink-muted">Anyone can read. Sign up to write your side.</p>
-          )}
+          {search}
         </div>
         <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
           <ExampleArc />
@@ -240,9 +264,7 @@ export function Component() {
           <HowItWorks />
         </div>
       </div>
-      {session && <Following />}
       <Storied />
-      {session && <YourPerspectives />}
       <BrowseStates />
     </section>
   );

@@ -1,4 +1,4 @@
-import { BookOpen, Inbox, KeyRound, LogOut, PenLine, ScrollText, Settings, ShieldAlert, UserSearch, Users } from "lucide-react";
+import { BookOpen, CircleUser, Inbox, KeyRound, LogOut, PenLine, ScrollText, Settings, ShieldAlert, UserCheck, UserSearch } from "lucide-react";
 import { useRef } from "react";
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from "react-router";
 
@@ -15,12 +15,36 @@ import { Role } from "@/gen/perspectiv/v1/enums_pb";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { clearSession, useSession } from "@/lib/session";
+import { useUnreadCount } from "@/routes/inbox/unread";
+
+// On a phone the word sits under the icon, so every item keeps a visible
+// label at 375px; from sm it sits beside the icon.
+const navItem = "inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 px-2 text-xs font-medium sm:flex-row sm:gap-1.5 sm:text-sm";
 
 const navLink = ({ isActive }: { isActive: boolean }) =>
-  cn(
-    "inline-flex min-h-11 items-center gap-1.5 border-b-2 px-2 text-sm font-medium",
-    isActive ? "border-accent text-ink" : "border-transparent text-ink-muted hover:text-ink",
+  cn(navItem, "border-b-2", isActive ? "border-accent text-ink" : "border-transparent text-ink-muted hover:text-ink");
+
+/** The Inbox item, with the unread count as a badge and in its name. */
+function InboxLink() {
+  const unread = useUnreadCount(true).data ?? 0;
+  const shown = unread > 99 ? "99+" : String(unread);
+  return (
+    <NavLink to="/inbox" className={navLink} aria-label={unread > 0 ? `Inbox, ${unread} unread` : undefined}>
+      <span className="relative">
+        <Inbox aria-hidden size={20} />
+        {unread > 0 && (
+          <span
+            aria-hidden
+            className="absolute -top-1.5 -right-2.5 min-w-4.5 rounded-full bg-accent px-1 text-center text-xs leading-4.5 font-bold text-accent-ink"
+          >
+            {shown}
+          </span>
+        )}
+      </span>
+      <span>Inbox</span>
+    </NavLink>
   );
+}
 
 function AccountMenu({ username, isAdmin }: { username: string; isAdmin: boolean }) {
   const navigate = useNavigate();
@@ -44,10 +68,11 @@ function AccountMenu({ username, isAdmin }: { username: string; isAdmin: boolean
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="md" className="min-w-0 px-2" aria-label={`Account: ${username}`}>
-          <Users aria-hidden size={20} />
+        <button type="button" className={cn(navItem, "min-w-0 rounded-md text-ink-muted hover:text-ink")} aria-label={`Account: ${username}`}>
+          <CircleUser aria-hidden size={20} />
+          <span className="sm:hidden">Account</span>
           <span className="hidden max-w-32 truncate sm:inline">{username}</span>
-        </Button>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         onCloseAutoFocus={(e) => {
@@ -117,16 +142,13 @@ export function RootLayout() {
               <>
                 <NavLink to="/compose" className={navLink}>
                   <PenLine aria-hidden size={20} />
-                  <span className="sr-only sm:not-sr-only">Write</span>
+                  <span>Write</span>
                 </NavLink>
                 <NavLink to="/claims" className={navLink}>
-                  <Users aria-hidden size={20} />
-                  <span className="sr-only sm:not-sr-only">Claims</span>
+                  <UserCheck aria-hidden size={20} />
+                  <span>Requests</span>
                 </NavLink>
-                <NavLink to="/inbox" className={navLink}>
-                  <Inbox aria-hidden size={20} />
-                  <span className="sr-only sm:not-sr-only">Inbox</span>
-                </NavLink>
+                <InboxLink />
                 <AccountMenu username={session.username} isAdmin={session.role === Role.ADMIN} />
               </>
             ) : (

@@ -187,6 +187,10 @@ enum AuditAction {
   AUDIT_ACTION_LIFT_SUSPENSION = 12;
   // An admin made hidden content readable again; the target kind says what.
   AUDIT_ACTION_RESTORE = 13;
+  // An admin made an imported store a venue that can hold places.
+  AUDIT_ACTION_MAKE_VENUE = 14;
+  // An admin merged a duplicate place with no stories into its twin.
+  AUDIT_ACTION_MERGE_PLACE = 15;
 }
 
 // AuditTargetKind is what an audit entry acted on.

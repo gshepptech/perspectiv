@@ -6,7 +6,7 @@ import { Link, useSearchParams } from "react-router";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/Button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
 import { clients } from "@/lib/connect";
 
@@ -73,6 +73,7 @@ export function Component() {
                 <FormControl>
                   <Input type="password" autoComplete="new-password" {...field} />
                 </FormControl>
+                <FormDescription>At least 10 characters; a common password is refused.</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

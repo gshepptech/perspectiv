@@ -192,7 +192,7 @@ func refToProto(r Ref) *perspectivv1.PlaceRef {
 func placeToProto(p Place) *perspectivv1.Place {
 	out := &perspectivv1.Place{
 		Id: p.ID.String(), Kind: p.Kind, Name: p.Name, ParentId: idString(p.ParentID),
-		Timezone: p.Timezone, Source: p.Source, UserAdded: p.UserAdded, Category: p.Category,
+		Timezone: p.Timezone, Source: p.Source, UserAdded: p.UserAdded, Category: p.Category, Stories: p.Stories,
 		Ancestors: make([]*perspectivv1.PlaceRef, len(p.Ancestors)),
 	}
 	for i, a := range p.Ancestors {

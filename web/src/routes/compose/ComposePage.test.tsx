@@ -86,7 +86,7 @@ describe("composer date picker", () => {
     expect(new Date().getDate()).toBe(15);
     await openComposer();
     expect(screen.getByLabelText("Day of your visit")).toHaveValue("2026-10-16");
-    expect(screen.getByText(/today in Corner Books is/i)).toHaveTextContent("2026-10-16");
+    expect(screen.getByText(/today in Corner Books is/i)).toHaveTextContent("October 16, 2026");
   });
 
   it("files a perspective under the day the author picks, not the publish day (OT-014, AC-016)", async () => {
@@ -555,3 +555,32 @@ describe("writing through an invite", () => {
   });
 });
 
+
+describe("composer: who already wrote this day", () => {
+  it("says the day's title and where the others are, and asks for no title", async () => {
+    const user = userEvent.setup();
+    await openComposer("/compose?placeId=p-ny", {
+      "ArcService/FindDayArc": () =>
+        ok({
+          arcId: "arc-1",
+          title: "Bucs comeback in the rain",
+          perspectiveCount: 2,
+          hours: [{ hour: 13, arcId: "arc-13", title: "Bucs comeback in the rain · 13:00", perspectiveCount: 1 }],
+        }),
+    });
+    expect(await screen.findByText(/This day is/)).toHaveTextContent(
+      "This day is “Bucs comeback in the rain”: 2 stories for the whole day, 1 story at 13:00.",
+    );
+    expect(screen.getByText(/Writing for the whole day puts your story with theirs/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Arc title")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("combobox", { name: "Hour" }));
+    await user.click(await screen.findByRole("option", { name: "13:00" }));
+    expect(await screen.findByText(/You join 13:00/)).toBeInTheDocument();
+  });
+
+  it("asks for a title when nobody has written that day", async () => {
+    await openComposer("/compose?placeId=p-ny", { "ArcService/FindDayArc": () => ok({}) });
+    expect(await screen.findByText(/Nobody has written about Corner Books on this day yet/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Arc title")).toBeInTheDocument();
+  });
+});

@@ -35,6 +35,8 @@ const (
 const (
 	// ArcServiceGetArcProcedure is the fully-qualified name of the ArcService's GetArc RPC.
 	ArcServiceGetArcProcedure = "/perspectiv.v1.ArcService/GetArc"
+	// ArcServiceFindDayArcProcedure is the fully-qualified name of the ArcService's FindDayArc RPC.
+	ArcServiceFindDayArcProcedure = "/perspectiv.v1.ArcService/FindDayArc"
 	// ArcServiceListArcSectionProcedure is the fully-qualified name of the ArcService's ListArcSection
 	// RPC.
 	ArcServiceListArcSectionProcedure = "/perspectiv.v1.ArcService/ListArcSection"
@@ -51,6 +53,10 @@ type ArcServiceClient interface {
 	// Public. The arc, its canon, the first page of each list and, for a
 	// signed-in caller, where they stand in the arc.
 	GetArc(context.Context, *connect.Request[v1.GetArcRequest]) (*connect.Response[v1.GetArcResponse], error)
+	// Public. What already exists for a place on a day: the day arc and its
+	// hours with their story counts, so a writer joins the others instead of
+	// starting apart.
+	FindDayArc(context.Context, *connect.Request[v1.FindDayArcRequest]) (*connect.Response[v1.FindDayArcResponse], error)
 	// Public. The next page of one list on an arc page.
 	ListArcSection(context.Context, *connect.Request[v1.ListArcSectionRequest]) (*connect.Response[v1.ListArcSectionResponse], error)
 	RetitleHourArc(context.Context, *connect.Request[v1.RetitleHourArcRequest]) (*connect.Response[v1.RetitleHourArcResponse], error)
@@ -74,6 +80,12 @@ func NewArcServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			httpClient,
 			baseURL+ArcServiceGetArcProcedure,
 			connect.WithSchema(arcServiceMethods.ByName("GetArc")),
+			connect.WithClientOptions(opts...),
+		),
+		findDayArc: connect.NewClient[v1.FindDayArcRequest, v1.FindDayArcResponse](
+			httpClient,
+			baseURL+ArcServiceFindDayArcProcedure,
+			connect.WithSchema(arcServiceMethods.ByName("FindDayArc")),
 			connect.WithClientOptions(opts...),
 		),
 		listArcSection: connect.NewClient[v1.ListArcSectionRequest, v1.ListArcSectionResponse](
@@ -100,6 +112,7 @@ func NewArcServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 // arcServiceClient implements ArcServiceClient.
 type arcServiceClient struct {
 	getArc             *connect.Client[v1.GetArcRequest, v1.GetArcResponse]
+	findDayArc         *connect.Client[v1.FindDayArcRequest, v1.FindDayArcResponse]
 	listArcSection     *connect.Client[v1.ListArcSectionRequest, v1.ListArcSectionResponse]
 	retitleHourArc     *connect.Client[v1.RetitleHourArcRequest, v1.RetitleHourArcResponse]
 	listOpenCharacters *connect.Client[v1.ListOpenCharactersRequest, v1.ListOpenCharactersResponse]
@@ -108,6 +121,11 @@ type arcServiceClient struct {
 // GetArc calls perspectiv.v1.ArcService.GetArc.
 func (c *arcServiceClient) GetArc(ctx context.Context, req *connect.Request[v1.GetArcRequest]) (*connect.Response[v1.GetArcResponse], error) {
 	return c.getArc.CallUnary(ctx, req)
+}
+
+// FindDayArc calls perspectiv.v1.ArcService.FindDayArc.
+func (c *arcServiceClient) FindDayArc(ctx context.Context, req *connect.Request[v1.FindDayArcRequest]) (*connect.Response[v1.FindDayArcResponse], error) {
+	return c.findDayArc.CallUnary(ctx, req)
 }
 
 // ListArcSection calls perspectiv.v1.ArcService.ListArcSection.
@@ -130,6 +148,10 @@ type ArcServiceHandler interface {
 	// Public. The arc, its canon, the first page of each list and, for a
 	// signed-in caller, where they stand in the arc.
 	GetArc(context.Context, *connect.Request[v1.GetArcRequest]) (*connect.Response[v1.GetArcResponse], error)
+	// Public. What already exists for a place on a day: the day arc and its
+	// hours with their story counts, so a writer joins the others instead of
+	// starting apart.
+	FindDayArc(context.Context, *connect.Request[v1.FindDayArcRequest]) (*connect.Response[v1.FindDayArcResponse], error)
 	// Public. The next page of one list on an arc page.
 	ListArcSection(context.Context, *connect.Request[v1.ListArcSectionRequest]) (*connect.Response[v1.ListArcSectionResponse], error)
 	RetitleHourArc(context.Context, *connect.Request[v1.RetitleHourArcRequest]) (*connect.Response[v1.RetitleHourArcResponse], error)
@@ -149,6 +171,12 @@ func NewArcServiceHandler(svc ArcServiceHandler, opts ...connect.HandlerOption) 
 		ArcServiceGetArcProcedure,
 		svc.GetArc,
 		connect.WithSchema(arcServiceMethods.ByName("GetArc")),
+		connect.WithHandlerOptions(opts...),
+	)
+	arcServiceFindDayArcHandler := connect.NewUnaryHandler(
+		ArcServiceFindDayArcProcedure,
+		svc.FindDayArc,
+		connect.WithSchema(arcServiceMethods.ByName("FindDayArc")),
 		connect.WithHandlerOptions(opts...),
 	)
 	arcServiceListArcSectionHandler := connect.NewUnaryHandler(
@@ -173,6 +201,8 @@ func NewArcServiceHandler(svc ArcServiceHandler, opts ...connect.HandlerOption) 
 		switch r.URL.Path {
 		case ArcServiceGetArcProcedure:
 			arcServiceGetArcHandler.ServeHTTP(w, r)
+		case ArcServiceFindDayArcProcedure:
+			arcServiceFindDayArcHandler.ServeHTTP(w, r)
 		case ArcServiceListArcSectionProcedure:
 			arcServiceListArcSectionHandler.ServeHTTP(w, r)
 		case ArcServiceRetitleHourArcProcedure:
@@ -190,6 +220,10 @@ type UnimplementedArcServiceHandler struct{}
 
 func (UnimplementedArcServiceHandler) GetArc(context.Context, *connect.Request[v1.GetArcRequest]) (*connect.Response[v1.GetArcResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ArcService.GetArc is not implemented"))
+}
+
+func (UnimplementedArcServiceHandler) FindDayArc(context.Context, *connect.Request[v1.FindDayArcRequest]) (*connect.Response[v1.FindDayArcResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ArcService.FindDayArc is not implemented"))
 }
 
 func (UnimplementedArcServiceHandler) ListArcSection(context.Context, *connect.Request[v1.ListArcSectionRequest]) (*connect.Response[v1.ListArcSectionResponse], error) {

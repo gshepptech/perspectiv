@@ -83,6 +83,44 @@ describe("InboxPage", () => {
     await waitFor(() => expect(api.sent("NotifyService/MarkRead")).toEqual([{ notificationIds: ["n-2"] }]));
   });
 
+  it("makes the whole row one link, with the New tag and the time inside it", async () => {
+    inbox();
+    await screen.findByRole("list", { name: "Notifications" });
+    const link = within(items()[0]!).getByRole("link");
+    expect(link).toHaveAttribute("href", "/claims");
+    expect(link).toHaveTextContent("New");
+    expect(link.querySelector("time")).not.toBeNull();
+    expect(link.className).toMatch(/min-h-11/);
+    // Only the sentence underlines on hover, not the tag or the time.
+    expect(link.className).not.toMatch(/(^|\s)hover:underline/);
+    expect(within(link).getByText(/claimed a character/).className).toMatch(/group-hover:underline/);
+    // A notification with no page is not a link and has no hover.
+    expect(within(items()[5]!).queryByRole("link")).toBeNull();
+  });
+
+  it("marks a notification read when it is opened in a new tab with a middle click", async () => {
+    const { api } = inbox();
+    await screen.findByRole("list", { name: "Notifications" });
+    const link = within(items()[2]!).getByRole("link");
+    link.dispatchEvent(new MouseEvent("auxclick", { bubbles: true, button: 1 }));
+    await waitFor(() => expect(api.sent("NotifyService/MarkRead")).toEqual([{ notificationIds: ["n-3"] }]));
+  });
+
+  it("refreshes the header's unread count once an item is opened", async () => {
+    let unread = 3;
+    const { user } = inbox({
+      "NotifyService/ListInbox": () => ok({ notifications: six, unreadCount: unread }),
+      "NotifyService/MarkRead": () => {
+        unread = 2;
+        return ok({ unreadCount: 2 });
+      },
+    });
+    const nav = await screen.findByRole("navigation", { name: "Primary" });
+    expect(await within(nav).findByRole("link", { name: "Inbox, 3 unread" })).toBeInTheDocument();
+    await user.click(within(items()[0]!).getByRole("link"));
+    expect(await within(nav).findByRole("link", { name: "Inbox, 2 unread" })).toBeInTheDocument();
+  });
+
   it("does not mark an already read notification again", async () => {
     const { api, user } = inbox();
     await screen.findByRole("list", { name: "Notifications" });
@@ -140,7 +178,9 @@ describe("InboxPage", () => {
     expect(items()).toHaveLength(3);
     await user.click(screen.getByRole("button", { name: "Show older" }));
     await waitFor(() => expect(items()).toHaveLength(6));
-    expect(api.sent("NotifyService/ListInbox")).toEqual([{}, { pageToken: "cursor-2" }]);
+    // The header's unread badge reads the count with its own one-item page.
+    const pages = api.sent("NotifyService/ListInbox").filter((b) => b.pageSize === undefined);
+    expect(pages).toEqual([{}, { pageToken: "cursor-2" }]);
     expect(screen.queryByRole("button", { name: "Show older" })).not.toBeInTheDocument();
   });
 
@@ -159,7 +199,7 @@ describe("InboxPage", () => {
     const { view } = inbox({ "NotifyService/ListInbox": () => ok({ notifications: [long], unreadCount: 1 }) });
     await screen.findByRole("list", { name: "Notifications" });
     expectFitsPhone(view.container);
-    expect(within(items()[0]!).getByRole("link").className).toMatch(/break-words/);
+    expect(within(items()[0]!).getByText(/claimed a character/).className).toMatch(/break-words/);
   });
 });
 
