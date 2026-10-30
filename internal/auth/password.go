@@ -106,6 +106,21 @@ func NewPasswords(cost int) Passwords {
 	return Passwords{cost: cost}
 }
 
+// defaultCostDummyHash is a bcrypt hash at DefaultBcryptCost of a random
+// secret that was thrown away. Login verifies against it when an email has
+// no account, so the refusal takes as long as a wrong password. It is a
+// constant because hashing at cost 12 on every start held the API's startup
+// for seconds (tens of seconds under the race detector on a loaded machine).
+const defaultCostDummyHash = "$2a$12$51U.dI2yzRHwwRO8rICAdO45O8aE1rInn/QEymTxKhmeMkwVD6Sva"
+
+// dummyHash returns a hash at p's cost that no password is known to match.
+func (p Passwords) dummyHash() (string, error) {
+	if p.cost == DefaultBcryptCost {
+		return defaultCostDummyHash, nil
+	}
+	return p.Hash("perspectiv dummy password")
+}
+
 // Hash returns the bcrypt hash of password, which must already have passed
 // ValidatePassword.
 func (p Passwords) Hash(password string) (string, error) {

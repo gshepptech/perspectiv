@@ -166,3 +166,33 @@ func TestRoleFromDB(t *testing.T) {
 		})
 	}
 }
+
+// The dummy hash costs what a real one does, so an unknown email is refused
+// as slowly as a wrong password, at the default cost and at a test's.
+func TestDummyHashMatchesCost(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		cost int
+	}{
+		{name: "default cost uses the precomputed hash", cost: 0},
+		{name: "a lower cost hashes its own", cost: bcrypt.MinCost},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			p := NewPasswords(tc.cost)
+			h, err := p.dummyHash()
+			if err != nil {
+				t.Fatalf("dummyHash: %v", err)
+			}
+			got, err := bcrypt.Cost([]byte(h))
+			if err != nil || got != p.cost {
+				t.Fatalf("dummy hash cost = %d, %v; want %d", got, err, p.cost)
+			}
+			if ok, err := p.VerifyPassword(h, "perspectiv dummy password"); err != nil || ok && tc.cost == 0 {
+				t.Fatalf("VerifyPassword = %v, %v", ok, err)
+			}
+		})
+	}
+}

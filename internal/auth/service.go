@@ -104,7 +104,7 @@ func NewService(pool *pgxpool.Pool, enq *jobs.Enqueuer, lim *Limiter, cfg Config
 		return nil, err
 	}
 	pw := NewPasswords(cfg.BcryptCost)
-	dummy, err := pw.Hash("perspectiv dummy password")
+	dummy, err := pw.dummyHash()
 	if err != nil {
 		return nil, err
 	}
