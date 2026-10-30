@@ -12,6 +12,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const charactersLabelled = `-- name: CharactersLabelled :many
+SELECT c.id FROM characters c WHERE c.label ILIKE '%' || $1::text || '%' LIMIT $2::integer
+`
+
+type CharactersLabelledParams struct {
+	Pattern string
+	Cap     int32
+}
+
+// Up to cap characters anywhere whose label contains the pattern, through
+// characters_label_trgm_idx. Fewer than cap means the word is rare enough to
+// search by label first.
+func (q *Queries) CharactersLabelled(ctx context.Context, arg CharactersLabelledParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, charactersLabelled, arg.Pattern, arg.Cap)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const epicArcsNewest = `-- name: EpicArcsNewest :many
 SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
@@ -958,6 +990,9 @@ WHERE a.place_path @> ARRAY[$1::uuid]
   AND p.lore_status <> 'LORE_STATUS_REMOVED'
   AND u.deleted_at IS NULL
   AND c.label ILIKE '%' || $2::text || '%'
+  -- When the caller found the matching labels first (a rare word), only
+  -- those; otherwise the place's stories are walked newest first.
+  AND ($3::uuid[] IS NULL OR c.id = ANY($3::uuid[]))
   AND NOT EXISTS (
         SELECT 1 FROM claims cl
         WHERE cl.character_id = c.id AND cl.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
@@ -968,6 +1003,7 @@ LIMIT 30
 type SearchCharactersParams struct {
 	PlaceID uuid.UUID
 	Pattern string
+	Ids     []uuid.UUID
 }
 
 type SearchCharactersRow struct {
@@ -990,7 +1026,7 @@ type SearchCharactersRow struct {
 // arcs_place_path_idx, whose label contains the pattern. The caller escapes
 // LIKE's wildcards. Voted-out stories cannot be claimed from and are left out.
 func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersParams) ([]SearchCharactersRow, error) {
-	rows, err := q.db.Query(ctx, searchCharacters, arg.PlaceID, arg.Pattern)
+	rows, err := q.db.Query(ctx, searchCharacters, arg.PlaceID, arg.Pattern, arg.Ids)
 	if err != nil {
 		return nil, err
 	}

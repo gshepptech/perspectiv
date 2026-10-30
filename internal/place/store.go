@@ -569,10 +569,31 @@ type FoundCharacter struct {
 	Place          Ref
 }
 
+// labelFirstCap is how many label matches anywhere still count as a rare
+// word. At beta scale a rare word in a big city took 570 ms walking the
+// city's stories and 23 ms by label; a common one went the other way.
+const labelFirstCap = 2000
+
 // SearchCharacters finds unclaimed characters at the place and below whose
 // label contains pattern, a LIKE pattern with its wildcards already escaped.
 func (s *Store) SearchCharacters(ctx context.Context, placeID uuid.UUID, pattern string) ([]FoundCharacter, error) {
-	rows, err := s.q.SearchCharacters(ctx, dbq.SearchCharactersParams{PlaceID: placeID, Pattern: pattern})
+	params := dbq.SearchCharactersParams{PlaceID: placeID, Pattern: pattern}
+	// A rare word is fastest found by label and then filtered to the place;
+	// a common one by walking the place's stories. The trigram index needs
+	// three characters, so shorter words always walk the place.
+	if utf8.RuneCountInString(pattern) >= minSubstringRunes {
+		ids, err := s.q.CharactersLabelled(ctx, dbq.CharactersLabelledParams{Pattern: pattern, Cap: labelFirstCap})
+		if err != nil {
+			return nil, fmt.Errorf("search character labels: %w", err)
+		}
+		if len(ids) == 0 {
+			return []FoundCharacter{}, nil
+		}
+		if len(ids) < labelFirstCap {
+			params.Ids = ids
+		}
+	}
+	rows, err := s.q.SearchCharacters(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("search characters: %w", err)
 	}

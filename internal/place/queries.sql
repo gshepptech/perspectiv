@@ -318,6 +318,12 @@ SELECT place_id FROM place_follows WHERE user_id = @user_id::uuid
 ORDER BY created_at DESC, place_id
 LIMIT @lim::integer;
 
+-- name: CharactersLabelled :many
+-- Up to cap characters anywhere whose label contains the pattern, through
+-- characters_label_trgm_idx. Fewer than cap means the word is rare enough to
+-- search by label first.
+SELECT c.id FROM characters c WHERE c.label ILIKE '%' || @pattern::text || '%' LIMIT @cap::integer;
+
 -- name: SearchCharacters :many
 -- Unclaimed characters (no pending or accepted claim) in readable stories
 -- at the place or any visible place under it, found through
@@ -338,6 +344,9 @@ WHERE a.place_path @> ARRAY[@place_id::uuid]
   AND p.lore_status <> 'LORE_STATUS_REMOVED'
   AND u.deleted_at IS NULL
   AND c.label ILIKE '%' || @pattern::text || '%'
+  -- When the caller found the matching labels first (a rare word), only
+  -- those; otherwise the place's stories are walked newest first.
+  AND (sqlc.narg(ids)::uuid[] IS NULL OR c.id = ANY(sqlc.narg(ids)::uuid[]))
   AND NOT EXISTS (
         SELECT 1 FROM claims cl
         WHERE cl.character_id = c.id AND cl.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))

@@ -832,6 +832,31 @@ func TestSearchCharacters(t *testing.T) {
 		})
 	}
 
+	t.Run("a word common elsewhere finds the same characters by walking the place", func(t *testing.T) {
+		t.Parallel()
+		// Enough "gold" labels in another city that the label-first probe
+		// gives up; the cases above give the same answer on either path.
+		// Ten characters a story, so two hundred writers in one arc.
+		crowd := h.arc(h.otherCity, "2026-09-02", "The crowd", by, t0)
+		h.exec(`WITH u AS (
+				INSERT INTO users (email, email_verified_at, password_hash, username, age_confirmed_at)
+				SELECT 'crowd' || n || '@example.test', now(), 'x', 'crowd_' || n, now() FROM generate_series(1, 200) AS n
+				RETURNING id),
+			p AS (
+				INSERT INTO perspectives (arc_id, author_id, genre, status, lore_status, published_at)
+				SELECT $1, id, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now() FROM u
+				RETURNING id)
+			INSERT INTO characters (perspective_id, label, position)
+			SELECT p.id, 'a gold extra', n FROM p, generate_series(1, 10) AS n`, crowd)
+		got, err := search(h.city, "gold")
+		if err != nil {
+			t.Fatalf("search: %v", err)
+		}
+		if want := uuidStrings([]uuid.UUID{newer[0], taken[2], older[0]}); !slices.Equal(got, want) {
+			t.Fatalf("found %v, want %v", got, want)
+		}
+	})
+
 	t.Run("a hidden place below drops its stories", func(t *testing.T) {
 		t.Parallel()
 		// A word no other case searches for: this story is visible under the
