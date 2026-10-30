@@ -14,9 +14,19 @@ import { useWriteGate } from "./useWriteGate";
 /**
  * One toggle per emoji in the fixed set, each with its count. Any signed-in
  * reader may react; holding an emoji is shown by an accent border and
- * aria-pressed, never by opacity.
+ * aria-pressed, never by opacity. A signed-out reader is `blocked`: pressing
+ * an emoji reveals why (the panel `controls` names) instead of reacting or
+ * leaving the page.
  */
-export function ReactBar({ perspectiveId, counts }: { perspectiveId: string; counts: readonly ReactCount[] }) {
+export function ReactBar({
+  perspectiveId,
+  counts,
+  blocked,
+}: {
+  perspectiveId: string;
+  counts: readonly ReactCount[];
+  blocked?: { expanded: boolean; controls: string; onPress: () => void };
+}) {
   const { gate } = useWriteGate();
   const client = useQueryClient();
   const invalidate = useInvalidateAfterWrite();
@@ -40,10 +50,13 @@ export function ReactBar({ perspectiveId, counts }: { perspectiveId: string; cou
               key={value}
               type="button"
               aria-label={`${name}, ${count}`}
-              aria-pressed={mine}
+              aria-pressed={blocked ? undefined : mine}
+              aria-expanded={blocked ? blocked.expanded : undefined}
+              aria-controls={blocked?.expanded ? blocked.controls : undefined}
               aria-disabled={react.isPending || undefined}
               onClick={() => {
-                if (!react.isPending && gate()) react.mutate({ emoji: value, on: !mine });
+                if (blocked) blocked.onPress();
+                else if (!react.isPending && gate()) react.mutate({ emoji: value, on: !mine });
               }}
               className={cn(
                 "inline-flex min-h-11 items-center gap-1 rounded-full border px-2.5 text-sm",

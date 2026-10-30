@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { PlaceCategory, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
 
-import { formatDayBeside, placeChain, storiesLabel } from "./format";
+import { formatDayBeside, placeChain, placeLabel, storiesLabel } from "./format";
 
 describe("formatDayBeside", () => {
   it.each([
@@ -25,6 +25,12 @@ describe("search result labels", () => {
     expect(placeChain(PlaceKind.STORE, tampa as never)).toBe("Store in Tampa, Florida");
     expect(placeChain(PlaceKind.MALL, tampa as never, PlaceCategory.ARTS_AND_ENTERTAINMENT)).toBe("Arts & entertainment in Tampa, Florida");
     expect(placeChain(PlaceKind.CITY, tampa.slice(0, 1) as never, PlaceCategory.SPORTS_AND_RECREATION)).toBe("City in Florida");
+  });
+
+  it("says what a place is on its own page the same way", () => {
+    expect(placeLabel(PlaceKind.STORE, PlaceCategory.SPORTS_AND_RECREATION)).toBe("Sports");
+    expect(placeLabel(PlaceKind.STORE)).toBe("Store");
+    expect(placeLabel(PlaceKind.CITY, PlaceCategory.SPORTS_AND_RECREATION)).toBe("City");
   });
 
   it.each([

@@ -2,7 +2,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { useSyncExternalStore } from "react";
 import { redirect } from "react-router";
 
-import type { LoginResponse, RefreshResponse, SessionUser } from "@/gen/perspectiv/v1/auth_pb";
+import type { LoginResponse, RefreshResponse, SessionUser, SignUpResponse } from "@/gen/perspectiv/v1/auth_pb";
 import type { Role } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
 
@@ -50,10 +50,11 @@ export function currentSession(): Session | null {
 }
 
 /**
- * Takes the tokens from a Login or Refresh response. A response without an
- * access token or a user is treated as signed out rather than half signed in.
+ * Takes the tokens from a Login, Refresh or SignUp response. A response
+ * without an access token or a user is treated as signed out rather than
+ * half signed in.
  */
-export function signIn(res: LoginResponse | RefreshResponse): Session | null {
+export function signIn(res: LoginResponse | RefreshResponse | SignUpResponse): Session | null {
   const session = toSession(res.user);
   if (!res.accessToken || !session) {
     clearSession();

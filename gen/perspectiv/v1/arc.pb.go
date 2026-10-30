@@ -972,8 +972,10 @@ type DayArcHour struct {
 	ArcId            string                 `protobuf:"bytes,2,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
 	Title            string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	PerspectiveCount int32                  `protobuf:"varint,4,opt,name=perspective_count,json=perspectiveCount,proto3" json:"perspective_count,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The signed-in caller's own story in this hour, if any.
+	MinePerspectiveId string `protobuf:"bytes,5,opt,name=mine_perspective_id,json=minePerspectiveId,proto3" json:"mine_perspective_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *DayArcHour) Reset() {
@@ -1034,6 +1036,13 @@ func (x *DayArcHour) GetPerspectiveCount() int32 {
 	return 0
 }
 
+func (x *DayArcHour) GetMinePerspectiveId() string {
+	if x != nil {
+		return x.MinePerspectiveId
+	}
+	return ""
+}
+
 type FindDayArcResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Empty when nobody has written at the place that day.
@@ -1042,8 +1051,11 @@ type FindDayArcResponse struct {
 	// Readable stories written for the whole day.
 	PerspectiveCount int32         `protobuf:"varint,3,opt,name=perspective_count,json=perspectiveCount,proto3" json:"perspective_count,omitempty"`
 	Hours            []*DayArcHour `protobuf:"bytes,4,rep,name=hours,proto3" json:"hours,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The signed-in caller's own story for the whole day, if any: a writer
+	// has one story per arc, so the composer offers to edit it instead.
+	MinePerspectiveId string `protobuf:"bytes,5,opt,name=mine_perspective_id,json=minePerspectiveId,proto3" json:"mine_perspective_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *FindDayArcResponse) Reset() {
@@ -1102,6 +1114,13 @@ func (x *FindDayArcResponse) GetHours() []*DayArcHour {
 		return x.Hours
 	}
 	return nil
+}
+
+func (x *FindDayArcResponse) GetMinePerspectiveId() string {
+	if x != nil {
+		return x.MinePerspectiveId
+	}
+	return ""
 }
 
 var File_perspectiv_v1_arc_proto protoreflect.FileDescriptor
@@ -1185,18 +1204,20 @@ const file_perspectiv_v1_arc_proto_rawDesc = "" +
 	"\x11FindDayArcRequest\x12\x19\n" +
 	"\bplace_id\x18\x01 \x01(\tR\aplaceId\x12\x1d\n" +
 	"\n" +
-	"local_date\x18\x02 \x01(\tR\tlocalDate\"z\n" +
+	"local_date\x18\x02 \x01(\tR\tlocalDate\"\xaa\x01\n" +
 	"\n" +
 	"DayArcHour\x12\x12\n" +
 	"\x04hour\x18\x01 \x01(\x05R\x04hour\x12\x15\n" +
 	"\x06arc_id\x18\x02 \x01(\tR\x05arcId\x12\x14\n" +
 	"\x05title\x18\x03 \x01(\tR\x05title\x12+\n" +
-	"\x11perspective_count\x18\x04 \x01(\x05R\x10perspectiveCount\"\x9f\x01\n" +
+	"\x11perspective_count\x18\x04 \x01(\x05R\x10perspectiveCount\x12.\n" +
+	"\x13mine_perspective_id\x18\x05 \x01(\tR\x11minePerspectiveId\"\xcf\x01\n" +
 	"\x12FindDayArcResponse\x12\x15\n" +
 	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12+\n" +
 	"\x11perspective_count\x18\x03 \x01(\x05R\x10perspectiveCount\x12/\n" +
-	"\x05hours\x18\x04 \x03(\v2\x19.perspectiv.v1.DayArcHourR\x05hours2\xcf\x03\n" +
+	"\x05hours\x18\x04 \x03(\v2\x19.perspectiv.v1.DayArcHourR\x05hours\x12.\n" +
+	"\x13mine_perspective_id\x18\x05 \x01(\tR\x11minePerspectiveId2\xcf\x03\n" +
 	"\n" +
 	"ArcService\x12E\n" +
 	"\x06GetArc\x12\x1c.perspectiv.v1.GetArcRequest\x1a\x1d.perspectiv.v1.GetArcResponse\x12Q\n" +

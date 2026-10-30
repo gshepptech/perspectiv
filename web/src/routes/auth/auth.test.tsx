@@ -66,7 +66,7 @@ describe("SignUpPage", () => {
 
   it("keeps where the reader was headed through sign-up, for the page the emailed link opens", async () => {
     const { user } = renderRoute(`/signup?next=${encodeURIComponent("/perspectives/p-1?claim=1")}`, {
-      "AuthService/SignUp": () => ok({ userId: "u-1" }),
+      "AuthService/SignUp": () => ok({ userId: "u-1", ...sessionBody({ username: "wren_writes" }) }),
     });
     await screen.findByRole("heading", { name: "Sign up" });
     expect(within(screen.getByRole("main")).getByRole("link", { name: "Sign in" })).toHaveAttribute(
@@ -79,11 +79,13 @@ describe("SignUpPage", () => {
     await user.click(screen.getByRole("checkbox", { name: /I am 18 or over/ }));
     await user.click(screen.getByRole("button", { name: "Sign up" }));
     await screen.findByRole("heading", { name: "Check your email" });
-    expect(within(screen.getByRole("main")).getByRole("link", { name: "Sign in" })).toHaveAttribute(
+    // Signing up signs the member in, so the way on is the page itself.
+    expect(within(screen.getByRole("main")).getByRole("link", { name: "Continue where you were" })).toHaveAttribute(
       "href",
-      "/login?next=%2Fperspectives%2Fp-1%3Fclaim%3D1",
+      "/perspectives/p-1?claim=1",
     );
     expect(JSON.parse(localStorage.getItem("perspectiv.afterVerify") ?? "{}")).toMatchObject({ to: "/perspectives/p-1?claim=1" });
+    expect(currentSession()?.username).toBe("wren_writes");
   });
 
   it("keeps nothing for an off-site next", async () => {

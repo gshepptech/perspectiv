@@ -279,6 +279,38 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     });
     expect(await screen.findByRole("heading", { name: "Place not found" })).toBeInTheDocument();
   });
+
+  it("says what an imported venue is by its category, as search does, not 'Store'", async () => {
+    const stadium = { ...store, id: "so-st", name: "Raymond James Stadium", category: "PLACE_CATEGORY_SPORTS_AND_RECREATION", ancestors: [springfield, illinois] };
+    placePage("/places/so-st", { "PlaceService/GetPlace": () => ({ body: { place: stadium } }) });
+    const heading = await screen.findByRole("heading", { level: 1, name: "Raymond James Stadium" });
+    expect(heading.nextElementSibling).toHaveTextContent(/^Sports$/);
+  });
+});
+
+describe("reporting a duplicate place", () => {
+  it("asks which listing it is the same as, requires it, and says nothing about real names", async () => {
+    const user = userEvent.setup();
+    const { calls } = placePage("/places/ci-spr", { "ModerationService/Report": () => ({ body: { reportId: "r-1" } }) }, {
+      refresh: () => sessionReply({ token: "tok" }),
+    });
+    await user.click(await screen.findByRole("button", { name: "Report place: Springfield" }));
+    const dialog = await screen.findByRole("dialog", { name: "Report Springfield" });
+    expect(dialog).not.toHaveTextContent(/real people/);
+    await user.click(within(dialog).getByRole("combobox", { name: "Reason" }));
+    await user.click(await screen.findByRole("option", { name: "Same place as another listing" }));
+    const details = within(dialog).getByRole("textbox", { name: "Which listing is it the same as?" });
+    expect(details).toHaveAccessibleDescription("Paste its link or name it.");
+    await user.click(within(dialog).getByRole("button", { name: "Send report" }));
+    expect(await within(dialog).findByText("Say which listing it is the same as")).toBeInTheDocument();
+    expect(calls("ModerationService/Report")).toEqual([]);
+    await user.type(details, "/places/ci-spr-2");
+    await user.click(within(dialog).getByRole("button", { name: "Send report" }));
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("Report sent.");
+    expect(calls("ModerationService/Report")).toEqual([
+      { targetKind: "REPORT_TARGET_KIND_PLACE", targetId: "ci-spr", reason: "REPORT_REASON_DUPLICATE_PLACE", details: "/places/ci-spr-2" },
+    ]);
+  });
 });
 
 describe("were you in someone's story?", () => {
@@ -315,7 +347,7 @@ describe("were you in someone's story?", () => {
     const results = await within(panel).findByRole("list", { name: "Matching descriptions" });
     expect(results).toHaveTextContent("“the kid in gold paint”");
     expect(results).toHaveTextContent("knightsfan at Prairie Books, October 3, 2026");
-    expect(within(results).getByRole("link", { name: "That was me: the kid in gold paint" })).toHaveAttribute("href", "/perspectives/p-9?claim=1");
+    expect(within(results).getByRole("link", { name: "That was me: the kid in gold paint" })).toHaveAttribute("href", "/perspectives/p-9?claim=c-1");
     expect(calls("PlaceService/SearchCharacters").at(-1)).toEqual({ placeId: "ci-spr", query: "gold paint" });
 
     await user.clear(box);

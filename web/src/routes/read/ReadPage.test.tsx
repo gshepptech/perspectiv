@@ -199,7 +199,10 @@ describe("inviting who was there", () => {
     const mine = {
       ...perspective,
       author: { userId: me, username: "wren" },
-      characters: [{ id: "c-1", position: 1, label: "the man in the red coat" }],
+      characters: [
+        { id: "c-1", position: 1, label: "the man in the red coat" },
+        { id: "c-2", position: 2, label: "the woman with the umbrella", hasAcceptedClaim: true, claimedBy: { userId: "u-9", username: "otter" } },
+      ],
     };
     const { calls } = renderApp(
       "/perspectives/p-1",
@@ -211,6 +214,11 @@ describe("inviting who was there", () => {
     );
     await user.click(await screen.findByRole("button", { name: "Invite who was there" }));
     const dialog = await screen.findByRole("dialog", { name: "Who else was there?" });
+    // A character someone already turned out to be is not asked about again.
+    expect(within(dialog).getAllByRole("radio").map((r) => r.getAttribute("aria-label") ?? r.closest("label")?.textContent)).toEqual([
+      "No one in particular",
+      "Were you the man in the red coat?",
+    ]);
     await user.click(within(dialog).getByRole("radio", { name: "Were you the man in the red coat?" }));
     await user.click(within(dialog).getByRole("button", { name: "Make the link" }));
     expect(await within(dialog).findByText(/\/i\/abcdefgh23/)).toBeInTheDocument();

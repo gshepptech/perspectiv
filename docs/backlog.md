@@ -20,6 +20,22 @@ Nothing in progress.
 
 ## Done
 
+- Second-walkthrough web fixes: after "Write your side" the story page says
+  "Your story is published"; "That was me" carries the character, which the
+  claim dialog opens on, once; a stadium's page header names its category;
+  a duplicate report must name the other listing; reacting signed out
+  explains instead of redirecting; focus lands on the new status after
+  Accept or Reject; invites leave out claimed characters; Requests shows a
+  waiting badge. Verified by the web suite (455 tests) and e2e.
+- Writing your side and one story per arc: signing up signs the new member
+  in (SignUp returns a session like Login), so "Continue where you were"
+  needs no second password. "Write your side" fixes the day and hour to the
+  story being joined and says why, so the claim can't dead-end on an hour.
+  The composer knows which arcs already hold the writer's story
+  (FindDayArc's mine_perspective_id) and, before any typing, says so,
+  offers "Edit yours" and holds Publish, instead of losing a second story to
+  a refused publish. Verified by TestSignUpSignsIn, TestFindDayArcMine and
+  the composer and auth tests.
 - "This is the same place": members report a place as "Same place as
   another listing" (offered for places only, from the place page and the
   arc page); an admin merges it from the place page. "Were you here?" as a

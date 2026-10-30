@@ -116,7 +116,11 @@ func (h *Handler) FindDayArc(ctx context.Context, req *connect.Request[perspecti
 	if err != nil {
 		return nil, apiutil.ToConnect(apiutil.InvalidArg("local_date must be YYYY-MM-DD"))
 	}
-	resp, err := h.svc.FindDayArc(ctx, placeID, day)
+	viewer := uuid.Nil
+	if c, ok := apiutil.CallerFrom(ctx); ok {
+		viewer = c.UserID
+	}
+	resp, err := h.svc.FindDayArc(ctx, viewer, placeID, day)
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}

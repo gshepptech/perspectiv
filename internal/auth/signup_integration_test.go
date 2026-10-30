@@ -154,3 +154,29 @@ func TestSignUpRateLimitedPerIP(t *testing.T) {
 		t.Fatalf("users = %d, want the 10 the limit allows", users)
 	}
 }
+
+// Signing up signs the new member in, as a sign-in would: an access token
+// and the refresh cookie, before the email is verified.
+func TestSignUpSignsIn(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	req := connect.NewRequest(&perspectivv1.SignUpRequest{
+		Email: emailOf("Writer_One"), Password: goodPassword, Username: "Writer_One", AgeConfirmed: true,
+	})
+	req.Header().Set("User-Agent", firefoxMac)
+	res, err := e.auth().SignUp(context.Background(), req)
+	if err != nil {
+		t.Fatalf("SignUp: %v", err)
+	}
+	if res.Msg.GetAccessToken() == "" || res.Msg.GetUser().GetUsername() != "Writer_One" || res.Msg.GetUser().GetEmailVerified() {
+		t.Fatalf("SignUp response = %v, want a session for an unverified member", res.Msg)
+	}
+	cookie := setCookieValue(t, res.Header())
+	if _, _, err := e.refresh(cookie, ""); err != nil {
+		t.Fatalf("refresh with the sign-up cookie: %v", err)
+	}
+	sessions, err := e.authAs(res.Msg.GetAccessToken()).ListSessions(context.Background(), connect.NewRequest(&perspectivv1.ListSessionsRequest{}))
+	if err != nil || len(sessions.Msg.GetSessions()) != 1 || sessions.Msg.GetSessions()[0].GetDevice() != "Firefox on macOS" {
+		t.Fatalf("sessions after sign-up = %v, %v", sessions, err)
+	}
+}

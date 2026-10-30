@@ -70,7 +70,7 @@ export function FindYourself({ placeId, placeName }: { placeId: string; placeNam
                 {c.author?.username ?? "Someone"} at {c.place?.name}, {formatDay(c.localDate)}
               </p>
               <Link
-                to={`/perspectives/${encodeURIComponent(c.perspectiveId)}?claim=1`}
+                to={`/perspectives/${encodeURIComponent(c.perspectiveId)}?claim=${encodeURIComponent(c.characterId)}`}
                 aria-label={`That was me: ${c.label}`}
                 className="inline-flex min-h-11 items-center font-medium text-accent underline underline-offset-4"
               >

@@ -12,7 +12,8 @@ const COUNTED = 100;
 /**
  * Requests on the reader's characters still waiting for them to accept or
  * reject. ListClaims has no total, so one page of up to 100 is counted and
- * `more` says the list goes on.
+ * `more` says the list goes on. Re-read every minute while shown, like the
+ * inbox count, so the header badge never stays on a stale number.
  */
 export function useWaitingRequests(enabled: boolean) {
   return useQuery({
@@ -25,5 +26,6 @@ export function useWaitingRequests(enabled: boolean) {
       return { count: res.claims.length, more: res.nextPageToken !== "" };
     },
     enabled,
+    refetchInterval: 60_000,
   });
 }

@@ -37,7 +37,9 @@ export function InviteDialog({
     mutationFn: () => clients.perspective.createInvite({ perspectiveId: p.id, characterId }),
   });
   const url = create.data ? inviteURL(create.data.code) : "";
-  const asked = p.characters.find((c) => c.id === characterId)?.label;
+  // Someone already turned out to be a claimed character, so there is no one left to ask about it.
+  const askable = p.characters.filter((c) => !c.hasAcceptedClaim && !c.claimedBy);
+  const asked = askable.find((c) => c.id === characterId)?.label;
   const message = asked
     ? `Were you ${asked}? I wrote about ${p.place?.name ?? "it"} on Perspectiv. Write your side:`
     : `I wrote about ${p.place?.name ?? "it"} on Perspectiv. Were you there too? Write your side:`;
@@ -78,12 +80,12 @@ export function InviteDialog({
           their side, and your stories link when one of you recognises the other.
         </DialogDescription>
 
-        {p.characters.length > 0 && (
+        {askable.length > 0 && (
           <fieldset className="mt-4 grid gap-1" aria-labelledby={groupId}>
             <legend id={groupId} className="text-sm font-medium text-ink">
               Ask about someone in your story
             </legend>
-            {[{ id: "", label: "No one in particular" }, ...p.characters].map((c) => (
+            {[{ id: "", label: "No one in particular" }, ...askable].map((c) => (
               <label key={c.id || "none"} className="inline-flex min-h-11 cursor-pointer items-center gap-3 text-ink">
                 <input
                   type="radio"

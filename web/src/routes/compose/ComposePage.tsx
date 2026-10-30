@@ -51,7 +51,7 @@ function LoadFailed({ error }: { error: unknown }) {
   );
 }
 
-type Shared = { notice?: string; onDraftNamed: (id: string) => void };
+type Shared = { notice?: string; onDraftNamed: (id: string) => void; joining?: boolean };
 
 function placeToday(place: Place): string {
   // A place always carries its IANA zone; an empty one falls back to the
@@ -140,6 +140,7 @@ export function Component() {
   const notice = (location.state as { notice?: string } | null)?.notice === "existing" ? EXISTING_NOTICE : undefined;
   const shared: Shared = {
     notice,
+    joining: Boolean(back),
     onDraftNamed: (id) => {
       setAdopted({ id, key });
       setParams(

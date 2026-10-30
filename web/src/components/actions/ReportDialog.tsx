@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } 
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { ReportTargetKind, type ReportReason } from "@/gen/perspectiv/v1/enums_pb";
+import { ReportReason, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
 
 import { actionError } from "./errors";
@@ -21,11 +21,19 @@ import { useWriteGate } from "./useWriteGate";
 // report stays a note to a moderator rather than a document.
 const DETAILS_MAX = 1000;
 
-const schema = z.object({
-  // The Select holds the enum number as a string; "" is "nothing chosen yet".
-  reason: z.string().refine((v) => reportReasons.some((r) => String(r.value) === v), "Choose a reason"),
-  details: z.string().trim().max(DETAILS_MAX, `Keep details under ${DETAILS_MAX} characters`),
-});
+const DUPLICATE = String(ReportReason.DUPLICATE_PLACE);
+
+const schema = z
+  .object({
+    // The Select holds the enum number as a string; "" is "nothing chosen yet".
+    reason: z.string().refine((v) => reportReasons.some((r) => String(r.value) === v), "Choose a reason"),
+    details: z.string().trim().max(DETAILS_MAX, `Keep details under ${DETAILS_MAX} characters`),
+  })
+  // A duplicate is only actionable once the moderator knows its twin.
+  .refine((v) => v.reason !== DUPLICATE || v.details !== "", {
+    path: ["details"],
+    error: "Say which listing it is the same as",
+  });
 
 type Values = z.infer<typeof schema>;
 
@@ -42,6 +50,7 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
   const { gate } = useWriteGate();
   const [open, setOpen] = useState(false);
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { reason: "", details: "" } });
+  const duplicate = form.watch("reason") === DUPLICATE;
   const report = useMutation({
     mutationFn: (v: Values) =>
       clients.moderation.report({ targetKind, targetId, reason: Number(v.reason) as ReportReason, details: v.details }),
@@ -67,8 +76,9 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
       <DialogContent>
         <DialogTitle>Report {targetLabel}</DialogTitle>
         <DialogDescription>
-          Moderators review every report. Descriptions may not name real people or the handles of anyone who is not a
-          Perspectiv user.
+          {targetKind === ReportTargetKind.PLACE
+            ? "Moderators review every report. If this place is listed twice, say which listing is the other one."
+            : "Moderators review every report. Descriptions may not name real people or the handles of anyone who is not a Perspectiv user."}
         </DialogDescription>
         {report.isSuccess ? (
           <p role="status" className="mt-4 text-sm font-medium text-success">
@@ -106,11 +116,16 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
                 name="details"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Details (optional)</FormLabel>
+                    <FormLabel>{duplicate ? "Which listing is it the same as?" : "Details (optional)"}</FormLabel>
                     <FormControl>
-                      <Textarea className="min-h-24 font-sans text-base" maxLength={DETAILS_MAX} {...field} />
+                      <Textarea
+                        className="min-h-24 font-sans text-base"
+                        maxLength={DETAILS_MAX}
+                        aria-required={duplicate || undefined}
+                        {...field}
+                      />
                     </FormControl>
-                    <FormDescription>What should a moderator look at?</FormDescription>
+                    <FormDescription>{duplicate ? "Paste its link or name it." : "What should a moderator look at?"}</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

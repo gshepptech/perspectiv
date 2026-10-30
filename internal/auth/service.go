@@ -162,40 +162,43 @@ type SignUpInput struct {
 	AccessCode string
 	// Honeypot is the form field hidden from people; a value means a bot.
 	Honeypot string
+	// UserAgent labels the session the sign-up starts.
+	UserAgent string
 }
 
 // SignUp creates an unverified account and, in the same transaction, a
-// verification token and the job that emails its link. The account can sign
-// in at once; content writes wait for verification.
-func (s *Service) SignUp(ctx context.Context, in SignUpInput) (uuid.UUID, error) {
+// verification token and the job that emails its link, and starts the new
+// member's first session. Content writes wait for verification.
+func (s *Service) SignUp(ctx context.Context, in SignUpInput) (uuid.UUID, *Tokens, error) {
 	// A filled honeypot is answered like a success so the filler learns
-	// nothing; nothing is stored and no email is sent.
+	// nothing; nothing is stored, no email is sent and no session starts.
 	if in.Honeypot != "" {
 		s.log.Info().Str("event", "signup_honeypot").Msg("automated sign-up ignored")
-		return uuid.New(), nil
+		return uuid.New(), nil, nil
 	}
 	if !in.AgeConfirmed {
-		return uuid.Nil, apiutil.InvalidArg("you must confirm you are 18 or over")
+		return uuid.Nil, nil, apiutil.InvalidArg("you must confirm you are 18 or over")
 	}
 	email, err := validateEmail(in.Email)
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, nil, err
 	}
 	if err := user.ValidateUsername(in.Username); err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, nil, err
 	}
 	if err := ValidatePassword(in.Password, email, in.Username); err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, nil, err
 	}
 	hash, err := s.passwords.Hash(in.Password)
 	if err != nil {
-		return uuid.Nil, apiutil.Internal(err)
+		return uuid.Nil, nil, apiutil.Internal(err)
 	}
 	tok, tokHash, err := newOpaqueToken()
 	if err != nil {
-		return uuid.Nil, apiutil.Internal(err)
+		return uuid.Nil, nil, apiutil.Internal(err)
 	}
 	var id uuid.UUID
+	var tokens Tokens
 	err = s.inTx(ctx, func(q *dbq.Queries, tx pgx.Tx) error {
 		// The code is checked before the account exists, so a refused
 		// sign-up reveals nothing about which emails or usernames are taken.
@@ -218,13 +221,18 @@ func (s *Service) SignUp(ctx context.Context, in SignUpInput) (uuid.UUID, error)
 		}); err != nil {
 			return apiutil.Internal(err)
 		}
-		return nil
+		// The new member is signed in at once, as after a sign-in: writing
+		// waits for the email, reading and settings do not.
+		tokens, err = s.startSession(ctx, q, deviceLabel(in.UserAgent), SessionUser{
+			ID: id, Username: in.Username, Role: perspectivv1.Role_ROLE_USER,
+		})
+		return err
 	})
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, nil, err
 	}
 	s.log.Info().Str("event", "signup").Str("sub", id.String()).Msg("account created")
-	return id, nil
+	return id, &tokens, nil
 }
 
 // signUpConflict maps a users insert error: a case-insensitive email or

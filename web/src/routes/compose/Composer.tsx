@@ -4,7 +4,7 @@ import { Info, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useFieldArray, useForm, useWatch, type Control } from "react-hook-form";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { formatDay } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
@@ -48,6 +48,11 @@ export type ComposerProps = {
   notice?: string;
   /** Called once the first autosave gives a new draft its id. */
   onDraftNamed: (perspectiveId: string) => void;
+  /**
+   * Writing their side of someone else's story ("That was me"): the day and
+   * hour are that story's, fixed, because claims link stories in one arc.
+   */
+  joining?: boolean;
 };
 
 /**
@@ -55,7 +60,7 @@ export type ComposerProps = {
  * explicitly; a published perspective is edited in place through Update, with
  * its day and hour fixed.
  */
-export function Composer({ place, today, initial, perspective, notice, onDraftNamed }: ComposerProps) {
+export function Composer({ place, today, initial, perspective, notice, onDraftNamed, joining = false }: ComposerProps) {
   const navigate = useNavigate();
   // An invite link sends its reader here with the inviter's code; publishing
   // with it tells the inviter, and lands on the arc, where the two stories sit
@@ -68,6 +73,17 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
     resolver: zodResolver(useMemo(() => publishSchema(today), [today])),
   });
   const parts = useFieldArray({ control: form.control, name: "parts" });
+  // A writer has one story per arc: when the chosen day or hour already
+  // holds theirs, publishing another would be refused and its text lost, so
+  // the composer says so first and offers that story instead.
+  const chosenDate = useWatch({ control: form.control, name: "localDate" }) ?? "";
+  const chosenHour = hourOf({ hour: useWatch({ control: form.control, name: "hour" }) ?? DAY });
+  const dayArc = useDayArc(place, chosenDate);
+  const mineInArc =
+    chosenHour === undefined
+      ? dayArc.data?.minePerspectiveId
+      : dayArc.data?.hours.find((h) => h.hour === chosenHour)?.minePerspectiveId;
+  const alreadyWrote = !published && mineInArc && mineInArc !== perspective?.id ? mineInArc : "";
   const characters = useFieldArray({ control: form.control, name: "characters", keyName: "key" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -201,6 +217,16 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
           </p>
         </header>
 
+        {joining && !published && (
+          <p className="flex gap-2 rounded-md border border-rule bg-surface p-3 text-sm text-ink">
+            <Info aria-hidden size={16} className="mt-0.5 shrink-0 text-info" />
+            <span>
+              Write your side of this day. Once it is published you go back to their story to say which character was
+              you, and your stories link when they accept.
+            </span>
+          </p>
+        )}
+
         {notice && (
           <p className="flex gap-2 rounded-md border border-rule bg-surface p-3 text-sm text-ink">
             <Info aria-hidden size={16} className="mt-0.5 shrink-0 text-info" />
@@ -214,7 +240,7 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
             at {place.name}. The day and hour are fixed once published.
           </p>
         ) : (
-          <WhenFields control={form.control} place={place} today={today} />
+          <WhenFields control={form.control} place={place} today={today} fixed={joining} />
         )}
 
         <FormField
@@ -324,8 +350,19 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
           </p>
         )}
 
+        {alreadyWrote && (
+          <p role="alert" className="rounded-md border border-warning p-3 text-sm">
+            You already have a story for {chosenHour === undefined ? "this day" : hourLabel(chosenHour)} here, and each
+            person has one story per day or hour.{" "}
+            <Link to={`/compose?perspectiveId=${encodeURIComponent(alreadyWrote)}`} className="font-medium text-accent underline underline-offset-4">
+              Edit yours
+            </Link>{" "}
+            instead, or pick another hour.
+          </p>
+        )}
+
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Button type="submit" pending={busy}>
+          <Button type="submit" pending={busy} disabled={Boolean(alreadyWrote)}>
             {published ? "Save changes" : "Publish"}
           </Button>
           <SaveStatus state={autosave.state} published={published} />
@@ -343,11 +380,7 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
  */
 function DayArcNote({ place, localDate, hour }: { place: Place; localDate: string; hour: number | undefined }) {
   const valid = isLocalDate(localDate);
-  const day = useQuery({
-    queryKey: ["arc", "findDayArc", { placeId: place.id, localDate }],
-    queryFn: ({ signal }) => clients.arc.findDayArc({ placeId: place.id, localDate }, { signal }),
-    enabled: valid,
-  });
+  const day = useDayArc(place, localDate);
   if (!valid || !day.data) return null;
   const d = day.data;
   if (!d.arcId) {
@@ -375,14 +408,29 @@ function DayArcNote({ place, localDate, hour }: { place: Place; localDate: strin
   );
 }
 
-function WhenFields({ control, place, today }: { control: Control<ComposeValues>; place: Place; today: string }) {
-  const localDate = useWatch({ control, name: "localDate" }) ?? "";
-  const hour = hourOf({ hour: useWatch({ control, name: "hour" }) ?? DAY });
-  const day = useQuery({
+/** What exists for the place on a day, shared by the note and the publish check. */
+function useDayArc(place: Place, localDate: string) {
+  return useQuery({
     queryKey: ["arc", "findDayArc", { placeId: place.id, localDate }],
     queryFn: ({ signal }) => clients.arc.findDayArc({ placeId: place.id, localDate }, { signal }),
     enabled: isLocalDate(localDate),
   });
+}
+
+function WhenFields({
+  control,
+  place,
+  today,
+  fixed,
+}: {
+  control: Control<ComposeValues>;
+  place: Place;
+  today: string;
+  fixed: boolean;
+}) {
+  const localDate = useWatch({ control, name: "localDate" }) ?? "";
+  const hour = hourOf({ hour: useWatch({ control, name: "hour" }) ?? DAY });
+  const day = useDayArc(place, localDate);
   // A day that already has an arc keeps its title; asking for one would be
   // ignored, which is how a writer's title used to vanish without a word.
   const dayTitled = Boolean(day.data?.arcId);
@@ -395,7 +443,7 @@ function WhenFields({ control, place, today }: { control: Control<ComposeValues>
           <FormItem className="min-w-0">
             <FormLabel>Day of your visit</FormLabel>
             <FormControl>
-              <Input type="date" max={today} required {...field} />
+              <Input type="date" max={today} required readOnly={fixed} aria-readonly={fixed} {...field} />
             </FormControl>
             <FormDescription className="[overflow-wrap:anywhere]">
               Today in {place.name} is {formatDay(today)}.
@@ -410,7 +458,7 @@ function WhenFields({ control, place, today }: { control: Control<ComposeValues>
         render={({ field }) => (
           <FormItem className="min-w-0">
             <FormLabel>Hour</FormLabel>
-            <Select value={field.value} onValueChange={field.onChange}>
+            <Select value={field.value} onValueChange={field.onChange} disabled={fixed}>
               <FormControl>
                 <SelectTrigger onBlur={field.onBlur}>
                   <SelectValue />
@@ -425,7 +473,11 @@ function WhenFields({ control, place, today }: { control: Control<ComposeValues>
                 ))}
               </SelectContent>
             </Select>
-            <FormDescription>Optional, in local time. Fixed once published.</FormDescription>
+            <FormDescription>
+              {fixed
+                ? "Set to match their story: stories link only within the same day or hour."
+                : "Optional, in local time. Fixed once published."}
+            </FormDescription>
           </FormItem>
         )}
       />

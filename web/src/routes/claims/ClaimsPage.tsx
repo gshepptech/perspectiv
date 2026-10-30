@@ -2,7 +2,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { ConnectError } from "@connectrpc/connect";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, CircleDashed, X } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { Link } from "react-router";
 
 import { invalidateAfterWrite, perspectiveQuery } from "@/components/actions/queries";
@@ -52,13 +52,13 @@ const linkClass = "text-sm text-accent underline underline-offset-4";
  * competes for canon once it has enough members. The lore is read from the
  * reader's own story; until that answers, the day stands in for it.
  */
-function Linked({ claim }: { claim: Claim }) {
+function Linked({ claim, lineRef }: { claim: Claim; lineRef: RefObject<HTMLParagraphElement | null> }) {
   const story = useQuery(perspectiveQuery(claim.perspectiveId));
   const loreId = story.data?.loreId ?? "";
   const lore = loreId ? `/lores/${encodeURIComponent(loreId)}` : `/arcs/${encodeURIComponent(claim.arcId)}`;
   return (
     <div className="grid gap-1">
-      <p role="status" className="inline-flex flex-wrap items-center gap-x-1 font-medium text-success">
+      <p ref={lineRef} tabIndex={-1} role="status" className="inline-flex flex-wrap items-center gap-x-1 font-medium text-success">
         <Check aria-hidden size={16} />
         Linked. You are both in this story's lore now:{" "}
         <Link to={lore} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">
@@ -84,16 +84,27 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
   const [confirmReject, setConfirmReject] = useState(false);
   // Accepted here, just now: the next step replaces the bare status.
   const [accepted, setAccepted] = useState(false);
+  // Accept and Reject vanish with the decision, so focus moves to the
+  // item's new status line instead of falling to the page body.
+  const linkedLine = useRef<HTMLParagraphElement>(null);
+  const statusLine = useRef<HTMLSpanElement>(null);
+  const [focusStatus, setFocusStatus] = useState(false);
+  useEffect(() => {
+    if (!focusStatus) return;
+    setFocusStatus(false);
+    (linkedLine.current ?? statusLine.current)?.focus();
+  }, [focusStatus]);
   const resolve = useMutation({
     mutationFn: (accept: boolean) => clients.lore.resolveClaim({ claimId: claim.id, accept }),
-    onSuccess: (res, accept) => {
+    onSuccess: async (res, accept) => {
       if (accept && res.status === ClaimStatus.ACCEPTED) setAccepted(true);
       // Accepting changes both stories' lore standing.
-      return Promise.all([
+      await Promise.all([
         queryClient.invalidateQueries({ queryKey: claimsKey }),
         invalidateAfterWrite(queryClient, claim.perspectiveId),
         invalidateAfterWrite(queryClient, claim.claimantPerspectiveId),
       ]);
+      setFocusStatus(true);
     },
     onSettled: () => setConfirmReject(false),
   });
@@ -115,9 +126,13 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
           </>
         )}
       </p>
-      {accepted && <Linked claim={claim} />}
+      {accepted && <Linked claim={claim} lineRef={linkedLine} />}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        {!accepted && <StatusLabel status={claim.status} />}
+        {!accepted && (
+          <span ref={statusLine} tabIndex={-1}>
+            <StatusLabel status={claim.status} />
+          </span>
+        )}
         {claim.createdAt && (
           <span className="text-sm text-ink-muted">{dateFormat.format(timestampDate(claim.createdAt))}</span>
         )}
@@ -144,7 +159,14 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
         </p>
       )}
       <Dialog open={confirmReject} onOpenChange={setConfirmReject}>
-        <DialogContent>
+        <DialogContent
+          onCloseAutoFocus={(e) => {
+            // The Reject button that opened it is gone once the claim is rejected.
+            if (!resolve.isSuccess) return;
+            e.preventDefault();
+            (linkedLine.current ?? statusLine.current)?.focus();
+          }}
+        >
           <DialogTitle>Reject this claim?</DialogTitle>
           <DialogDescription className="[overflow-wrap:anywhere]">
             {claimant} will not be able to claim {label} again.

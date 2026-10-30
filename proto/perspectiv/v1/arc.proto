@@ -156,6 +156,8 @@ message DayArcHour {
   string arc_id = 2;
   string title = 3;
   int32 perspective_count = 4;
+  // The signed-in caller's own story in this hour, if any.
+  string mine_perspective_id = 5;
 }
 
 message FindDayArcResponse {
@@ -165,4 +167,7 @@ message FindDayArcResponse {
   // Readable stories written for the whole day.
   int32 perspective_count = 3;
   repeated DayArcHour hours = 4;
+  // The signed-in caller's own story for the whole day, if any: a writer
+  // has one story per arc, so the composer offers to edit it instead.
+  string mine_perspective_id = 5;
 }

@@ -74,6 +74,11 @@ message SignUpRequest {
 
 message SignUpResponse {
   string user_id = 1;
+  // The new member is signed in: an access token as Login gives, and the
+  // refresh cookie set. Empty for a sign-up the server ignored.
+  string access_token = 2;
+  google.protobuf.Timestamp access_token_expires_at = 3;
+  SessionUser user = 4;
 }
 
 message LoginRequest {

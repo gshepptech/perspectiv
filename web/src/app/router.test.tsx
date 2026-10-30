@@ -201,6 +201,19 @@ describe("shell", () => {
     }
   });
 
+  it("counts requests waiting on the member on Requests, in the badge and in its name", async () => {
+    const pending = { id: "cl", status: "CLAIM_STATUS_PENDING" };
+    renderAt("/", {
+      refresh: signedIn(),
+      extra: { "LoreService/ListClaims": () => ({ body: { claims: [pending, { ...pending, id: "cl-2" }] } }) },
+    });
+    await screen.findByTestId("page");
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    const requests = await within(nav).findByRole("link", { name: "Requests, 2 waiting" });
+    expect(requests).toHaveAttribute("href", "/claims");
+    expect(requests).toHaveTextContent("2");
+  });
+
   it("offers Reports to an admin", async () => {
     const user = userEvent.setup();
     const { router } = renderAt("/", { refresh: signedIn("ROLE_ADMIN") });

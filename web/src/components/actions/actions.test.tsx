@@ -164,10 +164,7 @@ describe("on a story's own page", () => {
 });
 
 describe("signed-out reader on a story's page", () => {
-  for (const [label, name] of [
-    ["react", /^Heart/],
-    ["report", /^Report:/],
-  ] as const) {
+  for (const [label, name] of [["report", /^Report:/]] as const) {
     it(`AC-009: the ${label} action redirects to login without calling the server`, async () => {
       const { api } = await openStory("p-otter", OTTER, {
         signedOut: true,
@@ -182,9 +179,12 @@ describe("signed-out reader on a story's page", () => {
 
   // Upvote and claim need a perspective in the arc too, so signing in alone
   // would not be enough: the reader is told why, with the way to sign in.
+  // Reacting needs only an account, and is explained the same way rather
+  // than by leaving the page.
   for (const [label, name, why, back] of [
     ["upvote", /^Upvote/, "Only people who wrote about this day can upvote its stories.", "%2Fperspectives%2Fp-otter"],
     ["claim", "Claim a character", "To say this was you, write your side of this day first.", "%2Fperspectives%2Fp-otter%3Fclaim%3D1"],
+    ["react", /^Heart/, "To react to a story, sign in or create an account.", "%2Fperspectives%2Fp-otter"],
   ] as const) {
     it(`AC-009: the ${label} action says why and offers sign-in and sign-up, without calling the server`, async () => {
       const { api } = await openStory("p-otter", OTTER, {
@@ -199,7 +199,8 @@ describe("signed-out reader on a story's page", () => {
       expect(actions).toHaveTextContent(why);
       expect(within(actions).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", `/login?next=${back}`);
       expect(within(actions).getByRole("link", { name: "Create an account" })).toHaveAttribute("href", `/signup?next=${back}`);
-      expect(api.calls.some((c) => /^(VoteService|LoreService)/.test(c.procedure))).toBe(false);
+      expect(api.calls.some((c) => /^(VoteService|LoreService|ReactService)/.test(c.procedure))).toBe(false);
+      expect(screen.queryByTestId("login")).toBeNull();
     });
   }
 });
@@ -242,6 +243,20 @@ describe("a signed-in reader with no perspective in the arc", () => {
       "href",
       "/compose?placeId=pl-9&date=2026-10-01&hour=21&return=%2Fperspectives%2Fp-heron%3Fclaim%3D1",
     );
+  });
+
+  it("arriving from \"That was me\" on one character, keeps that character on the way back through the composer", async () => {
+    const { router } = await openStory("p-heron", HERON, {
+      arcBody: outsider(),
+      over: { characters, place: { id: "pl-9", name: "Moonbean" }, localDate: "2026-10-01" },
+      path: "/perspectives/p-heron?claim=c-1",
+    });
+    const actions = await story();
+    expect(await within(actions).findByRole("link", { name: "Write your side" })).toHaveAttribute(
+      "href",
+      "/compose?placeId=pl-9&date=2026-10-01&return=%2Fperspectives%2Fp-heron%3Fclaim%3Dc-1",
+    );
+    await waitFor(() => expect(router.state.location.search).toBe(""));
   });
 
   it("is offered no claim when nobody in the story is open to claim", async () => {
@@ -404,18 +419,42 @@ describe("claim from a \"That was me\" link", () => {
     expect(within(dialog).getByRole("listitem", { name: "The barista in the green apron" })).toBeInTheDocument();
   });
 
-  it("tells a signed-out reader why, with sign-in and sign-up that come back to claim", async () => {
+  it("picks out the character the link quoted, starts focus on it, and drops the claim from the address", async () => {
+    const two = [
+      { id: "c-0", position: 1, label: "The man at the counter", hasAcceptedClaim: false, hasPendingClaim: false },
+      { ...characters[0]!, position: 2 },
+    ];
+    const store: Store = {};
+    store["p-heron"] = perspective("p-heron", { author: HERON, loreId: "lore-canon", characters: two }).perspective;
+    const { router } = await renderApp(storyRoute, "/perspectives/p-heron?part=1&claim=c-1", {
+      signedIn: true,
+      routes: {
+        "ArcService/GetArc": () => ({ body: dayArcResponse() }),
+        "LoreService/GetLore": () => ({ body: { lore: lore("lore-canon", "CANON", []) } }),
+        "PerspectiveService/Get": getFrom(store),
+      },
+    });
+    const dialog = await screen.findByRole("dialog", { name: "Claim a character" });
+    const picked = within(dialog).getByRole("listitem", { name: "The barista in the green apron" });
+    expect(picked).toHaveAttribute("aria-current", "true");
+    expect(within(dialog).getByRole("listitem", { name: "The man at the counter" })).not.toHaveAttribute("aria-current");
+    await waitFor(() => expect(within(picked).getByRole("button", { name: "That was me: The barista in the green apron" })).toHaveFocus());
+    // A reload must not open the dialog again; the rest of the address stays.
+    await waitFor(() => expect(router.state.location.search).toBe("?part=1"));
+  });
+
+  it("tells a signed-out reader why, with sign-in and sign-up that come back to claim that character", async () => {
     const store: Store = {};
     store["p-heron"] = perspective("p-heron", { author: HERON, loreId: "lore-canon", characters }).perspective;
-    await renderApp(storyRoute, "/perspectives/p-heron?claim=1", {
+    await renderApp(storyRoute, "/perspectives/p-heron?claim=c-1", {
       routes: { "ArcService/GetArc": () => ({ body: dayArcResponse() }), "PerspectiveService/Get": getFrom(store) },
     });
     const actions = await story();
     expect(await within(actions).findByText(/^To say this was you, write your side of this day first\./)).toBeInTheDocument();
-    expect(within(actions).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login?next=%2Fperspectives%2Fp-heron%3Fclaim%3D1");
+    expect(within(actions).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login?next=%2Fperspectives%2Fp-heron%3Fclaim%3Dc-1");
     expect(within(actions).getByRole("link", { name: "Create an account" })).toHaveAttribute(
       "href",
-      "/signup?next=%2Fperspectives%2Fp-heron%3Fclaim%3D1",
+      "/signup?next=%2Fperspectives%2Fp-heron%3Fclaim%3Dc-1",
     );
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByTestId("login")).toBeNull();

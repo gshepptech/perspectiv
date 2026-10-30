@@ -15,6 +15,7 @@ import { Role } from "@/gen/perspectiv/v1/enums_pb";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { clearSession, useSession } from "@/lib/session";
+import { useWaitingRequests } from "@/routes/claims/waiting";
 import { useUnreadCount } from "@/routes/inbox/unread";
 
 // On a phone the word sits under the icon, so every item keeps a visible
@@ -24,24 +25,45 @@ const navItem = "inline-flex min-h-11 min-w-11 flex-col items-center justify-cen
 const navLink = ({ isActive }: { isActive: boolean }) =>
   cn(navItem, "border-b-2", isActive ? "border-accent text-ink" : "border-transparent text-ink-muted hover:text-ink");
 
+/** A count over a navigation icon; the link's own name carries it for screen readers. */
+function Badge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-hidden
+      className="absolute -top-1.5 -right-2.5 min-w-4.5 rounded-full bg-accent px-1 text-center text-xs leading-4.5 font-bold text-accent-ink"
+    >
+      {count > 99 ? "99+" : String(count)}
+    </span>
+  );
+}
+
 /** The Inbox item, with the unread count as a badge and in its name. */
 function InboxLink() {
   const unread = useUnreadCount(true).data ?? 0;
-  const shown = unread > 99 ? "99+" : String(unread);
   return (
     <NavLink to="/inbox" className={navLink} aria-label={unread > 0 ? `Inbox, ${unread} unread` : undefined}>
       <span className="relative">
         <Inbox aria-hidden size={20} />
-        {unread > 0 && (
-          <span
-            aria-hidden
-            className="absolute -top-1.5 -right-2.5 min-w-4.5 rounded-full bg-accent px-1 text-center text-xs leading-4.5 font-bold text-accent-ink"
-          >
-            {shown}
-          </span>
-        )}
+        <Badge count={unread} />
       </span>
       <span>Inbox</span>
+    </NavLink>
+  );
+}
+
+/** The Requests item, with the requests waiting on the member as a badge and in its name. */
+function RequestsLink() {
+  const waiting = useWaitingRequests(true).data;
+  const count = waiting?.count ?? 0;
+  const spoken = waiting?.more ? `${count}+` : String(count);
+  return (
+    <NavLink to="/claims" className={navLink} aria-label={count > 0 ? `Requests, ${spoken} waiting` : undefined}>
+      <span className="relative">
+        <UserCheck aria-hidden size={20} />
+        <Badge count={waiting?.more ? count + 1 : count} />
+      </span>
+      <span>Requests</span>
     </NavLink>
   );
 }
@@ -144,10 +166,7 @@ export function RootLayout() {
                   <PenLine aria-hidden size={20} />
                   <span>Write</span>
                 </NavLink>
-                <NavLink to="/claims" className={navLink}>
-                  <UserCheck aria-hidden size={20} />
-                  <span>Requests</span>
-                </NavLink>
+                <RequestsLink />
                 <InboxLink />
                 <AccountMenu username={session.username} isAdmin={session.role === Role.ADMIN} />
               </>

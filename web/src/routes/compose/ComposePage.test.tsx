@@ -584,3 +584,25 @@ describe("composer: who already wrote this day", () => {
     expect(screen.getByLabelText("Arc title")).toBeInTheDocument();
   });
 });
+
+describe("composer: one story per arc, and writing your side", () => {
+  it("warns before typing when the writer already has a story in that arc, and offers it", async () => {
+    await openComposer("/compose?placeId=p-ny", {
+      "ArcService/FindDayArc": () => ok({ arcId: "arc-1", title: "Rain on the square", perspectiveCount: 2, minePerspectiveId: "p-mine" }),
+    });
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("You already have a story for this day here");
+    expect(within(alert).getByRole("link", { name: "Edit yours" })).toHaveAttribute("href", "/compose?perspectiveId=p-mine");
+    expect(screen.getByRole("button", { name: "Publish" })).toBeDisabled();
+  });
+
+  it("fixes the day and hour to the story being joined, and says why", async () => {
+    await openComposer(`/compose?placeId=p-ny&date=2026-10-11&hour=13&return=${encodeURIComponent("/perspectives/p-otter?claim=1")}`, {
+      "ArcService/FindDayArc": () => ok({}),
+    });
+    expect(await screen.findByText(/Write your side of this day/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Day of your visit")).toHaveAttribute("readonly");
+    expect(screen.getByRole("combobox", { name: "Hour" })).toBeDisabled();
+    expect(screen.getByText(/Set to match their story/)).toBeInTheDocument();
+  });
+});

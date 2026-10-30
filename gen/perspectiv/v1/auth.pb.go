@@ -182,10 +182,15 @@ func (x *SignUpRequest) GetWebsite() string {
 }
 
 type SignUpResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// The new member is signed in: an access token as Login gives, and the
+	// refresh cookie set. Empty for a sign-up the server ignored.
+	AccessToken          string                 `protobuf:"bytes,2,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	AccessTokenExpiresAt *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=access_token_expires_at,json=accessTokenExpiresAt,proto3" json:"access_token_expires_at,omitempty"`
+	User                 *SessionUser           `protobuf:"bytes,4,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *SignUpResponse) Reset() {
@@ -223,6 +228,27 @@ func (x *SignUpResponse) GetUserId() string {
 		return x.UserId
 	}
 	return ""
+}
+
+func (x *SignUpResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *SignUpResponse) GetAccessTokenExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AccessTokenExpiresAt
+	}
+	return nil
+}
+
+func (x *SignUpResponse) GetUser() *SessionUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
 }
 
 type LoginRequest struct {
@@ -2210,9 +2236,12 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\rage_confirmed\x18\x04 \x01(\bR\fageConfirmed\x12\x1f\n" +
 	"\vaccess_code\x18\x05 \x01(\tR\n" +
 	"accessCode\x12\x18\n" +
-	"\awebsite\x18\x06 \x01(\tR\awebsite\")\n" +
+	"\awebsite\x18\x06 \x01(\tR\awebsite\"\xcf\x01\n" +
 	"\x0eSignUpResponse\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"@\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12!\n" +
+	"\faccess_token\x18\x02 \x01(\tR\vaccessToken\x12Q\n" +
+	"\x17access_token_expires_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x14accessTokenExpiresAt\x12.\n" +
+	"\x04user\x18\x04 \x01(\v2\x1a.perspectiv.v1.SessionUserR\x04user\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xb5\x01\n" +
@@ -2412,67 +2441,69 @@ var file_perspectiv_v1_auth_proto_goTypes = []any{
 }
 var file_perspectiv_v1_auth_proto_depIdxs = []int32{
 	44, // 0: perspectiv.v1.SessionUser.role:type_name -> perspectiv.v1.Role
-	45, // 1: perspectiv.v1.LoginResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
-	0,  // 2: perspectiv.v1.LoginResponse.user:type_name -> perspectiv.v1.SessionUser
-	45, // 3: perspectiv.v1.RefreshResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
-	0,  // 4: perspectiv.v1.RefreshResponse.user:type_name -> perspectiv.v1.SessionUser
-	45, // 5: perspectiv.v1.AccessCode.created_at:type_name -> google.protobuf.Timestamp
-	45, // 6: perspectiv.v1.AccessCode.expires_at:type_name -> google.protobuf.Timestamp
-	19, // 7: perspectiv.v1.CreateAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
-	19, // 8: perspectiv.v1.ListAccessCodesResponse.codes:type_name -> perspectiv.v1.AccessCode
-	19, // 9: perspectiv.v1.RevokeAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
-	45, // 10: perspectiv.v1.WaitlistEntry.created_at:type_name -> google.protobuf.Timestamp
-	45, // 11: perspectiv.v1.WaitlistEntry.invited_at:type_name -> google.protobuf.Timestamp
-	26, // 12: perspectiv.v1.ListWaitlistResponse.entries:type_name -> perspectiv.v1.WaitlistEntry
-	26, // 13: perspectiv.v1.InviteFromWaitlistResponse.entry:type_name -> perspectiv.v1.WaitlistEntry
-	45, // 14: perspectiv.v1.SessionInfo.signed_in_at:type_name -> google.protobuf.Timestamp
-	45, // 15: perspectiv.v1.SessionInfo.last_used_at:type_name -> google.protobuf.Timestamp
-	39, // 16: perspectiv.v1.ListSessionsResponse.sessions:type_name -> perspectiv.v1.SessionInfo
-	1,  // 17: perspectiv.v1.AuthService.SignUp:input_type -> perspectiv.v1.SignUpRequest
-	3,  // 18: perspectiv.v1.AuthService.Login:input_type -> perspectiv.v1.LoginRequest
-	5,  // 19: perspectiv.v1.AuthService.Logout:input_type -> perspectiv.v1.LogoutRequest
-	7,  // 20: perspectiv.v1.AuthService.Refresh:input_type -> perspectiv.v1.RefreshRequest
-	9,  // 21: perspectiv.v1.AuthService.VerifyEmail:input_type -> perspectiv.v1.VerifyEmailRequest
-	11, // 22: perspectiv.v1.AuthService.RequestPasswordReset:input_type -> perspectiv.v1.RequestPasswordResetRequest
-	13, // 23: perspectiv.v1.AuthService.ResetPassword:input_type -> perspectiv.v1.ResetPasswordRequest
-	31, // 24: perspectiv.v1.AuthService.ChangePassword:input_type -> perspectiv.v1.ChangePasswordRequest
-	33, // 25: perspectiv.v1.AuthService.RequestEmailChange:input_type -> perspectiv.v1.RequestEmailChangeRequest
-	35, // 26: perspectiv.v1.AuthService.ConfirmEmailChange:input_type -> perspectiv.v1.ConfirmEmailChangeRequest
-	37, // 27: perspectiv.v1.AuthService.SignOutEverywhere:input_type -> perspectiv.v1.SignOutEverywhereRequest
-	40, // 28: perspectiv.v1.AuthService.ListSessions:input_type -> perspectiv.v1.ListSessionsRequest
-	42, // 29: perspectiv.v1.AuthService.RevokeSession:input_type -> perspectiv.v1.RevokeSessionRequest
-	15, // 30: perspectiv.v1.AuthService.GetSignUpInfo:input_type -> perspectiv.v1.GetSignUpInfoRequest
-	17, // 31: perspectiv.v1.AuthService.JoinWaitlist:input_type -> perspectiv.v1.JoinWaitlistRequest
-	20, // 32: perspectiv.v1.AuthService.CreateAccessCode:input_type -> perspectiv.v1.CreateAccessCodeRequest
-	22, // 33: perspectiv.v1.AuthService.ListAccessCodes:input_type -> perspectiv.v1.ListAccessCodesRequest
-	24, // 34: perspectiv.v1.AuthService.RevokeAccessCode:input_type -> perspectiv.v1.RevokeAccessCodeRequest
-	27, // 35: perspectiv.v1.AuthService.ListWaitlist:input_type -> perspectiv.v1.ListWaitlistRequest
-	29, // 36: perspectiv.v1.AuthService.InviteFromWaitlist:input_type -> perspectiv.v1.InviteFromWaitlistRequest
-	2,  // 37: perspectiv.v1.AuthService.SignUp:output_type -> perspectiv.v1.SignUpResponse
-	4,  // 38: perspectiv.v1.AuthService.Login:output_type -> perspectiv.v1.LoginResponse
-	6,  // 39: perspectiv.v1.AuthService.Logout:output_type -> perspectiv.v1.LogoutResponse
-	8,  // 40: perspectiv.v1.AuthService.Refresh:output_type -> perspectiv.v1.RefreshResponse
-	10, // 41: perspectiv.v1.AuthService.VerifyEmail:output_type -> perspectiv.v1.VerifyEmailResponse
-	12, // 42: perspectiv.v1.AuthService.RequestPasswordReset:output_type -> perspectiv.v1.RequestPasswordResetResponse
-	14, // 43: perspectiv.v1.AuthService.ResetPassword:output_type -> perspectiv.v1.ResetPasswordResponse
-	32, // 44: perspectiv.v1.AuthService.ChangePassword:output_type -> perspectiv.v1.ChangePasswordResponse
-	34, // 45: perspectiv.v1.AuthService.RequestEmailChange:output_type -> perspectiv.v1.RequestEmailChangeResponse
-	36, // 46: perspectiv.v1.AuthService.ConfirmEmailChange:output_type -> perspectiv.v1.ConfirmEmailChangeResponse
-	38, // 47: perspectiv.v1.AuthService.SignOutEverywhere:output_type -> perspectiv.v1.SignOutEverywhereResponse
-	41, // 48: perspectiv.v1.AuthService.ListSessions:output_type -> perspectiv.v1.ListSessionsResponse
-	43, // 49: perspectiv.v1.AuthService.RevokeSession:output_type -> perspectiv.v1.RevokeSessionResponse
-	16, // 50: perspectiv.v1.AuthService.GetSignUpInfo:output_type -> perspectiv.v1.GetSignUpInfoResponse
-	18, // 51: perspectiv.v1.AuthService.JoinWaitlist:output_type -> perspectiv.v1.JoinWaitlistResponse
-	21, // 52: perspectiv.v1.AuthService.CreateAccessCode:output_type -> perspectiv.v1.CreateAccessCodeResponse
-	23, // 53: perspectiv.v1.AuthService.ListAccessCodes:output_type -> perspectiv.v1.ListAccessCodesResponse
-	25, // 54: perspectiv.v1.AuthService.RevokeAccessCode:output_type -> perspectiv.v1.RevokeAccessCodeResponse
-	28, // 55: perspectiv.v1.AuthService.ListWaitlist:output_type -> perspectiv.v1.ListWaitlistResponse
-	30, // 56: perspectiv.v1.AuthService.InviteFromWaitlist:output_type -> perspectiv.v1.InviteFromWaitlistResponse
-	37, // [37:57] is the sub-list for method output_type
-	17, // [17:37] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	45, // 1: perspectiv.v1.SignUpResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: perspectiv.v1.SignUpResponse.user:type_name -> perspectiv.v1.SessionUser
+	45, // 3: perspectiv.v1.LoginResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 4: perspectiv.v1.LoginResponse.user:type_name -> perspectiv.v1.SessionUser
+	45, // 5: perspectiv.v1.RefreshResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 6: perspectiv.v1.RefreshResponse.user:type_name -> perspectiv.v1.SessionUser
+	45, // 7: perspectiv.v1.AccessCode.created_at:type_name -> google.protobuf.Timestamp
+	45, // 8: perspectiv.v1.AccessCode.expires_at:type_name -> google.protobuf.Timestamp
+	19, // 9: perspectiv.v1.CreateAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
+	19, // 10: perspectiv.v1.ListAccessCodesResponse.codes:type_name -> perspectiv.v1.AccessCode
+	19, // 11: perspectiv.v1.RevokeAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
+	45, // 12: perspectiv.v1.WaitlistEntry.created_at:type_name -> google.protobuf.Timestamp
+	45, // 13: perspectiv.v1.WaitlistEntry.invited_at:type_name -> google.protobuf.Timestamp
+	26, // 14: perspectiv.v1.ListWaitlistResponse.entries:type_name -> perspectiv.v1.WaitlistEntry
+	26, // 15: perspectiv.v1.InviteFromWaitlistResponse.entry:type_name -> perspectiv.v1.WaitlistEntry
+	45, // 16: perspectiv.v1.SessionInfo.signed_in_at:type_name -> google.protobuf.Timestamp
+	45, // 17: perspectiv.v1.SessionInfo.last_used_at:type_name -> google.protobuf.Timestamp
+	39, // 18: perspectiv.v1.ListSessionsResponse.sessions:type_name -> perspectiv.v1.SessionInfo
+	1,  // 19: perspectiv.v1.AuthService.SignUp:input_type -> perspectiv.v1.SignUpRequest
+	3,  // 20: perspectiv.v1.AuthService.Login:input_type -> perspectiv.v1.LoginRequest
+	5,  // 21: perspectiv.v1.AuthService.Logout:input_type -> perspectiv.v1.LogoutRequest
+	7,  // 22: perspectiv.v1.AuthService.Refresh:input_type -> perspectiv.v1.RefreshRequest
+	9,  // 23: perspectiv.v1.AuthService.VerifyEmail:input_type -> perspectiv.v1.VerifyEmailRequest
+	11, // 24: perspectiv.v1.AuthService.RequestPasswordReset:input_type -> perspectiv.v1.RequestPasswordResetRequest
+	13, // 25: perspectiv.v1.AuthService.ResetPassword:input_type -> perspectiv.v1.ResetPasswordRequest
+	31, // 26: perspectiv.v1.AuthService.ChangePassword:input_type -> perspectiv.v1.ChangePasswordRequest
+	33, // 27: perspectiv.v1.AuthService.RequestEmailChange:input_type -> perspectiv.v1.RequestEmailChangeRequest
+	35, // 28: perspectiv.v1.AuthService.ConfirmEmailChange:input_type -> perspectiv.v1.ConfirmEmailChangeRequest
+	37, // 29: perspectiv.v1.AuthService.SignOutEverywhere:input_type -> perspectiv.v1.SignOutEverywhereRequest
+	40, // 30: perspectiv.v1.AuthService.ListSessions:input_type -> perspectiv.v1.ListSessionsRequest
+	42, // 31: perspectiv.v1.AuthService.RevokeSession:input_type -> perspectiv.v1.RevokeSessionRequest
+	15, // 32: perspectiv.v1.AuthService.GetSignUpInfo:input_type -> perspectiv.v1.GetSignUpInfoRequest
+	17, // 33: perspectiv.v1.AuthService.JoinWaitlist:input_type -> perspectiv.v1.JoinWaitlistRequest
+	20, // 34: perspectiv.v1.AuthService.CreateAccessCode:input_type -> perspectiv.v1.CreateAccessCodeRequest
+	22, // 35: perspectiv.v1.AuthService.ListAccessCodes:input_type -> perspectiv.v1.ListAccessCodesRequest
+	24, // 36: perspectiv.v1.AuthService.RevokeAccessCode:input_type -> perspectiv.v1.RevokeAccessCodeRequest
+	27, // 37: perspectiv.v1.AuthService.ListWaitlist:input_type -> perspectiv.v1.ListWaitlistRequest
+	29, // 38: perspectiv.v1.AuthService.InviteFromWaitlist:input_type -> perspectiv.v1.InviteFromWaitlistRequest
+	2,  // 39: perspectiv.v1.AuthService.SignUp:output_type -> perspectiv.v1.SignUpResponse
+	4,  // 40: perspectiv.v1.AuthService.Login:output_type -> perspectiv.v1.LoginResponse
+	6,  // 41: perspectiv.v1.AuthService.Logout:output_type -> perspectiv.v1.LogoutResponse
+	8,  // 42: perspectiv.v1.AuthService.Refresh:output_type -> perspectiv.v1.RefreshResponse
+	10, // 43: perspectiv.v1.AuthService.VerifyEmail:output_type -> perspectiv.v1.VerifyEmailResponse
+	12, // 44: perspectiv.v1.AuthService.RequestPasswordReset:output_type -> perspectiv.v1.RequestPasswordResetResponse
+	14, // 45: perspectiv.v1.AuthService.ResetPassword:output_type -> perspectiv.v1.ResetPasswordResponse
+	32, // 46: perspectiv.v1.AuthService.ChangePassword:output_type -> perspectiv.v1.ChangePasswordResponse
+	34, // 47: perspectiv.v1.AuthService.RequestEmailChange:output_type -> perspectiv.v1.RequestEmailChangeResponse
+	36, // 48: perspectiv.v1.AuthService.ConfirmEmailChange:output_type -> perspectiv.v1.ConfirmEmailChangeResponse
+	38, // 49: perspectiv.v1.AuthService.SignOutEverywhere:output_type -> perspectiv.v1.SignOutEverywhereResponse
+	41, // 50: perspectiv.v1.AuthService.ListSessions:output_type -> perspectiv.v1.ListSessionsResponse
+	43, // 51: perspectiv.v1.AuthService.RevokeSession:output_type -> perspectiv.v1.RevokeSessionResponse
+	16, // 52: perspectiv.v1.AuthService.GetSignUpInfo:output_type -> perspectiv.v1.GetSignUpInfoResponse
+	18, // 53: perspectiv.v1.AuthService.JoinWaitlist:output_type -> perspectiv.v1.JoinWaitlistResponse
+	21, // 54: perspectiv.v1.AuthService.CreateAccessCode:output_type -> perspectiv.v1.CreateAccessCodeResponse
+	23, // 55: perspectiv.v1.AuthService.ListAccessCodes:output_type -> perspectiv.v1.ListAccessCodesResponse
+	25, // 56: perspectiv.v1.AuthService.RevokeAccessCode:output_type -> perspectiv.v1.RevokeAccessCodeResponse
+	28, // 57: perspectiv.v1.AuthService.ListWaitlist:output_type -> perspectiv.v1.ListWaitlistResponse
+	30, // 58: perspectiv.v1.AuthService.InviteFromWaitlist:output_type -> perspectiv.v1.InviteFromWaitlistResponse
+	39, // [39:59] is the sub-list for method output_type
+	19, // [19:39] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_auth_proto_init() }

@@ -1,12 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
 import { UserCheck } from "lucide-react";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
 import { isOpen } from "@/components/reader/claims";
 import { ClaimStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Character } from "@/gen/perspectiv/v1/perspective_pb";
+import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 
 import { actionError } from "./errors";
@@ -31,6 +32,11 @@ type Props = {
    */
   openOnArrival?: boolean;
   /**
+   * The character a "That was me" link quoted: marked in the list, and focus
+   * starts on its button so the reader confirms rather than hunts for it.
+   */
+  highlight?: string;
+  /**
    * Where focus goes when the dialog closes after a claim took away its
    * trigger: the line that now says who the viewer is in the story.
    */
@@ -43,8 +49,10 @@ type Props = {
  * only offered while the viewer has no claim in it; a character someone else
  * holds shows who, and one the viewer was turned down for says so.
  */
-export function ClaimDialog({ perspectiveId, authorName, characters, offer, openOnArrival = false, returnFocusTo }: Props) {
+export function ClaimDialog({ perspectiveId, authorName, characters, offer, openOnArrival = false, highlight, returnFocusTo }: Props) {
   const { gate } = useWriteGate();
+  const ids = useId();
+  const buttonId = (characterId: string) => `${ids}-claim-${characterId}`;
   const [open, setOpen] = useState(false);
   const arrived = useRef(false);
   useEffect(() => {
@@ -76,6 +84,12 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
         </DialogTrigger>
       )}
       <DialogContent
+        onOpenAutoFocus={(e) => {
+          const picked = highlight ? document.getElementById(buttonId(highlight)) : null;
+          if (!picked) return;
+          e.preventDefault();
+          picked.focus();
+        }}
         onCloseAutoFocus={(e) => {
           // The trigger is gone once the viewer holds a character here.
           if (!offer && returnFocusTo?.current) {
@@ -97,7 +111,15 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
         ) : (
           <ul className="mt-4 divide-y divide-rule border-y border-rule">
             {sorted.map((c) => (
-              <li key={c.id} aria-label={c.label} className="flex flex-wrap items-center justify-between gap-2 py-3">
+              <li
+                key={c.id}
+                aria-label={c.label}
+                aria-current={c.id === highlight || undefined}
+                className={cn(
+                  "flex flex-wrap items-center justify-between gap-2 py-3",
+                  c.id === highlight && "border-l-2 border-accent pl-3",
+                )}
+              >
                 <span className="min-w-0 font-serif break-words">{c.label}</span>
                 {c.claimedBy ? (
                   <span className="text-sm text-ink-muted">Turned out to be {c.claimedBy.username}</span>
@@ -111,6 +133,7 @@ export function ClaimDialog({ perspectiveId, authorName, characters, offer, open
                   <span className="text-sm text-ink-muted">{authorName} said this was not you</span>
                 ) : (
                   <Button
+                    id={buttonId(c.id)}
                     size="sm"
                     aria-label={`That was me: ${c.label}`}
                     pending={claim.isPending || claim.isSuccess}

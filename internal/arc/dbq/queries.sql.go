@@ -31,13 +31,19 @@ const dayArcStories = `-- name: DayArcStories :many
 SELECT a.id, a.hour, a.title,
        (SELECT count(*) FROM perspectives v
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS stories
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS stories,
+       -- The viewer's own story in the arc, draft or published (one each);
+       -- the nil id when there is none.
+       coalesce((SELECT v.id FROM perspectives v
+                 WHERE v.arc_id = a.id AND v.author_id = $1::uuid AND v.deleted_at IS NULL
+                 LIMIT 1), '00000000-0000-0000-0000-000000000000'::uuid)::uuid AS mine
 FROM arcs a
-WHERE a.place_id = $1::uuid AND a.local_date = $2::date
+WHERE a.place_id = $2::uuid AND a.local_date = $3::date
 ORDER BY a.hour NULLS FIRST
 `
 
 type DayArcStoriesParams struct {
+	Viewer    uuid.NullUUID
 	PlaceID   uuid.UUID
 	LocalDate pgtype.Date
 }
@@ -47,13 +53,14 @@ type DayArcStoriesRow struct {
 	Hour    pgtype.Int2
 	Title   string
 	Stories int32
+	Mine    uuid.UUID
 }
 
 // A place's arcs on one day, the day arc first and then its hours in order,
-// each with its count of readable stories. Empty when nobody has written
+// each with its count of readable stories and the viewer's own story there. Empty when nobody has written
 // there that day.
 func (q *Queries) DayArcStories(ctx context.Context, arg DayArcStoriesParams) ([]DayArcStoriesRow, error) {
-	rows, err := q.db.Query(ctx, dayArcStories, arg.PlaceID, arg.LocalDate)
+	rows, err := q.db.Query(ctx, dayArcStories, arg.Viewer, arg.PlaceID, arg.LocalDate)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +73,7 @@ func (q *Queries) DayArcStories(ctx context.Context, arg DayArcStoriesParams) ([
 			&i.Hour,
 			&i.Title,
 			&i.Stories,
+			&i.Mine,
 		); err != nil {
 			return nil, err
 		}

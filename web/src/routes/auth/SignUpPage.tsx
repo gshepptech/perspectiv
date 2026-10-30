@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
 import { clients } from "@/lib/connect";
+import { signIn } from "@/lib/session";
 
 import { AuthHeading, AuthPanel, FormAlert, linkClass } from "./AuthPanel";
 import { errorMessage } from "./errors";
@@ -78,12 +79,12 @@ function CheckEmail({ email, next }: { email: string; next: string }) {
     <AuthPanel>
       <AuthHeading ref={heading}>Check your email</AuthHeading>
       <p className="mt-4 break-words">
-        We sent a link to <strong className="font-medium">{email}</strong>. Follow it to verify your email. Until then you
-        can sign in and read, but not publish, claim, vote, react or report.
+        You are signed in. We sent a link to <strong className="font-medium">{email}</strong>: follow it to verify your
+        email. Until then you can read, but not publish, claim, vote, react or report.
       </p>
       <p className="mt-6">
-        <Link to={signInHref(next)} className={linkClass}>
-          Sign in
+        <Link to={next} className={linkClass}>
+          {next === "/" ? "Start reading" : "Continue where you were"}
         </Link>
       </p>
     </AuthPanel>
@@ -104,8 +105,12 @@ export function Component() {
   });
   const signUp = useMutation({
     mutationFn: (values: Values) => clients.auth.signUp({ ...values, accessCode: inviteOnly ? values.accessCode.trim() : "" }),
-    // The verification link opens a new tab; it picks up from here.
-    onSuccess: () => rememberAfterVerify(next),
+    // The new member is signed in at once. The verification link opens a
+    // new tab; it picks up from here.
+    onSuccess: (res) => {
+      signIn(res);
+      rememberAfterVerify(next);
+    },
   });
   const submit = form.handleSubmit((v) => {
     if (inviteOnly && v.accessCode.trim() === "") {

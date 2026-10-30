@@ -69,6 +69,9 @@ Running prose is left-aligned, never justified, with `hyphens: auto`.
   `sm`. Unread notifications show as a count badge on the Inbox icon
   (`accent` fill, `accent-ink` text, bold), and the link's accessible name
   carries it ("Inbox, 2 unread"); with none unread there is no badge.
+  Requests waiting on the member to accept or reject show the same badge
+  on the Requests icon, named "Requests, 2 waiting" ("99+" in the badge
+  past 99); with none waiting there is no badge.
 - **Breakpoints:** Tailwind defaults. Layout is single column below `md`
   (768px); from `md` the arc and place pages MAY use a two-column layout whose
   reading column keeps the measure.
@@ -205,7 +208,19 @@ lore page.
   and "Create an account" links that return to the story. Arriving from
   "That was me" opens the claim note at once and moves focus to it. After
   publishing from that link the writer lands back on the story with the
-  claim dialog up.
+  claim dialog up, and above the story a `status` line in a `success`
+  border says "Your story is published." with an "Open your story" link.
+- **"That was me" names the character.** Every "That was me" link carries
+  the character it quotes (`?claim=<characterId>`; a bare `?claim=1` still
+  opens the dialog with nothing picked). The claim dialog then marks that
+  character with an `accent` left border and `aria-current`, and focus
+  starts on its "That was me" button. The character survives the detour
+  through sign-in or "Write your side". The address drops `claim` once
+  the story has read it, so a reload does not reopen the dialog.
+- **Reacting signed out.** Pressing a react while signed out opens the same
+  bordered note under the actions, "To react to a story, sign in or create
+  an account.", with "Sign in" and "Create an account" links that return
+  to the story, instead of leaving for the sign-in page.
 - **Sidebar:** the four steps of how a day becomes canon, the number of
   stories and lores, who may do what here in one sentence, and "Report place".
   A day arc's hours sit in the feed, after the canon.
@@ -232,6 +247,16 @@ yet; a day that has an arc keeps its title, never silently drops the
 writer's. Search results say what a place is (a stadium's category rather
 than "Store") and how many stories it holds, so friends pick the same entry.
 
+## Place page header and reports
+
+- Under the place name, one `text-sm` `ink-muted` word says what the place
+  is, the same way search does: an imported store or mall with a category
+  shows the category ("Sports"), never "Store" for a stadium.
+- "Report place" opens the report dialog with an intro about places only
+  (no talk of real names). When the reason is "Same place as another
+  listing", the details field is required and is labelled "Which listing
+  is it the same as?" with the hint "Paste its link or name it."
+
 ## Place page sidebar
 
 - **Were you in someone's story?** First in the sidebar: a search field
@@ -257,7 +282,11 @@ than "Store") and how many stories it holds, so friends pick the same entry.
   lore (or the day when the lore is not known yet), then a `text-sm`
   hint: "A lore needs 4 members to compete for canon." with an "Invite
   who else was there" link to the reader's own story, where the invite
-  dialog opens.
+  dialog opens. The invite dialog asks only about characters nobody has
+  claimed yet.
+- **Focus after a decision.** Accept and Reject leave with the request
+  they decide, so focus moves to the request's new status line ("Linked…"
+  or "Rejected"), never to the page body.
 - **Waiting for a link.** Where a story's byline says "Waiting for a
   link", a `text-sm` `ink-muted` sentence under the byline says what it
   means: it joins a lore when someone it describes claims their

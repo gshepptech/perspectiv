@@ -44,7 +44,7 @@ export function OpenCharacters({
           <p className="flex flex-wrap items-baseline gap-x-2 text-ink-muted">
             <span className="wrap-anywhere">in {c.author?.username ?? "someone"}'s story</span>
             <Link
-              to={`/perspectives/${encodeURIComponent(c.perspectiveId)}?claim=1`}
+              to={`/perspectives/${encodeURIComponent(c.perspectiveId)}?claim=${encodeURIComponent(c.characterId)}`}
               aria-label={`That was me: ${c.label}`}
               className="inline-flex min-h-11 items-center font-medium text-accent underline underline-offset-4"
             >

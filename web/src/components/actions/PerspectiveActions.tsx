@@ -33,8 +33,9 @@ export type ViewerRights = {
  * report. Each is offered where the server would accept it. Upvote and claim
  * need a perspective in the same arc, so a reader without one (signed out
  * included) who presses either is told so in place, with the way to write
- * their side or sign in; react and report send a signed-out reader to sign
- * in. The server enforces every rule again; hiding a button is usability only.
+ * their side or sign in. A signed-out reader who reacts is told the same way
+ * that reacting needs an account; report sends them to sign in. The server
+ * enforces every rule again; hiding a button is usability only.
  *
  * The listing summary has no vote, react or character state, so the full
  * perspective is read once per card (and shared with the reader page's cache).
@@ -45,6 +46,7 @@ export function PerspectiveActions({
   rights,
   withCast = true,
   claimOnArrival = false,
+  claimCharacterId,
 }: {
   summary: PerspectiveSummary;
   rights: ViewerRights;
@@ -52,6 +54,8 @@ export function PerspectiveActions({
   withCast?: boolean;
   /** Opens the claim dialog on arrival (a "That was me" link). */
   claimOnArrival?: boolean;
+  /** The character that "That was me" link quoted, picked out in the dialog. */
+  claimCharacterId?: string;
 }) {
   const session = useSession();
   const gone = summary.deleted || summary.hidden;
@@ -102,7 +106,13 @@ export function PerspectiveActions({
           targetName={`${authorName}'s perspective`}
           blocked={blocked && p ? { expanded: why === "upvote", controls: whyId, onPress: () => toggle("upvote") } : undefined}
         />
-        {p && <ReactBar perspectiveId={summary.id} counts={p.reacts} />}
+        {p && (
+          <ReactBar
+            perspectiveId={summary.id}
+            counts={p.reacts}
+            blocked={session ? undefined : { expanded: why === "react", controls: whyId, onPress: () => toggle("react") }}
+          />
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {canClaim && (
@@ -112,6 +122,7 @@ export function PerspectiveActions({
             characters={p.characters}
             offer={hasOpenCharacter(p.characters)}
             openOnArrival={claimOnArrival}
+            highlight={claimCharacterId}
             returnFocusTo={mineLine}
           />
         )}
@@ -146,7 +157,7 @@ export function PerspectiveActions({
           />
         )}
       </div>
-      {why && p && <JoinFirst id={whyId} reason={why} p={p} focus={focusWhy} />}
+      {why && p && <JoinFirst id={whyId} reason={why} p={p} focus={focusWhy} characterId={claimCharacterId} />}
     </div>
   );
 }

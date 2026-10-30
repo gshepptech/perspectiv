@@ -97,10 +97,14 @@ function WaitingForLink({ p }: { p: Perspective }) {
   );
 }
 
+/** What the story page is handed in history state. */
+type ReadState = { justPublished?: boolean; publishedId?: string } | null;
+
 /**
  * Right after publishing from a story the writer wanted to claim a character
  * in ("write your side first"), they go back to that story with the claim
- * dialog up. Where they stand in the arc has just changed, so every cached
+ * dialog up, carrying the new story's id so that page still says it was
+ * published. Where they stand in the arc has just changed, so every cached
  * arc read is dropped first and the story reads it fresh.
  */
 function ReturnAfterPublish({ p }: { p: Perspective }) {
@@ -110,7 +114,7 @@ function ReturnAfterPublish({ p }: { p: Perspective }) {
     const to = takeAfterPublish({ placeId: p.place?.id ?? "", localDate: p.localDate, hour: p.hour });
     if (!to) return;
     queryClient.removeQueries({ queryKey: ["arc"] });
-    void navigate(to, { replace: true });
+    void navigate(to, { replace: true, state: { publishedId: p.id } satisfies ReadState });
   }, [p, navigate, queryClient]);
   return null;
 }
@@ -222,7 +226,10 @@ export function Component() {
   // post-publish prompt once: right after publishing is when the author knows
   // who was there. It points at the arc and at the invite button, and opens
   // nothing over the story.
-  const justPublished = (useLocation().state as { justPublished?: boolean } | null)?.justPublished === true;
+  const state = useLocation().state as ReadState;
+  const justPublished = state?.justPublished === true;
+  // Sent back here from publishing (ReturnAfterPublish): the writer's own story.
+  const publishedId = typeof state?.publishedId === "string" ? state.publishedId : "";
   const [params, setParams] = useSearchParams();
   // The action bar on the arc page reads the same cache entry, so both must
   // store the same shape; perspectiveQuery owns it.
@@ -285,6 +292,15 @@ export function Component() {
         </p>
       )}
 
+      {publishedId && publishedId !== p.id && (
+        <p role="status" className="mx-auto mb-4 max-w-measure rounded-xl border border-success p-4 text-ink">
+          Your story is published.{" "}
+          <Link to={`/perspectives/${encodeURIComponent(publishedId)}`} className="font-medium text-accent underline underline-offset-4">
+            Open your story
+          </Link>
+        </p>
+      )}
+
       {!isDraft && mine && (
         <div className="mx-auto mb-4 max-w-measure text-sm">
           <AuthorActions p={p} />
@@ -303,7 +319,8 @@ export function Component() {
         part={partFrom(params.get("part"), bodies.length)}
         onPartChange={onPartChange}
       />
-      {!isDraft && !mine && <ReaderActions p={p} />}
+      {/* Keyed by story, so a "That was me" arrival is read afresh on each one. */}
+      {!isDraft && !mine && <ReaderActions key={p.id} p={p} />}
       {/* The moment after publishing is when a writer knows who was there;
           the list follows the story so its heading comes after the title. */}
       {justPublished && mine && !isDraft && p.arcId && (
@@ -322,9 +339,27 @@ export function Component() {
  */
 function ReaderActions({ p }: { p: Perspective }) {
   const rights = useStoryRights(p.arcId, p.loreId);
-  // "That was me" on the arc page links here with ?claim=1.
-  const [params] = useSearchParams();
-  const claimOnArrival = params.get("claim") === "1";
+  const location = useLocation();
+  // "That was me" links here with ?claim=<characterId> (or the older bare
+  // ?claim=1). It is read once and then dropped from the address, so a
+  // reload does not open the claim dialog again.
+  const [params, setParams] = useSearchParams();
+  const claimParam = params.get("claim");
+  const [arrival, setArrival] = useState<string | null>(claimParam);
+  useEffect(() => {
+    if (claimParam === null) return;
+    setArrival(claimParam);
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("claim");
+        return next;
+      },
+      // Keeps "Your story is published." when the writer was sent back here.
+      { replace: true, state: location.state as ReadState },
+    );
+  }, [claimParam, setParams, location.state]);
+  const claimCharacterId = arrival && arrival !== "1" ? arrival : undefined;
   const summary = create(PerspectiveSummarySchema, {
     id: p.id,
     arcId: p.arcId,
@@ -338,7 +373,13 @@ function ReaderActions({ p }: { p: Perspective }) {
   });
   return (
     <section aria-label="Respond to this story" className="mx-auto mt-6 max-w-measure">
-      <PerspectiveActions summary={summary} rights={rights} withCast={false} claimOnArrival={claimOnArrival} />
+      <PerspectiveActions
+        summary={summary}
+        rights={rights}
+        withCast={false}
+        claimOnArrival={arrival !== null}
+        claimCharacterId={claimCharacterId}
+      />
     </section>
   );
 }

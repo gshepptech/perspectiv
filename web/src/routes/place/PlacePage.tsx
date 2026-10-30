@@ -4,7 +4,7 @@ import { Crown, PenLine, Plus } from "lucide-react";
 import { useState, type RefObject } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 
-import { formatDayBeside, genreLabel, loreStatusLabel, placeCategories, placeCategoryLabel, placeKindLabel } from "@/components/reader/format";
+import { formatDayBeside, genreLabel, loreStatusLabel, placeCategories, placeCategoryLabel, placeLabel } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
@@ -389,7 +389,8 @@ export function Component() {
           </nav>
         )}
         <h1 className="text-2xl wrap-anywhere sm:text-3xl">{place.name}</h1>
-        <p className="mt-1 text-sm text-ink-muted">{placeKindLabel(place.kind)}</p>
+        {/* What the place is, as search says it: a stadium reads "Sports", not "Store". */}
+        <p className="mt-1 text-sm text-ink-muted">{placeLabel(place.kind, place.category)}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild variant="secondary">
             <Link to={`/compose?placeId=${encodeURIComponent(place.id)}`}>

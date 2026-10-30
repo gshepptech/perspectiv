@@ -28,7 +28,7 @@ func TestFindDayArc(t *testing.T) {
 			VALUES ($1, $2, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now())`, arcID, w.user(t))
 	}
 
-	empty, err := w.svc.FindDayArc(ctx, w.diner, day)
+	empty, err := w.svc.FindDayArc(ctx, uuid.Nil, w.diner, day)
 	if err != nil || empty.GetArcId() != "" || len(empty.GetHours()) != 0 {
 		t.Fatalf("an unwritten day = %v, %v; want empty", empty, err)
 	}
@@ -42,7 +42,7 @@ func TestFindDayArc(t *testing.T) {
 	w.exec(t, `UPDATE perspectives SET deleted_at = now() WHERE id = (SELECT id FROM perspectives WHERE arc_id = $1 LIMIT 1)`, hourArc)
 	publish(hourArc)
 
-	got, err := w.svc.FindDayArc(ctx, w.diner, day)
+	got, err := w.svc.FindDayArc(ctx, uuid.Nil, w.diner, day)
 	if err != nil {
 		t.Fatalf("FindDayArc: %v", err)
 	}
@@ -54,6 +54,34 @@ func TestFindDayArc(t *testing.T) {
 	}
 
 	w.exec(t, `UPDATE places SET hidden_at = now() WHERE id = $1`, w.city)
-	_, err = w.svc.FindDayArc(ctx, w.diner, day)
+	_, err = w.svc.FindDayArc(ctx, uuid.Nil, w.diner, day)
 	wantCode(t, err, connect.CodeNotFound)
+}
+
+// A signed-in writer sees which of the day's arcs already holds their story.
+func TestFindDayArcMine(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t, testdb.New(t))
+	ctx := context.Background()
+	day := time.Date(2026, 10, 25, 0, 0, 0, 0, time.UTC)
+	hour := int32(20)
+	me, other := w.user(t), w.user(t)
+	dayArc := w.mustResolve(t, arc.ResolveInput{PlaceID: w.diner, LocalDate: day, Title: "Rain at the diner", CreatedBy: other})
+	hourArc := w.mustResolve(t, arc.ResolveInput{PlaceID: w.diner, LocalDate: day, Hour: &hour, CreatedBy: me})
+	mine := w.id(t, `INSERT INTO perspectives (arc_id, author_id, genre, status, lore_status, published_at)
+		VALUES ($1, $2, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now()) RETURNING id`, hourArc, me)
+	w.exec(t, `INSERT INTO perspectives (arc_id, author_id, genre, status, lore_status, published_at)
+		VALUES ($1, $2, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now())`, dayArc, other)
+
+	got, err := w.svc.FindDayArc(ctx, me, w.diner, day)
+	if err != nil {
+		t.Fatalf("FindDayArc: %v", err)
+	}
+	if got.GetMinePerspectiveId() != "" || len(got.GetHours()) != 1 || got.GetHours()[0].GetMinePerspectiveId() != mine.String() {
+		t.Fatalf("mine = day %q, hours %v; want only the 20:00 story", got.GetMinePerspectiveId(), got.GetHours())
+	}
+	anon, err := w.svc.FindDayArc(ctx, uuid.Nil, w.diner, day)
+	if err != nil || anon.GetHours()[0].GetMinePerspectiveId() != "" {
+		t.Fatalf("a signed-out reader sees %v, %v", anon, err)
+	}
 }

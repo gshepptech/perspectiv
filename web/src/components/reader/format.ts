@@ -20,14 +20,22 @@ export function placeKindLabel(kind: PlaceKind): string {
 }
 
 /**
+ * What a place is, in one word or phrase: the category of a store or mall
+ * that has one ("Sports" for a stadium), else the kind ("Store", "City").
+ */
+export function placeLabel(kind: PlaceKind, category = PlaceCategory.UNSPECIFIED): string {
+  const named = (kind === PlaceKind.STORE || kind === PlaceKind.MALL) && category !== PlaceCategory.UNSPECIFIED;
+  return named ? placeCategoryLabel(category) : placeKindLabel(kind);
+}
+
+/**
  * "Mall in Springfield, Illinois": the kind, then the ancestors from the
  * nearest up to the state. A store or venue with a category says what it is
  * instead ("Sports in Tampa, Florida"), since a stadium or a park is not a
  * store or a mall to anyone who was there.
  */
 export function placeChain(kind: PlaceKind, ancestors: readonly PlaceRef[], category = PlaceCategory.UNSPECIFIED): string {
-  const named = (kind === PlaceKind.STORE || kind === PlaceKind.MALL) && category !== PlaceCategory.UNSPECIFIED;
-  const label = named ? placeCategoryLabel(category) : placeKindLabel(kind);
+  const label = placeLabel(kind, category);
   if (ancestors.length === 0) return label;
   return `${label} in ${[...ancestors].reverse().map((a) => a.name).join(", ")}`;
 }

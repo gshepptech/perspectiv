@@ -80,17 +80,25 @@ func sessionUser(u SessionUser) *perspectivv1.SessionUser {
 	}
 }
 
-// SignUp creates an account and queues its verification email.
+// SignUp creates an account, queues its verification email and signs the
+// new member in: the access token in the body, the refresh cookie set.
 func (h *Handler) SignUp(ctx context.Context, req *connect.Request[perspectivv1.SignUpRequest]) (*connect.Response[perspectivv1.SignUpResponse], error) {
 	m := req.Msg
-	id, err := h.svc.SignUp(ctx, SignUpInput{
+	id, t, err := h.svc.SignUp(ctx, SignUpInput{
 		Email: m.GetEmail(), Password: m.GetPassword(), Username: m.GetUsername(), AgeConfirmed: m.GetAgeConfirmed(),
-		AccessCode: m.GetAccessCode(), Honeypot: m.GetWebsite(),
+		AccessCode: m.GetAccessCode(), Honeypot: m.GetWebsite(), UserAgent: req.Header().Get("User-Agent"),
 	})
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	return connect.NewResponse(&perspectivv1.SignUpResponse{UserId: id.String()}), nil
+	res := connect.NewResponse(&perspectivv1.SignUpResponse{UserId: id.String()})
+	if t != nil {
+		res.Msg.AccessToken = t.AccessToken
+		res.Msg.AccessTokenExpiresAt = timestamppb.New(t.AccessExpiresAt)
+		res.Msg.User = sessionUser(t.User)
+		res.Header().Add("Set-Cookie", h.refreshCookie(t.RefreshToken, t.RefreshExpiresAt).String())
+	}
+	return res, nil
 }
 
 // Login returns the access token in the body and sets the refresh cookie.

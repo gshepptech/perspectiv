@@ -296,7 +296,7 @@ describe("is this you?", () => {
     const links = within(panel).getAllByRole("link", { name: /^That was me/ });
     expect(links).toHaveLength(6);
     expect(links[0]).toHaveAccessibleName("That was me: the person in seat 1");
-    expect(links[0]).toHaveAttribute("href", "/perspectives/p-1?claim=1");
+    expect(links[0]).toHaveAttribute("href", "/perspectives/p-1?claim=c-1");
     expect(panel).toHaveTextContent("in writer1's story");
     await user.click(within(panel).getByRole("button", { name: "Show all 8" }));
     expect(within(panel).getAllByRole("link", { name: /^That was me/ })).toHaveLength(8);

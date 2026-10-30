@@ -66,8 +66,9 @@ func TestSessions(t *testing.T) {
 			current = s.GetSessionId()
 		}
 	}
-	if len(got) != 2 || !devices["Firefox on macOS"] || devices["Safari on iPhone"] {
-		t.Fatalf("sessions = %v, want the laptop (current) and the phone", got)
+	// Sign-up started a session too, from a client with no browser name.
+	if len(got) != 3 || !devices["Firefox on macOS"] || devices["Safari on iPhone"] || devices[""] {
+		t.Fatalf("sessions = %v, want the sign-up's, the laptop (current) and the phone", got)
 	}
 
 	tests := []struct {
@@ -90,8 +91,8 @@ func TestSessions(t *testing.T) {
 	}
 	_, _, err := e.refresh(phoneCookie, "")
 	wantCode(t, err, connect.CodeUnauthenticated)
-	if got := list(laptop); len(got) != 1 || !got[0].GetCurrent() {
-		t.Fatalf("sessions after signing the phone out = %v", got)
+	if got := list(laptop); len(got) != 2 {
+		t.Fatalf("sessions after signing the phone out = %v, want the laptop and the sign-up's", got)
 	}
 	wantCode(t, revoke(laptop, phone), connect.CodeNotFound)
 }

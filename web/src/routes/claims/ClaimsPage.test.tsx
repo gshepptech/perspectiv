@@ -77,6 +77,8 @@ describe("claims inbox", () => {
     );
     expect(api.callsTo("LoreService/ResolveClaim")[0]?.body).toEqual({ claimId: "cl-1", accept: true });
     expect(within(item).queryByRole("button", { name: "Accept" })).toBeNull();
+    // The button went with the decision; focus lands on what replaced it.
+    await waitFor(() => expect(linked).toHaveFocus());
   });
 
   it("points at the day while the lore is not known yet", async () => {
@@ -125,6 +127,7 @@ describe("claims inbox", () => {
     await user.click(within(item).getByRole("button", { name: "Reject" }));
     await user.click(await screen.findByRole("button", { name: "Reject claim" }));
     await waitFor(() => expect(screen.getByRole("listitem", { name: /marlo/ })).toHaveTextContent("Rejected"));
+    await waitFor(() => expect(within(item).getByText("Rejected").closest("[tabindex]")).toHaveFocus());
     // accept=false is the proto3 default, so the JSON body carries only the id.
     expect(api.callsTo("LoreService/ResolveClaim")[0]?.body).toEqual({ claimId: "cl-1" });
   });
