@@ -86,10 +86,9 @@ func (s *Service) ChangePassword(ctx context.Context, caller apiutil.Caller, cur
 			return err
 		}
 		if err := s.checkPassword(ctx, q, u, current); err != nil {
-			// The failed attempt must commit, so the refusal is returned
+			// A refused attempt must commit, so the refusal is returned
 			// after the transaction rather than rolling it back.
-			refused = err
-			return nil
+			return deferRefusal(err, &refused)
 		}
 		if err := ValidatePassword(next, u.Email, u.Username); err != nil {
 			return err
@@ -101,9 +100,11 @@ func (s *Service) ChangePassword(ctx context.Context, caller apiutil.Caller, cur
 		if err := q.UpdatePasswordHash(ctx, dbq.UpdatePasswordHashParams{ID: u.ID, PasswordHash: hash}); err != nil {
 			return internal("update password", err)
 		}
-		// A reset link sent before the change would undo it.
-		if err := q.RetireEmailTokens(ctx, dbq.RetireEmailTokensParams{UserID: u.ID, Purpose: purposePasswordReset}); err != nil {
-			return internal("retire reset tokens", err)
+		// A reset link sent before the change would undo it, and an email
+		// change started by whoever had the old password would hand them
+		// the account.
+		if err := retireTokens(ctx, q, u.ID, purposePasswordReset, purposeChangeEmail); err != nil {
+			return err
 		}
 		return revokeOthers(ctx, q, u.ID, caller.SessionID)
 	})
@@ -111,10 +112,42 @@ func (s *Service) ChangePassword(ctx context.Context, caller apiutil.Caller, cur
 		return err
 	}
 	if refused != nil {
-		s.log.Warn().Str("event", "password_change_refused").Str("sub", caller.UserID.String()).Msg("current password not accepted")
+		s.logRefusal("password_change", caller.UserID, refused)
 		return refused
 	}
 	s.log.Info().Str("event", "password_changed").Str("sub", caller.UserID.String()).Msg("password changed; other sessions revoked")
+	return nil
+}
+
+// deferRefusal keeps a wrong password or a lockout in refused for the caller
+// to return after the transaction commits the recorded attempt; any other
+// error rolls the transaction back.
+func deferRefusal(err error, refused *error) error {
+	if errors.Is(err, errWrongPassword) || errors.Is(err, errLockedOut) || errors.Is(err, errNoCurrentPassword) {
+		*refused = err
+		return nil
+	}
+	return err
+}
+
+func (s *Service) logRefusal(action string, userID uuid.UUID, err error) {
+	reason := "wrong_password"
+	switch {
+	case errors.Is(err, errLockedOut):
+		reason = "locked_out"
+	case errors.Is(err, errNoCurrentPassword):
+		reason = "no_password"
+	}
+	s.log.Warn().Str("event", action+"_refused").Str("reason", reason).Str("sub", userID.String()).Msg("current password not accepted")
+}
+
+// retireTokens spends every unused emailed link of the given purposes.
+func retireTokens(ctx context.Context, q *dbq.Queries, userID uuid.UUID, purposes ...string) error {
+	for _, p := range purposes {
+		if err := q.RetireEmailTokens(ctx, dbq.RetireEmailTokensParams{UserID: userID, Purpose: p}); err != nil {
+			return internal("retire "+p+" tokens", err)
+		}
+	}
 	return nil
 }
 
@@ -148,8 +181,7 @@ func (s *Service) RequestEmailChange(ctx context.Context, caller apiutil.Caller,
 			return err
 		}
 		if err := s.checkPassword(ctx, q, u, current); err != nil {
-			refused = err
-			return nil
+			return deferRefusal(err, &refused)
 		}
 		if strings.EqualFold(addr, u.Email) {
 			return errSameEmail
@@ -176,7 +208,7 @@ func (s *Service) RequestEmailChange(ctx context.Context, caller apiutil.Caller,
 		return err
 	}
 	if refused != nil {
-		s.log.Warn().Str("event", "email_change_refused").Str("sub", caller.UserID.String()).Msg("current password not accepted")
+		s.logRefusal("email_change", caller.UserID, refused)
 		return refused
 	}
 	s.log.Info().Str("event", "email_change_requested").Str("sub", caller.UserID.String()).Msg("confirmation email queued")
@@ -230,7 +262,10 @@ func (s *Service) ConfirmEmailChange(ctx context.Context, token string) error {
 		if err := q.UpdateEmail(ctx, dbq.UpdateEmailParams{ID: row.UserID, Email: row.NewEmail}); err != nil {
 			return signUpConflict(err)
 		}
-		return nil
+		// Links mailed to the old address must not work once it is no
+		// longer the account's: whoever holds that inbox could reset the
+		// password.
+		return retireTokens(ctx, q, row.UserID, purposePasswordReset, purposeVerifyEmail, purposeChangeEmail)
 	})
 	if err != nil {
 		return err
@@ -251,7 +286,9 @@ func (s *Service) SignOutEverywhere(ctx context.Context, caller apiutil.Caller) 
 		if err := q.RevokeUserRefreshTokens(ctx, caller.UserID); err != nil {
 			return internal("revoke refresh tokens", err)
 		}
-		return nil
+		// Signing everyone out also cancels an email change someone else
+		// may have started from a session.
+		return retireTokens(ctx, q, caller.UserID, purposeChangeEmail)
 	})
 	if err != nil {
 		return err

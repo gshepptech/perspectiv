@@ -136,8 +136,10 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 			{"update password", func() error {
 				return q.UpdatePasswordHash(ctx, dbq.UpdatePasswordHashParams{ID: id, PasswordHash: hash})
 			}},
-			{"retire reset tokens", func() error {
-				return q.RetireEmailTokens(ctx, dbq.RetireEmailTokensParams{UserID: id, Purpose: purposePasswordReset})
+			// A pending email change was started by someone holding the old
+			// password; a reset is how the owner takes the account back.
+			{"retire reset and email change tokens", func() error {
+				return retireTokens(ctx, q, id, purposePasswordReset, purposeChangeEmail)
 			}},
 			{"mark email verified", func() error { return q.MarkEmailVerified(ctx, id) }},
 			{"revoke sessions", func() error { return q.RevokeUserSessions(ctx, id) }},

@@ -211,3 +211,95 @@ func TestSignOutEverywhere(t *testing.T) {
 	_, err = e.authAs(access).SignOutEverywhere(context.Background(), connect.NewRequest(&perspectivv1.SignOutEverywhereRequest{}))
 	wantCode(t, err, connect.CodeUnauthenticated)
 }
+
+// Whoever started an email change from a stolen session must lose it when
+// the owner resets or changes the password or signs out everywhere, and
+// links mailed to the old address must die once the change is confirmed.
+func TestEmailChangeCannotTakeOver(t *testing.T) {
+	t.Parallel()
+	const newPassword = "a different long passphrase"
+	requestChange := func(e *env, access, to string) string {
+		t.Helper()
+		if _, err := e.authAs(access).RequestEmailChange(context.Background(), connect.NewRequest(&perspectivv1.RequestEmailChangeRequest{
+			NewEmail: to, CurrentPassword: goodPassword,
+		})); err != nil {
+			t.Fatalf("RequestEmailChange: %v", err)
+		}
+		return e.linkToken(to, "change_email", "/confirm-email")
+	}
+	confirm := func(e *env, token string) error {
+		_, err := e.auth().ConfirmEmailChange(context.Background(), connect.NewRequest(&perspectivv1.ConfirmEmailChangeRequest{Token: token}))
+		return err
+	}
+
+	tests := []struct {
+		name    string
+		reclaim func(e *env, access string)
+	}{
+		{name: "owner resets the password", reclaim: func(e *env, _ string) {
+			if _, err := e.auth().RequestPasswordReset(context.Background(), connect.NewRequest(&perspectivv1.RequestPasswordResetRequest{
+				Email: emailOf("Writer_One"),
+			})); err != nil {
+				t.Fatalf("RequestPasswordReset: %v", err)
+			}
+			tok := e.linkToken(emailOf("Writer_One"), "password_reset", "/reset-password")
+			if _, err := e.auth().ResetPassword(context.Background(), connect.NewRequest(&perspectivv1.ResetPasswordRequest{
+				Token: tok, NewPassword: newPassword,
+			})); err != nil {
+				t.Fatalf("ResetPassword: %v", err)
+			}
+		}},
+		{name: "owner changes the password", reclaim: func(e *env, access string) {
+			if _, err := e.authAs(access).ChangePassword(context.Background(), connect.NewRequest(&perspectivv1.ChangePasswordRequest{
+				CurrentPassword: goodPassword, NewPassword: newPassword,
+			})); err != nil {
+				t.Fatalf("ChangePassword: %v", err)
+			}
+		}},
+		{name: "owner signs out everywhere", reclaim: func(e *env, access string) {
+			if _, err := e.authAs(access).SignOutEverywhere(context.Background(), connect.NewRequest(&perspectivv1.SignOutEverywhereRequest{})); err != nil {
+				t.Fatalf("SignOutEverywhere: %v", err)
+			}
+		}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			e := newEnv(t)
+			id := e.signUp("Writer_One")
+			attacker, _ := e.mustLogin("Writer_One")
+			owner, _ := e.mustLogin("Writer_One")
+			tok := requestChange(e, attacker, "evil@example.test")
+			tc.reclaim(e, owner)
+			wantCode(t, confirm(e, tok), connect.CodeInvalidArgument)
+			var email string
+			e.scan(`SELECT email FROM users WHERE id = $1`, []any{id}, &email)
+			if email != emailOf("Writer_One") {
+				t.Fatalf("email = %q, want the owner's", email)
+			}
+		})
+	}
+
+	t.Run("old-address links die with the change", func(t *testing.T) {
+		t.Parallel()
+		e := newEnv(t)
+		e.signUp("Writer_One")
+		access, _ := e.mustLogin("Writer_One")
+		if _, err := e.auth().RequestPasswordReset(context.Background(), connect.NewRequest(&perspectivv1.RequestPasswordResetRequest{
+			Email: emailOf("Writer_One"),
+		})); err != nil {
+			t.Fatalf("RequestPasswordReset: %v", err)
+		}
+		reset := e.linkToken(emailOf("Writer_One"), "password_reset", "/reset-password")
+		verify := e.linkToken(emailOf("Writer_One"), "verify_email", "/verify-email")
+		if err := confirm(e, requestChange(e, access, "fresh@example.test")); err != nil {
+			t.Fatalf("ConfirmEmailChange: %v", err)
+		}
+		_, err := e.auth().ResetPassword(context.Background(), connect.NewRequest(&perspectivv1.ResetPasswordRequest{
+			Token: reset, NewPassword: newPassword,
+		}))
+		wantCode(t, err, connect.CodeInvalidArgument)
+		_, err = e.auth().VerifyEmail(context.Background(), connect.NewRequest(&perspectivv1.VerifyEmailRequest{Token: verify}))
+		wantCode(t, err, connect.CodeInvalidArgument)
+	})
+}
