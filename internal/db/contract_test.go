@@ -111,6 +111,19 @@ func TestEnumValues(t *testing.T) {
 				"MODERATION_ACTION_HIDE_LORE_POST", "MODERATION_ACTION_CLEAR_LORE_NAME"},
 		},
 		{
+			name: "audit action mirrors every moderation action, then the other admin actions",
+			enum: perspectivv1.AuditAction(0).Descriptor(),
+			want: []string{"AUDIT_ACTION_UNSPECIFIED", "AUDIT_ACTION_HIDE_PERSPECTIVE", "AUDIT_ACTION_HIDE_PLACE", "AUDIT_ACTION_SUSPEND_USER",
+				"AUDIT_ACTION_DISMISS", "AUDIT_ACTION_HIDE_LORE_POST", "AUDIT_ACTION_CLEAR_LORE_NAME", "AUDIT_ACTION_ADMIN_GRANT",
+				"AUDIT_ACTION_ACCESS_CODE_CREATE", "AUDIT_ACTION_ACCESS_CODE_REVOKE", "AUDIT_ACTION_WAITLIST_INVITE", "AUDIT_ACTION_USER_LOOKUP"},
+		},
+		{
+			name: "audit target kind",
+			enum: perspectivv1.AuditTargetKind(0).Descriptor(),
+			want: []string{"AUDIT_TARGET_KIND_UNSPECIFIED", "AUDIT_TARGET_KIND_PERSPECTIVE", "AUDIT_TARGET_KIND_PLACE", "AUDIT_TARGET_KIND_USER",
+				"AUDIT_TARGET_KIND_LORE_POST", "AUDIT_TARGET_KIND_LORE_NAME", "AUDIT_TARGET_KIND_ACCESS_CODE", "AUDIT_TARGET_KIND_WAITLIST_ENTRY"},
+		},
+		{
 			name: "epic tab",
 			enum: perspectivv1.EpicTab(0).Descriptor(),
 			want: []string{"EPIC_TAB_UNSPECIFIED", "EPIC_TAB_RANKED", "EPIC_TAB_NEWEST", "EPIC_TAB_TALES"},
@@ -150,7 +163,7 @@ var services = map[string][]string{
 	"VoteService":        {"Vote", "VoteRemove"},
 	"ReactService":       {"React"},
 	"NotifyService":      {"ListInbox", "MarkRead", "GetPreferences", "UpdatePreferences", "Unsubscribe"},
-	"ModerationService":  {"Report", "ListReports", "Resolve"},
+	"ModerationService":  {"Report", "ListReports", "Resolve", "ListAuditLog", "LookupUser"},
 }
 
 func service(t *testing.T, name string) protoreflect.ServiceDescriptor {
@@ -218,6 +231,9 @@ func TestNoResponseCarriesAnEmailExceptTheCallersOwnAccount(t *testing.T) {
 		// ("pa•••@example.test"): no full address leaves the server.
 		"AuthService.InviteFromWaitlist:InviteFromWaitlistResponse.entry.email_hint",
 		"AuthService.ListWaitlist:ListWaitlistResponse.entries.email_hint",
+		// An admin's user lookup shows the account's address masked the same
+		// way, never whole, and the lookup itself is audited.
+		"ModerationService.LookupUser:LookupUserResponse.user.email_hint",
 		"UserService.GetProfile:GetProfileResponse.account.email",
 	}
 	var got []string

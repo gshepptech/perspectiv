@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -50,23 +49,9 @@ func accessCodeProto(code, note string, maxUses, uses int32, created time.Time, 
 	}
 }
 
-// maskEmail keeps the first two characters of the local part and the
-// domain: "pat@example.test" is "pa•••@example.test".
-func maskEmail(addr string) string {
-	local, domain, ok := strings.Cut(addr, "@")
-	if !ok {
-		return "•••"
-	}
-	keep := []rune(local)
-	if len(keep) > 2 {
-		keep = keep[:2]
-	}
-	return string(keep) + "•••@" + domain
-}
-
 func waitlistProto(w dbq.Waitlist) *perspectivv1.WaitlistEntry {
 	out := &perspectivv1.WaitlistEntry{
-		Id: w.ID.String(), EmailHint: maskEmail(w.Email), Note: w.Note, CreatedAt: timestamppb.New(w.CreatedAt), InvitedAt: tsOrNil(w.InvitedAt),
+		Id: w.ID.String(), EmailHint: apiutil.MaskEmail(w.Email), Note: w.Note, CreatedAt: timestamppb.New(w.CreatedAt), InvitedAt: tsOrNil(w.InvitedAt),
 	}
 	if w.Code != nil {
 		out.Code = *w.Code

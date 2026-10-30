@@ -13,7 +13,10 @@ ALTER TABLE moderation_audit ADD CONSTRAINT moderation_audit_target_kind_check C
 
 -- +goose Down
 -- Reports and audit rows about thread posts and lore names go with the kinds.
+-- The audit table is append-only; a rollback is the one writer allowed past it.
+ALTER TABLE moderation_audit DISABLE TRIGGER moderation_audit_append_only;
 DELETE FROM moderation_audit WHERE target_kind IN ('REPORT_TARGET_KIND_LORE_POST', 'REPORT_TARGET_KIND_LORE_NAME');
+ALTER TABLE moderation_audit ENABLE TRIGGER moderation_audit_append_only;
 DELETE FROM reports WHERE target_kind IN ('REPORT_TARGET_KIND_LORE_POST', 'REPORT_TARGET_KIND_LORE_NAME');
 ALTER TABLE moderation_audit DROP CONSTRAINT IF EXISTS moderation_audit_target_kind_check;
 ALTER TABLE moderation_audit ADD CONSTRAINT moderation_audit_target_kind_check CHECK (target_kind IN ('REPORT_TARGET_KIND_PERSPECTIVE', 'REPORT_TARGET_KIND_PLACE', 'REPORT_TARGET_KIND_USER'));

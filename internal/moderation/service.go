@@ -234,21 +234,35 @@ func (s *Service) requireAdmin(ctx context.Context, q *dbq.Queries, caller uuid.
 	return apiutil.PermissionDenied("admin only")
 }
 
-// ListReports returns one page of the admin queue, oldest first. status
-// UNSPECIFIED lists every status.
-func (s *Service) ListReports(ctx context.Context, admin uuid.UUID, status perspectivv1.ReportStatus,
+// ReportFilter narrows the admin queue; a zero field is no filter. Subject
+// keeps reports against one user: on the account, or on a perspective or
+// thread post they wrote. Reporter keeps reports one user filed.
+type ReportFilter struct {
+	Status   perspectivv1.ReportStatus
+	Subject  uuid.UUID
+	Reporter uuid.UUID
+}
+
+// ListReports returns one page of the admin queue, oldest first.
+func (s *Service) ListReports(ctx context.Context, admin uuid.UUID, f ReportFilter,
 	page apiutil.PageToken,
 ) ([]*perspectivv1.Report, string, error) {
 	if err := s.requireAdmin(ctx, s.q, admin, perspectivv1connect.ModerationServiceListReportsProcedure); err != nil {
 		return nil, "", err
 	}
-	if !validStatusFilter(status) {
+	if !validStatusFilter(f.Status) {
 		return nil, "", apiutil.InvalidArg("status must be OPEN, RESOLVED or unspecified")
 	}
 	params := dbq.ListReportsParams{MaxRows: page.Limit + 1}
-	if status != perspectivv1.ReportStatus_REPORT_STATUS_UNSPECIFIED {
-		st := status.String()
+	if f.Status != perspectivv1.ReportStatus_REPORT_STATUS_UNSPECIFIED {
+		st := f.Status.String()
 		params.Status = &st
+	}
+	if f.Subject != uuid.Nil {
+		params.SubjectID = &f.Subject
+	}
+	if f.Reporter != uuid.Nil {
+		params.ReporterID = &f.Reporter
 	}
 	if page.After != "" {
 		at, id, err := decodeCursor(page.After)
@@ -382,9 +396,17 @@ func (s *Service) resolveTx(ctx context.Context, tx pgx.Tx, admin uuid.UUID, in 
 	}); err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("resolve report: %w", err))
 	}
-	if err := q.InsertAudit(ctx, dbq.InsertAuditParams{
-		ActorID: &admin, Action: in.Action.String(), TargetKind: r.TargetKind,
-		TargetID: r.TargetID, ReportID: &r.ID, Reason: in.Reason,
+	action, err := auditAction(in.Action)
+	if err != nil {
+		return nil, apiutil.Internal(err)
+	}
+	auditKind, err := auditTargetKind(kind)
+	if err != nil {
+		return nil, apiutil.Internal(err)
+	}
+	if err := writeAudit(ctx, q, AuditEntry{
+		Actor: &admin, Action: action, TargetKind: auditKind,
+		TargetID: &r.TargetID, ReportID: &r.ID, Reason: in.Reason,
 	}); err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("write audit row: %w", err))
 	}

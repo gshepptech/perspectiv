@@ -93,9 +93,10 @@ SET status = 'REPORT_STATUS_RESOLVED',
 WHERE id = @id::uuid;
 
 -- name: InsertAudit :exec
-INSERT INTO moderation_audit (actor_id, action, target_kind, target_id, report_id, reason)
-VALUES (sqlc.narg(actor_id)::uuid, @action::text, @target_kind::text, @target_id::uuid,
-        sqlc.narg(report_id)::uuid, @reason::text);
+-- A target is named by target_id, or for an access code by target_ref.
+INSERT INTO moderation_audit (actor_id, action, target_kind, target_id, target_ref, report_id, reason)
+VALUES (sqlc.narg(actor_id)::uuid, @action::text, @target_kind::text, sqlc.narg(target_id)::uuid,
+        @target_ref::text, sqlc.narg(report_id)::uuid, @reason::text);
 
 -- name: GetReport :one
 -- One report as the admin queue shows it. A deleted account's username reads
@@ -131,7 +132,9 @@ WHERE r.id = @id::uuid;
 
 -- name: ListReports :many
 -- The admin queue, oldest first, keyset-paginated on (created_at, id). A NULL
--- status lists every status.
+-- status lists every status; a reporter narrows to what one user filed, and a
+-- subject to reports against one user: the account, or a perspective or
+-- thread post they wrote.
 SELECT r.id,
        r.reporter_id,
        (CASE WHEN ru.deleted_at IS NOT NULL THEN '[deleted]' ELSE ru.username END)::text AS reporter_username,
@@ -160,6 +163,13 @@ FROM reports r
 JOIN users ru ON ru.id = r.reporter_id
 LEFT JOIN users rb ON rb.id = r.resolved_by
 WHERE (sqlc.narg(status)::text IS NULL OR r.status = sqlc.narg(status)::text)
+  AND (sqlc.narg(reporter_id)::uuid IS NULL OR r.reporter_id = sqlc.narg(reporter_id)::uuid)
+  AND (sqlc.narg(subject_id)::uuid IS NULL
+       OR (r.target_kind = 'REPORT_TARGET_KIND_USER' AND r.target_id = sqlc.narg(subject_id)::uuid)
+       OR (r.target_kind = 'REPORT_TARGET_KIND_PERSPECTIVE' AND EXISTS (
+               SELECT 1 FROM perspectives sp WHERE sp.id = r.target_id AND sp.author_id = sqlc.narg(subject_id)::uuid))
+       OR (r.target_kind = 'REPORT_TARGET_KIND_LORE_POST' AND EXISTS (
+               SELECT 1 FROM lore_posts slp WHERE slp.id = r.target_id AND slp.author_id = sqlc.narg(subject_id)::uuid)))
   AND (sqlc.narg(after_created_at)::timestamptz IS NULL
        OR (r.created_at, r.id) > (sqlc.narg(after_created_at)::timestamptz, sqlc.narg(after_id)::uuid))
 ORDER BY r.created_at, r.id
@@ -181,3 +191,88 @@ UPDATE users SET role = 'ROLE_ADMIN' WHERE id = @id::uuid;
 -- Serializes concurrent reports by one reporter on one target, so a double
 -- submit finds the first report instead of opening a second.
 SELECT pg_advisory_xact_lock(hashtextextended(@key::text, 0));
+
+-- name: ListAuditLog :many
+-- The audit log, newest first, keyset-paginated on id. Each filter is off
+-- when NULL; a subject matches actions on the account or on a perspective or
+-- thread post it wrote.
+SELECT a.id,
+       a.actor_id,
+       (CASE WHEN au.deleted_at IS NOT NULL THEN '[deleted]' ELSE coalesce(au.username, '') END)::text AS actor_username,
+       a.action,
+       a.target_kind,
+       a.target_id,
+       a.target_ref,
+       coalesce(CASE a.target_kind
+           WHEN 'AUDIT_TARGET_KIND_USER' THEN (
+               SELECT CASE WHEN tu.deleted_at IS NOT NULL THEN '[deleted]' ELSE tu.username END
+               FROM users tu WHERE tu.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_PLACE' THEN (SELECT tp.name FROM places tp WHERE tp.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_PERSPECTIVE' THEN (
+               SELECT ta.title FROM perspectives tv JOIN arcs ta ON ta.id = tv.arc_id WHERE tv.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_LORE_POST' THEN (SELECT left(tlp.body, 120) FROM lore_posts tlp WHERE tlp.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_LORE_NAME' THEN (SELECT tl.name FROM lores tl WHERE tl.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_ACCESS_CODE' THEN a.target_ref
+       END, '')::text AS target_label,
+       a.report_id,
+       a.reason,
+       a.at
+FROM moderation_audit a
+LEFT JOIN users au ON au.id = a.actor_id
+WHERE (sqlc.narg(action)::text IS NULL OR a.action = sqlc.narg(action)::text)
+  AND (sqlc.narg(actor_id)::uuid IS NULL OR a.actor_id = sqlc.narg(actor_id)::uuid)
+  AND (sqlc.narg(subject_id)::uuid IS NULL
+       OR (a.target_kind = 'AUDIT_TARGET_KIND_USER' AND a.target_id = sqlc.narg(subject_id)::uuid)
+       OR (a.target_kind = 'AUDIT_TARGET_KIND_PERSPECTIVE' AND EXISTS (
+               SELECT 1 FROM perspectives sp WHERE sp.id = a.target_id AND sp.author_id = sqlc.narg(subject_id)::uuid))
+       OR (a.target_kind = 'AUDIT_TARGET_KIND_LORE_POST' AND EXISTS (
+               SELECT 1 FROM lore_posts slp WHERE slp.id = a.target_id AND slp.author_id = sqlc.narg(subject_id)::uuid)))
+  AND (sqlc.narg(before_id)::bigint IS NULL OR a.id < sqlc.narg(before_id)::bigint)
+ORDER BY a.id DESC
+LIMIT @max_rows::integer;
+
+-- name: FindUserByID :one
+SELECT id FROM users WHERE id = @id::uuid;
+
+-- name: FindUserByUsername :one
+-- A deleted account no longer holds its username.
+SELECT id FROM users WHERE lower(username) = lower(@username::text) AND deleted_at IS NULL;
+
+-- name: FindUserByEmail :one
+SELECT id FROM users WHERE lower(email) = lower(@email::text) AND deleted_at IS NULL;
+
+-- name: AdminUserFacts :one
+-- What a moderator sees of one account.
+SELECT u.id,
+       u.username,
+       u.email,
+       (u.email_verified_at IS NOT NULL)::boolean AS email_verified,
+       u.role,
+       u.created_at,
+       u.suspended_at,
+       (u.deleted_at IS NOT NULL)::boolean AS deleted,
+       (SELECT count(*) FROM login_attempts la
+        WHERE la.user_id = u.id AND NOT la.succeeded AND la.attempted_at > now() - interval '24 hours')::integer AS failed_sign_ins_24h,
+       (SELECT count(*) FROM perspectives p
+        WHERE p.author_id = u.id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND p.deleted_at IS NULL)::integer AS stories,
+       (SELECT count(*) FROM perspectives p
+        WHERE p.author_id = u.id AND p.hidden_at IS NOT NULL AND p.deleted_at IS NULL)::integer AS hidden_stories,
+       (SELECT count(*) FROM reports r WHERE r.reporter_id = u.id)::integer AS reports_filed
+FROM users u
+WHERE u.id = @id::uuid;
+
+-- name: LastSignIn :one
+-- The newest session's start; only a sign-in starts one.
+SELECT created_at FROM sessions WHERE user_id = @user_id::uuid ORDER BY created_at DESC LIMIT 1;
+
+-- name: CountReportsAgainst :one
+-- Reports against an account: on it, or on a perspective or thread post it
+-- wrote; all of them, and those still open.
+SELECT count(*)::integer AS total,
+       (count(*) FILTER (WHERE r.status = 'REPORT_STATUS_OPEN'))::integer AS open
+FROM reports r
+WHERE (r.target_kind = 'REPORT_TARGET_KIND_USER' AND r.target_id = @subject_id::uuid)
+   OR (r.target_kind = 'REPORT_TARGET_KIND_PERSPECTIVE' AND EXISTS (
+           SELECT 1 FROM perspectives sp WHERE sp.id = r.target_id AND sp.author_id = @subject_id::uuid))
+   OR (r.target_kind = 'REPORT_TARGET_KIND_LORE_POST' AND EXISTS (
+           SELECT 1 FROM lore_posts slp WHERE slp.id = r.target_id AND slp.author_id = @subject_id::uuid));

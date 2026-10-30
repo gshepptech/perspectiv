@@ -281,9 +281,14 @@ func (x *ReportResponse) GetReportId() string {
 type ListReportsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// UNSPECIFIED lists every status.
-	Status        ReportStatus `protobuf:"varint,1,opt,name=status,proto3,enum=perspectiv.v1.ReportStatus" json:"status,omitempty"`
-	PageToken     string       `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	PageSize      int32        `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Status    ReportStatus `protobuf:"varint,1,opt,name=status,proto3,enum=perspectiv.v1.ReportStatus" json:"status,omitempty"`
+	PageToken string       `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize  int32        `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// When set, only reports against this user: on the account itself, or on
+	// a perspective or thread post they wrote.
+	SubjectUserId string `protobuf:"bytes,4,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	// When set, only reports this user filed.
+	ReporterId    string `protobuf:"bytes,5,opt,name=reporter_id,json=reporterId,proto3" json:"reporter_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -337,6 +342,20 @@ func (x *ListReportsRequest) GetPageSize() int32 {
 		return x.PageSize
 	}
 	return 0
+}
+
+func (x *ListReportsRequest) GetSubjectUserId() string {
+	if x != nil {
+		return x.SubjectUserId
+	}
+	return ""
+}
+
+func (x *ListReportsRequest) GetReporterId() string {
+	if x != nil {
+		return x.ReporterId
+	}
+	return ""
 }
 
 type ListReportsResponse struct {
@@ -496,6 +515,509 @@ func (x *ResolveResponse) GetReport() *Report {
 	return nil
 }
 
+// AuditEntry is one audit log row.
+type AuditEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Unset for an action taken from the command line.
+	Actor      *UserRef        `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
+	Action     AuditAction     `protobuf:"varint,3,opt,name=action,proto3,enum=perspectiv.v1.AuditAction" json:"action,omitempty"`
+	TargetKind AuditTargetKind `protobuf:"varint,4,opt,name=target_kind,json=targetKind,proto3,enum=perspectiv.v1.AuditTargetKind" json:"target_kind,omitempty"`
+	// The target's id, or for an access code the code (target_ref).
+	TargetId  string `protobuf:"bytes,5,opt,name=target_id,json=targetId,proto3" json:"target_id,omitempty"`
+	TargetRef string `protobuf:"bytes,6,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
+	// A short human label for the target, as the report queue shows one.
+	TargetLabel string `protobuf:"bytes,7,opt,name=target_label,json=targetLabel,proto3" json:"target_label,omitempty"`
+	// Set when the action resolved a report.
+	ReportId      string                 `protobuf:"bytes,8,opt,name=report_id,json=reportId,proto3" json:"report_id,omitempty"`
+	Reason        string                 `protobuf:"bytes,9,opt,name=reason,proto3" json:"reason,omitempty"`
+	At            *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=at,proto3" json:"at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditEntry) Reset() {
+	*x = AuditEntry{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditEntry) ProtoMessage() {}
+
+func (x *AuditEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditEntry.ProtoReflect.Descriptor instead.
+func (*AuditEntry) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *AuditEntry) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetActor() *UserRef {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+func (x *AuditEntry) GetAction() AuditAction {
+	if x != nil {
+		return x.Action
+	}
+	return AuditAction_AUDIT_ACTION_UNSPECIFIED
+}
+
+func (x *AuditEntry) GetTargetKind() AuditTargetKind {
+	if x != nil {
+		return x.TargetKind
+	}
+	return AuditTargetKind_AUDIT_TARGET_KIND_UNSPECIFIED
+}
+
+func (x *AuditEntry) GetTargetId() string {
+	if x != nil {
+		return x.TargetId
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetTargetRef() string {
+	if x != nil {
+		return x.TargetRef
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetTargetLabel() string {
+	if x != nil {
+		return x.TargetLabel
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetReportId() string {
+	if x != nil {
+		return x.ReportId
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.At
+	}
+	return nil
+}
+
+type ListAuditLogRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// UNSPECIFIED lists every action.
+	Action AuditAction `protobuf:"varint,1,opt,name=action,proto3,enum=perspectiv.v1.AuditAction" json:"action,omitempty"`
+	// When set, only what this admin did.
+	ActorId string `protobuf:"bytes,2,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	// When set, only actions on this user: on the account itself, or on a
+	// perspective or thread post they wrote.
+	SubjectUserId string `protobuf:"bytes,3,opt,name=subject_user_id,json=subjectUserId,proto3" json:"subject_user_id,omitempty"`
+	PageToken     string `protobuf:"bytes,4,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32  `protobuf:"varint,5,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditLogRequest) Reset() {
+	*x = ListAuditLogRequest{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditLogRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditLogRequest) ProtoMessage() {}
+
+func (x *ListAuditLogRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditLogRequest.ProtoReflect.Descriptor instead.
+func (*ListAuditLogRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ListAuditLogRequest) GetAction() AuditAction {
+	if x != nil {
+		return x.Action
+	}
+	return AuditAction_AUDIT_ACTION_UNSPECIFIED
+}
+
+func (x *ListAuditLogRequest) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetSubjectUserId() string {
+	if x != nil {
+		return x.SubjectUserId
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type ListAuditLogResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*AuditEntry          `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditLogResponse) Reset() {
+	*x = ListAuditLogResponse{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditLogResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditLogResponse) ProtoMessage() {}
+
+func (x *ListAuditLogResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditLogResponse.ProtoReflect.Descriptor instead.
+func (*ListAuditLogResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ListAuditLogResponse) GetEntries() []*AuditEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *ListAuditLogResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type LookupUserRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A username (any case), an email address, or an account id.
+	Query         string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LookupUserRequest) Reset() {
+	*x = LookupUserRequest{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LookupUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LookupUserRequest) ProtoMessage() {}
+
+func (x *LookupUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LookupUserRequest.ProtoReflect.Descriptor instead.
+func (*LookupUserRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *LookupUserRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+// AdminUserView is one account as a moderator sees it. The email is never
+// shown whole.
+type AdminUserView struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	UserId   string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Username string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	// The address with most of its local part masked, as w***@example.com.
+	EmailHint     string                 `protobuf:"bytes,3,opt,name=email_hint,json=emailHint,proto3" json:"email_hint,omitempty"`
+	EmailVerified bool                   `protobuf:"varint,4,opt,name=email_verified,json=emailVerified,proto3" json:"email_verified,omitempty"`
+	Role          Role                   `protobuf:"varint,5,opt,name=role,proto3,enum=perspectiv.v1.Role" json:"role,omitempty"`
+	JoinedAt      *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=joined_at,json=joinedAt,proto3" json:"joined_at,omitempty"`
+	// Set while suspended.
+	SuspendedAt *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=suspended_at,json=suspendedAt,proto3" json:"suspended_at,omitempty"`
+	Deleted     bool                   `protobuf:"varint,8,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	// Unset when the account has never signed in.
+	LastSignInAt       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=last_sign_in_at,json=lastSignInAt,proto3" json:"last_sign_in_at,omitempty"`
+	FailedSignIns_24H  int32                  `protobuf:"varint,10,opt,name=failed_sign_ins_24h,json=failedSignIns24h,proto3" json:"failed_sign_ins_24h,omitempty"`
+	Stories            int32                  `protobuf:"varint,11,opt,name=stories,proto3" json:"stories,omitempty"`
+	HiddenStories      int32                  `protobuf:"varint,12,opt,name=hidden_stories,json=hiddenStories,proto3" json:"hidden_stories,omitempty"`
+	OpenReportsAgainst int32                  `protobuf:"varint,13,opt,name=open_reports_against,json=openReportsAgainst,proto3" json:"open_reports_against,omitempty"`
+	ReportsAgainst     int32                  `protobuf:"varint,14,opt,name=reports_against,json=reportsAgainst,proto3" json:"reports_against,omitempty"`
+	ReportsFiled       int32                  `protobuf:"varint,15,opt,name=reports_filed,json=reportsFiled,proto3" json:"reports_filed,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *AdminUserView) Reset() {
+	*x = AdminUserView{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminUserView) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminUserView) ProtoMessage() {}
+
+func (x *AdminUserView) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminUserView.ProtoReflect.Descriptor instead.
+func (*AdminUserView) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AdminUserView) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *AdminUserView) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *AdminUserView) GetEmailHint() string {
+	if x != nil {
+		return x.EmailHint
+	}
+	return ""
+}
+
+func (x *AdminUserView) GetEmailVerified() bool {
+	if x != nil {
+		return x.EmailVerified
+	}
+	return false
+}
+
+func (x *AdminUserView) GetRole() Role {
+	if x != nil {
+		return x.Role
+	}
+	return Role_ROLE_UNSPECIFIED
+}
+
+func (x *AdminUserView) GetJoinedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.JoinedAt
+	}
+	return nil
+}
+
+func (x *AdminUserView) GetSuspendedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.SuspendedAt
+	}
+	return nil
+}
+
+func (x *AdminUserView) GetDeleted() bool {
+	if x != nil {
+		return x.Deleted
+	}
+	return false
+}
+
+func (x *AdminUserView) GetLastSignInAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastSignInAt
+	}
+	return nil
+}
+
+func (x *AdminUserView) GetFailedSignIns_24H() int32 {
+	if x != nil {
+		return x.FailedSignIns_24H
+	}
+	return 0
+}
+
+func (x *AdminUserView) GetStories() int32 {
+	if x != nil {
+		return x.Stories
+	}
+	return 0
+}
+
+func (x *AdminUserView) GetHiddenStories() int32 {
+	if x != nil {
+		return x.HiddenStories
+	}
+	return 0
+}
+
+func (x *AdminUserView) GetOpenReportsAgainst() int32 {
+	if x != nil {
+		return x.OpenReportsAgainst
+	}
+	return 0
+}
+
+func (x *AdminUserView) GetReportsAgainst() int32 {
+	if x != nil {
+		return x.ReportsAgainst
+	}
+	return 0
+}
+
+func (x *AdminUserView) GetReportsFiled() int32 {
+	if x != nil {
+		return x.ReportsFiled
+	}
+	return 0
+}
+
+type LookupUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *AdminUserView         `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LookupUserResponse) Reset() {
+	*x = LookupUserResponse{}
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LookupUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LookupUserResponse) ProtoMessage() {}
+
+func (x *LookupUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_moderation_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LookupUserResponse.ProtoReflect.Descriptor instead.
+func (*LookupUserResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_moderation_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *LookupUserResponse) GetUser() *AdminUserView {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
 var File_perspectiv_v1_moderation_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_moderation_proto_rawDesc = "" +
@@ -529,12 +1051,15 @@ const file_perspectiv_v1_moderation_proto_rawDesc = "" +
 	"\x06reason\x18\x03 \x01(\x0e2\x1b.perspectiv.v1.ReportReasonR\x06reason\x12\x18\n" +
 	"\adetails\x18\x04 \x01(\tR\adetails\"-\n" +
 	"\x0eReportResponse\x12\x1b\n" +
-	"\treport_id\x18\x01 \x01(\tR\breportId\"\x85\x01\n" +
+	"\treport_id\x18\x01 \x01(\tR\breportId\"\xce\x01\n" +
 	"\x12ListReportsRequest\x123\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1b.perspectiv.v1.ReportStatusR\x06status\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"n\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12&\n" +
+	"\x0fsubject_user_id\x18\x04 \x01(\tR\rsubjectUserId\x12\x1f\n" +
+	"\vreporter_id\x18\x05 \x01(\tR\n" +
+	"reporterId\"n\n" +
 	"\x13ListReportsResponse\x12/\n" +
 	"\areports\x18\x01 \x03(\v2\x15.perspectiv.v1.ReportR\areports\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"~\n" +
@@ -543,11 +1068,61 @@ const file_perspectiv_v1_moderation_proto_rawDesc = "" +
 	"\x06action\x18\x02 \x01(\x0e2\x1f.perspectiv.v1.ModerationActionR\x06action\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\"@\n" +
 	"\x0fResolveResponse\x12-\n" +
-	"\x06report\x18\x01 \x01(\v2\x15.perspectiv.v1.ReportR\x06report2\xfa\x01\n" +
+	"\x06report\x18\x01 \x01(\v2\x15.perspectiv.v1.ReportR\x06report\"\xff\x02\n" +
+	"\n" +
+	"AuditEntry\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12,\n" +
+	"\x05actor\x18\x02 \x01(\v2\x16.perspectiv.v1.UserRefR\x05actor\x122\n" +
+	"\x06action\x18\x03 \x01(\x0e2\x1a.perspectiv.v1.AuditActionR\x06action\x12?\n" +
+	"\vtarget_kind\x18\x04 \x01(\x0e2\x1e.perspectiv.v1.AuditTargetKindR\n" +
+	"targetKind\x12\x1b\n" +
+	"\ttarget_id\x18\x05 \x01(\tR\btargetId\x12\x1d\n" +
+	"\n" +
+	"target_ref\x18\x06 \x01(\tR\ttargetRef\x12!\n" +
+	"\ftarget_label\x18\a \x01(\tR\vtargetLabel\x12\x1b\n" +
+	"\treport_id\x18\b \x01(\tR\breportId\x12\x16\n" +
+	"\x06reason\x18\t \x01(\tR\x06reason\x12*\n" +
+	"\x02at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\x02at\"\xc8\x01\n" +
+	"\x13ListAuditLogRequest\x122\n" +
+	"\x06action\x18\x01 \x01(\x0e2\x1a.perspectiv.v1.AuditActionR\x06action\x12\x19\n" +
+	"\bactor_id\x18\x02 \x01(\tR\aactorId\x12&\n" +
+	"\x0fsubject_user_id\x18\x03 \x01(\tR\rsubjectUserId\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x04 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x05 \x01(\x05R\bpageSize\"s\n" +
+	"\x14ListAuditLogResponse\x123\n" +
+	"\aentries\x18\x01 \x03(\v2\x19.perspectiv.v1.AuditEntryR\aentries\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\")\n" +
+	"\x11LookupUserRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\"\xf8\x04\n" +
+	"\rAdminUserView\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
+	"\busername\x18\x02 \x01(\tR\busername\x12\x1d\n" +
+	"\n" +
+	"email_hint\x18\x03 \x01(\tR\temailHint\x12%\n" +
+	"\x0eemail_verified\x18\x04 \x01(\bR\remailVerified\x12'\n" +
+	"\x04role\x18\x05 \x01(\x0e2\x13.perspectiv.v1.RoleR\x04role\x127\n" +
+	"\tjoined_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\bjoinedAt\x12=\n" +
+	"\fsuspended_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vsuspendedAt\x12\x18\n" +
+	"\adeleted\x18\b \x01(\bR\adeleted\x12A\n" +
+	"\x0flast_sign_in_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\flastSignInAt\x12-\n" +
+	"\x13failed_sign_ins_24h\x18\n" +
+	" \x01(\x05R\x10failedSignIns24h\x12\x18\n" +
+	"\astories\x18\v \x01(\x05R\astories\x12%\n" +
+	"\x0ehidden_stories\x18\f \x01(\x05R\rhiddenStories\x120\n" +
+	"\x14open_reports_against\x18\r \x01(\x05R\x12openReportsAgainst\x12'\n" +
+	"\x0freports_against\x18\x0e \x01(\x05R\x0ereportsAgainst\x12#\n" +
+	"\rreports_filed\x18\x0f \x01(\x05R\freportsFiled\"F\n" +
+	"\x12LookupUserResponse\x120\n" +
+	"\x04user\x18\x01 \x01(\v2\x1c.perspectiv.v1.AdminUserViewR\x04user2\xa6\x03\n" +
 	"\x11ModerationService\x12E\n" +
 	"\x06Report\x12\x1c.perspectiv.v1.ReportRequest\x1a\x1d.perspectiv.v1.ReportResponse\x12T\n" +
 	"\vListReports\x12!.perspectiv.v1.ListReportsRequest\x1a\".perspectiv.v1.ListReportsResponse\x12H\n" +
-	"\aResolve\x12\x1d.perspectiv.v1.ResolveRequest\x1a\x1e.perspectiv.v1.ResolveResponseB\xa4\x01\n" +
+	"\aResolve\x12\x1d.perspectiv.v1.ResolveRequest\x1a\x1e.perspectiv.v1.ResolveResponse\x12W\n" +
+	"\fListAuditLog\x12\".perspectiv.v1.ListAuditLogRequest\x1a#.perspectiv.v1.ListAuditLogResponse\x12Q\n" +
+	"\n" +
+	"LookupUser\x12 .perspectiv.v1.LookupUserRequest\x1a!.perspectiv.v1.LookupUserResponseB\xa4\x01\n" +
 	"\x11com.perspectiv.v1B\x0fModerationProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -562,7 +1137,7 @@ func file_perspectiv_v1_moderation_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_moderation_proto_rawDescData
 }
 
-var file_perspectiv_v1_moderation_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_perspectiv_v1_moderation_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_perspectiv_v1_moderation_proto_goTypes = []any{
 	(*Report)(nil),                // 0: perspectiv.v1.Report
 	(*ReportRequest)(nil),         // 1: perspectiv.v1.ReportRequest
@@ -571,39 +1146,63 @@ var file_perspectiv_v1_moderation_proto_goTypes = []any{
 	(*ListReportsResponse)(nil),   // 4: perspectiv.v1.ListReportsResponse
 	(*ResolveRequest)(nil),        // 5: perspectiv.v1.ResolveRequest
 	(*ResolveResponse)(nil),       // 6: perspectiv.v1.ResolveResponse
-	(*UserRef)(nil),               // 7: perspectiv.v1.UserRef
-	(ReportTargetKind)(0),         // 8: perspectiv.v1.ReportTargetKind
-	(ReportReason)(0),             // 9: perspectiv.v1.ReportReason
-	(ReportStatus)(0),             // 10: perspectiv.v1.ReportStatus
-	(ModerationAction)(0),         // 11: perspectiv.v1.ModerationAction
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
+	(*AuditEntry)(nil),            // 7: perspectiv.v1.AuditEntry
+	(*ListAuditLogRequest)(nil),   // 8: perspectiv.v1.ListAuditLogRequest
+	(*ListAuditLogResponse)(nil),  // 9: perspectiv.v1.ListAuditLogResponse
+	(*LookupUserRequest)(nil),     // 10: perspectiv.v1.LookupUserRequest
+	(*AdminUserView)(nil),         // 11: perspectiv.v1.AdminUserView
+	(*LookupUserResponse)(nil),    // 12: perspectiv.v1.LookupUserResponse
+	(*UserRef)(nil),               // 13: perspectiv.v1.UserRef
+	(ReportTargetKind)(0),         // 14: perspectiv.v1.ReportTargetKind
+	(ReportReason)(0),             // 15: perspectiv.v1.ReportReason
+	(ReportStatus)(0),             // 16: perspectiv.v1.ReportStatus
+	(ModerationAction)(0),         // 17: perspectiv.v1.ModerationAction
+	(*timestamppb.Timestamp)(nil), // 18: google.protobuf.Timestamp
+	(AuditAction)(0),              // 19: perspectiv.v1.AuditAction
+	(AuditTargetKind)(0),          // 20: perspectiv.v1.AuditTargetKind
+	(Role)(0),                     // 21: perspectiv.v1.Role
 }
 var file_perspectiv_v1_moderation_proto_depIdxs = []int32{
-	7,  // 0: perspectiv.v1.Report.reporter:type_name -> perspectiv.v1.UserRef
-	8,  // 1: perspectiv.v1.Report.target_kind:type_name -> perspectiv.v1.ReportTargetKind
-	9,  // 2: perspectiv.v1.Report.reason:type_name -> perspectiv.v1.ReportReason
-	10, // 3: perspectiv.v1.Report.status:type_name -> perspectiv.v1.ReportStatus
-	7,  // 4: perspectiv.v1.Report.resolved_by:type_name -> perspectiv.v1.UserRef
-	11, // 5: perspectiv.v1.Report.resolution:type_name -> perspectiv.v1.ModerationAction
-	12, // 6: perspectiv.v1.Report.created_at:type_name -> google.protobuf.Timestamp
-	12, // 7: perspectiv.v1.Report.resolved_at:type_name -> google.protobuf.Timestamp
-	8,  // 8: perspectiv.v1.ReportRequest.target_kind:type_name -> perspectiv.v1.ReportTargetKind
-	9,  // 9: perspectiv.v1.ReportRequest.reason:type_name -> perspectiv.v1.ReportReason
-	10, // 10: perspectiv.v1.ListReportsRequest.status:type_name -> perspectiv.v1.ReportStatus
+	13, // 0: perspectiv.v1.Report.reporter:type_name -> perspectiv.v1.UserRef
+	14, // 1: perspectiv.v1.Report.target_kind:type_name -> perspectiv.v1.ReportTargetKind
+	15, // 2: perspectiv.v1.Report.reason:type_name -> perspectiv.v1.ReportReason
+	16, // 3: perspectiv.v1.Report.status:type_name -> perspectiv.v1.ReportStatus
+	13, // 4: perspectiv.v1.Report.resolved_by:type_name -> perspectiv.v1.UserRef
+	17, // 5: perspectiv.v1.Report.resolution:type_name -> perspectiv.v1.ModerationAction
+	18, // 6: perspectiv.v1.Report.created_at:type_name -> google.protobuf.Timestamp
+	18, // 7: perspectiv.v1.Report.resolved_at:type_name -> google.protobuf.Timestamp
+	14, // 8: perspectiv.v1.ReportRequest.target_kind:type_name -> perspectiv.v1.ReportTargetKind
+	15, // 9: perspectiv.v1.ReportRequest.reason:type_name -> perspectiv.v1.ReportReason
+	16, // 10: perspectiv.v1.ListReportsRequest.status:type_name -> perspectiv.v1.ReportStatus
 	0,  // 11: perspectiv.v1.ListReportsResponse.reports:type_name -> perspectiv.v1.Report
-	11, // 12: perspectiv.v1.ResolveRequest.action:type_name -> perspectiv.v1.ModerationAction
+	17, // 12: perspectiv.v1.ResolveRequest.action:type_name -> perspectiv.v1.ModerationAction
 	0,  // 13: perspectiv.v1.ResolveResponse.report:type_name -> perspectiv.v1.Report
-	1,  // 14: perspectiv.v1.ModerationService.Report:input_type -> perspectiv.v1.ReportRequest
-	3,  // 15: perspectiv.v1.ModerationService.ListReports:input_type -> perspectiv.v1.ListReportsRequest
-	5,  // 16: perspectiv.v1.ModerationService.Resolve:input_type -> perspectiv.v1.ResolveRequest
-	2,  // 17: perspectiv.v1.ModerationService.Report:output_type -> perspectiv.v1.ReportResponse
-	4,  // 18: perspectiv.v1.ModerationService.ListReports:output_type -> perspectiv.v1.ListReportsResponse
-	6,  // 19: perspectiv.v1.ModerationService.Resolve:output_type -> perspectiv.v1.ResolveResponse
-	17, // [17:20] is the sub-list for method output_type
-	14, // [14:17] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	13, // 14: perspectiv.v1.AuditEntry.actor:type_name -> perspectiv.v1.UserRef
+	19, // 15: perspectiv.v1.AuditEntry.action:type_name -> perspectiv.v1.AuditAction
+	20, // 16: perspectiv.v1.AuditEntry.target_kind:type_name -> perspectiv.v1.AuditTargetKind
+	18, // 17: perspectiv.v1.AuditEntry.at:type_name -> google.protobuf.Timestamp
+	19, // 18: perspectiv.v1.ListAuditLogRequest.action:type_name -> perspectiv.v1.AuditAction
+	7,  // 19: perspectiv.v1.ListAuditLogResponse.entries:type_name -> perspectiv.v1.AuditEntry
+	21, // 20: perspectiv.v1.AdminUserView.role:type_name -> perspectiv.v1.Role
+	18, // 21: perspectiv.v1.AdminUserView.joined_at:type_name -> google.protobuf.Timestamp
+	18, // 22: perspectiv.v1.AdminUserView.suspended_at:type_name -> google.protobuf.Timestamp
+	18, // 23: perspectiv.v1.AdminUserView.last_sign_in_at:type_name -> google.protobuf.Timestamp
+	11, // 24: perspectiv.v1.LookupUserResponse.user:type_name -> perspectiv.v1.AdminUserView
+	1,  // 25: perspectiv.v1.ModerationService.Report:input_type -> perspectiv.v1.ReportRequest
+	3,  // 26: perspectiv.v1.ModerationService.ListReports:input_type -> perspectiv.v1.ListReportsRequest
+	5,  // 27: perspectiv.v1.ModerationService.Resolve:input_type -> perspectiv.v1.ResolveRequest
+	8,  // 28: perspectiv.v1.ModerationService.ListAuditLog:input_type -> perspectiv.v1.ListAuditLogRequest
+	10, // 29: perspectiv.v1.ModerationService.LookupUser:input_type -> perspectiv.v1.LookupUserRequest
+	2,  // 30: perspectiv.v1.ModerationService.Report:output_type -> perspectiv.v1.ReportResponse
+	4,  // 31: perspectiv.v1.ModerationService.ListReports:output_type -> perspectiv.v1.ListReportsResponse
+	6,  // 32: perspectiv.v1.ModerationService.Resolve:output_type -> perspectiv.v1.ResolveResponse
+	9,  // 33: perspectiv.v1.ModerationService.ListAuditLog:output_type -> perspectiv.v1.ListAuditLogResponse
+	12, // 34: perspectiv.v1.ModerationService.LookupUser:output_type -> perspectiv.v1.LookupUserResponse
+	30, // [30:35] is the sub-list for method output_type
+	25, // [25:30] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_moderation_proto_init() }
@@ -619,7 +1218,7 @@ func file_perspectiv_v1_moderation_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_moderation_proto_rawDesc), len(file_perspectiv_v1_moderation_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

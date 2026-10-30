@@ -154,6 +154,22 @@ func TestInviteOnlySignUp(t *testing.T) {
 	if err := open.signUpWith("openuser", "ucf-launch"); err != nil {
 		t.Fatalf("open SignUp: %v", err)
 	}
+	// Each create and the revoke left an audit entry naming the code.
+	if n := e.count(`SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_ACCESS_CODE_CREATE'
+	        AND target_kind = 'AUDIT_TARGET_KIND_ACCESS_CODE' AND target_ref IN ('ucf-launch', $1) AND actor_id IS NOT NULL`,
+		gen.Msg.GetCode().GetCode()); n != 2 {
+		t.Fatalf("code create audit entries = %d, want 2", n)
+	}
+	if n := e.count(`SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_ACCESS_CODE_REVOKE' AND target_ref = $1`,
+		gen.Msg.GetCode().GetCode()); n != 1 {
+		t.Fatalf("code revoke audit entries = %d, want 1", n)
+	}
+	// A refused create (a taken code) leaves no entry.
+	_, err = admin.CreateAccessCode(ctx, connect.NewRequest(&perspectivv1.CreateAccessCodeRequest{Code: "ucf-launch", MaxUses: 1}))
+	wantCode(t, err, connect.CodeAlreadyExists)
+	if n := e.count(`SELECT count(*) FROM moderation_audit WHERE target_ref = 'ucf-launch'`); n != 1 {
+		t.Fatalf("audit entries for ucf-launch = %d, want 1", n)
+	}
 }
 
 // The waitlist takes any address once and answers the same either way; an
@@ -215,6 +231,12 @@ func TestWaitlistInvite(t *testing.T) {
 		}
 	}
 	code := inv.Msg.GetEntry().GetCode()
+	// Both sends are audited against the entry, without the address.
+	if n := e.count(`SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_WAITLIST_INVITE'
+	        AND target_id = $1 AND reason = 'sent code ' || $2 AND reason NOT ILIKE '%example.test%'`,
+		entry.GetId(), code); n != 2 {
+		t.Fatalf("waitlist invite audit entries = %d, want 2", n)
+	}
 	if err := e.signUpWith("pat", code); err != nil {
 		t.Fatalf("SignUp with waitlist code: %v", err)
 	}

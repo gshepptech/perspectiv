@@ -377,7 +377,7 @@ func TestAdminGrant(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT role FROM users WHERE id = $1`, id).Scan(&role); err != nil {
 		t.Fatal(err)
 	}
-	if err := pool.QueryRow(ctx, `SELECT count(*) FROM moderation_audit WHERE action = 'ADMIN_GRANT' AND target_id = $1`, id).Scan(&audits); err != nil {
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_ADMIN_GRANT' AND target_id = $1`, id).Scan(&audits); err != nil {
 		t.Fatal(err)
 	}
 	if role != perspectivv1.Role_ROLE_ADMIN.String() || audits != 1 {

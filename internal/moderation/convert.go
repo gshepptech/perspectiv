@@ -100,3 +100,75 @@ func actionTargets(a perspectivv1.ModerationAction) (kind perspectivv1.ReportTar
 	}
 	return perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_UNSPECIFIED, false, false
 }
+
+// auditAction is the audit log's name for a report resolution.
+func auditAction(a perspectivv1.ModerationAction) (perspectivv1.AuditAction, error) {
+	switch a {
+	case perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_PERSPECTIVE:
+		return perspectivv1.AuditAction_AUDIT_ACTION_HIDE_PERSPECTIVE, nil
+	case perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_PLACE:
+		return perspectivv1.AuditAction_AUDIT_ACTION_HIDE_PLACE, nil
+	case perspectivv1.ModerationAction_MODERATION_ACTION_SUSPEND_USER:
+		return perspectivv1.AuditAction_AUDIT_ACTION_SUSPEND_USER, nil
+	case perspectivv1.ModerationAction_MODERATION_ACTION_DISMISS:
+		return perspectivv1.AuditAction_AUDIT_ACTION_DISMISS, nil
+	case perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_LORE_POST:
+		return perspectivv1.AuditAction_AUDIT_ACTION_HIDE_LORE_POST, nil
+	case perspectivv1.ModerationAction_MODERATION_ACTION_CLEAR_LORE_NAME:
+		return perspectivv1.AuditAction_AUDIT_ACTION_CLEAR_LORE_NAME, nil
+	case perspectivv1.ModerationAction_MODERATION_ACTION_UNSPECIFIED:
+	}
+	return 0, fmt.Errorf("moderation action %v has no audit action", a)
+}
+
+// auditTargetKind is the audit log's name for a report's target kind.
+func auditTargetKind(k perspectivv1.ReportTargetKind) (perspectivv1.AuditTargetKind, error) {
+	switch k {
+	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PERSPECTIVE:
+		return perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_PERSPECTIVE, nil
+	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PLACE:
+		return perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_PLACE, nil
+	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_USER:
+		return perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_USER, nil
+	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_POST:
+		return perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_LORE_POST, nil
+	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_LORE_NAME:
+		return perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_LORE_NAME, nil
+	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_UNSPECIFIED:
+	}
+	return 0, fmt.Errorf("report target kind %v has no audit target kind", k)
+}
+
+func validAuditAction(a perspectivv1.AuditAction) bool {
+	switch a {
+	case perspectivv1.AuditAction_AUDIT_ACTION_HIDE_PERSPECTIVE,
+		perspectivv1.AuditAction_AUDIT_ACTION_HIDE_PLACE,
+		perspectivv1.AuditAction_AUDIT_ACTION_SUSPEND_USER,
+		perspectivv1.AuditAction_AUDIT_ACTION_DISMISS,
+		perspectivv1.AuditAction_AUDIT_ACTION_HIDE_LORE_POST,
+		perspectivv1.AuditAction_AUDIT_ACTION_CLEAR_LORE_NAME,
+		perspectivv1.AuditAction_AUDIT_ACTION_ADMIN_GRANT,
+		perspectivv1.AuditAction_AUDIT_ACTION_ACCESS_CODE_CREATE,
+		perspectivv1.AuditAction_AUDIT_ACTION_ACCESS_CODE_REVOKE,
+		perspectivv1.AuditAction_AUDIT_ACTION_WAITLIST_INVITE,
+		perspectivv1.AuditAction_AUDIT_ACTION_USER_LOOKUP:
+		return true
+	case perspectivv1.AuditAction_AUDIT_ACTION_UNSPECIFIED:
+	}
+	return false
+}
+
+func validAuditTargetKind(k perspectivv1.AuditTargetKind) bool {
+	switch k {
+	case perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_PERSPECTIVE,
+		perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_PLACE,
+		perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_USER,
+		perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_LORE_POST,
+		perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_LORE_NAME,
+		perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_ACCESS_CODE,
+		perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_WAITLIST_ENTRY:
+		return true
+	case perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_UNSPECIFIED:
+	}
+	return false
+}

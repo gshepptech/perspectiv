@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"maps"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,7 +24,7 @@ type auditRow struct {
 	actor      *uuid.UUID
 	action     string
 	targetKind string
-	target     uuid.UUID
+	target     *uuid.UUID
 	report     *uuid.UUID
 	reason     string
 }
@@ -287,8 +288,9 @@ func checkResolved(t *testing.T, e *env, r *perspectivv1.Report, want resolution
 		t.Fatalf("audit rows = %d, want 1", len(audits))
 	}
 	a := audits[0]
-	if a.actor == nil || *a.actor != want.admin || a.action != want.action.String() || a.targetKind != want.kind.String() ||
-		a.target != want.target || a.report == nil || *a.report != want.report || a.reason != "names the cashier" {
+	if a.actor == nil || *a.actor != want.admin || a.action != strings.Replace(want.action.String(), "MODERATION_ACTION_", "AUDIT_ACTION_", 1) ||
+		a.targetKind != strings.Replace(want.kind.String(), "REPORT_TARGET_KIND_", "AUDIT_TARGET_KIND_", 1) ||
+		a.target == nil || *a.target != want.target || a.report == nil || *a.report != want.report || a.reason != "names the cashier" {
 		t.Fatalf("audit row = %+v", a)
 	}
 	got := e.notifyJobs(want.report)

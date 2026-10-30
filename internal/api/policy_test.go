@@ -71,6 +71,8 @@ func TestRoutePolicies(t *testing.T) {
 	admin := map[string]bool{
 		"/perspectiv.v1.ModerationService/ListReports":  true,
 		"/perspectiv.v1.ModerationService/Resolve":      true,
+		"/perspectiv.v1.ModerationService/ListAuditLog": true,
+		"/perspectiv.v1.ModerationService/LookupUser":   true,
 		"/perspectiv.v1.AuthService/CreateAccessCode":   true,
 		"/perspectiv.v1.AuthService/ListAccessCodes":    true,
 		"/perspectiv.v1.AuthService/RevokeAccessCode":   true,
@@ -91,6 +93,9 @@ func TestRoutePolicies(t *testing.T) {
 		"/perspectiv.v1.PlaceService/SearchCharacters": api.LimitSearch,
 		// An export builds one large document; a few an hour is plenty.
 		"/perspectiv.v1.UserService/ExportMyData": api.LimitExport,
+		// Admin only, but a lookup by email is bounded so a leaked admin
+		// token cannot probe addresses quickly.
+		"/perspectiv.v1.ModerationService/LookupUser": api.LimitSearch,
 	}
 	for p, limit := range verified {
 		if limit != "" {

@@ -1,4 +1,4 @@
-import { ModerationAction, ReportReason, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
+import { AuditAction, AuditTargetKind, ModerationAction, ReportReason, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 
 export function targetKindLabel(kind: ReportTargetKind): string {
   switch (kind) {
@@ -109,6 +109,70 @@ export function targetHref(kind: ReportTargetKind, id: string): { href: string; 
     case ReportTargetKind.LORE_POST:
     case ReportTargetKind.USER:
     case ReportTargetKind.UNSPECIFIED:
+      return null;
+  }
+}
+
+/** What an audit entry did, as the verb phrase after the actor's name. */
+export function auditActionLabel(action: AuditAction): string {
+  switch (action) {
+    case AuditAction.HIDE_PERSPECTIVE:
+      return "hid a perspective";
+    case AuditAction.HIDE_PLACE:
+      return "hid a place";
+    case AuditAction.SUSPEND_USER:
+      return "suspended a user";
+    case AuditAction.DISMISS:
+      return "dismissed a report";
+    case AuditAction.HIDE_LORE_POST:
+      return "hid a thread post";
+    case AuditAction.CLEAR_LORE_NAME:
+      return "cleared a lore's name";
+    case AuditAction.ADMIN_GRANT:
+      return "made a user an admin";
+    case AuditAction.ACCESS_CODE_CREATE:
+      return "created an access code";
+    case AuditAction.ACCESS_CODE_REVOKE:
+      return "revoked an access code";
+    case AuditAction.WAITLIST_INVITE:
+      return "invited someone from the waitlist";
+    case AuditAction.USER_LOOKUP:
+      return "looked up a user";
+    case AuditAction.UNSPECIFIED:
+      return "did something unrecorded";
+  }
+}
+
+/** The audit log's filter choices, in the order the Select lists them. */
+export const auditActions: AuditAction[] = [
+  AuditAction.HIDE_PERSPECTIVE,
+  AuditAction.HIDE_PLACE,
+  AuditAction.HIDE_LORE_POST,
+  AuditAction.CLEAR_LORE_NAME,
+  AuditAction.SUSPEND_USER,
+  AuditAction.DISMISS,
+  AuditAction.ADMIN_GRANT,
+  AuditAction.ACCESS_CODE_CREATE,
+  AuditAction.ACCESS_CODE_REVOKE,
+  AuditAction.WAITLIST_INVITE,
+  AuditAction.USER_LOOKUP,
+];
+
+/** Where an admin opens an audit entry's target, when it has a page. */
+export function auditTargetHref(kind: AuditTargetKind, id: string): string | null {
+  switch (kind) {
+    case AuditTargetKind.PERSPECTIVE:
+      return `/perspectives/${encodeURIComponent(id)}`;
+    case AuditTargetKind.PLACE:
+      return `/places/${encodeURIComponent(id)}`;
+    case AuditTargetKind.LORE_NAME:
+      return `/lores/${encodeURIComponent(id)}`;
+    case AuditTargetKind.USER:
+      return `/admin/users?q=${encodeURIComponent(id)}`;
+    case AuditTargetKind.LORE_POST:
+    case AuditTargetKind.ACCESS_CODE:
+    case AuditTargetKind.WAITLIST_ENTRY:
+    case AuditTargetKind.UNSPECIFIED:
       return null;
   }
 }

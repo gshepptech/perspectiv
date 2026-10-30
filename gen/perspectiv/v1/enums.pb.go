@@ -896,6 +896,153 @@ func (ModerationAction) EnumDescriptor() ([]byte, []int) {
 	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{14}
 }
 
+// AuditAction is what an admin did, as the audit log records it. The first
+// six mirror ModerationAction; the rest are admin actions that resolve no
+// report.
+type AuditAction int32
+
+const (
+	AuditAction_AUDIT_ACTION_UNSPECIFIED      AuditAction = 0
+	AuditAction_AUDIT_ACTION_HIDE_PERSPECTIVE AuditAction = 1
+	AuditAction_AUDIT_ACTION_HIDE_PLACE       AuditAction = 2
+	AuditAction_AUDIT_ACTION_SUSPEND_USER     AuditAction = 3
+	AuditAction_AUDIT_ACTION_DISMISS          AuditAction = 4
+	AuditAction_AUDIT_ACTION_HIDE_LORE_POST   AuditAction = 5
+	AuditAction_AUDIT_ACTION_CLEAR_LORE_NAME  AuditAction = 6
+	// ADMIN granted from the command line; the entry has no actor.
+	AuditAction_AUDIT_ACTION_ADMIN_GRANT        AuditAction = 7
+	AuditAction_AUDIT_ACTION_ACCESS_CODE_CREATE AuditAction = 8
+	AuditAction_AUDIT_ACTION_ACCESS_CODE_REVOKE AuditAction = 9
+	AuditAction_AUDIT_ACTION_WAITLIST_INVITE    AuditAction = 10
+	// An admin looked an account up, which shows its masked email.
+	AuditAction_AUDIT_ACTION_USER_LOOKUP AuditAction = 11
+)
+
+// Enum value maps for AuditAction.
+var (
+	AuditAction_name = map[int32]string{
+		0:  "AUDIT_ACTION_UNSPECIFIED",
+		1:  "AUDIT_ACTION_HIDE_PERSPECTIVE",
+		2:  "AUDIT_ACTION_HIDE_PLACE",
+		3:  "AUDIT_ACTION_SUSPEND_USER",
+		4:  "AUDIT_ACTION_DISMISS",
+		5:  "AUDIT_ACTION_HIDE_LORE_POST",
+		6:  "AUDIT_ACTION_CLEAR_LORE_NAME",
+		7:  "AUDIT_ACTION_ADMIN_GRANT",
+		8:  "AUDIT_ACTION_ACCESS_CODE_CREATE",
+		9:  "AUDIT_ACTION_ACCESS_CODE_REVOKE",
+		10: "AUDIT_ACTION_WAITLIST_INVITE",
+		11: "AUDIT_ACTION_USER_LOOKUP",
+	}
+	AuditAction_value = map[string]int32{
+		"AUDIT_ACTION_UNSPECIFIED":        0,
+		"AUDIT_ACTION_HIDE_PERSPECTIVE":   1,
+		"AUDIT_ACTION_HIDE_PLACE":         2,
+		"AUDIT_ACTION_SUSPEND_USER":       3,
+		"AUDIT_ACTION_DISMISS":            4,
+		"AUDIT_ACTION_HIDE_LORE_POST":     5,
+		"AUDIT_ACTION_CLEAR_LORE_NAME":    6,
+		"AUDIT_ACTION_ADMIN_GRANT":        7,
+		"AUDIT_ACTION_ACCESS_CODE_CREATE": 8,
+		"AUDIT_ACTION_ACCESS_CODE_REVOKE": 9,
+		"AUDIT_ACTION_WAITLIST_INVITE":    10,
+		"AUDIT_ACTION_USER_LOOKUP":        11,
+	}
+)
+
+func (x AuditAction) Enum() *AuditAction {
+	p := new(AuditAction)
+	*p = x
+	return p
+}
+
+func (x AuditAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AuditAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_perspectiv_v1_enums_proto_enumTypes[15].Descriptor()
+}
+
+func (AuditAction) Type() protoreflect.EnumType {
+	return &file_perspectiv_v1_enums_proto_enumTypes[15]
+}
+
+func (x AuditAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AuditAction.Descriptor instead.
+func (AuditAction) EnumDescriptor() ([]byte, []int) {
+	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{15}
+}
+
+// AuditTargetKind is what an audit entry acted on.
+type AuditTargetKind int32
+
+const (
+	AuditTargetKind_AUDIT_TARGET_KIND_UNSPECIFIED AuditTargetKind = 0
+	AuditTargetKind_AUDIT_TARGET_KIND_PERSPECTIVE AuditTargetKind = 1
+	AuditTargetKind_AUDIT_TARGET_KIND_PLACE       AuditTargetKind = 2
+	AuditTargetKind_AUDIT_TARGET_KIND_USER        AuditTargetKind = 3
+	AuditTargetKind_AUDIT_TARGET_KIND_LORE_POST   AuditTargetKind = 4
+	AuditTargetKind_AUDIT_TARGET_KIND_LORE_NAME   AuditTargetKind = 5
+	// The target is named by target_ref, the code itself.
+	AuditTargetKind_AUDIT_TARGET_KIND_ACCESS_CODE    AuditTargetKind = 6
+	AuditTargetKind_AUDIT_TARGET_KIND_WAITLIST_ENTRY AuditTargetKind = 7
+)
+
+// Enum value maps for AuditTargetKind.
+var (
+	AuditTargetKind_name = map[int32]string{
+		0: "AUDIT_TARGET_KIND_UNSPECIFIED",
+		1: "AUDIT_TARGET_KIND_PERSPECTIVE",
+		2: "AUDIT_TARGET_KIND_PLACE",
+		3: "AUDIT_TARGET_KIND_USER",
+		4: "AUDIT_TARGET_KIND_LORE_POST",
+		5: "AUDIT_TARGET_KIND_LORE_NAME",
+		6: "AUDIT_TARGET_KIND_ACCESS_CODE",
+		7: "AUDIT_TARGET_KIND_WAITLIST_ENTRY",
+	}
+	AuditTargetKind_value = map[string]int32{
+		"AUDIT_TARGET_KIND_UNSPECIFIED":    0,
+		"AUDIT_TARGET_KIND_PERSPECTIVE":    1,
+		"AUDIT_TARGET_KIND_PLACE":          2,
+		"AUDIT_TARGET_KIND_USER":           3,
+		"AUDIT_TARGET_KIND_LORE_POST":      4,
+		"AUDIT_TARGET_KIND_LORE_NAME":      5,
+		"AUDIT_TARGET_KIND_ACCESS_CODE":    6,
+		"AUDIT_TARGET_KIND_WAITLIST_ENTRY": 7,
+	}
+)
+
+func (x AuditTargetKind) Enum() *AuditTargetKind {
+	p := new(AuditTargetKind)
+	*p = x
+	return p
+}
+
+func (x AuditTargetKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AuditTargetKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_perspectiv_v1_enums_proto_enumTypes[16].Descriptor()
+}
+
+func (AuditTargetKind) Type() protoreflect.EnumType {
+	return &file_perspectiv_v1_enums_proto_enumTypes[16]
+}
+
+func (x AuditTargetKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AuditTargetKind.Descriptor instead.
+func (AuditTargetKind) EnumDescriptor() ([]byte, []int) {
+	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{16}
+}
+
 // EpicTab selects the listing a place page shows.
 type EpicTab int32
 
@@ -937,11 +1084,11 @@ func (x EpicTab) String() string {
 }
 
 func (EpicTab) Descriptor() protoreflect.EnumDescriptor {
-	return file_perspectiv_v1_enums_proto_enumTypes[15].Descriptor()
+	return file_perspectiv_v1_enums_proto_enumTypes[17].Descriptor()
 }
 
 func (EpicTab) Type() protoreflect.EnumType {
-	return &file_perspectiv_v1_enums_proto_enumTypes[15]
+	return &file_perspectiv_v1_enums_proto_enumTypes[17]
 }
 
 func (x EpicTab) Number() protoreflect.EnumNumber {
@@ -950,7 +1097,7 @@ func (x EpicTab) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use EpicTab.Descriptor instead.
 func (EpicTab) EnumDescriptor() ([]byte, []int) {
-	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{15}
+	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{17}
 }
 
 // ArcSection names one paginated list on an arc page.
@@ -997,11 +1144,11 @@ func (x ArcSection) String() string {
 }
 
 func (ArcSection) Descriptor() protoreflect.EnumDescriptor {
-	return file_perspectiv_v1_enums_proto_enumTypes[16].Descriptor()
+	return file_perspectiv_v1_enums_proto_enumTypes[18].Descriptor()
 }
 
 func (ArcSection) Type() protoreflect.EnumType {
-	return &file_perspectiv_v1_enums_proto_enumTypes[16]
+	return &file_perspectiv_v1_enums_proto_enumTypes[18]
 }
 
 func (x ArcSection) Number() protoreflect.EnumNumber {
@@ -1010,7 +1157,7 @@ func (x ArcSection) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ArcSection.Descriptor instead.
 func (ArcSection) EnumDescriptor() ([]byte, []int) {
-	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{16}
+	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{18}
 }
 
 // PlaceCategory is the kind of place a store or mall is, from the place data:
@@ -1083,11 +1230,11 @@ func (x PlaceCategory) String() string {
 }
 
 func (PlaceCategory) Descriptor() protoreflect.EnumDescriptor {
-	return file_perspectiv_v1_enums_proto_enumTypes[17].Descriptor()
+	return file_perspectiv_v1_enums_proto_enumTypes[19].Descriptor()
 }
 
 func (PlaceCategory) Type() protoreflect.EnumType {
-	return &file_perspectiv_v1_enums_proto_enumTypes[17]
+	return &file_perspectiv_v1_enums_proto_enumTypes[19]
 }
 
 func (x PlaceCategory) Number() protoreflect.EnumNumber {
@@ -1096,7 +1243,7 @@ func (x PlaceCategory) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PlaceCategory.Descriptor instead.
 func (PlaceCategory) EnumDescriptor() ([]byte, []int) {
-	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{17}
+	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{19}
 }
 
 var File_perspectiv_v1_enums_proto protoreflect.FileDescriptor
@@ -1200,7 +1347,30 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\x1eMODERATION_ACTION_SUSPEND_USER\x10\x03\x12\x1d\n" +
 	"\x19MODERATION_ACTION_DISMISS\x10\x04\x12$\n" +
 	" MODERATION_ACTION_HIDE_LORE_POST\x10\x05\x12%\n" +
-	"!MODERATION_ACTION_CLEAR_LORE_NAME\x10\x06*a\n" +
+	"!MODERATION_ACTION_CLEAR_LORE_NAME\x10\x06*\x8f\x03\n" +
+	"\vAuditAction\x12\x1c\n" +
+	"\x18AUDIT_ACTION_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dAUDIT_ACTION_HIDE_PERSPECTIVE\x10\x01\x12\x1b\n" +
+	"\x17AUDIT_ACTION_HIDE_PLACE\x10\x02\x12\x1d\n" +
+	"\x19AUDIT_ACTION_SUSPEND_USER\x10\x03\x12\x18\n" +
+	"\x14AUDIT_ACTION_DISMISS\x10\x04\x12\x1f\n" +
+	"\x1bAUDIT_ACTION_HIDE_LORE_POST\x10\x05\x12 \n" +
+	"\x1cAUDIT_ACTION_CLEAR_LORE_NAME\x10\x06\x12\x1c\n" +
+	"\x18AUDIT_ACTION_ADMIN_GRANT\x10\a\x12#\n" +
+	"\x1fAUDIT_ACTION_ACCESS_CODE_CREATE\x10\b\x12#\n" +
+	"\x1fAUDIT_ACTION_ACCESS_CODE_REVOKE\x10\t\x12 \n" +
+	"\x1cAUDIT_ACTION_WAITLIST_INVITE\x10\n" +
+	"\x12\x1c\n" +
+	"\x18AUDIT_ACTION_USER_LOOKUP\x10\v*\x9b\x02\n" +
+	"\x0fAuditTargetKind\x12!\n" +
+	"\x1dAUDIT_TARGET_KIND_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dAUDIT_TARGET_KIND_PERSPECTIVE\x10\x01\x12\x1b\n" +
+	"\x17AUDIT_TARGET_KIND_PLACE\x10\x02\x12\x1a\n" +
+	"\x16AUDIT_TARGET_KIND_USER\x10\x03\x12\x1f\n" +
+	"\x1bAUDIT_TARGET_KIND_LORE_POST\x10\x04\x12\x1f\n" +
+	"\x1bAUDIT_TARGET_KIND_LORE_NAME\x10\x05\x12!\n" +
+	"\x1dAUDIT_TARGET_KIND_ACCESS_CODE\x10\x06\x12$\n" +
+	" AUDIT_TARGET_KIND_WAITLIST_ENTRY\x10\a*a\n" +
 	"\aEpicTab\x12\x18\n" +
 	"\x14EPIC_TAB_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fEPIC_TAB_RANKED\x10\x01\x12\x13\n" +
@@ -1244,7 +1414,7 @@ func file_perspectiv_v1_enums_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_enums_proto_rawDescData
 }
 
-var file_perspectiv_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 18)
+var file_perspectiv_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 20)
 var file_perspectiv_v1_enums_proto_goTypes = []any{
 	(PlaceKind)(0),         // 0: perspectiv.v1.PlaceKind
 	(PlaceSource)(0),       // 1: perspectiv.v1.PlaceSource
@@ -1261,9 +1431,11 @@ var file_perspectiv_v1_enums_proto_goTypes = []any{
 	(ReportReason)(0),      // 12: perspectiv.v1.ReportReason
 	(ReportStatus)(0),      // 13: perspectiv.v1.ReportStatus
 	(ModerationAction)(0),  // 14: perspectiv.v1.ModerationAction
-	(EpicTab)(0),           // 15: perspectiv.v1.EpicTab
-	(ArcSection)(0),        // 16: perspectiv.v1.ArcSection
-	(PlaceCategory)(0),     // 17: perspectiv.v1.PlaceCategory
+	(AuditAction)(0),       // 15: perspectiv.v1.AuditAction
+	(AuditTargetKind)(0),   // 16: perspectiv.v1.AuditTargetKind
+	(EpicTab)(0),           // 17: perspectiv.v1.EpicTab
+	(ArcSection)(0),        // 18: perspectiv.v1.ArcSection
+	(PlaceCategory)(0),     // 19: perspectiv.v1.PlaceCategory
 }
 var file_perspectiv_v1_enums_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1283,7 +1455,7 @@ func file_perspectiv_v1_enums_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_enums_proto_rawDesc), len(file_perspectiv_v1_enums_proto_rawDesc)),
-			NumEnums:      18,
+			NumEnums:      20,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

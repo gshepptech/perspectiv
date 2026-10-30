@@ -138,10 +138,11 @@ type ModerationAudit struct {
 	ActorID    *uuid.UUID
 	Action     string
 	TargetKind string
-	TargetID   uuid.UUID
+	TargetID   *uuid.UUID
 	ReportID   *uuid.UUID
 	Reason     string
 	At         pgtype.Timestamptz
+	TargetRef  string
 }
 
 type Notification struct {

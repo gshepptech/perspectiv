@@ -42,6 +42,12 @@ const (
 	// ModerationServiceResolveProcedure is the fully-qualified name of the ModerationService's Resolve
 	// RPC.
 	ModerationServiceResolveProcedure = "/perspectiv.v1.ModerationService/Resolve"
+	// ModerationServiceListAuditLogProcedure is the fully-qualified name of the ModerationService's
+	// ListAuditLog RPC.
+	ModerationServiceListAuditLogProcedure = "/perspectiv.v1.ModerationService/ListAuditLog"
+	// ModerationServiceLookupUserProcedure is the fully-qualified name of the ModerationService's
+	// LookupUser RPC.
+	ModerationServiceLookupUserProcedure = "/perspectiv.v1.ModerationService/LookupUser"
 )
 
 // ModerationServiceClient is a client for the perspectiv.v1.ModerationService service.
@@ -51,6 +57,11 @@ type ModerationServiceClient interface {
 	ListReports(context.Context, *connect.Request[v1.ListReportsRequest]) (*connect.Response[v1.ListReportsResponse], error)
 	// ADMIN only. Every resolution writes a moderation audit row.
 	Resolve(context.Context, *connect.Request[v1.ResolveRequest]) (*connect.Response[v1.ResolveResponse], error)
+	// ADMIN only. The audit log, newest first.
+	ListAuditLog(context.Context, *connect.Request[v1.ListAuditLogRequest]) (*connect.Response[v1.ListAuditLogResponse], error)
+	// ADMIN only. One account as a moderator needs to see it. A match writes
+	// a USER_LOOKUP audit entry.
+	LookupUser(context.Context, *connect.Request[v1.LookupUserRequest]) (*connect.Response[v1.LookupUserResponse], error)
 }
 
 // NewModerationServiceClient constructs a client for the perspectiv.v1.ModerationService service.
@@ -82,14 +93,28 @@ func NewModerationServiceClient(httpClient connect.HTTPClient, baseURL string, o
 			connect.WithSchema(moderationServiceMethods.ByName("Resolve")),
 			connect.WithClientOptions(opts...),
 		),
+		listAuditLog: connect.NewClient[v1.ListAuditLogRequest, v1.ListAuditLogResponse](
+			httpClient,
+			baseURL+ModerationServiceListAuditLogProcedure,
+			connect.WithSchema(moderationServiceMethods.ByName("ListAuditLog")),
+			connect.WithClientOptions(opts...),
+		),
+		lookupUser: connect.NewClient[v1.LookupUserRequest, v1.LookupUserResponse](
+			httpClient,
+			baseURL+ModerationServiceLookupUserProcedure,
+			connect.WithSchema(moderationServiceMethods.ByName("LookupUser")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // moderationServiceClient implements ModerationServiceClient.
 type moderationServiceClient struct {
-	report      *connect.Client[v1.ReportRequest, v1.ReportResponse]
-	listReports *connect.Client[v1.ListReportsRequest, v1.ListReportsResponse]
-	resolve     *connect.Client[v1.ResolveRequest, v1.ResolveResponse]
+	report       *connect.Client[v1.ReportRequest, v1.ReportResponse]
+	listReports  *connect.Client[v1.ListReportsRequest, v1.ListReportsResponse]
+	resolve      *connect.Client[v1.ResolveRequest, v1.ResolveResponse]
+	listAuditLog *connect.Client[v1.ListAuditLogRequest, v1.ListAuditLogResponse]
+	lookupUser   *connect.Client[v1.LookupUserRequest, v1.LookupUserResponse]
 }
 
 // Report calls perspectiv.v1.ModerationService.Report.
@@ -107,6 +132,16 @@ func (c *moderationServiceClient) Resolve(ctx context.Context, req *connect.Requ
 	return c.resolve.CallUnary(ctx, req)
 }
 
+// ListAuditLog calls perspectiv.v1.ModerationService.ListAuditLog.
+func (c *moderationServiceClient) ListAuditLog(ctx context.Context, req *connect.Request[v1.ListAuditLogRequest]) (*connect.Response[v1.ListAuditLogResponse], error) {
+	return c.listAuditLog.CallUnary(ctx, req)
+}
+
+// LookupUser calls perspectiv.v1.ModerationService.LookupUser.
+func (c *moderationServiceClient) LookupUser(ctx context.Context, req *connect.Request[v1.LookupUserRequest]) (*connect.Response[v1.LookupUserResponse], error) {
+	return c.lookupUser.CallUnary(ctx, req)
+}
+
 // ModerationServiceHandler is an implementation of the perspectiv.v1.ModerationService service.
 type ModerationServiceHandler interface {
 	Report(context.Context, *connect.Request[v1.ReportRequest]) (*connect.Response[v1.ReportResponse], error)
@@ -114,6 +149,11 @@ type ModerationServiceHandler interface {
 	ListReports(context.Context, *connect.Request[v1.ListReportsRequest]) (*connect.Response[v1.ListReportsResponse], error)
 	// ADMIN only. Every resolution writes a moderation audit row.
 	Resolve(context.Context, *connect.Request[v1.ResolveRequest]) (*connect.Response[v1.ResolveResponse], error)
+	// ADMIN only. The audit log, newest first.
+	ListAuditLog(context.Context, *connect.Request[v1.ListAuditLogRequest]) (*connect.Response[v1.ListAuditLogResponse], error)
+	// ADMIN only. One account as a moderator needs to see it. A match writes
+	// a USER_LOOKUP audit entry.
+	LookupUser(context.Context, *connect.Request[v1.LookupUserRequest]) (*connect.Response[v1.LookupUserResponse], error)
 }
 
 // NewModerationServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -141,6 +181,18 @@ func NewModerationServiceHandler(svc ModerationServiceHandler, opts ...connect.H
 		connect.WithSchema(moderationServiceMethods.ByName("Resolve")),
 		connect.WithHandlerOptions(opts...),
 	)
+	moderationServiceListAuditLogHandler := connect.NewUnaryHandler(
+		ModerationServiceListAuditLogProcedure,
+		svc.ListAuditLog,
+		connect.WithSchema(moderationServiceMethods.ByName("ListAuditLog")),
+		connect.WithHandlerOptions(opts...),
+	)
+	moderationServiceLookupUserHandler := connect.NewUnaryHandler(
+		ModerationServiceLookupUserProcedure,
+		svc.LookupUser,
+		connect.WithSchema(moderationServiceMethods.ByName("LookupUser")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.ModerationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ModerationServiceReportProcedure:
@@ -149,6 +201,10 @@ func NewModerationServiceHandler(svc ModerationServiceHandler, opts ...connect.H
 			moderationServiceListReportsHandler.ServeHTTP(w, r)
 		case ModerationServiceResolveProcedure:
 			moderationServiceResolveHandler.ServeHTTP(w, r)
+		case ModerationServiceListAuditLogProcedure:
+			moderationServiceListAuditLogHandler.ServeHTTP(w, r)
+		case ModerationServiceLookupUserProcedure:
+			moderationServiceLookupUserHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -168,4 +224,12 @@ func (UnimplementedModerationServiceHandler) ListReports(context.Context, *conne
 
 func (UnimplementedModerationServiceHandler) Resolve(context.Context, *connect.Request[v1.ResolveRequest]) (*connect.Response[v1.ResolveResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ModerationService.Resolve is not implemented"))
+}
+
+func (UnimplementedModerationServiceHandler) ListAuditLog(context.Context, *connect.Request[v1.ListAuditLogRequest]) (*connect.Response[v1.ListAuditLogResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ModerationService.ListAuditLog is not implemented"))
+}
+
+func (UnimplementedModerationServiceHandler) LookupUser(context.Context, *connect.Request[v1.LookupUserRequest]) (*connect.Response[v1.LookupUserResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.ModerationService.LookupUser is not implemented"))
 }

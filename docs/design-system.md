@@ -229,6 +229,38 @@ Two tabs, **Codes** and **Waitlist**, built on the report queue's patterns:
 - **Waitlist:** people waiting first, each with a masked address, note and
   date, and "Send invite". Invited people show when and with which code.
 
+## Admin: audit log and user lookup
+
+Two more admin pages in the account menu, after "Beta access": **Look up a
+user** and **Audit log**. Both follow the report queue's patterns: a page
+heading, a plain list of entries with `rule` dividers, "Show more" to page.
+
+- **Look up a user** (`/admin/users`): one field labelled "Username, email
+  or account id" and a "Look up" button. A lookup runs only on submit, never
+  as the admin types, because each match is itself audited. The query sits
+  in the address (`?q=`), so a dossier is linkable from the queue and the
+  log. The dossier below the form:
+  - the username as an `h2`, then standing in words beside it: Admin,
+    Suspended (with the date), Deleted, Email verified or Email not
+    verified. Status colours carry their fixed meaning (`warning` for
+    suspended, `error` never, since a deleted account is not an error).
+  - a two-column `dl` (one column on phones): email (masked, as
+    `pa•••@example.test`), joined, last sign-in or "Never", failed sign-ins
+    in the last day, stories (and how many are hidden), reports against
+    (open of total), reports filed. Then "Public profile" unless deleted.
+  - **Reports against them**: the queue's report items for this user (on
+    the account or anything they wrote), open and resolved together, with
+    "Resolve" on open ones.
+  - **Moderator actions**: the audit entries about this user.
+- **Audit log** (`/admin/audit`): an action filter (a Select: "All
+  actions" and each action) above the entries, newest first. Each entry
+  reads as one sentence then detail: "**ana** hid a perspective: *Rain at
+  the deli*", with the time below in `ink-muted` and the reason, when
+  there is one, quoted. An entry from the command line names "The command
+  line" as its actor. A target that has a page links to it; a user target
+  links to its dossier.
+- In the report queue, the reporter's name links to their dossier.
+
 ## App icon
 
 The mark is the header's open book (lucide `BookOpen`) in `paper` on an

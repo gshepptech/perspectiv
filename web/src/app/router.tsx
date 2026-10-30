@@ -38,6 +38,8 @@ export const pages: readonly Page[] = [
   { path: "/claims", module: "claims/ClaimsPage", signedIn: true },
   { path: "/admin/reports", module: "admin/ReportsPage", signedIn: true },
   { path: "/admin/access", module: "admin/AccessPage", signedIn: true },
+  { path: "/admin/users", module: "admin/UsersPage", signedIn: true },
+  { path: "/admin/audit", module: "admin/AuditPage", signedIn: true },
   { path: "/login", module: "auth/LoginPage" },
   { path: "/signup", module: "auth/SignUpPage" },
   { path: "/verify-email", module: "auth/VerifyEmailPage" },

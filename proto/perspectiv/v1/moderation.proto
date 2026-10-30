@@ -13,6 +13,11 @@ service ModerationService {
   rpc ListReports(ListReportsRequest) returns (ListReportsResponse);
   // ADMIN only. Every resolution writes a moderation audit row.
   rpc Resolve(ResolveRequest) returns (ResolveResponse);
+  // ADMIN only. The audit log, newest first.
+  rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse);
+  // ADMIN only. One account as a moderator needs to see it. A match writes
+  // a USER_LOOKUP audit entry.
+  rpc LookupUser(LookupUserRequest) returns (LookupUserResponse);
 }
 
 // Report is one user report as the admin queue shows it.
@@ -51,6 +56,11 @@ message ListReportsRequest {
   ReportStatus status = 1;
   string page_token = 2;
   int32 page_size = 3;
+  // When set, only reports against this user: on the account itself, or on
+  // a perspective or thread post they wrote.
+  string subject_user_id = 4;
+  // When set, only reports this user filed.
+  string reporter_id = 5;
 }
 
 message ListReportsResponse {
@@ -67,4 +77,71 @@ message ResolveRequest {
 
 message ResolveResponse {
   Report report = 1;
+}
+
+// AuditEntry is one audit log row.
+message AuditEntry {
+  string id = 1;
+  // Unset for an action taken from the command line.
+  UserRef actor = 2;
+  AuditAction action = 3;
+  AuditTargetKind target_kind = 4;
+  // The target's id, or for an access code the code (target_ref).
+  string target_id = 5;
+  string target_ref = 6;
+  // A short human label for the target, as the report queue shows one.
+  string target_label = 7;
+  // Set when the action resolved a report.
+  string report_id = 8;
+  string reason = 9;
+  google.protobuf.Timestamp at = 10;
+}
+
+message ListAuditLogRequest {
+  // UNSPECIFIED lists every action.
+  AuditAction action = 1;
+  // When set, only what this admin did.
+  string actor_id = 2;
+  // When set, only actions on this user: on the account itself, or on a
+  // perspective or thread post they wrote.
+  string subject_user_id = 3;
+  string page_token = 4;
+  int32 page_size = 5;
+}
+
+message ListAuditLogResponse {
+  repeated AuditEntry entries = 1;
+  string next_page_token = 2;
+}
+
+message LookupUserRequest {
+  // A username (any case), an email address, or an account id.
+  string query = 1;
+}
+
+// AdminUserView is one account as a moderator sees it. The email is never
+// shown whole.
+message AdminUserView {
+  string user_id = 1;
+  string username = 2;
+  // The address with most of its local part masked, as w***@example.com.
+  string email_hint = 3;
+  bool email_verified = 4;
+  Role role = 5;
+  google.protobuf.Timestamp joined_at = 6;
+  // Set while suspended.
+  google.protobuf.Timestamp suspended_at = 7;
+  bool deleted = 8;
+  // Unset when the account has never signed in.
+  google.protobuf.Timestamp last_sign_in_at = 9;
+  int32 failed_sign_ins_24h = 10;
+  int32 stories = 11;
+  int32 hidden_stories = 12;
+  int32 open_reports_against = 13;
+  int32 reports_against = 14;
+  int32 reports_filed = 15;
+}
+
+message LookupUserResponse {
+  AdminUserView user = 1;
 }

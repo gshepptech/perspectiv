@@ -21,6 +21,7 @@ import (
 	"perspectiv/internal/api/apiutil"
 	"perspectiv/internal/auth/dbq"
 	"perspectiv/internal/jobs"
+	"perspectiv/internal/moderation"
 )
 
 // SignUpMode decides who may create an account.
@@ -195,15 +196,24 @@ func (s *Service) CreateAccessCode(ctx context.Context, admin uuid.UUID, in Acce
 		t := time.Now().Add(time.Duration(in.ExpiresInDays) * 24 * time.Hour)
 		expires = &t
 	}
-	row, err := s.q.InsertAccessCode(ctx, dbq.InsertAccessCodeParams{
-		Code: code, Note: note, MaxUses: in.MaxUses, CreatedBy: admin, ExpiresAt: expires,
+	var row dbq.InsertAccessCodeRow
+	err := s.inTx(ctx, func(q *dbq.Queries, tx pgx.Tx) error {
+		var err error
+		row, err = q.InsertAccessCode(ctx, dbq.InsertAccessCodeParams{
+			Code: code, Note: note, MaxUses: in.MaxUses, CreatedBy: admin, ExpiresAt: expires,
+		})
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation {
+			return apiutil.AlreadyExists("that code already exists")
+		}
+		if err != nil {
+			return apiutil.Internal(fmt.Errorf("insert access code: %w", err))
+		}
+		return auditCode(ctx, tx, admin, perspectivv1.AuditAction_AUDIT_ACTION_ACCESS_CODE_CREATE, code,
+			fmt.Sprintf("%d uses. %s", in.MaxUses, note))
 	})
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation {
-		return dbq.InsertAccessCodeRow{}, apiutil.AlreadyExists("that code already exists")
-	}
 	if err != nil {
-		return dbq.InsertAccessCodeRow{}, apiutil.Internal(fmt.Errorf("insert access code: %w", err))
+		return dbq.InsertAccessCodeRow{}, err
 	}
 	s.log.Info().Str("event", "access_code_created").Str("sub", admin.String()).Str("code", code).
 		Int32("max_uses", in.MaxUses).Msg("beta code issued")
@@ -247,12 +257,20 @@ func (s *Service) RevokeAccessCode(ctx context.Context, admin uuid.UUID, code st
 	if err := s.requireAdmin(ctx, admin, perspectivv1connect.AuthServiceRevokeAccessCodeProcedure); err != nil {
 		return dbq.RevokeAccessCodeRow{}, err
 	}
-	row, err := s.q.RevokeAccessCode(ctx, normalizeCode(code))
-	if errors.Is(err, pgx.ErrNoRows) {
-		return dbq.RevokeAccessCodeRow{}, apiutil.NotFound("no such code")
-	}
+	var row dbq.RevokeAccessCodeRow
+	err := s.inTx(ctx, func(q *dbq.Queries, tx pgx.Tx) error {
+		var err error
+		row, err = q.RevokeAccessCode(ctx, normalizeCode(code))
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apiutil.NotFound("no such code")
+		}
+		if err != nil {
+			return apiutil.Internal(fmt.Errorf("revoke access code: %w", err))
+		}
+		return auditCode(ctx, tx, admin, perspectivv1.AuditAction_AUDIT_ACTION_ACCESS_CODE_REVOKE, row.Code, "")
+	})
 	if err != nil {
-		return dbq.RevokeAccessCodeRow{}, apiutil.Internal(fmt.Errorf("revoke access code: %w", err))
+		return dbq.RevokeAccessCodeRow{}, err
 	}
 	s.log.Info().Str("event", "access_code_revoked").Str("sub", admin.String()).Str("code", row.Code).Msg("beta code revoked")
 	return row, nil
@@ -316,7 +334,7 @@ func (s *Service) InviteFromWaitlist(ctx context.Context, admin, id uuid.UUID) (
 			code = "wl-" + strings.TrimPrefix(code, "beta-")
 			expires := time.Now().Add(waitlistCodeDays * 24 * time.Hour)
 			if _, err := q.InsertAccessCode(ctx, dbq.InsertAccessCodeParams{
-				Code: code, Note: "waitlist: " + maskEmail(w.Email), MaxUses: 1, CreatedBy: admin, ExpiresAt: &expires,
+				Code: code, Note: "waitlist: " + apiutil.MaskEmail(w.Email), MaxUses: 1, CreatedBy: admin, ExpiresAt: &expires,
 			}); err != nil {
 				return apiutil.Internal(fmt.Errorf("insert waitlist code: %w", err))
 			}
@@ -325,6 +343,13 @@ func (s *Service) InviteFromWaitlist(ctx context.Context, admin, id uuid.UUID) (
 				return apiutil.Internal(fmt.Errorf("mark invited: %w", err))
 			}
 			out = m
+		}
+		if err := moderation.WriteAudit(ctx, tx, moderation.AuditEntry{
+			Actor: &admin, Action: perspectivv1.AuditAction_AUDIT_ACTION_WAITLIST_INVITE,
+			TargetKind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_WAITLIST_ENTRY, TargetID: &w.ID,
+			Reason: "sent code " + code,
+		}); err != nil {
+			return apiutil.Internal(fmt.Errorf("write audit row: %w", err))
 		}
 		return s.enq.EmailTx(ctx, tx, jobs.EmailArgs{
 			To: w.Email, Template: jobs.TemplateBetaInvite,
@@ -336,6 +361,18 @@ func (s *Service) InviteFromWaitlist(ctx context.Context, admin, id uuid.UUID) (
 	}
 	s.log.Info().Str("event", "waitlist_invited").Str("sub", admin.String()).Str("waitlist_id", id.String()).Msg("waitlist invite sent")
 	return out, nil
+}
+
+// auditCode records an admin action on an access code in the audit log,
+// inside the action's transaction.
+func auditCode(ctx context.Context, tx pgx.Tx, admin uuid.UUID, action perspectivv1.AuditAction, code, reason string) error {
+	if err := moderation.WriteAudit(ctx, tx, moderation.AuditEntry{
+		Actor: &admin, Action: action, TargetKind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_ACCESS_CODE,
+		TargetRef: code, Reason: strings.TrimSpace(reason),
+	}); err != nil {
+		return apiutil.Internal(fmt.Errorf("write audit row: %w", err))
+	}
+	return nil
 }
 
 // signUpLink is the sign-up page with the code filled in.

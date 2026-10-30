@@ -34,7 +34,7 @@ func TestGrantAdmin(t *testing.T) {
 		t.Fatalf("audit rows = %d, want 1", len(audits))
 	}
 	a := audits[0]
-	if a.actor != nil || a.action != moderation.AuditActionAdminGrant || a.targetKind != "REPORT_TARGET_KIND_USER" ||
+	if a.actor != nil || a.action != "AUDIT_ACTION_ADMIN_GRANT" || a.targetKind != "AUDIT_TARGET_KIND_USER" ||
 		a.report != nil || a.reason == "" {
 		t.Fatalf("audit row = %+v", a)
 	}
@@ -96,7 +96,7 @@ func TestGrantedAdminCanOpenQueue(t *testing.T) {
 	if err := moderation.GrantAdmin(context.Background(), e.pool, "first_admin"); err != nil {
 		t.Fatalf("GrantAdmin: %v", err)
 	}
-	if _, _, err := e.svc.ListReports(context.Background(), id, 0, pageOf(20)); err != nil {
+	if _, _, err := e.svc.ListReports(context.Background(), id, moderation.ReportFilter{}, pageOf(20)); err != nil {
 		t.Fatalf("ListReports after grant: %v", err)
 	}
 }

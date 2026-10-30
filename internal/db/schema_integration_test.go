@@ -176,7 +176,8 @@ func TestEnumColumnsAcceptExactlyTheProtoValues(t *testing.T) {
 		{"reports", "reason", perspectivv1.ReportReason(0).Descriptor()},
 		{"reports", "status", perspectivv1.ReportStatus(0).Descriptor()},
 		{"reports", "resolution", perspectivv1.ModerationAction(0).Descriptor()},
-		{"moderation_audit", "target_kind", perspectivv1.ReportTargetKind(0).Descriptor()},
+		{"moderation_audit", "target_kind", perspectivv1.AuditTargetKind(0).Descriptor()},
+		{"moderation_audit", "action", perspectivv1.AuditAction(0).Descriptor()},
 		{"notifications", "kind", perspectivv1.NotificationKind(0).Descriptor()},
 		{"notification_preferences", "kind", perspectivv1.NotificationKind(0).Descriptor()},
 	}
@@ -381,7 +382,7 @@ func TestAuditTablesAreAppendOnly(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
 	wantOK(t, w.exec(`INSERT INTO canon_changes (arc_id) VALUES ($1)`, w.arc))
-	wantOK(t, w.exec(`INSERT INTO moderation_audit (action, target_kind, target_id) VALUES ('GRANT_ADMIN', 'REPORT_TARGET_KIND_USER', $1)`, w.alice))
+	wantOK(t, w.exec(`INSERT INTO moderation_audit (action, target_kind, target_id) VALUES ('AUDIT_ACTION_ADMIN_GRANT', 'AUDIT_TARGET_KIND_USER', $1)`, w.alice))
 	for _, stmt := range []string{
 		`UPDATE canon_changes SET to_score = 1`,
 		`DELETE FROM canon_changes`,

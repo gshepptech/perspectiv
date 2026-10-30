@@ -5,12 +5,7 @@ moves to Done in the same commit as the work, with what was verified.
 
 ## Doing (wave 3)
 
-12. **Moderation tools.** An audit log view and a user lookup for admins
-    (plan scoped: audit rows for every admin action, a user dossier, report
-    filters).
-13. **Migration 014 Down.** It deletes from the append-only
-    moderation_audit table, which its trigger refuses, so the rollback fails
-    once lore audit rows exist.
+Nothing in progress.
 
 ## Out of scope for v1
 
@@ -22,12 +17,30 @@ moves to Done in the same commit as the work, with what was verified.
 - **Legal review and a contact address.** The Terms, Privacy and
   Community guidelines pages describe what the code does today; they need a
   lawyer's review and a real contact address from the owner before launch.
-- **Intermittent race in TestServeByRole.** Seen twice under the full gate,
-  never in eight reruns. `make test-integration` now keeps
-  tmp/test-results/integration.json with the race report for the next one.
 
 ## Done
 
+- TestServeByRole flake, diagnosed: the API role hashed a bcrypt dummy
+  password at cost 12 while building the auth service, before it listened.
+  That takes 0.3s, 3s under the race detector and over 30s under the full
+  gate's load, so the health wait gave up. A goroutine dump of a stalled
+  run showed both API servers inside bcrypt; Postgres held no waiting
+  locks. The dummy hash is now a precomputed cost-12 constant (a throwaway
+  secret), computed only at a non-default cost. Verified by
+  TestDummyHashMatchesCost and the full gate.
+- Moderation tools: an audit log at /admin/audit (newest first, filter by
+  action, each entry a sentence linking its target) and a user lookup at
+  /admin/users (by username, email or id) with a dossier: masked email,
+  standing, sign-ins, stories, reports against and filed, the reports
+  themselves and the moderator actions about the account. The audit log
+  now records access code creation and revocation, waitlist invites and
+  each user lookup, in the same transaction as the action, under its own
+  AuditAction and AuditTargetKind enums. The report queue filters by the
+  user reported and by the reporter, and links reporters to their dossier.
+  Migration 014's Down now runs past the append-only trigger. Verified by
+  TestAuditLog, TestAuditLogIsAdminOnly, TestLookupUser,
+  TestListReportsFilters, TestWriteAuditRefusesMalformedEntries, the beta
+  tests' audit assertions, migration 19 up-down-up, and the page tests.
 - Email unsubscribe: every notification and digest email carries an RFC
   8058 one-click List-Unsubscribe header and a footer link to /unsubscribe,
   signed per account (HMAC from the server secret), which turns every

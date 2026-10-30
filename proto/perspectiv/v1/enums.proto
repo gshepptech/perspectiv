@@ -165,6 +165,39 @@ enum ModerationAction {
   MODERATION_ACTION_CLEAR_LORE_NAME = 6;
 }
 
+// AuditAction is what an admin did, as the audit log records it. The first
+// six mirror ModerationAction; the rest are admin actions that resolve no
+// report.
+enum AuditAction {
+  AUDIT_ACTION_UNSPECIFIED = 0;
+  AUDIT_ACTION_HIDE_PERSPECTIVE = 1;
+  AUDIT_ACTION_HIDE_PLACE = 2;
+  AUDIT_ACTION_SUSPEND_USER = 3;
+  AUDIT_ACTION_DISMISS = 4;
+  AUDIT_ACTION_HIDE_LORE_POST = 5;
+  AUDIT_ACTION_CLEAR_LORE_NAME = 6;
+  // ADMIN granted from the command line; the entry has no actor.
+  AUDIT_ACTION_ADMIN_GRANT = 7;
+  AUDIT_ACTION_ACCESS_CODE_CREATE = 8;
+  AUDIT_ACTION_ACCESS_CODE_REVOKE = 9;
+  AUDIT_ACTION_WAITLIST_INVITE = 10;
+  // An admin looked an account up, which shows its masked email.
+  AUDIT_ACTION_USER_LOOKUP = 11;
+}
+
+// AuditTargetKind is what an audit entry acted on.
+enum AuditTargetKind {
+  AUDIT_TARGET_KIND_UNSPECIFIED = 0;
+  AUDIT_TARGET_KIND_PERSPECTIVE = 1;
+  AUDIT_TARGET_KIND_PLACE = 2;
+  AUDIT_TARGET_KIND_USER = 3;
+  AUDIT_TARGET_KIND_LORE_POST = 4;
+  AUDIT_TARGET_KIND_LORE_NAME = 5;
+  // The target is named by target_ref, the code itself.
+  AUDIT_TARGET_KIND_ACCESS_CODE = 6;
+  AUDIT_TARGET_KIND_WAITLIST_ENTRY = 7;
+}
+
 // EpicTab selects the listing a place page shows.
 enum EpicTab {
   EPIC_TAB_UNSPECIFIED = 0;

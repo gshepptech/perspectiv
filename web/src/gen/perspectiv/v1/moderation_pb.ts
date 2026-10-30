@@ -6,7 +6,7 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { ModerationAction, ReportReason, ReportStatus, ReportTargetKind } from "./enums_pb";
+import type { AuditAction, AuditTargetKind, ModerationAction, ReportReason, ReportStatus, ReportTargetKind, Role } from "./enums_pb";
 import { file_perspectiv_v1_enums } from "./enums_pb";
 import type { UserRef } from "./user_pb";
 import { file_perspectiv_v1_user } from "./user_pb";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/moderation.proto.
  */
 export const file_perspectiv_v1_moderation: GenFile = /*@__PURE__*/
-  fileDesc("Ch5wZXJzcGVjdGl2L3YxL21vZGVyYXRpb24ucHJvdG8SDXBlcnNwZWN0aXYudjEi5gMKBlJlcG9ydBIKCgJpZBgBIAEoCRIoCghyZXBvcnRlchgCIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhI0Cgt0YXJnZXRfa2luZBgDIAEoDjIfLnBlcnNwZWN0aXYudjEuUmVwb3J0VGFyZ2V0S2luZBIRCgl0YXJnZXRfaWQYBCABKAkSFAoMdGFyZ2V0X2xhYmVsGAUgASgJEisKBnJlYXNvbhgGIAEoDjIbLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVhc29uEg8KB2RldGFpbHMYByABKAkSKwoGc3RhdHVzGAggASgOMhsucGVyc3BlY3Rpdi52MS5SZXBvcnRTdGF0dXMSKwoLcmVzb2x2ZWRfYnkYCSABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSMwoKcmVzb2x1dGlvbhgKIAEoDjIfLnBlcnNwZWN0aXYudjEuTW9kZXJhdGlvbkFjdGlvbhIZChFyZXNvbHV0aW9uX3JlYXNvbhgLIAEoCRIuCgpjcmVhdGVkX2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtyZXNvbHZlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAilgEKDVJlcG9ydFJlcXVlc3QSNAoLdGFyZ2V0X2tpbmQYASABKA4yHy5wZXJzcGVjdGl2LnYxLlJlcG9ydFRhcmdldEtpbmQSEQoJdGFyZ2V0X2lkGAIgASgJEisKBnJlYXNvbhgDIAEoDjIbLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVhc29uEg8KB2RldGFpbHMYBCABKAkiIwoOUmVwb3J0UmVzcG9uc2USEQoJcmVwb3J0X2lkGAEgASgJImgKEkxpc3RSZXBvcnRzUmVxdWVzdBIrCgZzdGF0dXMYASABKA4yGy5wZXJzcGVjdGl2LnYxLlJlcG9ydFN0YXR1cxISCgpwYWdlX3Rva2VuGAIgASgJEhEKCXBhZ2Vfc2l6ZRgDIAEoBSJWChNMaXN0UmVwb3J0c1Jlc3BvbnNlEiYKB3JlcG9ydHMYASADKAsyFS5wZXJzcGVjdGl2LnYxLlJlcG9ydBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiZAoOUmVzb2x2ZVJlcXVlc3QSEQoJcmVwb3J0X2lkGAEgASgJEi8KBmFjdGlvbhgCIAEoDjIfLnBlcnNwZWN0aXYudjEuTW9kZXJhdGlvbkFjdGlvbhIOCgZyZWFzb24YAyABKAkiOAoPUmVzb2x2ZVJlc3BvbnNlEiUKBnJlcG9ydBgBIAEoCzIVLnBlcnNwZWN0aXYudjEuUmVwb3J0MvoBChFNb2RlcmF0aW9uU2VydmljZRJFCgZSZXBvcnQSHC5wZXJzcGVjdGl2LnYxLlJlcG9ydFJlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLlJlcG9ydFJlc3BvbnNlElQKC0xpc3RSZXBvcnRzEiEucGVyc3BlY3Rpdi52MS5MaXN0UmVwb3J0c1JlcXVlc3QaIi5wZXJzcGVjdGl2LnYxLkxpc3RSZXBvcnRzUmVzcG9uc2USSAoHUmVzb2x2ZRIdLnBlcnNwZWN0aXYudjEuUmVzb2x2ZVJlcXVlc3QaHi5wZXJzcGVjdGl2LnYxLlJlc29sdmVSZXNwb25zZUKkAQoRY29tLnBlcnNwZWN0aXYudjFCD01vZGVyYXRpb25Qcm90b1ABWilwZXJzcGVjdGl2L2dlbi9wZXJzcGVjdGl2L3YxO3BlcnNwZWN0aXZ2MaICA1BYWKoCDVBlcnNwZWN0aXYuVjHKAg1QZXJzcGVjdGl2XFYx4gIZUGVyc3BlY3RpdlxWMVxHUEJNZXRhZGF0YeoCDlBlcnNwZWN0aXY6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
+  fileDesc("Ch5wZXJzcGVjdGl2L3YxL21vZGVyYXRpb24ucHJvdG8SDXBlcnNwZWN0aXYudjEi5gMKBlJlcG9ydBIKCgJpZBgBIAEoCRIoCghyZXBvcnRlchgCIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhI0Cgt0YXJnZXRfa2luZBgDIAEoDjIfLnBlcnNwZWN0aXYudjEuUmVwb3J0VGFyZ2V0S2luZBIRCgl0YXJnZXRfaWQYBCABKAkSFAoMdGFyZ2V0X2xhYmVsGAUgASgJEisKBnJlYXNvbhgGIAEoDjIbLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVhc29uEg8KB2RldGFpbHMYByABKAkSKwoGc3RhdHVzGAggASgOMhsucGVyc3BlY3Rpdi52MS5SZXBvcnRTdGF0dXMSKwoLcmVzb2x2ZWRfYnkYCSABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSMwoKcmVzb2x1dGlvbhgKIAEoDjIfLnBlcnNwZWN0aXYudjEuTW9kZXJhdGlvbkFjdGlvbhIZChFyZXNvbHV0aW9uX3JlYXNvbhgLIAEoCRIuCgpjcmVhdGVkX2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtyZXNvbHZlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAilgEKDVJlcG9ydFJlcXVlc3QSNAoLdGFyZ2V0X2tpbmQYASABKA4yHy5wZXJzcGVjdGl2LnYxLlJlcG9ydFRhcmdldEtpbmQSEQoJdGFyZ2V0X2lkGAIgASgJEisKBnJlYXNvbhgDIAEoDjIbLnBlcnNwZWN0aXYudjEuUmVwb3J0UmVhc29uEg8KB2RldGFpbHMYBCABKAkiIwoOUmVwb3J0UmVzcG9uc2USEQoJcmVwb3J0X2lkGAEgASgJIpYBChJMaXN0UmVwb3J0c1JlcXVlc3QSKwoGc3RhdHVzGAEgASgOMhsucGVyc3BlY3Rpdi52MS5SZXBvcnRTdGF0dXMSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSFwoPc3ViamVjdF91c2VyX2lkGAQgASgJEhMKC3JlcG9ydGVyX2lkGAUgASgJIlYKE0xpc3RSZXBvcnRzUmVzcG9uc2USJgoHcmVwb3J0cxgBIAMoCzIVLnBlcnNwZWN0aXYudjEuUmVwb3J0EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJkCg5SZXNvbHZlUmVxdWVzdBIRCglyZXBvcnRfaWQYASABKAkSLwoGYWN0aW9uGAIgASgOMh8ucGVyc3BlY3Rpdi52MS5Nb2RlcmF0aW9uQWN0aW9uEg4KBnJlYXNvbhgDIAEoCSI4Cg9SZXNvbHZlUmVzcG9uc2USJQoGcmVwb3J0GAEgASgLMhUucGVyc3BlY3Rpdi52MS5SZXBvcnQiqAIKCkF1ZGl0RW50cnkSCgoCaWQYASABKAkSJQoFYWN0b3IYAiABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSKgoGYWN0aW9uGAMgASgOMhoucGVyc3BlY3Rpdi52MS5BdWRpdEFjdGlvbhIzCgt0YXJnZXRfa2luZBgEIAEoDjIeLnBlcnNwZWN0aXYudjEuQXVkaXRUYXJnZXRLaW5kEhEKCXRhcmdldF9pZBgFIAEoCRISCgp0YXJnZXRfcmVmGAYgASgJEhQKDHRhcmdldF9sYWJlbBgHIAEoCRIRCglyZXBvcnRfaWQYCCABKAkSDgoGcmVhc29uGAkgASgJEiYKAmF0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCKTAQoTTGlzdEF1ZGl0TG9nUmVxdWVzdBIqCgZhY3Rpb24YASABKA4yGi5wZXJzcGVjdGl2LnYxLkF1ZGl0QWN0aW9uEhAKCGFjdG9yX2lkGAIgASgJEhcKD3N1YmplY3RfdXNlcl9pZBgDIAEoCRISCgpwYWdlX3Rva2VuGAQgASgJEhEKCXBhZ2Vfc2l6ZRgFIAEoBSJbChRMaXN0QXVkaXRMb2dSZXNwb25zZRIqCgdlbnRyaWVzGAEgAygLMhkucGVyc3BlY3Rpdi52MS5BdWRpdEVudHJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIiChFMb29rdXBVc2VyUmVxdWVzdBINCgVxdWVyeRgBIAEoCSK8AwoNQWRtaW5Vc2VyVmlldxIPCgd1c2VyX2lkGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJEhIKCmVtYWlsX2hpbnQYAyABKAkSFgoOZW1haWxfdmVyaWZpZWQYBCABKAgSIQoEcm9sZRgFIAEoDjITLnBlcnNwZWN0aXYudjEuUm9sZRItCglqb2luZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDHN1c3BlbmRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDwoHZGVsZXRlZBgIIAEoCBIzCg9sYXN0X3NpZ25faW5fYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhsKE2ZhaWxlZF9zaWduX2luc18yNGgYCiABKAUSDwoHc3RvcmllcxgLIAEoBRIWCg5oaWRkZW5fc3RvcmllcxgMIAEoBRIcChRvcGVuX3JlcG9ydHNfYWdhaW5zdBgNIAEoBRIXCg9yZXBvcnRzX2FnYWluc3QYDiABKAUSFQoNcmVwb3J0c19maWxlZBgPIAEoBSJAChJMb29rdXBVc2VyUmVzcG9uc2USKgoEdXNlchgBIAEoCzIcLnBlcnNwZWN0aXYudjEuQWRtaW5Vc2VyVmlldzKmAwoRTW9kZXJhdGlvblNlcnZpY2USRQoGUmVwb3J0EhwucGVyc3BlY3Rpdi52MS5SZXBvcnRSZXF1ZXN0Gh0ucGVyc3BlY3Rpdi52MS5SZXBvcnRSZXNwb25zZRJUCgtMaXN0UmVwb3J0cxIhLnBlcnNwZWN0aXYudjEuTGlzdFJlcG9ydHNSZXF1ZXN0GiIucGVyc3BlY3Rpdi52MS5MaXN0UmVwb3J0c1Jlc3BvbnNlEkgKB1Jlc29sdmUSHS5wZXJzcGVjdGl2LnYxLlJlc29sdmVSZXF1ZXN0Gh4ucGVyc3BlY3Rpdi52MS5SZXNvbHZlUmVzcG9uc2USVwoMTGlzdEF1ZGl0TG9nEiIucGVyc3BlY3Rpdi52MS5MaXN0QXVkaXRMb2dSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5MaXN0QXVkaXRMb2dSZXNwb25zZRJRCgpMb29rdXBVc2VyEiAucGVyc3BlY3Rpdi52MS5Mb29rdXBVc2VyUmVxdWVzdBohLnBlcnNwZWN0aXYudjEuTG9va3VwVXNlclJlc3BvbnNlQqQBChFjb20ucGVyc3BlY3Rpdi52MUIPTW9kZXJhdGlvblByb3RvUAFaKXBlcnNwZWN0aXYvZ2VuL3BlcnNwZWN0aXYvdjE7cGVyc3BlY3RpdnYxogIDUFhYqgINUGVyc3BlY3Rpdi5WMcoCDVBlcnNwZWN0aXZcVjHiAhlQZXJzcGVjdGl2XFYxXEdQQk1ldGFkYXRh6gIOUGVyc3BlY3Rpdjo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
 
 /**
  * Report is one user report as the admin queue shows it.
@@ -172,6 +172,21 @@ export type ListReportsRequest = Message<"perspectiv.v1.ListReportsRequest"> & {
    * @generated from field: int32 page_size = 3;
    */
   pageSize: number;
+
+  /**
+   * When set, only reports against this user: on the account itself, or on
+   * a perspective or thread post they wrote.
+   *
+   * @generated from field: string subject_user_id = 4;
+   */
+  subjectUserId: string;
+
+  /**
+   * When set, only reports this user filed.
+   *
+   * @generated from field: string reporter_id = 5;
+   */
+  reporterId: string;
 };
 
 /**
@@ -250,6 +265,276 @@ export const ResolveResponseSchema: GenMessage<ResolveResponse> = /*@__PURE__*/
   messageDesc(file_perspectiv_v1_moderation, 6);
 
 /**
+ * AuditEntry is one audit log row.
+ *
+ * @generated from message perspectiv.v1.AuditEntry
+ */
+export type AuditEntry = Message<"perspectiv.v1.AuditEntry"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * Unset for an action taken from the command line.
+   *
+   * @generated from field: perspectiv.v1.UserRef actor = 2;
+   */
+  actor?: UserRef | undefined;
+
+  /**
+   * @generated from field: perspectiv.v1.AuditAction action = 3;
+   */
+  action: AuditAction;
+
+  /**
+   * @generated from field: perspectiv.v1.AuditTargetKind target_kind = 4;
+   */
+  targetKind: AuditTargetKind;
+
+  /**
+   * The target's id, or for an access code the code (target_ref).
+   *
+   * @generated from field: string target_id = 5;
+   */
+  targetId: string;
+
+  /**
+   * @generated from field: string target_ref = 6;
+   */
+  targetRef: string;
+
+  /**
+   * A short human label for the target, as the report queue shows one.
+   *
+   * @generated from field: string target_label = 7;
+   */
+  targetLabel: string;
+
+  /**
+   * Set when the action resolved a report.
+   *
+   * @generated from field: string report_id = 8;
+   */
+  reportId: string;
+
+  /**
+   * @generated from field: string reason = 9;
+   */
+  reason: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp at = 10;
+   */
+  at?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.AuditEntry.
+ * Use `create(AuditEntrySchema)` to create a new message.
+ */
+export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 7);
+
+/**
+ * @generated from message perspectiv.v1.ListAuditLogRequest
+ */
+export type ListAuditLogRequest = Message<"perspectiv.v1.ListAuditLogRequest"> & {
+  /**
+   * UNSPECIFIED lists every action.
+   *
+   * @generated from field: perspectiv.v1.AuditAction action = 1;
+   */
+  action: AuditAction;
+
+  /**
+   * When set, only what this admin did.
+   *
+   * @generated from field: string actor_id = 2;
+   */
+  actorId: string;
+
+  /**
+   * When set, only actions on this user: on the account itself, or on a
+   * perspective or thread post they wrote.
+   *
+   * @generated from field: string subject_user_id = 3;
+   */
+  subjectUserId: string;
+
+  /**
+   * @generated from field: string page_token = 4;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: int32 page_size = 5;
+   */
+  pageSize: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListAuditLogRequest.
+ * Use `create(ListAuditLogRequestSchema)` to create a new message.
+ */
+export const ListAuditLogRequestSchema: GenMessage<ListAuditLogRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 8);
+
+/**
+ * @generated from message perspectiv.v1.ListAuditLogResponse
+ */
+export type ListAuditLogResponse = Message<"perspectiv.v1.ListAuditLogResponse"> & {
+  /**
+   * @generated from field: repeated perspectiv.v1.AuditEntry entries = 1;
+   */
+  entries: AuditEntry[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListAuditLogResponse.
+ * Use `create(ListAuditLogResponseSchema)` to create a new message.
+ */
+export const ListAuditLogResponseSchema: GenMessage<ListAuditLogResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 9);
+
+/**
+ * @generated from message perspectiv.v1.LookupUserRequest
+ */
+export type LookupUserRequest = Message<"perspectiv.v1.LookupUserRequest"> & {
+  /**
+   * A username (any case), an email address, or an account id.
+   *
+   * @generated from field: string query = 1;
+   */
+  query: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.LookupUserRequest.
+ * Use `create(LookupUserRequestSchema)` to create a new message.
+ */
+export const LookupUserRequestSchema: GenMessage<LookupUserRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 10);
+
+/**
+ * AdminUserView is one account as a moderator sees it. The email is never
+ * shown whole.
+ *
+ * @generated from message perspectiv.v1.AdminUserView
+ */
+export type AdminUserView = Message<"perspectiv.v1.AdminUserView"> & {
+  /**
+   * @generated from field: string user_id = 1;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string username = 2;
+   */
+  username: string;
+
+  /**
+   * The address with most of its local part masked, as w***@example.com.
+   *
+   * @generated from field: string email_hint = 3;
+   */
+  emailHint: string;
+
+  /**
+   * @generated from field: bool email_verified = 4;
+   */
+  emailVerified: boolean;
+
+  /**
+   * @generated from field: perspectiv.v1.Role role = 5;
+   */
+  role: Role;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp joined_at = 6;
+   */
+  joinedAt?: Timestamp | undefined;
+
+  /**
+   * Set while suspended.
+   *
+   * @generated from field: google.protobuf.Timestamp suspended_at = 7;
+   */
+  suspendedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: bool deleted = 8;
+   */
+  deleted: boolean;
+
+  /**
+   * Unset when the account has never signed in.
+   *
+   * @generated from field: google.protobuf.Timestamp last_sign_in_at = 9;
+   */
+  lastSignInAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: int32 failed_sign_ins_24h = 10;
+   */
+  failedSignIns24h: number;
+
+  /**
+   * @generated from field: int32 stories = 11;
+   */
+  stories: number;
+
+  /**
+   * @generated from field: int32 hidden_stories = 12;
+   */
+  hiddenStories: number;
+
+  /**
+   * @generated from field: int32 open_reports_against = 13;
+   */
+  openReportsAgainst: number;
+
+  /**
+   * @generated from field: int32 reports_against = 14;
+   */
+  reportsAgainst: number;
+
+  /**
+   * @generated from field: int32 reports_filed = 15;
+   */
+  reportsFiled: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.AdminUserView.
+ * Use `create(AdminUserViewSchema)` to create a new message.
+ */
+export const AdminUserViewSchema: GenMessage<AdminUserView> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 11);
+
+/**
+ * @generated from message perspectiv.v1.LookupUserResponse
+ */
+export type LookupUserResponse = Message<"perspectiv.v1.LookupUserResponse"> & {
+  /**
+   * @generated from field: perspectiv.v1.AdminUserView user = 1;
+   */
+  user?: AdminUserView | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.LookupUserResponse.
+ * Use `create(LookupUserResponseSchema)` to create a new message.
+ */
+export const LookupUserResponseSchema: GenMessage<LookupUserResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_moderation, 12);
+
+/**
  * ModerationService takes reports from users and lets admins resolve them.
  *
  * @generated from service perspectiv.v1.ModerationService
@@ -282,6 +567,27 @@ export const ModerationService: GenService<{
     methodKind: "unary";
     input: typeof ResolveRequestSchema;
     output: typeof ResolveResponseSchema;
+  },
+  /**
+   * ADMIN only. The audit log, newest first.
+   *
+   * @generated from rpc perspectiv.v1.ModerationService.ListAuditLog
+   */
+  listAuditLog: {
+    methodKind: "unary";
+    input: typeof ListAuditLogRequestSchema;
+    output: typeof ListAuditLogResponseSchema;
+  },
+  /**
+   * ADMIN only. One account as a moderator needs to see it. A match writes
+   * a USER_LOOKUP audit entry.
+   *
+   * @generated from rpc perspectiv.v1.ModerationService.LookupUser
+   */
+  lookupUser: {
+    methodKind: "unary";
+    input: typeof LookupUserRequestSchema;
+    output: typeof LookupUserResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_moderation, 0);

@@ -12,6 +12,62 @@ import (
 	"github.com/google/uuid"
 )
 
+const adminUserFacts = `-- name: AdminUserFacts :one
+SELECT u.id,
+       u.username,
+       u.email,
+       (u.email_verified_at IS NOT NULL)::boolean AS email_verified,
+       u.role,
+       u.created_at,
+       u.suspended_at,
+       (u.deleted_at IS NOT NULL)::boolean AS deleted,
+       (SELECT count(*) FROM login_attempts la
+        WHERE la.user_id = u.id AND NOT la.succeeded AND la.attempted_at > now() - interval '24 hours')::integer AS failed_sign_ins_24h,
+       (SELECT count(*) FROM perspectives p
+        WHERE p.author_id = u.id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND p.deleted_at IS NULL)::integer AS stories,
+       (SELECT count(*) FROM perspectives p
+        WHERE p.author_id = u.id AND p.hidden_at IS NOT NULL AND p.deleted_at IS NULL)::integer AS hidden_stories,
+       (SELECT count(*) FROM reports r WHERE r.reporter_id = u.id)::integer AS reports_filed
+FROM users u
+WHERE u.id = $1::uuid
+`
+
+type AdminUserFactsRow struct {
+	ID               uuid.UUID
+	Username         string
+	Email            string
+	EmailVerified    bool
+	Role             string
+	CreatedAt        time.Time
+	SuspendedAt      *time.Time
+	Deleted          bool
+	FailedSignIns24h int32
+	Stories          int32
+	HiddenStories    int32
+	ReportsFiled     int32
+}
+
+// What a moderator sees of one account.
+func (q *Queries) AdminUserFacts(ctx context.Context, id uuid.UUID) (AdminUserFactsRow, error) {
+	row := q.db.QueryRow(ctx, adminUserFacts, id)
+	var i AdminUserFactsRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.EmailVerified,
+		&i.Role,
+		&i.CreatedAt,
+		&i.SuspendedAt,
+		&i.Deleted,
+		&i.FailedSignIns24h,
+		&i.Stories,
+		&i.HiddenStories,
+		&i.ReportsFiled,
+	)
+	return i, err
+}
+
 const clearLoreName = `-- name: ClearLoreName :execrows
 UPDATE lores SET name = NULL, named_by = NULL, name_cleared_at = now() WHERE id = $1::uuid
 `
@@ -22,6 +78,31 @@ func (q *Queries) ClearLoreName(ctx context.Context, id uuid.UUID) (int64, error
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const countReportsAgainst = `-- name: CountReportsAgainst :one
+SELECT count(*)::integer AS total,
+       (count(*) FILTER (WHERE r.status = 'REPORT_STATUS_OPEN'))::integer AS open
+FROM reports r
+WHERE (r.target_kind = 'REPORT_TARGET_KIND_USER' AND r.target_id = $1::uuid)
+   OR (r.target_kind = 'REPORT_TARGET_KIND_PERSPECTIVE' AND EXISTS (
+           SELECT 1 FROM perspectives sp WHERE sp.id = r.target_id AND sp.author_id = $1::uuid))
+   OR (r.target_kind = 'REPORT_TARGET_KIND_LORE_POST' AND EXISTS (
+           SELECT 1 FROM lore_posts slp WHERE slp.id = r.target_id AND slp.author_id = $1::uuid))
+`
+
+type CountReportsAgainstRow struct {
+	Total int32
+	Open  int32
+}
+
+// Reports against an account: on it, or on a perspective or thread post it
+// wrote; all of them, and those still open.
+func (q *Queries) CountReportsAgainst(ctx context.Context, subjectID uuid.UUID) (CountReportsAgainstRow, error) {
+	row := q.db.QueryRow(ctx, countReportsAgainst, subjectID)
+	var i CountReportsAgainstRow
+	err := row.Scan(&i.Total, &i.Open)
+	return i, err
 }
 
 const findOpenReport = `-- name: FindOpenReport :one
@@ -44,6 +125,40 @@ type FindOpenReportParams struct {
 // The reporter's own open report on a target, if any.
 func (q *Queries) FindOpenReport(ctx context.Context, arg FindOpenReportParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, findOpenReport, arg.ReporterID, arg.TargetKind, arg.TargetID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const findUserByEmail = `-- name: FindUserByEmail :one
+SELECT id FROM users WHERE lower(email) = lower($1::text) AND deleted_at IS NULL
+`
+
+func (q *Queries) FindUserByEmail(ctx context.Context, email string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, findUserByEmail, email)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const findUserByID = `-- name: FindUserByID :one
+SELECT id FROM users WHERE id = $1::uuid
+`
+
+func (q *Queries) FindUserByID(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, findUserByID, id)
+	var id_2 uuid.UUID
+	err := row.Scan(&id_2)
+	return id_2, err
+}
+
+const findUserByUsername = `-- name: FindUserByUsername :one
+SELECT id FROM users WHERE lower(username) = lower($1::text) AND deleted_at IS NULL
+`
+
+// A deleted account no longer holds its username.
+func (q *Queries) FindUserByUsername(ctx context.Context, username string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, findUserByUsername, username)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
@@ -185,26 +300,29 @@ func (q *Queries) HidePlace(ctx context.Context, id uuid.UUID) (int64, error) {
 }
 
 const insertAudit = `-- name: InsertAudit :exec
-INSERT INTO moderation_audit (actor_id, action, target_kind, target_id, report_id, reason)
+INSERT INTO moderation_audit (actor_id, action, target_kind, target_id, target_ref, report_id, reason)
 VALUES ($1::uuid, $2::text, $3::text, $4::uuid,
-        $5::uuid, $6::text)
+        $5::text, $6::uuid, $7::text)
 `
 
 type InsertAuditParams struct {
 	ActorID    *uuid.UUID
 	Action     string
 	TargetKind string
-	TargetID   uuid.UUID
+	TargetID   *uuid.UUID
+	TargetRef  string
 	ReportID   *uuid.UUID
 	Reason     string
 }
 
+// A target is named by target_id, or for an access code by target_ref.
 func (q *Queries) InsertAudit(ctx context.Context, arg InsertAuditParams) error {
 	_, err := q.db.Exec(ctx, insertAudit,
 		arg.ActorID,
 		arg.Action,
 		arg.TargetKind,
 		arg.TargetID,
+		arg.TargetRef,
 		arg.ReportID,
 		arg.Reason,
 	)
@@ -238,6 +356,118 @@ func (q *Queries) InsertReport(ctx context.Context, arg InsertReportParams) (uui
 	return id, err
 }
 
+const lastSignIn = `-- name: LastSignIn :one
+SELECT created_at FROM sessions WHERE user_id = $1::uuid ORDER BY created_at DESC LIMIT 1
+`
+
+// The newest session's start; only a sign-in starts one.
+func (q *Queries) LastSignIn(ctx context.Context, userID uuid.UUID) (time.Time, error) {
+	row := q.db.QueryRow(ctx, lastSignIn, userID)
+	var created_at time.Time
+	err := row.Scan(&created_at)
+	return created_at, err
+}
+
+const listAuditLog = `-- name: ListAuditLog :many
+SELECT a.id,
+       a.actor_id,
+       (CASE WHEN au.deleted_at IS NOT NULL THEN '[deleted]' ELSE coalesce(au.username, '') END)::text AS actor_username,
+       a.action,
+       a.target_kind,
+       a.target_id,
+       a.target_ref,
+       coalesce(CASE a.target_kind
+           WHEN 'AUDIT_TARGET_KIND_USER' THEN (
+               SELECT CASE WHEN tu.deleted_at IS NOT NULL THEN '[deleted]' ELSE tu.username END
+               FROM users tu WHERE tu.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_PLACE' THEN (SELECT tp.name FROM places tp WHERE tp.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_PERSPECTIVE' THEN (
+               SELECT ta.title FROM perspectives tv JOIN arcs ta ON ta.id = tv.arc_id WHERE tv.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_LORE_POST' THEN (SELECT left(tlp.body, 120) FROM lore_posts tlp WHERE tlp.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_LORE_NAME' THEN (SELECT tl.name FROM lores tl WHERE tl.id = a.target_id)
+           WHEN 'AUDIT_TARGET_KIND_ACCESS_CODE' THEN a.target_ref
+       END, '')::text AS target_label,
+       a.report_id,
+       a.reason,
+       a.at
+FROM moderation_audit a
+LEFT JOIN users au ON au.id = a.actor_id
+WHERE ($1::text IS NULL OR a.action = $1::text)
+  AND ($2::uuid IS NULL OR a.actor_id = $2::uuid)
+  AND ($3::uuid IS NULL
+       OR (a.target_kind = 'AUDIT_TARGET_KIND_USER' AND a.target_id = $3::uuid)
+       OR (a.target_kind = 'AUDIT_TARGET_KIND_PERSPECTIVE' AND EXISTS (
+               SELECT 1 FROM perspectives sp WHERE sp.id = a.target_id AND sp.author_id = $3::uuid))
+       OR (a.target_kind = 'AUDIT_TARGET_KIND_LORE_POST' AND EXISTS (
+               SELECT 1 FROM lore_posts slp WHERE slp.id = a.target_id AND slp.author_id = $3::uuid)))
+  AND ($4::bigint IS NULL OR a.id < $4::bigint)
+ORDER BY a.id DESC
+LIMIT $5::integer
+`
+
+type ListAuditLogParams struct {
+	Action    *string
+	ActorID   *uuid.UUID
+	SubjectID *uuid.UUID
+	BeforeID  *int64
+	MaxRows   int32
+}
+
+type ListAuditLogRow struct {
+	ID            int64
+	ActorID       *uuid.UUID
+	ActorUsername string
+	Action        string
+	TargetKind    string
+	TargetID      *uuid.UUID
+	TargetRef     string
+	TargetLabel   string
+	ReportID      *uuid.UUID
+	Reason        string
+	At            time.Time
+}
+
+// The audit log, newest first, keyset-paginated on id. Each filter is off
+// when NULL; a subject matches actions on the account or on a perspective or
+// thread post it wrote.
+func (q *Queries) ListAuditLog(ctx context.Context, arg ListAuditLogParams) ([]ListAuditLogRow, error) {
+	rows, err := q.db.Query(ctx, listAuditLog,
+		arg.Action,
+		arg.ActorID,
+		arg.SubjectID,
+		arg.BeforeID,
+		arg.MaxRows,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAuditLogRow
+	for rows.Next() {
+		var i ListAuditLogRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ActorID,
+			&i.ActorUsername,
+			&i.Action,
+			&i.TargetKind,
+			&i.TargetID,
+			&i.TargetRef,
+			&i.TargetLabel,
+			&i.ReportID,
+			&i.Reason,
+			&i.At,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listReports = `-- name: ListReports :many
 SELECT r.id,
        r.reporter_id,
@@ -267,14 +497,23 @@ FROM reports r
 JOIN users ru ON ru.id = r.reporter_id
 LEFT JOIN users rb ON rb.id = r.resolved_by
 WHERE ($1::text IS NULL OR r.status = $1::text)
-  AND ($2::timestamptz IS NULL
-       OR (r.created_at, r.id) > ($2::timestamptz, $3::uuid))
+  AND ($2::uuid IS NULL OR r.reporter_id = $2::uuid)
+  AND ($3::uuid IS NULL
+       OR (r.target_kind = 'REPORT_TARGET_KIND_USER' AND r.target_id = $3::uuid)
+       OR (r.target_kind = 'REPORT_TARGET_KIND_PERSPECTIVE' AND EXISTS (
+               SELECT 1 FROM perspectives sp WHERE sp.id = r.target_id AND sp.author_id = $3::uuid))
+       OR (r.target_kind = 'REPORT_TARGET_KIND_LORE_POST' AND EXISTS (
+               SELECT 1 FROM lore_posts slp WHERE slp.id = r.target_id AND slp.author_id = $3::uuid)))
+  AND ($4::timestamptz IS NULL
+       OR (r.created_at, r.id) > ($4::timestamptz, $5::uuid))
 ORDER BY r.created_at, r.id
-LIMIT $4::integer
+LIMIT $6::integer
 `
 
 type ListReportsParams struct {
 	Status         *string
+	ReporterID     *uuid.UUID
+	SubjectID      *uuid.UUID
 	AfterCreatedAt *time.Time
 	AfterID        *uuid.UUID
 	MaxRows        int32
@@ -299,10 +538,14 @@ type ListReportsRow struct {
 }
 
 // The admin queue, oldest first, keyset-paginated on (created_at, id). A NULL
-// status lists every status.
+// status lists every status; a reporter narrows to what one user filed, and a
+// subject to reports against one user: the account, or a perspective or
+// thread post they wrote.
 func (q *Queries) ListReports(ctx context.Context, arg ListReportsParams) ([]ListReportsRow, error) {
 	rows, err := q.db.Query(ctx, listReports,
 		arg.Status,
+		arg.ReporterID,
+		arg.SubjectID,
 		arg.AfterCreatedAt,
 		arg.AfterID,
 		arg.MaxRows,

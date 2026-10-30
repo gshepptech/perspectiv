@@ -161,3 +161,23 @@ func TestNextPageTokenEmpty(t *testing.T) {
 		t.Fatalf("NextPageToken(\"\") = %q, want \"\"", got)
 	}
 }
+
+func TestMaskEmail(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, in, want string
+	}{
+		{name: "long local part", in: "pat@example.test", want: "pa•••@example.test"},
+		{name: "short local part", in: "p@example.test", want: "p•••@example.test"},
+		{name: "multibyte", in: "zoë@example.test", want: "zo•••@example.test"},
+		{name: "no at sign", in: "not-an-address", want: "•••"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := apiutil.MaskEmail(tc.in); got != tc.want {
+				t.Fatalf("MaskEmail(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}

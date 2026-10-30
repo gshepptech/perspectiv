@@ -49,6 +49,14 @@ func parseID(field, s string) (uuid.UUID, error) {
 	return id, nil
 }
 
+// optionalID parses an id filter; empty is no filter.
+func optionalID(field, s string) (uuid.UUID, error) {
+	if s == "" {
+		return uuid.Nil, nil
+	}
+	return parseID(field, s)
+}
+
 // Report files a report. The route requires a verified email and counts
 // against the report rate limit; the interceptor enforces both.
 func (h *Handler) Report(ctx context.Context, req *connect.Request[perspectivv1.ReportRequest]) (*connect.Response[perspectivv1.ReportResponse], error) {
@@ -83,7 +91,15 @@ func (h *Handler) ListReports(ctx context.Context, req *connect.Request[perspect
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	reports, next, err := h.svc.ListReports(ctx, caller, req.Msg.GetStatus(), page)
+	m := req.Msg
+	f := ReportFilter{Status: m.GetStatus()}
+	if f.Subject, err = optionalID("subject_user_id", m.GetSubjectUserId()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	if f.Reporter, err = optionalID("reporter_id", m.GetReporterId()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	reports, next, err := h.svc.ListReports(ctx, caller, f, page)
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
@@ -105,4 +121,42 @@ func (h *Handler) Resolve(ctx context.Context, req *connect.Request[perspectivv1
 		return nil, apiutil.ToConnect(err)
 	}
 	return connect.NewResponse(&perspectivv1.ResolveResponse{Report: r}), nil
+}
+
+// ListAuditLog returns a page of the audit log, newest first. ADMIN only.
+func (h *Handler) ListAuditLog(ctx context.Context, req *connect.Request[perspectivv1.ListAuditLogRequest]) (*connect.Response[perspectivv1.ListAuditLogResponse], error) {
+	caller, err := callerID(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	m := req.Msg
+	page, err := apiutil.ParsePageToken(m.GetPageToken(), m.GetPageSize())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	f := AuditFilter{Action: m.GetAction()}
+	if f.Actor, err = optionalID("actor_id", m.GetActorId()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	if f.Subject, err = optionalID("subject_user_id", m.GetSubjectUserId()); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	entries, next, err := h.svc.ListAuditLog(ctx, caller, f, page)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ListAuditLogResponse{Entries: entries, NextPageToken: next}), nil
+}
+
+// LookupUser finds one account for a moderator. ADMIN only.
+func (h *Handler) LookupUser(ctx context.Context, req *connect.Request[perspectivv1.LookupUserRequest]) (*connect.Response[perspectivv1.LookupUserResponse], error) {
+	caller, err := callerID(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	u, err := h.svc.LookupUser(ctx, caller, req.Msg.GetQuery())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.LookupUserResponse{User: u}), nil
 }

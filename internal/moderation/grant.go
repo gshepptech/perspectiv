@@ -13,9 +13,6 @@ import (
 	"perspectiv/internal/moderation/dbq"
 )
 
-// AuditActionAdminGrant is the moderation_audit action an admin grant writes.
-const AuditActionAdminGrant = "ADMIN_GRANT"
-
 // grantReason is the audit reason of a grant made from the command line.
 const grantReason = "granted with perspectiv admin grant"
 
@@ -53,10 +50,10 @@ func GrantAdmin(ctx context.Context, pool *pgxpool.Pool, username string) error 
 		if err := q.SetRoleAdmin(ctx, u.ID); err != nil {
 			return fmt.Errorf("grant admin: set role: %w", err)
 		}
-		if err := q.InsertAudit(ctx, dbq.InsertAuditParams{
-			Action:     AuditActionAdminGrant,
-			TargetKind: perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_USER.String(),
-			TargetID:   u.ID,
+		if err := writeAudit(ctx, q, AuditEntry{
+			Action:     perspectivv1.AuditAction_AUDIT_ACTION_ADMIN_GRANT,
+			TargetKind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_USER,
+			TargetID:   &u.ID,
 			Reason:     grantReason,
 		}); err != nil {
 			return fmt.Errorf("grant admin: write audit row: %w", err)

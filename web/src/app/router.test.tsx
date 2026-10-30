@@ -56,6 +56,8 @@ const contract: [string, string][] = [
   ["/claims", "claims/ClaimsPage"],
   ["/admin/reports", "admin/ReportsPage"],
   ["/admin/access", "admin/AccessPage"],
+  ["/admin/users?q=wren", "admin/UsersPage"],
+  ["/admin/audit", "admin/AuditPage"],
   ["/terms", "legal/TermsPage"],
   ["/privacy", "legal/PrivacyPage"],
   ["/guidelines", "legal/GuidelinesPage"],
@@ -96,7 +98,7 @@ describe("signed-out reading and writing", () => {
     });
   }
 
-  const writePaths = ["/compose?placeId=p-1&date=2026-10-01", "/claims", "/admin/reports", "/admin/access", "/settings", "/inbox"];
+  const writePaths = ["/compose?placeId=p-1&date=2026-10-01", "/claims", "/admin/reports", "/admin/access", "/admin/users", "/admin/audit", "/settings", "/inbox"];
   for (const path of writePaths) {
     it(`${path} redirects a signed-out visitor to login with next`, async () => {
       const { router } = renderAt(path);
@@ -181,7 +183,9 @@ describe("shell", () => {
     const { router } = renderAt("/", { refresh: signedIn("ROLE_ADMIN") });
     await screen.findByTestId("page");
     await user.click(screen.getByRole("button", { name: "Account: wren" }));
-    await user.click(await screen.findByRole("menuitem", { name: "Reports" }));
+    expect(await screen.findByRole("menuitem", { name: "Look up a user" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Audit log" })).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: "Reports" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/admin/reports"));
   });
 
