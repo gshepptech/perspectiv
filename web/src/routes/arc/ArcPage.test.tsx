@@ -104,7 +104,7 @@ describe("arc page reading order", () => {
 
   it("explains a missing arc", async () => {
     await open("/arcs/nope", () => connectError("not_found", "arc not found"));
-    expect(await screen.findByRole("heading", { name: "Arc not found" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Day not found" })).toBeInTheDocument();
   });
 
   it("offers a retry when the arc cannot be loaded", async () => {
@@ -137,7 +137,7 @@ describe("hour timeline", () => {
     expect(within(items[0]!).getByText("No canon yet")).toBeInTheDocument();
     expect(within(items[1]!).getByText("Hour eleven canon text")).toBeInTheDocument();
     expect(within(items[2]!).getByText("Hour fifteen canon text")).toBeInTheDocument();
-    expect(within(items[2]!).getByRole("link", { name: /Open the 15:00 arc/ })).toHaveAttribute("href", "/arcs/arc-h15");
+    expect(within(items[2]!).getByRole("link", { name: /Open the 15:00 hour/ })).toHaveAttribute("href", "/arcs/arc-h15");
     // The stitched canons come after the day-level canon's own perspectives.
     expect(before(within(canon).getByText("Canon text by wren"), within(items[1]!).getByText("Hour eleven canon text"))).toBe(true);
   });
@@ -171,17 +171,46 @@ describe("hour timeline", () => {
   });
 });
 
+const UPVOTE_RULE = "Only people who wrote about this day can upvote its stories, so the people who were there choose its canon.";
+
 describe("signed-out reader", () => {
-  it("AC-009: reads canon, contenders and stories standing alone, and an upvote redirects to login", async () => {
+  it("AC-009: reads canon, contenders and stories standing alone, with counts but no upvote button", async () => {
     const { api } = await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
     const canon = await screen.findByRole("region", { name: "Canon" });
     expect(within(canon).getByText("Canon text by otter")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Standing alone" })).toHaveTextContent("A tale nobody claimed");
 
     const card = within(canon).getByRole("article", { name: "otter's perspective" });
-    await userEvent.click(await within(card).findByRole("button", { name: /^Upvote/, pressed: false }));
-    expect(await screen.findByTestId("login")).toHaveTextContent("login at /login?next=%2Farcs%2Farc-day");
+    expect(card).toHaveTextContent("2 upvotes");
+    expect(within(card).queryByRole("button", { name: /^Upvote/ })).toBeNull();
+    expect(screen.queryAllByRole("button", { name: /^Upvote/ })).toEqual([]);
     expect(api.calls.some((c) => c.procedure.startsWith("VoteService"))).toBe(false);
+  });
+
+  it("is told once, above the stories, who can upvote, with the story page's words and ways in", async () => {
+    await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
+    const note = await screen.findByRole("note");
+    expect(note).toHaveTextContent(UPVOTE_RULE);
+    expect(note).toHaveTextContent("Were you there? Write your side");
+    expect(within(note).getByRole("link", { name: "Write your side" })).toHaveAttribute(
+      "href",
+      "/compose?placeId=pl-store&date=2026-10-01&return=%2Farcs%2Farc-day",
+    );
+    expect(note).toHaveTextContent("Already wrote yours? Sign in");
+    expect(within(note).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login?next=%2Farcs%2Farc-day");
+    // Above the first list, not repeated per row.
+    expect(before(note, await screen.findByRole("region", { name: "Canon" }))).toBe(true);
+    expect(screen.getAllByText(UPVOTE_RULE)).toHaveLength(1);
+  });
+
+  it("says this hour on an hour arc", async () => {
+    const res = dayArcResponse();
+    await open("/arcs/arc-h15", () => ({
+      body: { ...res, arc: arc({ id: "arc-h15", hour: 15, parentArcId: "arc-day", title: "The afternoon rush" }), hours: [] },
+    }));
+    expect(await screen.findByRole("note")).toHaveTextContent(
+      "Only people who wrote about this hour can upvote its stories, so the people who were there choose its canon.",
+    );
   });
 });
 
@@ -196,12 +225,20 @@ describe("participation", () => {
     const write = await screen.findByRole("link", { name: "Write your perspective" });
     expect(write).toHaveAttribute("href", "/compose?placeId=pl-store&date=2026-10-01");
     expect(screen.getByText(/Only people who wrote about this day can upvote, claim characters or post in a lore's thread/)).toBeInTheDocument();
+    // The same arrow a signed-out reader sees: a count, and the rule once.
+    const otter = within(screen.getByRole("region", { name: "Canon" })).getByRole("article", { name: "otter's perspective" });
+    expect(within(otter).queryByRole("button", { name: /^Upvote/ })).toBeNull();
+    const note = screen.getByRole("note");
+    expect(note).toHaveTextContent(UPVOTE_RULE);
+    expect(within(note).queryByRole("link", { name: "Sign in" })).toBeNull();
   });
 
   it("links a participant to their own perspective instead", async () => {
     await open("/arcs/arc-day", () => ({ body: dayArcResponse() }), { signedIn: true });
     expect(await screen.findByRole("link", { name: "Read yours" })).toHaveAttribute("href", "/perspectives/p-wren");
     expect(screen.queryByRole("link", { name: "Write your perspective" })).toBeNull();
+    // A writer of this day votes on the rows, so nobody tells them who may.
+    expect(screen.queryByRole("note")).toBeNull();
   });
 
   it("the write link for an hour arc carries the hour", async () => {

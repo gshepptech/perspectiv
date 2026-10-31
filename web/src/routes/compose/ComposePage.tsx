@@ -1,8 +1,9 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 
+import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Place } from "@/gen/perspectiv/v1/place_pb";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
@@ -15,7 +16,9 @@ import { isLocalDate, parseHour, todayIn } from "./localDate";
 import { PlacePicker } from "./PlacePicker";
 
 const EXISTING_NOTICE =
-  "You already published a perspective here, so it is open for editing. Each person writes one perspective per arc.";
+  "You already published a perspective here, so it is open for editing. Each person writes one story per day.";
+
+const RESUMED_NOTICE = "You started a draft for this day, so it is open again.";
 
 // Composer data is read fresh on every visit: initial form values must never
 // come from a cached copy that predates the author's last save.
@@ -60,17 +63,59 @@ function placeToday(place: Place): string {
   return todayIn(place.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
 }
 
+/**
+ * The writer's newest draft for this place, day and hour, if they have one:
+ * opening the composer there again resumes it rather than starting a second
+ * draft of the same day.
+ */
+function useDraftFor(placeId: string, localDate: string | undefined, hour: number | undefined) {
+  return useQuery({
+    queryKey: ["perspective", "listMine", { status: PerspectiveStatus.DRAFT, placeId, localDate, hour }],
+    queryFn: async () => {
+      const res = await clients.perspective.listMine({ status: PerspectiveStatus.DRAFT, placeId, localDate, hour, pageSize: 1 });
+      return res.perspectives[0] ?? null;
+    },
+    enabled: localDate !== undefined,
+    ...fresh,
+  });
+}
+
 function NewForPlace({ placeId, date, hour, ...shared }: Shared & { placeId: string; date?: string; hour?: number }) {
   const place = useQuery({
     queryKey: ["place", "getPlace", placeId],
     queryFn: () => clients.place.getPlace({ placeId }),
     ...fresh,
   });
+  const today = place.data?.place ? placeToday(place.data.place) : undefined;
+  const localDate = date ?? today;
+  const draft = useDraftFor(placeId, localDate, hour);
+  const resumed = draft.data ?? null;
+  // The address names the resumed draft, so a reload reopens it. The
+  // callback changes on every render of the page, so it is read through a
+  // ref and the effect runs once per draft found.
+  const named = useRef(shared.onDraftNamed);
+  named.current = shared.onDraftNamed;
+  const resumedId = resumed?.id;
+  useEffect(() => {
+    if (resumedId) named.current(resumedId);
+  }, [resumedId]);
   if (place.isError) return <LoadFailed error={place.error} />;
-  if (!place.data?.place) return <Loading />;
+  if (draft.isError) return <LoadFailed error={draft.error} />;
+  if (!place.data?.place || today === undefined || localDate === undefined || draft.isPending) return <Loading />;
   const p = place.data.place;
-  const today = placeToday(p);
-  return <Composer place={p} today={today} initial={blankValues(date ?? today, hour)} {...shared} />;
+  if (resumed) {
+    return (
+      <Composer
+        place={p}
+        today={today}
+        initial={valuesFromPerspective(resumed, today)}
+        perspective={resumed}
+        {...shared}
+        notice={shared.notice ?? RESUMED_NOTICE}
+      />
+    );
+  }
+  return <Composer place={p} today={today} initial={blankValues(localDate, hour)} {...shared} />;
 }
 
 function Existing({ perspectiveId, ...shared }: Shared & { perspectiveId: string }) {

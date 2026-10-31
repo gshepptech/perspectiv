@@ -1,8 +1,24 @@
 import { NotificationKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { Notification } from "@/gen/perspectiv/v1/notify_pb";
 
-/** What an inbox row says and where it leads; `to` is null when there is no page to open. */
-export type Described = { text: string; to: string | null };
+/**
+ * What an inbox row says and where it leads; `to` is null when there is no
+ * page to open. `detail`, when set, is a second line under the sentence.
+ */
+export type Described = { text: string; to: string | null; detail?: string };
+
+/**
+ * The new story's characters nobody has claimed, as a sentence: up to three
+ * labels in quotes, then "and N more" ("“a”, “b”, “c” and 2 more"). Empty
+ * when the server names none. The email words it the same way.
+ */
+export function castLine(n: Pick<Notification, "unclaimedCharacters" | "moreUnclaimedCharacters">): string {
+  const items = n.unclaimedCharacters.map((label) => `“${label}”`);
+  if (items.length === 0) return "";
+  if (n.moreUnclaimedCharacters > 0) items.push(`${n.moreUnclaimedCharacters} more`);
+  const last = items.pop() ?? "";
+  return `Who might be in it: ${items.length > 0 ? `${items.join(", ")} and ${last}` : last}.`;
+}
 
 /**
  * The sentence and destination for one notification. Other users appear only
@@ -15,7 +31,7 @@ export type Described = { text: string; to: string | null };
  */
 export function describeNotification(n: Notification): Described {
   const who = n.actor?.username || "Someone";
-  const arc = n.arcTitle || "an arc";
+  const arc = n.arcTitle || "a day";
   const arcPage = n.arcId ? `/arcs/${n.arcId}` : null;
   const perspectivePage = n.perspectiveId ? `/perspectives/${n.perspectiveId}` : arcPage;
   switch (n.kind) {
@@ -23,8 +39,10 @@ export function describeNotification(n: Notification): Described {
       return { text: `${who} claimed a character in your perspective in ${arc}.`, to: "/claims" };
     case NotificationKind.CLAIM_ACCEPTED:
       return { text: `${who} accepted your claim in ${arc}.`, to: arcPage };
-    case NotificationKind.NEW_PERSPECTIVE_IN_ARC:
-      return { text: `${who} published a new perspective in ${arc}.`, to: perspectivePage };
+    case NotificationKind.NEW_PERSPECTIVE_IN_ARC: {
+      const detail = castLine(n);
+      return { text: `${who} published a new perspective in ${arc}.`, to: perspectivePage, ...(detail && { detail }) };
+    }
     case NotificationKind.VOTE_OUT_OPENED:
       return { text: `A vote to remove a perspective opened in ${arc}.`, to: perspectivePage };
     case NotificationKind.CANON_CHANGE:

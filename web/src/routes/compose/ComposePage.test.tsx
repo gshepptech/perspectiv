@@ -99,7 +99,7 @@ describe("composer date picker", () => {
     const date = screen.getByLabelText("Day of your visit");
     await user.clear(date);
     await user.type(date, "2026-10-15");
-    await user.type(screen.getByRole("textbox", { name: "Arc title" }), "The rainy Thursday");
+    await user.type(screen.getByRole("textbox", { name: "Title of the day" }), "The rainy Thursday");
     await pickGenre(user, "Slice of life");
     await user.type(screen.getByRole("textbox", { name: "Part 1" }), "We met by the poetry shelf.");
     await user.click(screen.getByRole("button", { name: "Publish" }));
@@ -284,6 +284,60 @@ describe("composer autosave (FR-044)", () => {
   });
 });
 
+describe("composer: resuming a draft", () => {
+  const savedDraft = {
+    id: "d-old",
+    status: "PERSPECTIVE_STATUS_DRAFT",
+    place: { id: nyStore.id, kind: nyStore.kind, name: nyStore.name },
+    localDate: "2026-10-01",
+    hour: 14,
+    genre: "GENRE_COMEDY",
+    parts: [{ position: 1, body: "I came back for the cat." }],
+  };
+
+  it("opens the writer's draft for that place, day and hour instead of starting another", async () => {
+    const user = userEvent.setup();
+    const api = installApi({
+      "PlaceService/GetPlace": getPlace,
+      "PerspectiveService/ListMine": () => ok({ perspectives: [savedDraft] }),
+      "PerspectiveService/SaveDraft": (body) => draftReply("d-old", body),
+    });
+    const router = renderRoute("/compose?placeId=p-ny&date=2026-10-01&hour=14");
+    const part = await screen.findByRole("textbox", { name: "Part 1" });
+    expect(part).toHaveValue("I came back for the cat.");
+    expect(screen.getByText("You started a draft for this day, so it is open again.")).toBeInTheDocument();
+    expect(api.callsTo("PerspectiveService/ListMine")[0]?.body).toMatchObject({
+      status: "PERSPECTIVE_STATUS_DRAFT",
+      placeId: "p-ny",
+      localDate: "2026-10-01",
+      hour: 14,
+    });
+    // The address names the draft, so a reload reopens it.
+    await waitFor(() => expect(router.state.location.search).toContain("perspectiveId=d-old"));
+    // Edits save into that draft, never a new one.
+    await user.type(part, " Again.");
+    await waitFor(() => expect(api.callsTo("PerspectiveService/SaveDraft")).toHaveLength(1), { timeout: AUTOSAVE_DEBOUNCE_MS + 2000 });
+    expect(api.callsTo("PerspectiveService/SaveDraft")[0]?.body).toMatchObject({
+      perspectiveId: "d-old",
+      parts: ["I came back for the cat. Again."],
+    });
+    expect(part).toHaveValue("I came back for the cat. Again.");
+  });
+
+  it("looks for a draft on today in the place when the address names no day, and starts fresh when there is none", async () => {
+    vi.useFakeTimers({ now: LATE_EVENING_LA, toFake: ["Date"] });
+    const api = await openComposer("/compose?placeId=p-ny");
+    expect(await screen.findByRole("textbox", { name: "Part 1" })).toHaveValue("");
+    expect(api.callsTo("PerspectiveService/ListMine")[0]?.body).toMatchObject({
+      status: "PERSPECTIVE_STATUS_DRAFT",
+      placeId: "p-ny",
+      localDate: "2026-10-16",
+    });
+    expect(api.callsTo("PerspectiveService/ListMine")[0]?.body).not.toHaveProperty("hour");
+    expect(screen.queryByText(/open again/)).toBeNull();
+  });
+});
+
 describe("publishing", () => {
   it("opens the published perspective after a successful publish", async () => {
     const user = userEvent.setup();
@@ -303,13 +357,15 @@ describe("publishing", () => {
     const api = await openComposer("/compose?placeId=p-ny&date=2026-10-15&hour=14", {
       "PerspectiveService/SaveDraft": (body) => draftReply("d-2", body),
       "PerspectiveService/Publish": () => apiError("already_exists", "you already published in this arc"),
-      "PerspectiveService/ListMine": () =>
-        ok({
-          perspectives: [
-            publishedPerspective({ id: "pub-other-hour", hour: 9 }),
-            publishedPerspective(),
-          ],
-        }),
+      "PerspectiveService/ListMine": (body) =>
+        body.status === "PERSPECTIVE_STATUS_DRAFT"
+          ? ok({ perspectives: [] })
+          : ok({
+              perspectives: [
+                publishedPerspective({ id: "pub-other-hour", hour: 9 }),
+                publishedPerspective(),
+              ],
+            }),
       "PerspectiveService/Get": (body) => ok({ perspective: publishedPerspective({ id: body.perspectiveId }) }),
     });
     await pickGenre(user, "Mystery");
@@ -317,7 +373,7 @@ describe("publishing", () => {
     await user.click(screen.getByRole("button", { name: "Publish" }));
 
     expect(await screen.findByRole("heading", { name: "Edit your perspective" })).toBeInTheDocument();
-    expect(api.callsTo("PerspectiveService/ListMine")[0]?.body).toMatchObject({
+    expect(api.callsTo("PerspectiveService/ListMine").find((c) => c.body.status === "PERSPECTIVE_STATUS_PUBLISHED")?.body).toMatchObject({
       status: "PERSPECTIVE_STATUS_PUBLISHED",
       placeId: "p-ny",
       localDate: "2026-10-15",
@@ -385,7 +441,7 @@ describe("editing a published perspective", () => {
     expect(await screen.findByRole("heading", { name: "Edit your perspective" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Day of your visit")).toBeNull();
     expect(screen.getByText(/2026-10-15, 14:00/)).toBeInTheDocument();
-    expect(screen.queryByRole("textbox", { name: "Arc title" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "Title of the day" })).toBeNull();
 
     expect(screen.getByRole("button", { name: "Remove character 1" })).toBeDisabled();
     expect(screen.getByText(/claimed by another writer, so it stays/i)).toBeInTheDocument();
@@ -424,7 +480,7 @@ describe("editing a published perspective", () => {
     renderRoute("/compose?perspectiveId=d-5");
     expect(await screen.findByRole("heading", { name: "Write a perspective" })).toBeInTheDocument();
     expect(screen.getByLabelText("Day of your visit")).toHaveValue("2026-10-12");
-    expect(screen.getByRole("textbox", { name: "Arc title" })).toHaveValue("Closing time");
+    expect(screen.getByRole("textbox", { name: "Title of the day" })).toHaveValue("Closing time");
     expect(screen.getByRole("combobox", { name: "Genre" })).toHaveTextContent("Romance");
     expect(screen.getByRole("textbox", { name: "Part 1" })).toHaveValue("Draft text");
   });
@@ -545,7 +601,7 @@ describe("writing through an invite", () => {
       "PerspectiveService/Publish": () => ok({ perspectiveId: "d-1", arcId: "arc-9" }),
       "ArcService/GetArc": () => ok({}),
     });
-    await user.type(screen.getByRole("textbox", { name: "Arc title" }), "Open mic night");
+    await user.type(screen.getByRole("textbox", { name: "Title of the day" }), "Open mic night");
     await pickGenre(user, "Drama");
     await user.type(screen.getByRole("textbox", { name: "Part 1" }), "I was the one singing.");
     await user.click(screen.getByRole("button", { name: "Publish" }));
@@ -572,7 +628,7 @@ describe("composer: who already wrote this day", () => {
       "This day is “Bucs comeback in the rain”: 2 stories for the whole day, 1 story at 13:00.",
     );
     expect(screen.getByText(/Writing for the whole day puts your story with theirs/)).toBeInTheDocument();
-    expect(screen.queryByLabelText("Arc title")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Title of the day")).not.toBeInTheDocument();
     await user.click(screen.getByRole("combobox", { name: "Hour" }));
     await user.click(await screen.findByRole("option", { name: "13:00" }));
     expect(await screen.findByText(/You join 13:00/)).toBeInTheDocument();
@@ -581,11 +637,11 @@ describe("composer: who already wrote this day", () => {
   it("asks for a title when nobody has written that day", async () => {
     await openComposer("/compose?placeId=p-ny", { "ArcService/FindDayArc": () => ok({}) });
     expect(await screen.findByText(/Nobody has written about Corner Books on this day yet/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Arc title")).toBeInTheDocument();
+    expect(screen.getByLabelText("Title of the day")).toBeInTheDocument();
   });
 });
 
-describe("composer: one story per arc, and writing your side", () => {
+describe("composer: one story per day, and writing your side", () => {
   it("warns before typing when the writer already has a story in that arc, and offers it", async () => {
     await openComposer("/compose?placeId=p-ny", {
       "ArcService/FindDayArc": () => ok({ arcId: "arc-1", title: "Rain on the square", perspectiveCount: 2, minePerspectiveId: "p-mine" }),

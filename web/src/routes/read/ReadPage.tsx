@@ -13,6 +13,7 @@ import { arcQuery, perspectiveQuery } from "@/components/actions/queries";
 import { arcSpan, formatDayBeside, genreLabel, storyStanding, storyStandingNote } from "@/components/reader/format";
 import { Cast } from "@/components/reader/Cast";
 import { Reader, useWholeStory } from "@/components/reader/Reader";
+import { storyTitle } from "@/components/reader/storyTitle";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
 import type { GetArcResponse } from "@/gen/perspectiv/v1/arc_pb";
@@ -143,7 +144,7 @@ function BackLink({ p }: { p: Perspective }) {
     <p className="mx-auto mb-4 max-w-measure">
       <Link to={`/arcs/${p.arcId}`} className="inline-flex min-h-11 items-center gap-1 text-sm text-accent underline underline-offset-4">
         <ArrowLeft aria-hidden size={16} />
-        Back to the arc
+        Back to the {arcSpan(p.hour)}
       </Link>
     </p>
   );
@@ -259,13 +260,13 @@ export function Component() {
   const arc = useQuery({ ...arcQuery(arcId), enabled: arcId !== "" });
   const bodies = (loaded?.parts ?? []).toSorted((a, b) => a.position - b.position).map((part) => part.body);
   const reading = useWholeStory(bodies);
-  const storyTitle = loaded ? loaded.arcTitle || loaded.titleIfNewArc || "Untitled" : "";
+  const title = loaded ? storyTitle(loaded) : "";
   useDocumentTitle(
     query.isError
       ? "Perspective not found"
       : loaded && loaded.author && !loaded.deleted && !loaded.hidden
-        ? `${storyTitle} by ${loaded.author.username}`
-        : storyTitle,
+        ? `${title} by ${loaded.author.username}`
+        : title,
   );
   const onPartChange = useCallback(
     (n: number) =>
@@ -309,10 +310,15 @@ export function Component() {
     <div className="min-w-0">
       <BackLink p={p} />
       {isDraft && (
-        <div className="mx-auto mb-4 flex max-w-measure flex-wrap items-center gap-3 rounded-md border border-warning px-3 py-1 text-sm">
-          <span className="font-medium text-warning">Draft</span>
-          <span className="text-ink-muted">Only you can see this.</span>
-          <AuthorActions p={p} />
+        // max-w-measure is 65ch of the box's own font, so the box keeps the
+        // reading size and the smaller text sits inside it: a text-sm box
+        // would be narrower than the story and centred off its left edge.
+        <div className="mx-auto mb-4 max-w-measure">
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-warning px-3 py-1 text-sm">
+            <span className="font-medium text-warning">Draft</span>
+            <span className="text-ink-muted">Only you can see this.</span>
+            <AuthorActions p={p} />
+          </div>
         </div>
       )}
       {justPublished && mine && !isDraft && <ReturnAfterPublish p={p} />}
@@ -336,12 +342,14 @@ export function Component() {
       )}
 
       {!isDraft && mine && (
-        <div className="mx-auto mb-4 max-w-measure text-sm">
-          <AuthorActions p={p} />
+        <div className="mx-auto mb-4 max-w-measure">
+          <div className="text-sm">
+            <AuthorActions p={p} />
+          </div>
         </div>
       )}
       <Reader
-        title={storyTitle}
+        title={title}
         byline={
           <>
             <Byline p={p} arc={arc.data} />

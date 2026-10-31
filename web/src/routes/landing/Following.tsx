@@ -11,8 +11,8 @@ const newLabel = (n: number) => (n >= COUNT_CAP ? `${COUNT_CAP}+` : String(n));
 
 /**
  * The places a signed-in reader follows, as quick links back to them. A
- * place with stories from the last week says how many, and the server puts
- * those places first.
+ * place with stories from the last week says how many and opens on its
+ * Newest tab, and the server puts those places first.
  */
 export function Following() {
   const following = useQuery({
@@ -41,7 +41,8 @@ export function Following() {
         {places.map((p) => (
           <li key={p.id} className="min-w-0">
             <Link
-              to={`/places/${p.id}`}
+              // What is new is on the Newest tab, where the new days are marked.
+              to={p.newThisWeek > 0 ? `/places/${p.id}?tab=newest` : `/places/${p.id}`}
               className="inline-flex min-h-11 max-w-full items-center gap-1.5 rounded-full border border-rule bg-paper px-3.5 text-sm text-ink hover:border-accent hover:text-accent"
             >
               <Bell aria-hidden size={14} className="shrink-0 text-accent" />

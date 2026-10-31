@@ -38,9 +38,16 @@ type Notification struct {
 	ReportId      string                 `protobuf:"bytes,9,opt,name=report_id,json=reportId,proto3" json:"report_id,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Unset while unread.
-	ReadAt        *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ReadAt *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
+	// NEW_PERSPECTIVE_IN_ARC only: up to three labels of the new story's
+	// characters nobody has claimed (no PENDING or ACCEPTED claim), in the
+	// story's order, read when the inbox is. Empty when the story is no longer
+	// readable or every character is claimed.
+	UnclaimedCharacters []string `protobuf:"bytes,12,rep,name=unclaimed_characters,json=unclaimedCharacters,proto3" json:"unclaimed_characters,omitempty"`
+	// How many more unclaimed characters the story has beyond those listed.
+	MoreUnclaimedCharacters int32 `protobuf:"varint,13,opt,name=more_unclaimed_characters,json=moreUnclaimedCharacters,proto3" json:"more_unclaimed_characters,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *Notification) Reset() {
@@ -148,6 +155,20 @@ func (x *Notification) GetReadAt() *timestamppb.Timestamp {
 		return x.ReadAt
 	}
 	return nil
+}
+
+func (x *Notification) GetUnclaimedCharacters() []string {
+	if x != nil {
+		return x.UnclaimedCharacters
+	}
+	return nil
+}
+
+func (x *Notification) GetMoreUnclaimedCharacters() int32 {
+	if x != nil {
+		return x.MoreUnclaimedCharacters
+	}
+	return 0
 }
 
 // Preference is the two toggles for one notification kind. Both default on.
@@ -718,7 +739,7 @@ var File_perspectiv_v1_notify_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_notify_proto_rawDesc = "" +
 	"\n" +
-	"\x1aperspectiv/v1/notify.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x18perspectiv/v1/user.proto\"\x9d\x03\n" +
+	"\x1aperspectiv/v1/notify.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x18perspectiv/v1/user.proto\"\x8c\x04\n" +
 	"\fNotification\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x123\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x1f.perspectiv.v1.NotificationKindR\x04kind\x12,\n" +
@@ -732,7 +753,9 @@ const file_perspectiv_v1_notify_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x123\n" +
-	"\aread_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\x06readAt\"n\n" +
+	"\aread_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\x06readAt\x121\n" +
+	"\x14unclaimed_characters\x18\f \x03(\tR\x13unclaimedCharacters\x12:\n" +
+	"\x19more_unclaimed_characters\x18\r \x01(\x05R\x17moreUnclaimedCharacters\"n\n" +
 	"\n" +
 	"Preference\x123\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x1f.perspectiv.v1.NotificationKindR\x04kind\x12\x15\n" +

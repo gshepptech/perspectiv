@@ -54,6 +54,10 @@ message Claim {
   ClaimStatus status = 9;
   google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp resolved_at = 11;
+  // The opening of the claimant's story, about 240 characters cut at a word
+  // and ending in "…" when cut. Empty when that story is not readable:
+  // deleted, hidden, unpublished, or filed at or below a hidden place.
+  string claimant_excerpt = 12;
 }
 
 // Encounter is an accepted claim seen as a link between two perspectives.

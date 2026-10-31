@@ -37,18 +37,40 @@ function listClaims(pages: Record<string, Record<string, unknown>[][]>): ApiHand
 describe("claims inbox", () => {
   it("lists claims on the author's characters with usernames only, and links both perspectives", async () => {
     const api = installApi({
-      "LoreService/ListClaims": listClaims({ CLAIM_DIRECTION_INCOMING: [[claim()]] }),
+      "LoreService/ListClaims": listClaims({ CLAIM_DIRECTION_INCOMING: [[claim({ claimantExcerpt: "I wore the green scarf." })]] }),
     });
     renderRoute("/claims");
     const item = await screen.findByRole("listitem", { name: /marlo/ });
     expect(item).toHaveTextContent("marlo says they are “the clerk with the green scarf”");
     expect(item).toHaveTextContent("Pending");
     expect(within(item).getByRole("link", { name: "Your perspective" })).toHaveAttribute("href", "/perspectives/p-mine");
-    expect(within(item).getByRole("link", { name: "Their perspective" })).toHaveAttribute(
-      "href",
-      "/perspectives/p-theirs",
-    );
+    expect(within(item).getByRole("link", { name: "Read their story" })).toHaveAttribute("href", "/perspectives/p-theirs");
     expect(api.callsTo("LoreService/ListClaims")[0]?.body).toMatchObject({ direction: "CLAIM_DIRECTION_INCOMING" });
+  });
+
+  it("quotes the claimant's story on an incoming request, so it can be judged here", async () => {
+    const excerpt =
+      "The power went out halfway through open mic. Someone by the window started singing anyway, and by the second verse the whole room had joined in. I was the one in the yellow raincoat, and I still do not know why I…";
+    installApi({
+      "LoreService/ListClaims": listClaims({ CLAIM_DIRECTION_INCOMING: [[claim({ claimantExcerpt: excerpt })]] }),
+    });
+    renderRoute("/claims");
+    const item = await screen.findByRole("listitem", { name: /marlo/ });
+    const quote = item.querySelector("blockquote");
+    expect(quote).toHaveTextContent(excerpt);
+    expect(within(item).getByRole("link", { name: "Read their story" })).toHaveAttribute("href", "/perspectives/p-theirs");
+    expect(item).not.toHaveTextContent("can no longer be read");
+  });
+
+  it("says when the claimant's story can no longer be read, and offers no link to it", async () => {
+    installApi({
+      "LoreService/ListClaims": listClaims({ CLAIM_DIRECTION_INCOMING: [[claim({ claimantExcerpt: "" })]] }),
+    });
+    renderRoute("/claims");
+    const item = await screen.findByRole("listitem", { name: /marlo/ });
+    expect(item).toHaveTextContent("Their story can no longer be read.");
+    expect(item.querySelector("blockquote")).toBeNull();
+    expect(within(item).queryByRole("link", { name: "Read their story" })).toBeNull();
   });
 
   it("accepts a pending claim and says what comes next: the lore to read and who else to invite", async () => {

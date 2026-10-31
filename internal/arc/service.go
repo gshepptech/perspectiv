@@ -184,16 +184,16 @@ func (s *Service) RetitleHourArc(ctx context.Context, caller, arcID uuid.UUID, t
 	q := dbq.New(tx)
 	row, err := q.LockArcForRetitle(ctx, arcID)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && row.PlaceHidden) {
-		return nil, apiutil.NotFound("arc not found")
+		return nil, apiutil.NotFound("day not found")
 	}
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("lock arc: %w", err))
 	}
 	if !row.Hour.Valid {
-		return nil, apiutil.FailedPrecondition("only an hour arc can be retitled")
+		return nil, apiutil.FailedPrecondition("only an hour can be retitled")
 	}
 	if row.CreatedBy != caller {
-		return nil, apiutil.PermissionDenied("only the hour arc's creator can retitle it")
+		return nil, apiutil.PermissionDenied("only the person who started this hour can retitle it")
 	}
 	clean, err := checkTitle(title, row.PlaceName, row.LocalDate.Time)
 	if err != nil {

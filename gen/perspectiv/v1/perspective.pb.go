@@ -248,7 +248,10 @@ type Perspective struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Empty while a draft.
-	ArcId    string            `protobuf:"bytes,2,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	ArcId string `protobuf:"bytes,2,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	// The arc's title. For a draft, the title of the existing day (or hour)
+	// arc it would join when published, read when the draft is; empty when
+	// publishing it would start that arc.
 	ArcTitle string            `protobuf:"bytes,3,opt,name=arc_title,json=arcTitle,proto3" json:"arc_title,omitempty"`
 	Author   *UserRef          `protobuf:"bytes,4,opt,name=author,proto3" json:"author,omitempty"`
 	Genre    Genre             `protobuf:"varint,5,opt,name=genre,proto3,enum=perspectiv.v1.Genre" json:"genre,omitempty"`
@@ -278,9 +281,14 @@ type Perspective struct {
 	Hidden      bool                   `protobuf:"varint,22,opt,name=hidden,proto3" json:"hidden,omitempty"`
 	// True when the signed-in caller has saved it to read later; false when
 	// signed out.
-	Saved         bool `protobuf:"varint,23,opt,name=saved,proto3" json:"saved,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Saved bool `protobuf:"varint,23,opt,name=saved,proto3" json:"saved,omitempty"`
+	// Draft only: the author's own published story in the arc this draft
+	// would join, which makes the draft impossible to publish there. Set even
+	// when that story is hidden, since a hidden story still holds the slot;
+	// empty when there is none.
+	SupersededById string `protobuf:"bytes,24,opt,name=superseded_by_id,json=supersededById,proto3" json:"superseded_by_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Perspective) Reset() {
@@ -472,6 +480,13 @@ func (x *Perspective) GetSaved() bool {
 		return x.Saved
 	}
 	return false
+}
+
+func (x *Perspective) GetSupersededById() string {
+	if x != nil {
+		return x.SupersededById
+	}
+	return ""
 }
 
 // PerspectiveSummary is a perspective as an entry in a listing.
@@ -1983,7 +1998,7 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"\x13claimed_by_story_id\x18\b \x01(\tR\x10claimedByStoryId\"6\n" +
 	"\x0eCharacterInput\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
-	"\x05label\x18\x02 \x01(\tR\x05label\"\x9a\a\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\"\xc4\a\n" +
 	"\vPerspective\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06arc_id\x18\x02 \x01(\tR\x05arcId\x12\x1b\n" +
@@ -2014,7 +2029,8 @@ const file_perspectiv_v1_perspective_proto_rawDesc = "" +
 	"updated_at\x18\x14 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x18\n" +
 	"\adeleted\x18\x15 \x01(\bR\adeleted\x12\x16\n" +
 	"\x06hidden\x18\x16 \x01(\bR\x06hidden\x12\x14\n" +
-	"\x05saved\x18\x17 \x01(\bR\x05savedB\a\n" +
+	"\x05saved\x18\x17 \x01(\bR\x05saved\x12(\n" +
+	"\x10superseded_by_id\x18\x18 \x01(\tR\x0esupersededByIdB\a\n" +
 	"\x05_hour\"\xc6\x03\n" +
 	"\x12PerspectiveSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +

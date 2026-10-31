@@ -17,7 +17,7 @@ import { describeNotification } from "./describe";
 const when = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
 function Row({ n, onOpen }: { n: Notification; onOpen: (n: Notification) => void }) {
-  const { text, to } = describeNotification(n);
+  const { text, to, detail } = describeNotification(n);
   const unread = !n.readAt;
   const at = n.createdAt ? timestampDate(n.createdAt) : null;
   const body = (
@@ -34,6 +34,7 @@ function Row({ n, onOpen }: { n: Notification; onOpen: (n: Notification) => void
           {text}
         </span>
       </span>
+      {detail && <span className="mt-1 block text-sm break-words text-ink-muted">{detail}</span>}
       {at && (
         <time dateTime={at.toISOString()} className="mt-1 block text-sm text-ink-muted">
           {when.format(at)}
@@ -138,7 +139,7 @@ export function Component() {
         <p className="mt-6 text-ink-muted">
           {unreadOnly
             ? "No unread notifications."
-            : "Nothing here yet. When someone claims your characters or your arc changes, it shows up here."}
+            : "Nothing here yet. When someone claims your characters or your day changes, it shows up here."}
         </p>
       )}
       {notifications.length > 0 && (

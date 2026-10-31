@@ -124,10 +124,46 @@ func toDedupePlace(r *dbq.ListDedupeCandidatesRow) dedupePlace {
 	}
 	return dedupePlace{
 		id: r.ID, name: r.Name, key: localityKey(stripped), lat: r.Lat, lng: r.Lng,
-		venue: r.Kind == kindDB(perspectivv1.PlaceKind_PLACE_KIND_MALL) &&
-			r.Category == perspectivv1.PlaceCategory_PLACE_CATEGORY_SPORTS_AND_RECREATION.String(),
-		arcs: int(r.Arcs), perspectives: int(r.Perspectives), dirt: dirt,
+		venue: IsVenue(r.Kind, r.Category),
+		arcs:  int(r.Arcs), perspectives: int(r.Perspectives), dirt: dirt,
 	}
+}
+
+// DuplicateKey is the name dedupe compares listings by: the name without
+// any trailing ", <place above it>" or ", <state code>", with case,
+// punctuation and St./Ft./Mt. ignored. ancestorNames are the names of the
+// places above it. "Raymond James Stadium, Tampa" under Tampa and "Raymond
+// James Stadium" share one key.
+func DuplicateKey(name string, ancestorNames []string) string {
+	stripped, _ := stripAncestorSuffixes(name, ancestorNames)
+	return localityKey(stripped)
+}
+
+// IsVenue reports whether a place of this kind and category (the enum
+// names stored in places) is a sports venue, whose listings scatter across
+// its lots and gates and so are compared within VenueDedupeRadius.
+func IsVenue(kind, category string) bool {
+	return kind == kindDB(perspectivv1.PlaceKind_PLACE_KIND_MALL) &&
+		category == perspectivv1.PlaceCategory_PLACE_CATEGORY_SPORTS_AND_RECREATION.String()
+}
+
+// VenueDedupeRadius is the widest distance, in metres, at which dedupe
+// takes two same-named listings as one place.
+const VenueDedupeRadius = venueDedupeRadius
+
+// DedupeRadius is how close, in metres, two same-named listings must be
+// for dedupe to take them as one: venueDedupeRadius when either is a
+// venue, else dedupeRadius.
+func DedupeRadius(venue bool) float64 {
+	if venue {
+		return venueDedupeRadius
+	}
+	return dedupeRadius
+}
+
+// Distance is the great-circle distance between two points, in metres.
+func Distance(lat1, lng1, lat2, lng2 float64) float64 {
+	return haversine(lat1, lng1, lat2, lng2)
 }
 
 // stripAncestorSuffixes removes every trailing ", <name>" that names a place
@@ -232,11 +268,7 @@ func clusterGroup(g []dedupePlace) [][]dedupePlace {
 }
 
 func near(a, b *dedupePlace) bool {
-	radius := dedupeRadius
-	if a.venue || b.venue {
-		radius = venueDedupeRadius
-	}
-	return haversine(a.lat, a.lng, b.lat, b.lng) <= radius
+	return haversine(a.lat, a.lng, b.lat, b.lng) <= DedupeRadius(a.venue || b.venue)
 }
 
 // haversine is the great-circle distance in metres.

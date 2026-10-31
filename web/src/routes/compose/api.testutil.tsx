@@ -58,6 +58,8 @@ export function installApi(routes: Record<string, ApiHandler>, opts: { role?: st
   const calls: ApiCall[] = [];
   const all: Record<string, ApiHandler> = {
     "AuthService/Refresh": () => ok(sessionBody(opts.role ?? "ROLE_USER", opts.username ?? "wren")),
+    // The composer looks for a draft to resume; by default the writer has none.
+    "PerspectiveService/ListMine": () => ok({ perspectives: [] }),
     ...routes,
   };
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

@@ -70,7 +70,8 @@ message Place {
 }
 
 message SearchPlacesRequest {
-  // Required, non-blank.
+  // Required, non-blank. A place name, or a name and the city or town it is
+  // in: "starbucks tampa", "tampa starbucks" or "starbucks, tampa".
   string query = 1;
   // Restricts matches to descendants of this place when set.
   string parent_id = 2;
@@ -80,6 +81,9 @@ message SearchPlacesRequest {
 
 message SearchPlacesResponse {
   repeated Place places = 1;
+  // More places match than the result cap returned: the reader narrows the
+  // search, for example by adding a town ("starbucks tampa").
+  bool more = 2;
 }
 
 message GetPlaceRequest {
@@ -88,6 +92,15 @@ message GetPlaceRequest {
 
 message GetPlaceResponse {
   Place place = 1;
+  // Set only for a store or mall with no readable story: the same place
+  // listed a second time, where people do write about it. A twin is a
+  // visible store or mall with a readable story at it or below whose name
+  // matches by placectl dedupe's rule (ancestor suffixes, case and
+  // punctuation ignored) and which lies within dedupe's radius of this
+  // place (200 m, 2 km when either is a sports venue), or within 2 km when
+  // both are filed under the same parent. Both need coordinates. Of
+  // several twins, the one with the most stories, then the nearest.
+  PlaceRef twin = 2;
 }
 
 message ListChildrenRequest {
@@ -160,6 +173,9 @@ message EpicArc {
   string excerpt = 12;
   // The canon lore's name; empty when the arc has no canon or it is unnamed.
   string canon_lore_name = 13;
+  // Whether a readable story on the day was published in the last seven
+  // days: the window ListFollowing's new_this_week counts in.
+  bool new_this_week = 14;
 }
 
 // EpicTale is one SOLO or REMOVED perspective in a place's TALES tab.

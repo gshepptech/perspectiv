@@ -64,7 +64,9 @@ describe("lore page", () => {
       "/lores/lore-1",
       handlers([{ id: "lp-1", author: otter, body: "That was the best night.", byMember: true, createdAt: "2026-10-10T12:00:00Z" }]),
     );
-    expect(await screen.findByRole("heading", { level: 1, name: "Open mic night" })).toBeInTheDocument();
+    // Unnamed, the lore is never titled with its day's own title.
+    expect(await screen.findByRole("heading", { level: 1, name: "Unnamed lore" })).toBeInTheDocument();
+    expect(screen.getByText(/^Open mic night · /)).toBeInTheDocument();
     expect(screen.getByText("Canon of the day")).toBeInTheDocument();
     const cast = await screen.findByRole("region", { name: "Who was who" });
     expect(cast).toHaveTextContent("otter was “the guy in the yellow raincoat” in wren’s story");
@@ -75,7 +77,7 @@ describe("lore page", () => {
     expect(within(thread).getByText("In this lore")).toBeInTheDocument();
     expect(within(thread).getByText("Anyone can read this thread. Only the people who wrote about this day can post in it.")).toBeInTheDocument();
     expect(within(thread).queryByText(/Write your/)).toBeNull();
-    expect(document.title).toBe("Open mic night · Perspectiv");
+    expect(document.title).toBe("Unnamed lore in Open mic night · Perspectiv");
     // A tag opens the claimant's own story of the day.
     const wrens = screen.getByRole("article", { name: "wren's perspective" });
     expect(await within(wrens).findByRole("link", { name: "otter’s story" })).toHaveAttribute("href", "/perspectives/p-otter");

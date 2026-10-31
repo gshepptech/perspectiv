@@ -101,7 +101,7 @@ func (s *Service) AddLorePost(ctx context.Context, caller, loreID uuid.UUID, bod
 		if err != nil {
 			return err
 		}
-		if err := canPost(ctx, q, loreID, caller, apiutil.PermissionDenied("only people with a perspective in this arc can post here")); err != nil {
+		if err := canPost(ctx, q, loreID, caller, apiutil.PermissionDenied("only people who wrote about this day can post here")); err != nil {
 			return err
 		}
 		params := dbq.InsertLorePostParams{LoreID: loreID, AuthorID: caller, Body: body}
@@ -247,7 +247,7 @@ func (s *Service) VoteLorePost(ctx context.Context, caller, postID uuid.UUID, on
 		if p.AuthorID == caller {
 			return apiutil.InvalidArg("you cannot upvote your own post")
 		}
-		if err := canPost(ctx, q, p.LoreID, caller, apiutil.PermissionDenied("only people with a perspective in this arc can upvote here")); err != nil {
+		if err := canPost(ctx, q, p.LoreID, caller, apiutil.PermissionDenied("only people who wrote about this day can upvote here")); err != nil {
 			return err
 		}
 		if err := writePostVote(ctx, q, p, caller, on); err != nil {

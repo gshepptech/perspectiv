@@ -229,7 +229,8 @@ func (x *Place) GetNewThisWeek() int32 {
 
 type SearchPlacesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Required, non-blank.
+	// Required, non-blank. A place name, or a name and the city or town it is
+	// in: "starbucks tampa", "tampa starbucks" or "starbucks, tampa".
 	Query string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 	// Restricts matches to descendants of this place when set.
 	ParentId string `protobuf:"bytes,2,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
@@ -291,8 +292,11 @@ func (x *SearchPlacesRequest) GetKind() PlaceKind {
 }
 
 type SearchPlacesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Places        []*Place               `protobuf:"bytes,1,rep,name=places,proto3" json:"places,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Places []*Place               `protobuf:"bytes,1,rep,name=places,proto3" json:"places,omitempty"`
+	// More places match than the result cap returned: the reader narrows the
+	// search, for example by adding a town ("starbucks tampa").
+	More          bool `protobuf:"varint,2,opt,name=more,proto3" json:"more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -332,6 +336,13 @@ func (x *SearchPlacesResponse) GetPlaces() []*Place {
 		return x.Places
 	}
 	return nil
+}
+
+func (x *SearchPlacesResponse) GetMore() bool {
+	if x != nil {
+		return x.More
+	}
+	return false
 }
 
 type GetPlaceRequest struct {
@@ -379,8 +390,17 @@ func (x *GetPlaceRequest) GetPlaceId() string {
 }
 
 type GetPlaceResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Place         *Place                 `protobuf:"bytes,1,opt,name=place,proto3" json:"place,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Place *Place                 `protobuf:"bytes,1,opt,name=place,proto3" json:"place,omitempty"`
+	// Set only for a store or mall with no readable story: the same place
+	// listed a second time, where people do write about it. A twin is a
+	// visible store or mall with a readable story at it or below whose name
+	// matches by placectl dedupe's rule (ancestor suffixes, case and
+	// punctuation ignored) and which lies within dedupe's radius of this
+	// place (200 m, 2 km when either is a sports venue), or within 2 km when
+	// both are filed under the same parent. Both need coordinates. Of
+	// several twins, the one with the most stories, then the nearest.
+	Twin          *PlaceRef `protobuf:"bytes,2,opt,name=twin,proto3" json:"twin,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -418,6 +438,13 @@ func (*GetPlaceResponse) Descriptor() ([]byte, []int) {
 func (x *GetPlaceResponse) GetPlace() *Place {
 	if x != nil {
 		return x.Place
+	}
+	return nil
+}
+
+func (x *GetPlaceResponse) GetTwin() *PlaceRef {
+	if x != nil {
+		return x.Twin
 	}
 	return nil
 }
@@ -784,6 +811,9 @@ type EpicArc struct {
 	Excerpt string `protobuf:"bytes,12,opt,name=excerpt,proto3" json:"excerpt,omitempty"`
 	// The canon lore's name; empty when the arc has no canon or it is unnamed.
 	CanonLoreName string `protobuf:"bytes,13,opt,name=canon_lore_name,json=canonLoreName,proto3" json:"canon_lore_name,omitempty"`
+	// Whether a readable story on the day was published in the last seven
+	// days: the window ListFollowing's new_this_week counts in.
+	NewThisWeek   bool `protobuf:"varint,14,opt,name=new_this_week,json=newThisWeek,proto3" json:"new_this_week,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -907,6 +937,13 @@ func (x *EpicArc) GetCanonLoreName() string {
 		return x.CanonLoreName
 	}
 	return ""
+}
+
+func (x *EpicArc) GetNewThisWeek() bool {
+	if x != nil {
+		return x.NewThisWeek
+	}
+	return false
 }
 
 // EpicTale is one SOLO or REMOVED perspective in a place's TALES tab.
@@ -1601,13 +1638,15 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"\x13SearchPlacesRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x1b\n" +
 	"\tparent_id\x18\x02 \x01(\tR\bparentId\x12,\n" +
-	"\x04kind\x18\x03 \x01(\x0e2\x18.perspectiv.v1.PlaceKindR\x04kind\"D\n" +
+	"\x04kind\x18\x03 \x01(\x0e2\x18.perspectiv.v1.PlaceKindR\x04kind\"X\n" +
 	"\x14SearchPlacesResponse\x12,\n" +
-	"\x06places\x18\x01 \x03(\v2\x14.perspectiv.v1.PlaceR\x06places\",\n" +
+	"\x06places\x18\x01 \x03(\v2\x14.perspectiv.v1.PlaceR\x06places\x12\x12\n" +
+	"\x04more\x18\x02 \x01(\bR\x04more\",\n" +
 	"\x0fGetPlaceRequest\x12\x19\n" +
-	"\bplace_id\x18\x01 \x01(\tR\aplaceId\">\n" +
+	"\bplace_id\x18\x01 \x01(\tR\aplaceId\"k\n" +
 	"\x10GetPlaceResponse\x12*\n" +
-	"\x05place\x18\x01 \x01(\v2\x14.perspectiv.v1.PlaceR\x05place\"\xcb\x01\n" +
+	"\x05place\x18\x01 \x01(\v2\x14.perspectiv.v1.PlaceR\x05place\x12+\n" +
+	"\x04twin\x18\x02 \x01(\v2\x17.perspectiv.v1.PlaceRefR\x04twin\"\xcb\x01\n" +
 	"\x13ListChildrenRequest\x12\x1b\n" +
 	"\tparent_id\x18\x01 \x01(\tR\bparentId\x12\x1d\n" +
 	"\n" +
@@ -1632,7 +1671,7 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	"page_token\x18\x03 \x01(\tR\tpageToken\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12*\n" +
 	"\x05genre\x18\x05 \x01(\x0e2\x14.perspectiv.v1.GenreR\x05genre\x128\n" +
-	"\bcategory\x18\x06 \x01(\x0e2\x1c.perspectiv.v1.PlaceCategoryR\bcategory\"\xcc\x03\n" +
+	"\bcategory\x18\x06 \x01(\x0e2\x1c.perspectiv.v1.PlaceCategoryR\bcategory\"\xf0\x03\n" +
 	"\aEpicArc\x12\x15\n" +
 	"\x06arc_id\x18\x01 \x01(\tR\x05arcId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12-\n" +
@@ -1650,7 +1689,8 @@ const file_perspectiv_v1_place_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x12\n" +
 	"\x04city\x18\v \x01(\tR\x04city\x12\x18\n" +
 	"\aexcerpt\x18\f \x01(\tR\aexcerpt\x12&\n" +
-	"\x0fcanon_lore_name\x18\r \x01(\tR\rcanonLoreNameB\a\n" +
+	"\x0fcanon_lore_name\x18\r \x01(\tR\rcanonLoreName\x12\"\n" +
+	"\rnew_this_week\x18\x0e \x01(\bR\vnewThisWeekB\a\n" +
 	"\x05_hour\"\xc6\x03\n" +
 	"\bEpicTale\x12%\n" +
 	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12\x15\n" +
@@ -1773,51 +1813,52 @@ var file_perspectiv_v1_place_proto_depIdxs = []int32{
 	23, // 5: perspectiv.v1.SearchPlacesRequest.kind:type_name -> perspectiv.v1.PlaceKind
 	1,  // 6: perspectiv.v1.SearchPlacesResponse.places:type_name -> perspectiv.v1.Place
 	1,  // 7: perspectiv.v1.GetPlaceResponse.place:type_name -> perspectiv.v1.Place
-	25, // 8: perspectiv.v1.ListChildrenRequest.category:type_name -> perspectiv.v1.PlaceCategory
-	1,  // 9: perspectiv.v1.ListChildrenResponse.places:type_name -> perspectiv.v1.Place
-	23, // 10: perspectiv.v1.CreatePlaceRequest.kind:type_name -> perspectiv.v1.PlaceKind
-	1,  // 11: perspectiv.v1.CreatePlaceResponse.place:type_name -> perspectiv.v1.Place
-	26, // 12: perspectiv.v1.GetEpicRequest.tab:type_name -> perspectiv.v1.EpicTab
-	27, // 13: perspectiv.v1.GetEpicRequest.genre:type_name -> perspectiv.v1.Genre
-	25, // 14: perspectiv.v1.GetEpicRequest.category:type_name -> perspectiv.v1.PlaceCategory
-	0,  // 15: perspectiv.v1.EpicArc.place:type_name -> perspectiv.v1.PlaceRef
-	28, // 16: perspectiv.v1.EpicArc.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 17: perspectiv.v1.EpicTale.place:type_name -> perspectiv.v1.PlaceRef
-	29, // 18: perspectiv.v1.EpicTale.author:type_name -> perspectiv.v1.UserRef
-	27, // 19: perspectiv.v1.EpicTale.genre:type_name -> perspectiv.v1.Genre
-	30, // 20: perspectiv.v1.EpicTale.lore_status:type_name -> perspectiv.v1.LoreStatus
-	28, // 21: perspectiv.v1.EpicTale.published_at:type_name -> google.protobuf.Timestamp
-	1,  // 22: perspectiv.v1.GetEpicResponse.place:type_name -> perspectiv.v1.Place
-	11, // 23: perspectiv.v1.GetEpicResponse.arcs:type_name -> perspectiv.v1.EpicArc
-	12, // 24: perspectiv.v1.GetEpicResponse.tales:type_name -> perspectiv.v1.EpicTale
-	25, // 25: perspectiv.v1.ListStoriedCategoriesResponse.categories:type_name -> perspectiv.v1.PlaceCategory
-	1,  // 26: perspectiv.v1.ListFollowingResponse.places:type_name -> perspectiv.v1.Place
-	29, // 27: perspectiv.v1.FoundCharacter.author:type_name -> perspectiv.v1.UserRef
-	0,  // 28: perspectiv.v1.FoundCharacter.place:type_name -> perspectiv.v1.PlaceRef
-	21, // 29: perspectiv.v1.SearchCharactersResponse.characters:type_name -> perspectiv.v1.FoundCharacter
-	2,  // 30: perspectiv.v1.PlaceService.SearchPlaces:input_type -> perspectiv.v1.SearchPlacesRequest
-	4,  // 31: perspectiv.v1.PlaceService.GetPlace:input_type -> perspectiv.v1.GetPlaceRequest
-	6,  // 32: perspectiv.v1.PlaceService.ListChildren:input_type -> perspectiv.v1.ListChildrenRequest
-	8,  // 33: perspectiv.v1.PlaceService.CreatePlace:input_type -> perspectiv.v1.CreatePlaceRequest
-	10, // 34: perspectiv.v1.PlaceService.GetEpic:input_type -> perspectiv.v1.GetEpicRequest
-	16, // 35: perspectiv.v1.PlaceService.FollowPlace:input_type -> perspectiv.v1.FollowPlaceRequest
-	18, // 36: perspectiv.v1.PlaceService.ListFollowing:input_type -> perspectiv.v1.ListFollowingRequest
-	20, // 37: perspectiv.v1.PlaceService.SearchCharacters:input_type -> perspectiv.v1.SearchCharactersRequest
-	14, // 38: perspectiv.v1.PlaceService.ListStoriedCategories:input_type -> perspectiv.v1.ListStoriedCategoriesRequest
-	3,  // 39: perspectiv.v1.PlaceService.SearchPlaces:output_type -> perspectiv.v1.SearchPlacesResponse
-	5,  // 40: perspectiv.v1.PlaceService.GetPlace:output_type -> perspectiv.v1.GetPlaceResponse
-	7,  // 41: perspectiv.v1.PlaceService.ListChildren:output_type -> perspectiv.v1.ListChildrenResponse
-	9,  // 42: perspectiv.v1.PlaceService.CreatePlace:output_type -> perspectiv.v1.CreatePlaceResponse
-	13, // 43: perspectiv.v1.PlaceService.GetEpic:output_type -> perspectiv.v1.GetEpicResponse
-	17, // 44: perspectiv.v1.PlaceService.FollowPlace:output_type -> perspectiv.v1.FollowPlaceResponse
-	19, // 45: perspectiv.v1.PlaceService.ListFollowing:output_type -> perspectiv.v1.ListFollowingResponse
-	22, // 46: perspectiv.v1.PlaceService.SearchCharacters:output_type -> perspectiv.v1.SearchCharactersResponse
-	15, // 47: perspectiv.v1.PlaceService.ListStoriedCategories:output_type -> perspectiv.v1.ListStoriedCategoriesResponse
-	39, // [39:48] is the sub-list for method output_type
-	30, // [30:39] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	0,  // 8: perspectiv.v1.GetPlaceResponse.twin:type_name -> perspectiv.v1.PlaceRef
+	25, // 9: perspectiv.v1.ListChildrenRequest.category:type_name -> perspectiv.v1.PlaceCategory
+	1,  // 10: perspectiv.v1.ListChildrenResponse.places:type_name -> perspectiv.v1.Place
+	23, // 11: perspectiv.v1.CreatePlaceRequest.kind:type_name -> perspectiv.v1.PlaceKind
+	1,  // 12: perspectiv.v1.CreatePlaceResponse.place:type_name -> perspectiv.v1.Place
+	26, // 13: perspectiv.v1.GetEpicRequest.tab:type_name -> perspectiv.v1.EpicTab
+	27, // 14: perspectiv.v1.GetEpicRequest.genre:type_name -> perspectiv.v1.Genre
+	25, // 15: perspectiv.v1.GetEpicRequest.category:type_name -> perspectiv.v1.PlaceCategory
+	0,  // 16: perspectiv.v1.EpicArc.place:type_name -> perspectiv.v1.PlaceRef
+	28, // 17: perspectiv.v1.EpicArc.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 18: perspectiv.v1.EpicTale.place:type_name -> perspectiv.v1.PlaceRef
+	29, // 19: perspectiv.v1.EpicTale.author:type_name -> perspectiv.v1.UserRef
+	27, // 20: perspectiv.v1.EpicTale.genre:type_name -> perspectiv.v1.Genre
+	30, // 21: perspectiv.v1.EpicTale.lore_status:type_name -> perspectiv.v1.LoreStatus
+	28, // 22: perspectiv.v1.EpicTale.published_at:type_name -> google.protobuf.Timestamp
+	1,  // 23: perspectiv.v1.GetEpicResponse.place:type_name -> perspectiv.v1.Place
+	11, // 24: perspectiv.v1.GetEpicResponse.arcs:type_name -> perspectiv.v1.EpicArc
+	12, // 25: perspectiv.v1.GetEpicResponse.tales:type_name -> perspectiv.v1.EpicTale
+	25, // 26: perspectiv.v1.ListStoriedCategoriesResponse.categories:type_name -> perspectiv.v1.PlaceCategory
+	1,  // 27: perspectiv.v1.ListFollowingResponse.places:type_name -> perspectiv.v1.Place
+	29, // 28: perspectiv.v1.FoundCharacter.author:type_name -> perspectiv.v1.UserRef
+	0,  // 29: perspectiv.v1.FoundCharacter.place:type_name -> perspectiv.v1.PlaceRef
+	21, // 30: perspectiv.v1.SearchCharactersResponse.characters:type_name -> perspectiv.v1.FoundCharacter
+	2,  // 31: perspectiv.v1.PlaceService.SearchPlaces:input_type -> perspectiv.v1.SearchPlacesRequest
+	4,  // 32: perspectiv.v1.PlaceService.GetPlace:input_type -> perspectiv.v1.GetPlaceRequest
+	6,  // 33: perspectiv.v1.PlaceService.ListChildren:input_type -> perspectiv.v1.ListChildrenRequest
+	8,  // 34: perspectiv.v1.PlaceService.CreatePlace:input_type -> perspectiv.v1.CreatePlaceRequest
+	10, // 35: perspectiv.v1.PlaceService.GetEpic:input_type -> perspectiv.v1.GetEpicRequest
+	16, // 36: perspectiv.v1.PlaceService.FollowPlace:input_type -> perspectiv.v1.FollowPlaceRequest
+	18, // 37: perspectiv.v1.PlaceService.ListFollowing:input_type -> perspectiv.v1.ListFollowingRequest
+	20, // 38: perspectiv.v1.PlaceService.SearchCharacters:input_type -> perspectiv.v1.SearchCharactersRequest
+	14, // 39: perspectiv.v1.PlaceService.ListStoriedCategories:input_type -> perspectiv.v1.ListStoriedCategoriesRequest
+	3,  // 40: perspectiv.v1.PlaceService.SearchPlaces:output_type -> perspectiv.v1.SearchPlacesResponse
+	5,  // 41: perspectiv.v1.PlaceService.GetPlace:output_type -> perspectiv.v1.GetPlaceResponse
+	7,  // 42: perspectiv.v1.PlaceService.ListChildren:output_type -> perspectiv.v1.ListChildrenResponse
+	9,  // 43: perspectiv.v1.PlaceService.CreatePlace:output_type -> perspectiv.v1.CreatePlaceResponse
+	13, // 44: perspectiv.v1.PlaceService.GetEpic:output_type -> perspectiv.v1.GetEpicResponse
+	17, // 45: perspectiv.v1.PlaceService.FollowPlace:output_type -> perspectiv.v1.FollowPlaceResponse
+	19, // 46: perspectiv.v1.PlaceService.ListFollowing:output_type -> perspectiv.v1.ListFollowingResponse
+	22, // 47: perspectiv.v1.PlaceService.SearchCharacters:output_type -> perspectiv.v1.SearchCharactersResponse
+	15, // 48: perspectiv.v1.PlaceService.ListStoriedCategories:output_type -> perspectiv.v1.ListStoriedCategoriesResponse
+	40, // [40:49] is the sub-list for method output_type
+	31, // [31:40] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_place_proto_init() }

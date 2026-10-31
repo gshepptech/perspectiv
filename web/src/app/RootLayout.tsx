@@ -1,7 +1,8 @@
-import { Bookmark, BookOpen, CircleUser, Inbox, KeyRound, LogOut, PenLine, ScrollText, Settings, ShieldAlert, UserCheck, UserSearch } from "lucide-react";
+import { Bookmark, BookOpen, CircleUser, Inbox, KeyRound, LogOut, PenLine, ScrollText, Settings, ShieldAlert, User, UserCheck, UserSearch } from "lucide-react";
 import { useRef } from "react";
 import { Link, NavLink, Outlet, useNavigate, useNavigation } from "react-router";
 
+import { HeaderSearch } from "@/components/search/HeaderSearch";
 import { Button } from "@/components/ui/Button";
 import {
   DropdownMenu,
@@ -34,15 +35,20 @@ const badgeText = (count: number, more = false) => (more || count > 99 ? "99+" :
  * visible text reads "Inbox 2", in the order the link's name says it ("Inbox,
  * 2 unread"): a speech-input user who says what they see names the link
  * (WCAG 2.5.3).
+ *
+ * The badge hangs 8px off the icon's right edge and grows leftward over it.
+ * From sm, where the word follows the icon, a badged icon keeps a 6px right
+ * margin on top of the item's 6px gap, so the badge ends 4px short of the
+ * word; below sm the word sits under the icon, clear of the badge.
  */
 function BadgedIcon({ icon: Icon, badge }: { icon: typeof Inbox; badge: string | null }) {
   return (
-    <span className="relative order-first">
+    <span className={cn("relative order-first", badge && "sm:mr-1.5")}>
       <Icon aria-hidden size={20} />
       {badge && (
         <span
           aria-hidden
-          className="absolute -top-1.5 -right-2.5 min-w-4.5 rounded-full bg-accent px-1 text-center text-xs leading-4.5 font-bold text-accent-ink"
+          className="absolute -top-1.5 -right-2 min-w-4.5 rounded-full bg-accent px-1 text-center text-xs leading-4.5 font-bold text-accent-ink"
         >
           {badge}
         </span>
@@ -112,6 +118,9 @@ function AccountMenu({ username, isAdmin }: { username: string; isAdmin: boolean
       >
         <DropdownMenuLabel>Signed in as {username}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => go(`/users/${encodeURIComponent(username)}`)}>
+          <User aria-hidden size={16} /> Your profile
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => go("/saved")}>
           <Bookmark aria-hidden size={16} /> Saved
         </DropdownMenuItem>
@@ -171,6 +180,7 @@ export function RootLayout() {
             Perspectiv
           </Link>
           <nav aria-label="Primary" className="flex min-w-0 flex-wrap items-center gap-1">
+            <HeaderSearch className={cn(navItem, "rounded-md text-ink-muted hover:text-ink")} />
             {session ? (
               <>
                 <NavLink to="/compose" className={navLink}>

@@ -125,10 +125,12 @@ func (h *Handler) UpdatePreferences(ctx context.Context, req *connect.Request[pe
 
 func notificationToProto(n Notification) *perspectivv1.Notification {
 	out := &perspectivv1.Notification{
-		Id:        n.ID.String(),
-		Kind:      n.Kind,
-		ArcTitle:  n.ArcTitle,
-		CreatedAt: timestamppb.New(n.CreatedAt),
+		Id:                      n.ID.String(),
+		Kind:                    n.Kind,
+		ArcTitle:                n.ArcTitle,
+		CreatedAt:               timestamppb.New(n.CreatedAt),
+		UnclaimedCharacters:     n.Cast.Labels,
+		MoreUnclaimedCharacters: n.Cast.More,
 	}
 	p := n.Payload
 	if p.ActorID != nil {

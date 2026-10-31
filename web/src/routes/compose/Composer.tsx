@@ -318,7 +318,7 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
           <legend className="mb-2 font-serif text-xl font-semibold">Characters</legend>
           <p className="text-sm text-ink-muted">
             Describe the people in your story without naming them, like “the clerk with the green scarf”. Another
-            writer in this arc can claim to be one of them. Up to {MAX_CHARACTERS}.
+            writer on this day can claim to be one of them. Up to {MAX_CHARACTERS}.
           </p>
           {characters.fields.map((item, i) => (
             <FormField
@@ -507,7 +507,7 @@ function WhenFields({
         name="title"
         render={({ field }) => (
           <FormItem className="sm:col-span-2">
-            <FormLabel>Arc title</FormLabel>
+            <FormLabel>Title of the day</FormLabel>
             <FormControl>
               <Input {...field} autoComplete="off" />
             </FormControl>

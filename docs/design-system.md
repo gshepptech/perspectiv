@@ -61,8 +61,9 @@ Running prose is left-aligned, never justified, with `hyphens: auto`.
 - **Shell:** a single-row header (wordmark left, primary navigation and the
   account menu right), then `<main id="main">`, then a one-line footer. A skip
   link to `#main` is the first focusable element.
-- **Primary navigation** for a member is Write, Requests, Inbox and the
-  account menu, each an icon with a visible word. Below `sm` the word sits
+- **Primary navigation** for a member is Search, Write, Requests, Inbox and
+  the account menu, each an icon with a visible word; for a visitor it is
+  Search, Sign in and Sign up. Below `sm` the word sits
   under its 20px icon in `text-xs` and the navigation may wrap under the
   wordmark; from `sm` the word sits beside the icon. Requests uses
   `UserCheck` and the account menu `CircleUser`, so no two items share an
@@ -72,7 +73,26 @@ Running prose is left-aligned, never justified, with `hyphens: auto`.
   carries it ("Inbox, 2 unread"); with none unread there is no badge.
   Requests waiting on the member to accept or reject show the same badge
   on the Requests icon, named "Requests, 2 waiting" ("99+" in the badge
-  past 99); with none waiting there is no badge.
+  past 99); with none waiting there is no badge. The badge hangs off the
+  icon's top right corner and grows leftward over the icon. From `sm`,
+  where the word follows the icon, a badged icon keeps a right margin
+  wider than the badge's overhang, so no badge, "99+" included, covers a
+  letter of its word; below `sm` the badge sits above the word, clear of
+  it.
+- **Header search.** "Search" (lucide `Search`) is the first navigation
+  item on every page and at every width. It opens a Radix dialog titled
+  "Search places", with one line under the title saying what it takes ("A
+  place, or a place and its town: “starbucks tampa”."), that holds the
+  front page's place search: the labelled field, which takes focus on
+  open, pinned 16px from the top on phones and a tenth of the way down from
+  `sm` so it stays put as results arrive, and the same results, "more"
+  line and "Not here? Add …" link. Each result links to its place page and closes
+  the dialog. Pressing "/" opens it from anywhere except while focus is in
+  a text field, text area, select or editable text, and never with Ctrl,
+  Alt or Meta held. Below `sm` the dialog is the viewport width less the
+  16px gutter and at most the viewport's height, the results scrolling
+  inside it. Closing it, by Escape, Close or a result, empties the field
+  and returns focus to the Search button unless a result was followed.
 - **Breakpoints:** Tailwind defaults. Layout is single column below `md`
   (768px); from `md` the arc and place pages MAY use a two-column layout whose
   reading column keeps the measure.
@@ -156,7 +176,8 @@ an icon beside it.
 Every route sets `document.title` through one hook, `useDocumentTitle` in
 `web/src/lib/title.ts`, as "<what the page shows> · Perspectiv": a story is
 "<arc title> by <author>", an arc its title, a place its name, a lore its
-name or its day's title, a profile the username, and a fixed page its heading
+name (an unnamed lore "Unnamed lore in <day title>", never the day's title
+alone), a profile the username, and a fixed page its heading
 ("Settings", "Inbox", "Requests", "Sign in"). Leaving a page puts back
 "Perspectiv", which the front page keeps.
 
@@ -236,7 +257,18 @@ lore page.
 - **Story row:** a vote rail on the left (the upvote button and its count),
   then the author, genre and part count on one `text-sm` line, then the opening
   of the story in the serif face clamped to two lines, then "Read". The row is
-  the only place on the arc page a reader acts on a story.
+  the only place on the arc page a reader acts on a story. A reader who may
+  not vote here (signed out, or with no story of this day) gets no button on
+  the rail, only a plain `control` arrow over the count, never an arrow that
+  leads somewhere or does nothing when pressed.
+- **Who can upvote, said once.** For that reader, a bordered `surface` note
+  sits at the top of the feed column, above the canon, with the words the
+  story page's upvote note uses: "Only people who wrote about this day can
+  upvote its stories, so the people who were there choose its canon."
+  ("this hour" on an hour arc), then "Were you there? Write your side" as a
+  plain text link to the composer for this place and day. Signed out, an
+  "Already wrote yours? Sign in" text link follows, returning to the day.
+  A day written only in its hours has no voting rows and no note.
 - **A day written only in its hours** has no stories of its own: the page
   leads with the hour timeline and says so, instead of an empty canon.
 - **Standing alone:** stories in no lore (waiting for a link, or tales) are one
@@ -259,8 +291,11 @@ lore page.
   its stories, so the people who were there choose its canon."). For a
   claim, a primary "Write your side" link to the composer for that place and
   day follows; for an upvote only a plain "Were you there? Write your side"
-  text link, since most readers were not. Signed out, both show "Sign in"
-  and "Create an account" links that return to the story. Arriving from
+  text link, since most readers were not. Signed out, the claim note shows
+  "Sign in" and "Create an account" links that return to the story; the
+  upvote note keeps "Were you there? Write your side" (the composer asks
+  them to sign in first) and adds "Already wrote yours? Sign in", the same
+  note the day page shows. On an hour arc the notes say "this hour". Arriving from
   "That was me" opens the claim note at once and moves focus to it. After
   publishing from that link the writer lands back on the story with the
   claim dialog up, and above the story a `status` line in a `success`
@@ -345,6 +380,17 @@ list (at most 15rem tall) whose rows each take the height of their two
 lines, never squeezed to fit; a polite `status` line above the list says
 "3 places match" or "No other place matches." as the search answers.
 
+## Composer: place picker
+
+"Where were you?" lists the matching places as the front page does: each
+row is the name, then one `text-sm` `ink-muted` line saying what and where
+it is and how many stories it holds ("Food & drink in Tampa, Florida · 2
+stories", "No stories yet"), so a writer can tell which of two same-named
+listings their friends write in. Rows keep the server's order, which puts
+places with stories first within each match tier. When the search reaches
+its cap, the line "More places match: add a town to narrow it" follows the
+list.
+
 ## Composer: joining the day
 
 Under the day and hour, a bordered note says what already exists for the
@@ -355,6 +401,12 @@ to an hour. The arc title field shows only when nobody has written that day
 yet; a day that has an arc keeps its title, never silently drops the
 writer's. Search results say what a place is (a stadium's category rather
 than "Store") and how many stories it holds, so friends pick the same entry.
+
+Opening the composer for a place, day and hour where the writer already
+has a draft resumes that draft (the most recently edited, when several
+exist) instead of starting a blank one, and the usual `info` note at the
+top says so: "You started a draft for this day, so it is open again."
+The address then names the draft, so a reload reopens it.
 
 ## Place page header and reports
 
@@ -380,7 +432,21 @@ a crown when the day has one, followed by the canon lore's name in italics
 when its members have named it ("Canon: *The long queue*"), the place, the
 day, how many are in lore and the story count. The row is one shared
 component (`ArcItem` in `web/src/components/reader/`), so the place page and
-the best-days pages cannot drift apart.
+the best-days pages cannot drift apart. The list's accessible name is "Days".
+
+- **What is new.** On the Newest tab only, a day with a readable story
+  published in the last seven days (the window a followed place counts its
+  new stories in) carries a small "New" label after its title: `text-xs`,
+  medium weight, `accent` text in an `accent` 1px rounded border, never
+  colour alone. Ranked and Tales stay unmarked.
+- **A duplicate listing points to the live one.** A store or mall with no
+  stories that is a second listing of a place people do write about (the
+  `twin` GetPlace returns, found by placectl dedupe's name and distance
+  rule) says so inside its empty note, as one line under "No one has
+  written about *place* yet.": "People write about this place at
+  *twin*.", the twin's name an `accent` underlined link 44px tall to its
+  page. The "Write the first story" button stays for a reader who means
+  this listing.
 
 ## Best days at a kind of place
 
@@ -438,6 +504,22 @@ their days share a title.
   sentence underlines on hover. Following the link, by any click or by
   Enter, marks the notification read. A notification with no page is plain
   text and has no hover.
+- **Who might be in a new story.** A "new perspective on your day" row
+  adds a `text-sm` `ink-muted` line under its sentence, inside the link:
+  "Who might be in it: “the woman with the foam parrot”, “the clerk” and
+  2 more." It names up to three of the story's characters nobody has
+  claimed yet, in the story's order, then "and N more". The line is left
+  out when every character is claimed, and when the story has since been
+  deleted or hidden. The email for the same event ends its paragraph with
+  the same sentence, then "If one of them was you, open the story and
+  claim them."
+- **Judging a request.** An incoming request card quotes the claimant's
+  own story under the "*claimant* says they are “…”" line: about 240
+  characters of its opening, cut at a word and ending "…", in Literata at
+  the body size, `ink-muted`, set off by a 2px `rule` left border. A "Read
+  their story" link (44px tall) follows it. When their story can no
+  longer be read (deleted, hidden, or at a hidden place) both are left
+  out and the card says "Their story can no longer be read."
 - **Requests** (`/claims`, headed "Requests" like its navigation item)
   keeps its two tabs. Once the reader accepts a request, the bare
   "Accepted" gives way to a `status` line in `success` with a check:
@@ -518,8 +600,9 @@ two rows for the same browser are told apart.
   leaves the list without a word and comes back if it is restored. With
   none, the page says "You have not saved any stories yet. Press Save under
   a story to keep it here."
-- **Way in.** The account menu lists "Saved" with a `Bookmark` icon first,
-  above Settings.
+- **Way in.** The account menu lists "Your profile" (lucide `User`,
+  linking to `/users/<username>`) first, then "Saved" with a `Bookmark`
+  icon, above Settings.
 
 ## Appearance
 
@@ -668,6 +751,13 @@ are writing, each of which opens its place page.
   a 375px field). Results drop
   below it as before. Under it, one line for newcomers: "Anyone can read.
   Sign up to write your side."
+- **A place and its town.** The search reads a name with the city or town
+  it is in, either way round or after a comma ("starbucks tampa", "tampa
+  starbucks", "starbucks, tampa"), and lists the places of that name in
+  that town first, the best-known town of that name first. The search
+  stops at 20 places; when more match, the line "More places match: add a
+  town to narrow it" (`text-sm`, `ink-muted`) follows the list, and the
+  results' status line says it too, so the list never stops silently.
 - **The example arc.** A labelled "Example" panel that shows the product
   working: a place chip and a day chip, then two perspective cards by two
   usernames from the same evening, each a few lines of prose in Literata. A
@@ -690,7 +780,9 @@ are writing, each of which opens its place page.
   people are writing": one pill per place with a bell icon, linking to it.
   A place with stories published at it or below in the last seven days
   carries the count after its name ("Springfield · 3 new", the count in
-  bold accent), and those places come first, most new first. When any are
+  bold accent), and those places come first, most new first. Such a pill
+  opens the place's Newest tab (`/places/:id?tab=newest`), where the new
+  days are marked; a pill with nothing new opens the bare place page. When any are
   new, a line under the heading totals them ("5 new stories this week");
   counts stop at 100 and show as "100+".
   A place page carries a "Follow" toggle beside "Write about this place",
@@ -704,6 +796,33 @@ are writing, each of which opens its place page.
   perspectives" follows it, then the search field, then "Places you
   follow", "Where people are writing", "Browse by kind of place" and
   "Browse by state".
+- **New members.** A signed-in member with no published story is not
+  "back": the heading reads "Welcome, *username*" at the same size, and
+  the waiting lines are the same. Under them sits one call to action, the
+  primary button "Write about a place you were at" (to `/compose`), and
+  beside it a text link "How a day works" that moves focus to a short
+  explainer further down the same block: an `h2` "How a day works" over
+  four numbered lines, the arc page's explainer without its counts:
+  1. Every story is pinned to a place and a day, or one hour of it.
+  2. Everyone who was there writes their own side.
+  3. If someone else's story describes you, claim that character; your
+     stories link into a lore.
+  4. The lore the day's writers favour most becomes its canon.
+  While the member's published count is still loading the heading reads
+  "Welcome, *username*" and neither block shows; "Welcome back" replaces
+  it once a published story is found.
+- **Your perspectives.** One row per draft or story, newest edit first.
+  A row's title is the day's title; a draft that joins an existing day
+  (or hour) takes that day's title, a draft that would start a day takes
+  the title the writer gave it, and a draft with neither takes its first
+  words (six at most, "…" when cut), else "Untitled draft". "Untitled"
+  never appears alone. A draft whose day or hour already holds the
+  member's published story can never be published: its second line reads
+  "Draft · You already published for this day" ("this hour" for an hour)
+  in `warning` ink, and a "Delete" text button sits at the row's end,
+  44px tall, labelled "Delete draft *title*". One press deletes it, the
+  list is read again, and focus moves to the section heading. Nothing is
+  deleted without that press.
 - **Browse by kind of place** sits above "Browse by state" for everyone: the
   heading "Browse by kind of place", then one pill per category that has at
   least one day, in the order of the place page's category chips, each its
@@ -723,3 +842,10 @@ remove". Canon is chosen by the people who wrote about the day, never by
 so ("the lore the people who were there favour most"), and a reader who
 cannot vote or post is told who can instead of being urged to write. Book words appear where they are true (part, page, chapter of an arc)
 and nowhere else.
+
+"Arc" is a word for the code, never for readers. Every string a reader
+sees or hears (text, labels, accessible names, page titles) says "day"
+for a day arc and "hour" for an hour arc (`arcSpan`): "Back to the day",
+"Day title", "Day not found", "Each hour has its own canon". Where the
+kind is not yet known (loading, not found) it says "day". URLs and code
+identifiers keep `arc`.

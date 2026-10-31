@@ -67,7 +67,7 @@ export type Draft = {
 /** Fills the composer and publishes; returns the new perspective's path and its arc's path. */
 async function fillAndPublish(page: Page, draft: Draft): Promise<{ perspective: string; arc: string }> {
   await expect(page.getByRole("heading", { level: 1, name: "Write a perspective" })).toBeVisible();
-  if (draft.title) await page.getByLabel("Arc title").fill(draft.title);
+  if (draft.title) await page.getByLabel("Title of the day").fill(draft.title);
   await page.getByLabel("Genre").click();
   await page.getByRole("option", { name: draft.genre, exact: true }).click();
   for (const [i, body] of draft.parts.entries()) {
@@ -81,7 +81,7 @@ async function fillAndPublish(page: Page, draft: Draft): Promise<{ perspective: 
   await page.getByRole("button", { name: "Publish", exact: true }).click();
   await page.waitForURL(/\/perspectives\/[^/?]+/);
   const perspective = new URL(page.url()).pathname;
-  await page.getByRole("link", { name: "Back to the arc" }).click();
+  await page.getByRole("link", { name: "Back to the day", exact: true }).click();
   await page.waitForURL(/\/arcs\/[^/?]+/);
   const arc = new URL(page.url()).pathname;
   // Every arc page has a Canon section; an error page has none.

@@ -188,11 +188,23 @@ DELETE FROM lore_members WHERE perspective_id = $1;
 
 -- name: ListIncomingClaims :many
 -- Claims on characters in the caller's perspectives, newest first, keyset
--- paged on (created_at, id).
+-- paged on (created_at, id). claimant_opening is the first 241 characters of
+-- the claimant's story, whitespace folded, while anyone may read it (published, neither deleted
+-- nor hidden, not filed at or below a hidden place), else ''; claimExcerpt
+-- cuts it at a word. ListOutgoingClaims returns the same columns.
 SELECT c.id, p.arc_id, c.character_id, ch.label, ch.perspective_id,
        p.author_id, au.username AS author_username,
        c.claimant_user_id, cu.username AS claimant_username,
-       c.claimant_perspective_id, c.status, c.created_at, c.resolved_at
+       c.claimant_perspective_id, c.status, c.created_at, c.resolved_at,
+       COALESCE((SELECT left(regexp_replace(btrim(pp.body), '\s+', ' ', 'g'), 241) FROM perspective_parts pp
+                 JOIN perspectives cp ON cp.id = pp.perspective_id
+                 JOIN arcs ca ON ca.id = cp.arc_id
+                 WHERE pp.perspective_id = c.claimant_perspective_id
+                   AND cp.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND cp.deleted_at IS NULL AND cp.hidden_at IS NULL
+                   AND NOT EXISTS (SELECT 1 FROM places h
+                                   WHERE h.id = ANY(ca.place_path) AND h.hidden_at IS NOT NULL)
+                 ORDER BY pp.position LIMIT 1), '')::text AS claimant_opening
 FROM claims c
 JOIN characters ch ON ch.id = c.character_id
 JOIN perspectives p ON p.id = ch.perspective_id
@@ -210,7 +222,16 @@ LIMIT sqlc.arg(row_limit)::int;
 SELECT c.id, p.arc_id, c.character_id, ch.label, ch.perspective_id,
        p.author_id, au.username AS author_username,
        c.claimant_user_id, cu.username AS claimant_username,
-       c.claimant_perspective_id, c.status, c.created_at, c.resolved_at
+       c.claimant_perspective_id, c.status, c.created_at, c.resolved_at,
+       COALESCE((SELECT left(regexp_replace(btrim(pp.body), '\s+', ' ', 'g'), 241) FROM perspective_parts pp
+                 JOIN perspectives cp ON cp.id = pp.perspective_id
+                 JOIN arcs ca ON ca.id = cp.arc_id
+                 WHERE pp.perspective_id = c.claimant_perspective_id
+                   AND cp.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                   AND cp.deleted_at IS NULL AND cp.hidden_at IS NULL
+                   AND NOT EXISTS (SELECT 1 FROM places h
+                                   WHERE h.id = ANY(ca.place_path) AND h.hidden_at IS NOT NULL)
+                 ORDER BY pp.position LIMIT 1), '')::text AS claimant_opening
 FROM claims c
 JOIN characters ch ON ch.id = c.character_id
 JOIN perspectives p ON p.id = ch.perspective_id

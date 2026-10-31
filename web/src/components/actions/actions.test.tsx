@@ -82,7 +82,7 @@ function story() {
   return screen.findByRole("region", { name: "Respond to this story" });
 }
 
-describe("upvote rail on the arc page", () => {
+describe("upvote rail on the day page", () => {
   it("toggles a participant's up-vote on another perspective and shows the server's count", async () => {
     const store: Store = { "p-otter": perspective("p-otter", { upvotes: 2, voted: false }).perspective };
     const app = await openSignedIn({
@@ -177,12 +177,34 @@ describe("signed-out reader on a story's page", () => {
     });
   }
 
-  // Upvote and claim need a perspective in the arc too, so signing in alone
-  // would not be enough: the reader is told why, with the way to sign in.
+  // A claim needs a perspective in the arc too, so signing in alone would
+  // not be enough: the reader is told why, with the way to sign in.
   // Reacting needs only an account, and is explained the same way rather
   // than by leaving the page.
+  it("AC-009: Upvote says who can vote, offers writing your side and signing in, without calling the server", async () => {
+    const { api } = await openStory("p-otter", OTTER, {
+      signedOut: true,
+      over: { place: { id: "pl-9", name: "Moonbean" }, localDate: "2026-10-01" },
+    });
+    const actions = await story();
+    const button = await within(actions).findByRole("button", { name: /^Upvote/ });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    // The words the day page shows above its stories.
+    expect(actions).toHaveTextContent("Only people who wrote about this day can upvote its stories, so the people who were there choose its canon.");
+    expect(actions).toHaveTextContent("Were you there? Write your side");
+    expect(within(actions).getByRole("link", { name: "Write your side" })).toHaveAttribute(
+      "href",
+      "/compose?placeId=pl-9&date=2026-10-01&return=%2Fperspectives%2Fp-otter",
+    );
+    expect(actions).toHaveTextContent("Already wrote yours? Sign in");
+    expect(within(actions).getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/login?next=%2Fperspectives%2Fp-otter");
+    expect(api.calls.some((c) => /^(VoteService|LoreService|ReactService)/.test(c.procedure))).toBe(false);
+    expect(screen.queryByTestId("login")).toBeNull();
+  });
+
   for (const [label, name, why, back] of [
-    ["upvote", /^Upvote/, "Only people who wrote about this day can upvote its stories, so the people who were there choose its canon.", "%2Fperspectives%2Fp-otter"],
     ["claim", "Claim a character", "To say this was you, write your side of this day first.", "%2Fperspectives%2Fp-otter%3Fclaim%3D1"],
     ["react", /^Heart/, "To react to a story, sign in or create an account.", "%2Fperspectives%2Fp-otter"],
   ] as const) {
@@ -239,7 +261,8 @@ describe("a signed-in reader with no perspective in the arc", () => {
       path: "/perspectives/p-heron?claim=1",
     });
     const actions = await story();
-    const why = await within(actions).findByText(/^To say this was you, write your side of this day first\./);
+    // heron's story is in the 21:00 hour, so the note names the hour.
+    const why = await within(actions).findByText(/^To say this was you, write your side of this hour first\./);
     await waitFor(() => expect(why.closest("div")).toHaveFocus());
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(within(actions).getByRole("button", { name: "Claim a character" })).toHaveAttribute("aria-expanded", "true");

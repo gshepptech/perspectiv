@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -86,10 +87,34 @@ func claimFromRow(r dbq.ListIncomingClaimsRow) (*perspectivv1.Claim, error) {
 		Author:                &perspectivv1.UserRef{UserId: r.AuthorID.String(), Username: r.AuthorUsername},
 		Claimant:              &perspectivv1.UserRef{UserId: r.ClaimantUserID.String(), Username: r.ClaimantUsername},
 		ClaimantPerspectiveId: r.ClaimantPerspectiveID.String(),
+		ClaimantExcerpt:       claimExcerpt(r.ClaimantOpening),
 		Status:                status,
 		CreatedAt:             timestampFromDB(r.CreatedAt),
 		ResolvedAt:            timestampFromDB(r.ResolvedAt),
 	}, nil
+}
+
+// claimExcerptLen is how many characters of the claimant's story a claim
+// quotes; the queries read one more, so a cut can tell an opening that ends
+// there from one that goes on.
+const claimExcerptLen = 240
+
+// claimExcerpt cuts an opening, whose whitespace the query folded, at the
+// last word that fits and marks the cut with an ellipsis, so a request never
+// quotes half a word.
+func claimExcerpt(opening string) string {
+	r := []rune(opening)
+	if len(r) <= claimExcerptLen {
+		return string(r)
+	}
+	cut := claimExcerptLen
+	for i := claimExcerptLen; i > claimExcerptLen/2; i-- {
+		if unicode.IsSpace(r[i]) {
+			cut = i
+			break
+		}
+	}
+	return strings.TrimRightFunc(string(r[:cut]), func(c rune) bool { return unicode.IsSpace(c) || c == ',' || c == ';' || c == ':' }) + "…"
 }
 
 // claimKeyset is ListClaims' position: the (created_at, id) of the last row

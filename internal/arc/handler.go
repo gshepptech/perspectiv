@@ -82,7 +82,7 @@ func (h *Handler) ListOpenCharacters(ctx context.Context, req *connect.Request[p
 func (h *Handler) RetitleHourArc(ctx context.Context, req *connect.Request[perspectivv1.RetitleHourArcRequest]) (*connect.Response[perspectivv1.RetitleHourArcResponse], error) {
 	caller, ok := apiutil.CallerFrom(ctx)
 	if !ok {
-		return nil, apiutil.ToConnect(apiutil.Unauthenticated("sign in to retitle an arc"))
+		return nil, apiutil.ToConnect(apiutil.Unauthenticated("sign in to retitle an hour"))
 	}
 	id, err := parseArcID(req.Msg.GetArcId())
 	if err != nil {

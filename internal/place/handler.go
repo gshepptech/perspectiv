@@ -48,11 +48,11 @@ func (h *Handler) SearchPlaces(ctx context.Context, req *connect.Request[perspec
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	ps, err := h.svc.Search(ctx, req.Msg.GetQuery(), parentID, req.Msg.GetKind())
+	found, err := h.svc.Search(ctx, req.Msg.GetQuery(), parentID, req.Msg.GetKind())
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	return connect.NewResponse(&perspectivv1.SearchPlacesResponse{Places: placesToProto(ps)}), nil
+	return connect.NewResponse(&perspectivv1.SearchPlacesResponse{Places: placesToProto(found.Places), More: found.More}), nil
 }
 
 // GetPlace returns one place with its ancestors.
@@ -72,7 +72,16 @@ func (h *Handler) GetPlace(ctx context.Context, req *connect.Request[perspectivv
 			return nil, apiutil.ToConnect(err)
 		}
 	}
-	return connect.NewResponse(&perspectivv1.GetPlaceResponse{Place: out}), nil
+	res := &perspectivv1.GetPlaceResponse{Place: out}
+	// A storyless duplicate listing points to the copy people write about.
+	twin, ok, err := h.svc.Twin(ctx, p)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	if ok {
+		res.Twin = refToProto(twin)
+	}
+	return connect.NewResponse(res), nil
 }
 
 // FollowPlace follows or unfollows a place for the caller.
@@ -230,6 +239,7 @@ func arcToProto(a EpicArc) *perspectivv1.EpicArc {
 		CanonLoreId: idString(a.CanonLoreID), CanonScore: a.CanonScore,
 		MemberCount: a.MemberCount, PerspectiveCount: a.PerspectiveCount,
 		CreatedAt: timestamppb.New(a.CreatedAt), City: a.City, Excerpt: a.Excerpt, CanonLoreName: a.CanonLoreName,
+		NewThisWeek: a.NewThisWeek,
 	}
 }
 

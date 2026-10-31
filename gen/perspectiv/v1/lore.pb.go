@@ -39,8 +39,12 @@ type Claim struct {
 	Status                ClaimStatus            `protobuf:"varint,9,opt,name=status,proto3,enum=perspectiv.v1.ClaimStatus" json:"status,omitempty"`
 	CreatedAt             *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	ResolvedAt            *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=resolved_at,json=resolvedAt,proto3" json:"resolved_at,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// The opening of the claimant's story, about 240 characters cut at a word
+	// and ending in "…" when cut. Empty when that story is not readable:
+	// deleted, hidden, unpublished, or filed at or below a hidden place.
+	ClaimantExcerpt string `protobuf:"bytes,12,opt,name=claimant_excerpt,json=claimantExcerpt,proto3" json:"claimant_excerpt,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Claim) Reset() {
@@ -148,6 +152,13 @@ func (x *Claim) GetResolvedAt() *timestamppb.Timestamp {
 		return x.ResolvedAt
 	}
 	return nil
+}
+
+func (x *Claim) GetClaimantExcerpt() string {
+	if x != nil {
+		return x.ClaimantExcerpt
+	}
+	return ""
 }
 
 // Encounter is an accepted claim seen as a link between two perspectives.
@@ -1686,7 +1697,7 @@ var File_perspectiv_v1_lore_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_lore_proto_rawDesc = "" +
 	"\n" +
-	"\x18perspectiv/v1/lore.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x18perspectiv/v1/user.proto\"\xe9\x03\n" +
+	"\x18perspectiv/v1/lore.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x18perspectiv/v1/user.proto\"\x94\x04\n" +
 	"\x05Claim\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06arc_id\x18\x02 \x01(\tR\x05arcId\x12!\n" +
@@ -1701,7 +1712,8 @@ const file_perspectiv_v1_lore_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12;\n" +
 	"\vresolved_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"resolvedAt\"\x85\x01\n" +
+	"resolvedAt\x12)\n" +
+	"\x10claimant_excerpt\x18\f \x01(\tR\x0fclaimantExcerpt\"\x85\x01\n" +
 	"\tEncounter\x12\x19\n" +
 	"\bclaim_id\x18\x01 \x01(\tR\aclaimId\x12%\n" +
 	"\x0eperspective_id\x18\x02 \x01(\tR\rperspectiveId\x126\n" +

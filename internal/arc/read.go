@@ -183,7 +183,7 @@ func (s *Service) readTx(ctx context.Context, fn func(q *dbq.Queries) error) err
 func loadArc(ctx context.Context, q *dbq.Queries, arcID uuid.UUID) (*perspectivv1.Arc, error) {
 	row, err := q.GetArcRow(ctx, arcID)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && row.PlaceHidden) {
-		return nil, apiutil.NotFound("arc not found")
+		return nil, apiutil.NotFound("day not found")
 	}
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("read arc: %w", err))

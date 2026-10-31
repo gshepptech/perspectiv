@@ -280,13 +280,13 @@ func checkSlot(ctx context.Context, q *dbq.Queries, arcID, caller uuid.UUID) err
 	case row.HiddenAt != nil:
 		// A moderator's hide stands; deleting is the author's own choice
 		// and frees the place (FindInArc skips deleted rows).
-		return apiutil.FailedPrecondition("your perspective in this arc was hidden by a moderator; you cannot publish another there")
+		return apiutil.FailedPrecondition("your story about this day was hidden by a moderator; you cannot publish another there")
 	default:
 		return errAlreadyInArc
 	}
 }
 
-var errAlreadyInArc = apiutil.AlreadyExists("you already have a perspective in this arc")
+var errAlreadyInArc = apiutil.AlreadyExists("you already have a story about this day")
 
 // Update edits a published perspective (see UpdateInput) and returns it. A
 // draft is FailedPrecondition (drafts save through SaveDraft), and so is a

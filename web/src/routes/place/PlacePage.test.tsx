@@ -145,7 +145,7 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
 
   it("lists ranked arcs in the server's order, including arcs at descendant places", async () => {
     const { calls } = placePage();
-    const list = await screen.findByRole("list", { name: "Arcs" });
+    const list = await screen.findByRole("list", { name: "Days" });
     const items = within(list).getAllByRole("listitem");
     expect(items).toHaveLength(2);
     expect(within(items[0]!).getByRole("link", { name: "The night the fountain froze" })).toHaveAttribute("href", "/arcs/arc-canon");
@@ -164,7 +164,7 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
   it("switches to Newest from the keyboard and keeps the tab in the address", async () => {
     const user = userEvent.setup();
     const { router, calls } = placePage();
-    await screen.findByRole("list", { name: "Arcs" });
+    await screen.findByRole("list", { name: "Days" });
     screen.getByRole("tab", { name: "Ranked" }).focus();
     await user.keyboard("{ArrowRight}");
     expect(await screen.findByRole("link", { name: "Snow on the square" })).toHaveAttribute("href", "/arcs/arc-new");
@@ -207,7 +207,7 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     });
     await user.click(await screen.findByRole("button", { name: "Show more" }));
     expect(await screen.findByRole("link", { name: "Third" })).toBeInTheDocument();
-    expect(within(screen.getByRole("list", { name: "Arcs" })).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(screen.getByRole("list", { name: "Days" })).getAllByRole("listitem")).toHaveLength(3);
     expect(calls("PlaceService/GetEpic").at(-1)).toEqual({ placeId: "ci-spr", tab: "EPIC_TAB_RANKED", pageToken: "t2" });
     expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
   });
@@ -226,6 +226,40 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     placePage("/places/ci-spr", { "PlaceService/GetEpic": () => ({ body: { place: springfield } }) });
     expect(await screen.findByText("No one has written about Springfield yet.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Write the first story" })).toHaveAttribute("href", "/compose?placeId=ci-spr");
+    expect(screen.queryByText(/People write about this place at/)).toBeNull();
+  });
+
+  it("points a storyless duplicate listing to the one people write about", async () => {
+    const copy = { ...store, id: "so-copy", name: "Prairie Books, Springfield", parentId: "ci-spr", ancestors: [illinois] };
+    placePage("/places/so-copy", {
+      "PlaceService/GetPlace": () => ({ body: { place: copy, twin: store } }),
+      "PlaceService/GetEpic": () => ({ body: { place: copy } }),
+    });
+    const line = await screen.findByText(/People write about this place at/);
+    expect(line).toHaveTextContent("People write about this place at Prairie Books.");
+    expect(within(line).getByRole("link", { name: "Prairie Books" })).toHaveAttribute("href", "/places/so-bk");
+    // Writing here stays possible for someone who means this listing.
+    expect(screen.getByRole("link", { name: "Write the first story" })).toHaveAttribute("href", "/compose?placeId=so-copy");
+  });
+
+  it("marks the days with a story from the last week New on the Newest tab only", async () => {
+    const fresh = { ...rankedArcs[0]!, newThisWeek: true };
+    placePage("/places/ci-spr?tab=newest", {
+      "PlaceService/GetEpic": (body) => ({
+        body: { place: springfield, arcs: body.tab === "EPIC_TAB_NEWEST" ? [fresh, ...newestArcs] : [fresh] },
+      }),
+    });
+    const items = within(await screen.findByRole("list", { name: "Days" })).getAllByRole("listitem");
+    expect(within(items[0]!).getByText("New")).toBeInTheDocument();
+    expect(within(items[1]!).queryByText("New")).toBeNull();
+  });
+
+  it("leaves the Ranked tab unmarked", async () => {
+    placePage("/places/ci-spr", {
+      "PlaceService/GetEpic": () => ({ body: { place: springfield, arcs: [{ ...rankedArcs[0]!, newThisWeek: true }] } }),
+    });
+    const list = await screen.findByRole("list", { name: "Days" });
+    expect(within(list).queryByText("New")).toBeNull();
   });
 
   it("drills down to the places inside it", async () => {

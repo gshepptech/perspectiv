@@ -260,7 +260,7 @@ func (w *emailWorker) notificationContent(data map[string]string) (content, erro
 	}
 	arc := data[dataArcTitle]
 	if arc == "" {
-		arc = "your arc"
+		arc = "your day"
 	}
 	var subject, body string
 	switch kind {
@@ -273,12 +273,15 @@ func (w *emailWorker) notificationContent(data map[string]string) (content, erro
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC:
 		subject = "A new perspective in " + arc
 		body = actor + " published a new perspective in " + arc + "."
+		if who := castPhrase(castFromData(data)); who != "" {
+			body += " Who might be in it: " + who + ". If one of them was you, open the story and claim them."
+		}
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_VOTE_OUT_OPENED:
 		subject = "A remove vote opened in " + arc
 		body = "A member of your lore in " + arc + " opened a vote to remove a perspective from it."
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_CANON_CHANGE:
 		subject = "The canon changed in " + arc
-		body = "A different lore is now canon in " + arc + ", or the arc no longer has one."
+		body = "A different lore is now canon in " + arc + ", or the day no longer has one."
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_INVITE_ANSWERED:
 		subject = actor + " wrote their side of " + arc
 		body = actor + " followed your invite and wrote their perspective in " + arc + ". Read it, and claim each other's characters if you recognise yourselves."

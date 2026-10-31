@@ -83,6 +83,29 @@ function Linked({ claim, lineRef }: { claim: Claim; lineRef: RefObject<HTMLParag
   );
 }
 
+/**
+ * The claimant's own story, quoted, so the author can judge the request
+ * without leaving the page. The server sends the excerpt only while anyone
+ * may read the story.
+ */
+function TheirStory({ claim }: { claim: Claim }) {
+  if (!claim.claimantExcerpt) {
+    return <p className="text-sm text-ink-muted">Their story can no longer be read.</p>;
+  }
+  return (
+    <div className="grid min-w-0 gap-1">
+      <blockquote className="border-l-2 border-rule pl-3 font-serif text-ink-muted [overflow-wrap:anywhere]">
+        {claim.claimantExcerpt}
+      </blockquote>
+      <p>
+        <Link to={`/perspectives/${encodeURIComponent(claim.claimantPerspectiveId)}`} className={linkClass}>
+          Read their story
+        </Link>
+      </p>
+    </div>
+  );
+}
+
 function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
   const headingId = useId();
   const queryClient = useQueryClient();
@@ -131,6 +154,7 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
           </>
         )}
       </p>
+      {incoming && <TheirStory claim={claim} />}
       {accepted && <Linked claim={claim} lineRef={linkedLine} />}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         {!accepted && (
@@ -144,9 +168,11 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
         <Link to={`/perspectives/${encodeURIComponent(claim.perspectiveId)}`} className={linkClass}>
           {incoming ? "Your perspective" : `${author}'s perspective`}
         </Link>
-        <Link to={`/perspectives/${encodeURIComponent(claim.claimantPerspectiveId)}`} className={linkClass}>
-          {incoming ? "Their perspective" : "Your perspective"}
-        </Link>
+        {!incoming && (
+          <Link to={`/perspectives/${encodeURIComponent(claim.claimantPerspectiveId)}`} className={linkClass}>
+            Your perspective
+          </Link>
+        )}
       </div>
       {incoming && pending && (
         <div className="flex flex-wrap gap-2">
@@ -219,7 +245,7 @@ function ClaimList({ direction }: { direction: ClaimDirection }) {
       <p className="text-ink-muted">
         {incoming
           ? "No one has claimed your characters yet."
-          : "You have not claimed anyone's character yet. When you recognise yourself in another perspective in your arc, claim that character from it."}
+          : "You have not claimed anyone's character yet. When you recognise yourself in another perspective from your day, claim that character from it."}
       </p>
     );
   }

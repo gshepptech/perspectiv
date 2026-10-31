@@ -1,25 +1,87 @@
+import { useQuery } from "@tanstack/react-query";
+import { PenLine } from "lucide-react";
+import { useRef } from "react";
 import { Link } from "react-router";
 
+import { Button } from "@/components/ui/Button";
+import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
+import { clients } from "@/lib/connect";
 import { useWaitingRequests } from "@/routes/claims/waiting";
 import { useUnreadCount } from "@/routes/inbox/unread";
 
 const linkClass = "inline-flex min-h-11 items-center font-medium text-accent underline underline-offset-4";
 
 /**
- * The top of the front door for a returning member: what is waiting on
- * them, each with the page that deals with it. A count still loading, or one
- * that failed to load, is left out rather than shown as zero.
+ * Whether the member has published anything: one published story is
+ * enough to know. Undefined while it loads or when it fails.
+ */
+function useHasPublished(): boolean | undefined {
+  const published = useQuery({
+    queryKey: ["perspective", "listMine", { status: PerspectiveStatus.PUBLISHED, pageSize: 1 }],
+    queryFn: ({ signal }) => clients.perspective.listMine({ status: PerspectiveStatus.PUBLISHED, pageSize: 1 }, { signal }),
+  });
+  return published.isSuccess ? published.data.perspectives.length > 0 : undefined;
+}
+
+/**
+ * The first thing a member who has not published yet is asked to do, and
+ * how a day works, said briefly enough to read before they start.
+ */
+function FirstStory() {
+  const how = useRef<HTMLHeadingElement>(null);
+  return (
+    <div className="mt-5 grid min-w-0 gap-6">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <Button asChild>
+          <Link to="/compose">
+            <PenLine aria-hidden size={18} />
+            Write about a place you were at
+          </Link>
+        </Button>
+        <a
+          href="#welcome-how"
+          className={linkClass}
+          onClick={(e) => {
+            e.preventDefault();
+            how.current?.focus();
+          }}
+        >
+          How a day works
+        </a>
+      </div>
+      <section aria-labelledby="welcome-how" className="max-w-measure min-w-0 rounded-md border border-rule bg-surface p-4">
+        <h2 id="welcome-how" ref={how} tabIndex={-1} className="font-sans text-base font-medium">
+          How a day works
+        </h2>
+        <ol className="mt-2 grid list-decimal gap-1.5 pl-5 text-ink">
+          <li>Every story is pinned to a place and a day, or one hour of it.</li>
+          <li>Everyone who was there writes their own side.</li>
+          <li>If someone else&apos;s story describes you, claim that character; your stories link into a lore.</li>
+          <li>The lore the day&apos;s writers favour most becomes its canon.</li>
+        </ol>
+      </section>
+    </div>
+  );
+}
+
+/**
+ * The top of the front door for a member: what is waiting on them, each
+ * with the page that deals with it. A count still loading, or one that
+ * failed to load, is left out rather than shown as zero. A member who has
+ * published is welcomed back; one who has not is welcomed, then asked to
+ * write and shown how a day works.
  */
 export function WelcomeBack({ username }: { username: string }) {
   const unread = useUnreadCount(true);
   const waiting = useWaitingRequests(true);
+  const hasPublished = useHasPublished();
   const unreadCount = unread.data ?? 0;
   const waitingCount = waiting.data?.count ?? 0;
   const settled = unread.isSuccess && waiting.isSuccess;
   return (
     <div className="min-w-0">
       <h1 id="landing-title" className="text-2xl wrap-anywhere sm:text-3xl">
-        Welcome back, {username}
+        {hasPublished ? "Welcome back" : "Welcome"}, {username}
       </h1>
       {(settled || unreadCount > 0 || waitingCount > 0) && (
         <ul aria-label="Waiting on you" className="mt-3 grid gap-x-6 sm:flex sm:flex-wrap">
@@ -56,6 +118,7 @@ export function WelcomeBack({ username }: { username: string }) {
           {settled && unreadCount === 0 && waitingCount === 0 && <li className="text-ink-muted">Nothing is waiting on you.</li>}
         </ul>
       )}
+      {hasPublished === false && <FirstStory />}
     </div>
   );
 }

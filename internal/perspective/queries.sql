@@ -123,6 +123,12 @@ VALUES (sqlc.arg(perspective_id)::uuid, sqlc.arg(label)::text, sqlc.arg(position
 -- otherwise; see placeholder in read.go. place_hidden is true when that
 -- place or any ancestor is hidden: hiding a place hides its whole subtree,
 -- the rule the arc domain's GetArcRow applies.
+--
+-- A draft has no arc yet, so draft_arc_title is the title of the arc that
+-- exists for its place, day and hour, the one a publish would join, and
+-- superseded_by_id is the author's own live published story there, which
+-- makes the draft impossible to publish. arcs_place_date_hour_key and
+-- perspectives_arc_author_key serve both joins.
 WITH RECURSIVE up AS (
     SELECT p0.id AS perspective_id, pl0.parent_id, pl0.hidden_at, 1 AS depth
     FROM perspectives p0
@@ -147,6 +153,8 @@ SELECT p.id, p.arc_id, p.author_id, p.genre, p.status, p.lore_status, p.lore_id,
        pl.kind  AS place_kind,
        pl.name  AS place_name,
        u.username AS author_username,
+       da.title AS draft_arc_title,
+       sup.id   AS superseded_by_id,
        EXISTS (SELECT 1 FROM up WHERE up.perspective_id = p.id
                AND up.hidden_at IS NOT NULL)::boolean AS place_hidden,
        (SELECT count(*) FROM votes v WHERE v.perspective_id = p.id)::int AS upvotes,
@@ -158,6 +166,10 @@ FROM perspectives p
 JOIN users u ON u.id = p.author_id
 LEFT JOIN arcs a ON a.id = p.arc_id
 LEFT JOIN places pl ON pl.id = COALESCE(a.place_id, p.place_id)
+LEFT JOIN arcs da ON p.arc_id IS NULL AND da.place_id = p.place_id
+    AND da.local_date = p.local_date AND da.hour IS NOT DISTINCT FROM p.hour
+LEFT JOIN perspectives sup ON sup.arc_id = da.id AND sup.author_id = p.author_id
+    AND sup.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND sup.deleted_at IS NULL
 WHERE p.id = ANY(sqlc.arg(ids)::uuid[]);
 
 -- name: ListPartsOf :many

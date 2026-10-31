@@ -156,6 +156,69 @@ describe("route loaders", () => {
   });
 });
 
+describe("header search", () => {
+  const found = {
+    id: "p-1",
+    kind: "PLACE_KIND_STORE",
+    name: "Starbucks",
+    category: "PLACE_CATEGORY_FOOD_AND_DRINK",
+    stories: 3,
+    ancestors: [
+      { id: "p-fl", kind: "PLACE_KIND_STATE", name: "Florida" },
+      { id: "p-tampa", kind: "PLACE_KIND_CITY", name: "Tampa" },
+    ],
+  };
+  const search = { "PlaceService/SearchPlaces": () => ({ body: { places: [found], more: true } }) };
+
+  it("opens the place search from the header, signed out too, and follows a result to its place", async () => {
+    const user = userEvent.setup();
+    const { router } = renderAt("/terms", { extra: search });
+    await screen.findByTestId("page");
+    await user.click(within(screen.getByRole("navigation", { name: "Primary" })).getByRole("button", { name: "Search" }));
+    const dialog = await screen.findByRole("dialog", { name: "Search places" });
+    const field = within(dialog).getByRole("searchbox", { name: "Search places" });
+    expect(field).toHaveFocus();
+    await user.type(field, "starbucks tampa");
+    const result = await within(dialog).findByRole("link", { name: /Starbucks/ });
+    expect(result).toHaveAttribute("href", "/places/p-1");
+    expect(result).toHaveTextContent("Food & drink in Tampa, Florida · 3 stories");
+    expect(within(dialog).getByText("More places match: add a town to narrow it")).toBeInTheDocument();
+    await user.click(result);
+    await waitFor(() => expect(router.state.location.pathname).toBe("/places/p-1"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens with / unless focus is in a text field or a modifier is held, and opens empty again", async () => {
+    const user = userEvent.setup();
+    renderAt("/terms", { refresh: signedIn(), extra: search });
+    await screen.findByTestId("page");
+    const other = document.createElement("input");
+    other.setAttribute("aria-label", "Elsewhere");
+    document.body.append(other);
+    try {
+      other.focus();
+      await user.keyboard("/");
+      expect(other).toHaveValue("/");
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      other.blur();
+      await user.keyboard("{Control>}/{/Control}");
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      await user.keyboard("/");
+      const dialog = await screen.findByRole("dialog", { name: "Search places" });
+      const field = within(dialog).getByRole("searchbox", { name: "Search places" });
+      expect(field).toHaveValue("");
+      await user.type(field, "tampa");
+      await user.keyboard("{Escape}");
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Search" })).toHaveFocus();
+      await user.keyboard("/");
+      expect(within(await screen.findByRole("dialog")).getByRole("searchbox")).toHaveValue("");
+    } finally {
+      other.remove();
+    }
+  });
+});
+
 describe("globPageLoader", () => {
   it("names the module it cannot find", async () => {
     await expect(globPageLoader("nowhere/NowherePage")).rejects.toThrow("route module @/routes/nowhere/NowherePage does not exist");
@@ -217,15 +280,24 @@ describe("shell", () => {
     expect(requests).toHaveTextContent("2");
   });
 
-  it("lists Saved first in the account menu and opens the member's saved stories", async () => {
+  it("lists Your profile, then Saved, in the account menu and opens the member's saved stories", async () => {
     const user = userEvent.setup();
     const { router } = renderAt("/", { refresh: signedIn() });
     await screen.findByTestId("page");
     await user.click(screen.getByRole("button", { name: "Account: wren" }));
     const items = await screen.findAllByRole("menuitem");
-    expect(items.map((i) => i.textContent?.trim())).toEqual(["Saved", "Settings", "Sign out"]);
+    expect(items.map((i) => i.textContent?.trim())).toEqual(["Your profile", "Saved", "Settings", "Sign out"]);
     await user.click(screen.getByRole("menuitem", { name: "Saved" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/saved"));
+  });
+
+  it("opens the member's own profile from the account menu", async () => {
+    const user = userEvent.setup();
+    const { router } = renderAt("/", { refresh: signedIn() });
+    await screen.findByTestId("page");
+    await user.click(screen.getByRole("button", { name: "Account: wren" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Your profile" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/users/wren"));
   });
 
   it("offers Reports to an admin", async () => {

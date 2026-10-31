@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Clock, Crown, Pin, PenLine } from "lucide-react"
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router";
 
+import { UpvoteRule } from "@/components/actions/JoinFirst";
 import type { ViewerRights } from "@/components/actions/PerspectiveActions";
 import { arcQuery } from "@/components/actions/queries";
 import { ReportDialog } from "@/components/actions/ReportDialog";
@@ -235,8 +236,8 @@ function HourTimeline({
       title="Hours"
       intro={
         hoursOnly
-          ? "Everything written about this day happened within these hours. Each hour is its own arc with its own canon."
-          : "This day, hour by hour. Each hour is its own arc with its own canon."
+          ? "Everything written about this day happened within these hours. Each hour has its own stories and its own canon."
+          : "This day, hour by hour. Each hour has its own stories and its own canon."
       }
     >
       <ol className="mt-3 grid min-w-0 gap-4 border-l-2 border-rule pl-4">
@@ -253,7 +254,7 @@ function HourTimeline({
               <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-ink-muted">
                 <span>{plural(h.perspectiveCount, "perspective", "perspectives")}</span>
                 <Link to={`/arcs/${a.id}`} className="font-medium text-accent underline underline-offset-4">
-                  Open the {at} arc
+                  Open the {at} hour
                 </Link>
               </p>
               {h.canon && h.canon.perspectives.length > 0 ? (
@@ -365,6 +366,18 @@ function HowItWorks({ arc, res, rights }: { arc: Arc; res: GetArcResponse; right
   );
 }
 
+/**
+ * For a reader who may not vote here, said once above the stories instead
+ * of on every row: who can, and the way in for someone who was there.
+ */
+function WhoCanUpvote({ arc }: { arc: Arc }) {
+  return (
+    <div role="note" className="min-w-0 rounded-md border border-rule bg-surface p-4 text-sm text-ink">
+      <UpvoteRule where={{ placeId: arc.place?.id ?? "", localDate: arc.localDate, hour: arc.hour }} back={`/arcs/${arc.id}`} />
+    </div>
+  );
+}
+
 function ArcView({ res }: { res: GetArcResponse }) {
   const session = useSession();
   const arc = res.arc;
@@ -465,6 +478,7 @@ function ArcView({ res }: { res: GetArcResponse }) {
       </div>
       <div className="mt-6 grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="grid min-w-0 content-start gap-8">
+          {!rights.participant && !hoursOnly && <WhoCanUpvote arc={arc} />}
           {res.canon && res.canon.lore && res.canon.perspectives.length > 0 ? (
             <section aria-labelledby="arc-canon" className="min-w-0">
               <h2 id="arc-canon" className="sr-only">
@@ -494,7 +508,7 @@ function Missing() {
   return (
     <section aria-labelledby="arc-missing" className="mx-auto max-w-measure py-12">
       <h1 id="arc-missing" className="text-2xl sm:text-3xl">
-        Arc not found
+        Day not found
       </h1>
       <p className="mt-3 text-ink-muted">It may have been removed, or the link is wrong.</p>
       <p className="mt-6">
@@ -517,11 +531,11 @@ function Missing() {
 export function Component() {
   const { arcId = "" } = useParams();
   const query = useQuery(arcQuery(arcId));
-  useDocumentTitle(query.isError ? "Arc not found" : query.data?.arc?.title);
+  useDocumentTitle(query.isError ? "Day not found" : query.data?.arc?.title);
   if (query.isPending) {
     return (
       <p role="status" className="text-ink-muted">
-        Opening the arc…
+        Opening the day…
       </p>
     );
   }
@@ -529,7 +543,7 @@ export function Component() {
     if (ConnectError.from(query.error).code === Code.NotFound) return <Missing />;
     return (
       <section role="alert" className="mx-auto max-w-measure py-12">
-        <h1 className="text-2xl sm:text-3xl">This arc could not be loaded</h1>
+        <h1 className="text-2xl sm:text-3xl">This day could not be loaded</h1>
         <p className="mt-3 text-ink-muted">Check your connection and try again.</p>
         <Button className="mt-6" variant="secondary" onClick={() => void query.refetch()}>
           Try again

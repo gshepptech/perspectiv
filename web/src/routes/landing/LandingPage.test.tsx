@@ -129,7 +129,165 @@ describe("landing page (AC-006, OT-036)", () => {
       "href",
       "/compose?perspectiveId=p-2",
     );
-    expect(calls("PerspectiveService/ListMine")).toHaveLength(1);
+    // One read of the list; the welcome asks separately whether anything is published.
+    expect(calls("PerspectiveService/ListMine").filter((b) => b.status === undefined)).toHaveLength(1);
+  });
+
+  it("titles each draft by its day, else its first words, never a bare Untitled", async () => {
+    const draft = (id: string, over: Record<string, unknown>) => ({
+      id,
+      status: "PERSPECTIVE_STATUS_DRAFT",
+      place: { id: "ml-wh", kind: "PLACE_KIND_MALL", name: "White Oaks Mall" },
+      localDate: "2026-01-14",
+      ...over,
+    });
+    const mine = {
+      perspectives: [
+        // Joins a day someone else started: the server sends that day's title.
+        draft("d-join", { arcTitle: "Frost on the fountain", parts: [{ position: 1, body: "I was by the doors." }] }),
+        draft("d-words", { parts: [{ position: 1, body: "  The escalator stopped between floors and nobody moved for a minute." }] }),
+        draft("d-short", { localDate: "2026-01-15", parts: [{ position: 1, body: "Snow again." }] }),
+        draft("d-empty", { localDate: "2026-01-16", parts: [] }),
+      ],
+    };
+    renderApp(
+      "/",
+      { "PlaceService/ListChildren": () => ({ body: states }), "PerspectiveService/ListMine": () => ({ body: mine }) },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    const titles = await waitFor(() => {
+      const links = within(yours).getAllByRole("link");
+      expect(links).toHaveLength(4);
+      return links.map((l) => l.querySelector(".font-serif")?.textContent);
+    });
+    expect(titles).toEqual(["Frost on the fountain", "The escalator stopped between floors and…", "Snow again.", "Untitled draft"]);
+    expect(yours).not.toHaveTextContent(/Untitled(?! draft)/);
+  });
+
+  it("marks a draft the writer's own story has superseded, and deletes it only when asked", async () => {
+    const user = userEvent.setup();
+    let mine = [
+      {
+        id: "d-dead",
+        status: "PERSPECTIVE_STATUS_DRAFT",
+        arcTitle: "The night the lights went out",
+        supersededById: "p-2",
+        place: { id: "ci-spr", kind: "PLACE_KIND_CITY", name: "Springfield" },
+        localDate: "2026-02-02",
+        parts: [{ position: 1, body: "It went dark." }],
+      },
+      {
+        id: "d-live",
+        status: "PERSPECTIVE_STATUS_DRAFT",
+        titleIfNewArc: "Frost on the fountain",
+        place: { id: "ml-wh", kind: "PLACE_KIND_MALL", name: "White Oaks Mall" },
+        localDate: "2026-01-14",
+        hour: 9,
+      },
+      {
+        id: "p-2",
+        arcId: "arc-2",
+        arcTitle: "The night the lights went out",
+        status: "PERSPECTIVE_STATUS_PUBLISHED",
+        place: { id: "ci-spr", kind: "PLACE_KIND_CITY", name: "Springfield" },
+        localDate: "2026-02-02",
+      },
+    ];
+    const { calls } = renderApp(
+      "/",
+      {
+        "PlaceService/ListChildren": () => ({ body: states }),
+        "PerspectiveService/ListMine": () => ({ body: { perspectives: mine } }),
+        "PerspectiveService/Delete": (body) => {
+          mine = mine.filter((p) => p.id !== body.perspectiveId);
+          return { body: {} };
+        },
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    const dead = (await within(yours).findByRole("link", { name: /You already published for this day/ })).closest("li")!;
+    expect(dead).toHaveTextContent("Draft · You already published for this day");
+    // Only the superseded draft offers Delete, and nothing is deleted unasked.
+    expect(within(yours).getAllByRole("button", { name: /^Delete draft/ })).toHaveLength(1);
+    expect(calls("PerspectiveService/Delete")).toEqual([]);
+    expect(within(yours).getByRole("link", { name: /Frost on the fountain/ })).not.toHaveTextContent("already published");
+
+    await user.click(within(dead).getByRole("button", { name: "Delete draft The night the lights went out" }));
+    await waitFor(() => expect(within(yours).queryByRole("link", { name: /already published/ })).toBeNull());
+    expect(calls("PerspectiveService/Delete")).toEqual([{ perspectiveId: "d-dead" }]);
+    expect(within(yours).getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "Your perspectives" })).toHaveFocus();
+  });
+
+  it("says an hour's draft was superseded for that hour", async () => {
+    const mine = {
+      perspectives: [
+        {
+          id: "d-dead",
+          status: "PERSPECTIVE_STATUS_DRAFT",
+          arcTitle: "Close of play",
+          supersededById: "p-9",
+          place: { id: "ci-spr", kind: "PLACE_KIND_CITY", name: "Springfield" },
+          localDate: "2026-02-02",
+          hour: 21,
+        },
+      ],
+    };
+    renderApp(
+      "/",
+      { "PlaceService/ListChildren": () => ({ body: states }), "PerspectiveService/ListMine": () => ({ body: mine }) },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    expect(await within(yours).findByText("Draft · You already published for this hour")).toBeInTheDocument();
+  });
+
+  it("welcomes a member who has not published yet, asks them to write, and shows how a day works", async () => {
+    const user = userEvent.setup();
+    const { calls } = renderApp(
+      "/",
+      {
+        "PlaceService/ListChildren": () => ({ body: states }),
+        "PerspectiveService/ListMine": () => ({ body: { perspectives: [] } }),
+        "NotifyService/ListInbox": () => ({ body: { unreadCount: 0 } }),
+        "LoreService/ListClaims": () => ({ body: { claims: [] } }),
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    expect(await screen.findByRole("link", { name: "Write about a place you were at" })).toHaveAttribute("href", "/compose");
+    expect(screen.getByRole("heading", { level: 1, name: "Welcome, wren" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /Welcome back/ })).toBeNull();
+    expect(calls("PerspectiveService/ListMine")).toContainEqual({ status: "PERSPECTIVE_STATUS_PUBLISHED", pageSize: 1 });
+    const how = screen.getByRole("region", { name: "How a day works" });
+    expect(within(how).getAllByRole("listitem")).toHaveLength(4);
+    expect(how).toHaveTextContent("Everyone who was there writes their own side.");
+    await user.click(screen.getByRole("link", { name: "How a day works" }));
+    expect(within(how).getByRole("heading", { name: "How a day works" })).toHaveFocus();
+  });
+
+  it("does not ask a member who has published to start, and welcomes them back", async () => {
+    renderApp(
+      "/",
+      {
+        "PlaceService/ListChildren": () => ({ body: states }),
+        "PerspectiveService/ListMine": (body) => ({
+          body: {
+            perspectives:
+              body.status === "PERSPECTIVE_STATUS_PUBLISHED"
+                ? [{ id: "p-2", arcId: "arc-2", arcTitle: "The night the lights went out", status: "PERSPECTIVE_STATUS_PUBLISHED" }]
+                : [],
+          },
+        }),
+        "NotifyService/ListInbox": () => ({ body: { unreadCount: 0 } }),
+        "LoreService/ListClaims": () => ({ body: { claims: [] } }),
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    expect(await screen.findByRole("heading", { level: 1, name: "Welcome back, wren" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Write about a place you were at" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "How a day works" })).toBeNull();
   });
 
   it("returns matching places with their parent chain as typed", async () => {
@@ -160,6 +318,14 @@ describe("landing page (AC-006, OT-036)", () => {
     landing(() => ({ body: { places: [] } }));
     await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "Atlantis");
     expect(await screen.findByText("No places match “Atlantis”.")).toBeInTheDocument();
+  });
+
+  it("says when more places match than it lists, and how to narrow them", async () => {
+    const user = userEvent.setup();
+    landing(() => ({ body: { ...results, more: true } }));
+    await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "Spring");
+    expect(await screen.findByText("More places match: add a town to narrow it")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("More places match: add a town to narrow it.");
   });
 
   it("shows an error when the search fails", async () => {
@@ -321,7 +487,9 @@ describe("landing page (AC-006, OT-036)", () => {
     expect(nav).toHaveTextContent("4 new stories this week");
     const links = within(nav).getAllByRole("link");
     expect(links.map((l) => l.textContent)).toEqual(["Springfield· 3 new", "Corner Books· 1 new", "Chicago"]);
-    expect(links[0]).toHaveAttribute("href", "/places/ci-spr");
+    // A place with new stories opens on its Newest tab, where they are marked.
+    expect(links[0]).toHaveAttribute("href", "/places/ci-spr?tab=newest");
+    expect(links[2]).toHaveAttribute("href", "/places/ci-chi");
   });
 
   it("offers to add a place that search does not find", async () => {

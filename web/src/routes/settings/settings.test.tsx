@@ -257,9 +257,9 @@ describe("SettingsPage notification toggles", () => {
     const labels = [
       "Someone claims a character in your perspective",
       "Your claim is accepted",
-      "A new perspective in your arc",
+      "A new perspective on your day",
       "A vote to remove opens",
-      "The canon of your arc changes",
+      "The canon of your day changes",
       "A report you made is resolved",
       "Someone you invited writes their side",
       "A new story at a place you follow",
@@ -281,14 +281,14 @@ describe("SettingsPage notification toggles", () => {
           preferences: KINDS.map((kind) => ({ kind, inApp: true, email: kind !== "NOTIFICATION_KIND_CANON_CHANGE" })),
         }),
     });
-    const box = await screen.findByRole("checkbox", { name: "The canon of your arc changes: email" });
+    const box = await screen.findByRole("checkbox", { name: "The canon of your day changes: email" });
     box.focus();
     await user.keyboard(" ");
     await waitFor(() => expect(box).not.toBeChecked());
     expect(api.sent("NotifyService/UpdatePreferences")).toEqual([
       { preferences: [{ kind: "NOTIFICATION_KIND_CANON_CHANGE", inApp: true }] },
     ]);
-    expect(screen.getByRole("checkbox", { name: "The canon of your arc changes: in app" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "The canon of your day changes: in app" })).toBeChecked();
   });
 
   it("reverts and says so when a toggle cannot be saved", async () => {

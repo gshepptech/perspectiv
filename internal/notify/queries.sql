@@ -75,6 +75,24 @@ JOIN characters ch ON ch.id = c.character_id
 JOIN perspectives p ON p.id = ch.perspective_id
 WHERE c.id = $1;
 
+-- name: UnclaimedCharacters :many
+-- The labels of the characters nobody has claimed (no PENDING or ACCEPTED
+-- claim) in each of a set of stories, in story order, for stories anyone may
+-- still read: published, neither deleted nor hidden. A story that is not
+-- readable has no rows. The arc's place is checked by the caller.
+SELECT ch.perspective_id, ch.label
+FROM characters ch
+JOIN perspectives p ON p.id = ch.perspective_id
+WHERE ch.perspective_id = ANY(sqlc.arg(ids)::uuid[])
+  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL
+  AND p.hidden_at IS NULL
+  AND NOT EXISTS (
+        SELECT 1 FROM claims c
+        WHERE c.character_id = ch.id
+          AND c.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
+ORDER BY ch.perspective_id, ch.position;
+
 -- name: PerspectiveFacts :one
 SELECT author_id, arc_id, lore_id, status, deleted_at, hidden_at
 FROM perspectives

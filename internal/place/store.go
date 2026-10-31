@@ -63,6 +63,9 @@ type Place struct {
 	// sortKey is the name the children list orders and pages by; set by
 	// Children only.
 	sortKey string
+	// namePrefix says the search text starts the name (or is it); set by
+	// Search only.
+	namePrefix bool
 }
 
 // Store reads the place hierarchy, writes user-added places and lists the
@@ -137,12 +140,14 @@ func (s *Store) withAncestors(ctx context.Context, ps []Place) error {
 }
 
 // SearchQuery is a typeahead request. Text is already normalized (trimmed,
-// lowercased, whitespace runs collapsed). ParentID uuid.Nil and Kind
-// UNSPECIFIED mean no filter. Candidates bounds how many ranked matches are
-// checked for a hidden ancestor before Limit survivors are returned.
+// lowercased, whitespace runs collapsed). ParentIDs restricts matches to
+// the descendants of those places, ranked by the first of them each match
+// is under; nil and Kind UNSPECIFIED mean no filter. Candidates bounds how
+// many ranked matches are checked for a hidden ancestor before Limit
+// survivors are returned.
 type SearchQuery struct {
 	Text       string
-	ParentID   uuid.UUID
+	ParentIDs  []uuid.UUID
 	Kind       perspectivv1.PlaceKind
 	Limit      int32
 	Candidates int32
@@ -153,13 +158,14 @@ const minSubstringRunes = 3
 
 // Search returns visible places whose name contains q.Text (or, under
 // minSubstringRunes characters, starts with it), ranked as the
-// SearchPlaces query documents, each with its ancestors.
+// SearchPlaces query documents. They carry no ancestors: the caller merges
+// several searches and fills them once with withAncestors.
 func (s *Store) Search(ctx context.Context, q SearchQuery) ([]Place, error) {
 	lit := escapeLike(q.Text)
 	contains := "%" + lit + "%"
 	if utf8.RuneCountInString(q.Text) < minSubstringRunes {
 		// The trigram index needs three characters; shorter input is matched
-		// as a name prefix, which places_name_prefix_idx serves, instead of
+		// as a name prefix, which places_name_rank_idx serves, instead of
 		// scanning every place for the substring.
 		contains = lit + "%"
 	}
@@ -167,11 +173,9 @@ func (s *Store) Search(ctx context.Context, q SearchQuery) ([]Place, error) {
 		Exact:          q.Text,
 		Prefix:         lit + "%",
 		Contains:       contains,
+		ParentIds:      q.ParentIDs,
 		ResultLimit:    q.Limit,
 		CandidateLimit: q.Candidates,
-	}
-	if q.ParentID != uuid.Nil {
-		params.ParentID = uuid.NullUUID{UUID: q.ParentID, Valid: true}
 	}
 	if q.Kind != perspectivv1.PlaceKind_PLACE_KIND_UNSPECIFIED {
 		params.Kind = pgtype.Text{String: q.Kind.String(), Valid: true}
@@ -185,11 +189,38 @@ func (s *Store) Search(ctx context.Context, q SearchQuery) ([]Place, error) {
 		ps[i] = placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded)
 		ps[i].Category = categoryOf(r.Category)
 		ps[i].Stories = r.Stories
-	}
-	if err := s.withAncestors(ctx, ps); err != nil {
-		return nil, err
+		ps[i].namePrefix = r.IsPrefix
 	}
 	return ps, nil
+}
+
+// maxLocalityRows bounds the cities and towns FindLocalities reads for one
+// search, across every name it asks about.
+const maxLocalityRows = 100
+
+// Locality is a city or town a search names: its id and lowercased name.
+type Locality struct {
+	ID   uuid.UUID
+	Name string
+}
+
+// Localities returns the visible cities and towns named exactly one of
+// names (lowercased), best first as the FindLocalities query documents.
+// Under a parent other than uuid.Nil only its descendants count.
+func (s *Store) Localities(ctx context.Context, names []string, parent uuid.UUID) ([]Locality, error) {
+	params := dbq.FindLocalitiesParams{Names: names, Lim: maxLocalityRows}
+	if parent != uuid.Nil {
+		params.ParentID = uuid.NullUUID{UUID: parent, Valid: true}
+	}
+	rows, err := s.q.FindLocalities(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("find localities: %w", err)
+	}
+	out := make([]Locality, len(rows))
+	for i, r := range rows {
+		out[i] = Locality{ID: r.ID, Name: r.Name}
+	}
+	return out, nil
 }
 
 // escapeLike makes s match literally inside a LIKE pattern, whose default
@@ -375,6 +406,11 @@ type EpicArc struct {
 	Excerpt string
 	// CanonLoreName names the canon lore; "" without a canon or a name.
 	CanonLoreName string
+	// LatestPublishedAt is when the newest readable story was published.
+	LatestPublishedAt time.Time
+	// NewThisWeek says a readable story was published in the last
+	// newStoryWindow; set by the service.
+	NewThisWeek bool
 }
 
 // Cursor returns the keyset that resumes a listing after a.
@@ -483,7 +519,7 @@ func epicArcsFrom(rows []dbq.EpicArcsRankedRow) []EpicArc {
 			LocalDate: r.LocalDate.Time, Hour: hourOf(r.Hour), CanonLoreID: r.CanonLoreID.UUID,
 			CanonScore: r.CanonScore, MemberCount: r.MemberCount, PerspectiveCount: r.PerspectiveCount,
 			CreatedAt: r.CreatedAt.Time, City: r.CityName, Excerpt: clipExcerpt(r.Excerpt),
-			CanonLoreName: r.CanonLoreName,
+			CanonLoreName: r.CanonLoreName, LatestPublishedAt: r.LatestPublishedAt.Time,
 		}
 	}
 	return out

@@ -244,3 +244,48 @@ describe("a reply to your thread post", () => {
     expect(notificationKinds.at(-1)).toEqual({ kind: NotificationKind.THREAD_REPLY, label: "Someone replies to your post in a lore's thread" });
   });
 });
+
+describe("a new story in your day", () => {
+  const story = (over: { unclaimedCharacters?: string[]; moreUnclaimedCharacters?: number } = {}) =>
+    create(NotificationSchema, {
+      kind: NotificationKind.NEW_PERSPECTIVE_IN_ARC,
+      actor: { userId: "u-1", username: "otter" },
+      arcTitle: "Fourth quarter",
+      arcId: "arc-1",
+      perspectiveId: "p-1",
+      ...over,
+    });
+
+  it.each([
+    { name: "no unclaimed characters names nobody", over: {}, detail: undefined },
+    { name: "one character", over: { unclaimedCharacters: ["the woman with the foam parrot"] }, detail: "Who might be in it: “the woman with the foam parrot”." },
+    { name: "two characters", over: { unclaimedCharacters: ["the clerk", "the drummer"] }, detail: "Who might be in it: “the clerk” and “the drummer”." },
+    {
+      name: "three characters",
+      over: { unclaimedCharacters: ["the clerk", "the drummer", "the twins"] },
+      detail: "Who might be in it: “the clerk”, “the drummer” and “the twins”.",
+    },
+    {
+      name: "three characters and more",
+      over: { unclaimedCharacters: ["the woman with the foam parrot", "the clerk", "the drummer"], moreUnclaimedCharacters: 2 },
+      detail: "Who might be in it: “the woman with the foam parrot”, “the clerk”, “the drummer” and 2 more.",
+    },
+  ])("says who might be in it: $name", ({ over, detail }) => {
+    expect(describeNotification(story(over))).toEqual({
+      text: "otter published a new perspective in Fourth quarter.",
+      to: "/perspectives/p-1",
+      ...(detail && { detail }),
+    });
+  });
+
+  it("shows who might be in it inside the row's link", async () => {
+    const withCast = six.map((n) =>
+      n.id === "n-3" ? { ...n, unclaimedCharacters: ["the woman with the foam parrot", "the clerk", "the drummer"], moreUnclaimedCharacters: 2 } : n,
+    );
+    inbox({ "NotifyService/ListInbox": () => ok({ notifications: withCast, unreadCount: 3 }) });
+    await screen.findByRole("list", { name: "Notifications" });
+    const link = within(items()[2]!).getByRole("link");
+    expect(link).toHaveAttribute("href", "/perspectives/p-9");
+    expect(link).toHaveTextContent("Who might be in it: “the woman with the foam parrot”, “the clerk”, “the drummer” and 2 more.");
+  });
+});

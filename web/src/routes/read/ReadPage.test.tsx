@@ -50,7 +50,7 @@ describe("read page (US-007, OT-033, OT-036)", () => {
     expect(screen.getByText(/Prairie Books/)).toBeInTheDocument();
     expect(screen.getByText(/January 14, 2026/)).toBeInTheDocument();
     expect(screen.getByText(/Mystery/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to the arc" })).toHaveAttribute("href", "/arcs/arc-1");
+    expect(screen.getByRole("link", { name: "Back to the day" })).toHaveAttribute("href", "/arcs/arc-1");
     // A story in a lore links to the lore, where the stories it is linked with are.
     expect(screen.getByRole("link", { name: "In a lore: read the lore" })).toHaveAttribute("href", "/lores/lore-1");
     // The tab says what is being read, for a link shared anywhere.
@@ -93,7 +93,7 @@ describe("read page (US-007, OT-033, OT-036)", () => {
     readPage("/perspectives/p-1", () => ({ body: { perspective: { ...perspective, parts: [], author: undefined, deleted: true } } }));
     expect(await screen.findByText("This perspective was deleted by its author.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Next part" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to the arc" })).toHaveAttribute("href", "/arcs/arc-1");
+    expect(screen.getByRole("link", { name: "Back to the day" })).toHaveAttribute("href", "/arcs/arc-1");
   });
 
   it("shows a placeholder for a perspective hidden by moderation", async () => {
@@ -184,18 +184,20 @@ describe("read page (US-007, OT-033, OT-036)", () => {
 });
 
 describe("reader and arc page share one cached perspective", () => {
-  it("goes back to the arc after reading without crashing the action bar", async () => {
+  it("goes back to the day after reading without crashing the action bar", async () => {
     polyfillRadix();
     const user = userEvent.setup();
     renderApp("/perspectives/p-otter", {
       "PerspectiveService/Get": (body) => ({ body: arcPerspective(String(body.perspectiveId)) }),
       "ArcService/GetArc": () => ({ body: dayArcResponse() }),
     });
-    await user.click(await screen.findByRole("link", { name: "Back to the arc" }));
+    await user.click(await screen.findByRole("link", { name: "Back to the day" }));
     const canon = await screen.findByRole("region", { name: "Canon" });
     // The row of the perspective just read uses the reader's cache entry.
     const otter = within(canon).getByRole("article", { name: "otter's perspective" });
-    expect(await within(otter).findByRole("button", { name: /^Upvote/, pressed: false })).toBeInTheDocument();
+    // Signed out, the rail shows the count with no button.
+    expect(otter).toHaveTextContent("2 upvotes");
+    expect(within(otter).queryByRole("button", { name: /^Upvote/ })).toBeNull();
     expect(screen.queryByText(/Something went wrong/)).not.toBeInTheDocument();
   });
 });

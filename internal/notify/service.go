@@ -40,8 +40,11 @@ type Notification struct {
 	Payload       Payload
 	ActorUsername string
 	ArcTitle      string
-	CreatedAt     time.Time
-	ReadAt        *time.Time
+	// Cast is a new story's characters nobody has claimed, as they stand
+	// when the inbox is read; empty for every other kind.
+	Cast      cast
+	CreatedAt time.Time
+	ReadAt    *time.Time
 }
 
 // Payload is the notifications.payload JSON: the ids that apply to the
@@ -99,6 +102,9 @@ func (s *Service) ListInbox(ctx context.Context, userID uuid.UUID, pageToken str
 			return InboxPage{}, apiutil.Internal(err)
 		}
 		out.Notifications = append(out.Notifications, n)
+	}
+	if err := withCast(ctx, q, out.Notifications); err != nil {
+		return InboxPage{}, apiutil.Internal(err)
 	}
 	return out, nil
 }

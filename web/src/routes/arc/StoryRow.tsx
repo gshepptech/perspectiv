@@ -13,12 +13,14 @@ const tones = { muted: "text-ink-muted", warning: "text-warning", success: "text
 
 /**
  * The vote rail of a row. The listing says whether the viewer voted, so no
- * story is read to draw it. Without rights the rail only shows the count.
+ * story is read to draw it. Only a signed-in writer of this day gets the
+ * button; everyone else sees the count, and the day page says once, above
+ * its stories, who can vote (UpvoteRule).
  */
 function Rail({ summary, rights }: { summary: PerspectiveSummary; rights?: ViewerRights }) {
   const session = useSession();
   const own = !!session && session.userId === summary.author?.userId;
-  const canVote = !!rights && !own && (!session || rights.participant);
+  const canVote = !!session && !!rights && !own && rights.participant;
   const name = summary.author?.username;
   return (
     <VoteButton
@@ -33,7 +35,7 @@ function Rail({ summary, rights }: { summary: PerspectiveSummary; rights?: Viewe
 }
 
 /**
- * One story on the arc page, as a compact row: the vote rail, who wrote it
+ * One story on the day page, as a compact row: the vote rail, who wrote it
  * and how it stands, the opening of it, and a link to read it. Claiming,
  * reacting and reporting happen on the story's own page.
  */

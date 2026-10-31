@@ -42,40 +42,59 @@ ORDER BY c.place_id, c.depth DESC;
 
 -- name: SearchPlaces :many
 -- Typeahead. Candidates are visible-by-row places whose lowercased name
--- contains the pattern, restricted to the descendants of parent_id when it
--- is set. Ranking: exact name, then name prefix, then substring; within
--- each, broader kinds first (STATE before STORE), then shorter names, then
--- name and id. The top candidate_limit candidates are then checked for a
--- hidden ancestor, and the first result_limit survivors returned.
+-- contains the pattern, restricted to the descendants of the parent_ids
+-- places when that is set (the request's parent, or the cities and towns a
+-- "starbucks tampa" search names, best first). Ranking: the place's first
+-- parent_ids entry above it, then exact name, then name prefix, then
+-- substring; within each, broader kinds first (STATE before STORE), then
+-- shorter names, then name and id. The top candidate_limit candidates are
+-- then checked for a hidden ancestor, and the first result_limit survivors
+-- returned.
 --
 -- Every prefix match outranks every substring match, so the prefix matches
--- (places_name_prefix_idx) are read first and the substring scan (the
--- trigram index) runs only when they leave room: a common word such as
--- "park" used to rank 15,000 substring matches to keep 100.
+-- are read first and the substring scan (the trigram index) runs only when
+-- they leave room: a common word such as "park" used to rank 15,000
+-- substring matches to keep 100. The prefix ranking reads only the name,
+-- kind and id, which places_name_rank_idx carries, so even "th" (21,000
+-- matches) is ranked from the index without a heap read; the remaining
+-- columns are read for the 100 candidates only. Under parent_ids, a prefix
+-- match under a later entry can fill the candidates before a substring
+-- match under an earlier one is read; the earlier entry still ranks first
+-- among what was read.
 WITH RECURSIVE prefixed AS (
-    SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
-           coalesce(p.category, '') AS category,
+    SELECT p.id,
            (lower(p.name) = @exact::text) AS is_exact,
            true AS is_prefix,
            array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
-                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           -- Folds to 0 without parent_ids, so path is not read
+           -- (plan_cache_mode = force_custom_plan).
+           CASE WHEN sqlc.narg(parent_ids)::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position(sqlc.narg(parent_ids)::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
     FROM places p
     WHERE p.hidden_at IS NULL
       AND lower(p.name) LIKE @prefix::text
       AND (sqlc.narg(kind)::text IS NULL OR p.kind = sqlc.narg(kind)::text)
-      -- Below parent_id: its id is on the place's path (places_path_idx).
-      AND (sqlc.narg(parent_id)::uuid IS NULL
-           OR (p.path @> ARRAY[sqlc.narg(parent_id)::uuid] AND p.id <> sqlc.narg(parent_id)::uuid))
-    ORDER BY is_exact DESC, level, char_length(p.name), lower(p.name), p.id
+      -- Below a parent: its id is on the place's path (places_path_idx).
+      AND (sqlc.narg(parent_ids)::uuid[] IS NULL
+           OR (p.path && sqlc.narg(parent_ids)::uuid[] AND p.id <> ALL(sqlc.narg(parent_ids)::uuid[])))
+    ORDER BY under, is_exact DESC, level, len, lname, p.id
     LIMIT @candidate_limit::integer
 ),
 contained AS (
-    SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
-           coalesce(p.category, '') AS category,
+    SELECT p.id,
            false AS is_exact,
            false AS is_prefix,
            array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
-                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN sqlc.narg(parent_ids)::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position(sqlc.narg(parent_ids)::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
     FROM places p
     -- A one-time filter: with the candidates already full, no row is read.
     WHERE (SELECT count(*) FROM prefixed) < @candidate_limit::integer
@@ -83,15 +102,22 @@ contained AS (
       AND lower(p.name) LIKE @contains::text
       AND lower(p.name) NOT LIKE @prefix::text
       AND (sqlc.narg(kind)::text IS NULL OR p.kind = sqlc.narg(kind)::text)
-      AND (sqlc.narg(parent_id)::uuid IS NULL
-           OR (p.path @> ARRAY[sqlc.narg(parent_id)::uuid] AND p.id <> sqlc.narg(parent_id)::uuid))
-    ORDER BY level, char_length(p.name), lower(p.name), p.id
+      AND (sqlc.narg(parent_ids)::uuid[] IS NULL
+           OR (p.path && sqlc.narg(parent_ids)::uuid[] AND p.id <> ALL(sqlc.narg(parent_ids)::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    LIMIT @candidate_limit::integer
+),
+ranked AS (
+    SELECT u.* FROM (SELECT * FROM prefixed UNION ALL SELECT * FROM contained) u
+    ORDER BY u.under, u.is_exact DESC, u.is_prefix DESC, u.level, u.len, u.lname, u.id
     LIMIT @candidate_limit::integer
 ),
 candidates AS (
-    SELECT u.* FROM (SELECT * FROM prefixed UNION ALL SELECT * FROM contained) u
-    ORDER BY u.is_exact DESC, u.is_prefix DESC, u.level, char_length(u.name), lower(u.name), u.id
-    LIMIT @candidate_limit::integer
+    SELECT r.under, r.is_exact, r.is_prefix, r.level, r.len, r.lname,
+           p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+           coalesce(p.category, '') AS category
+    FROM ranked r
+    JOIN places p ON p.id = r.id
 ),
 up AS (
     SELECT m.id AS place_id, m.parent_id AS ancestor_id, 1 AS depth
@@ -104,7 +130,7 @@ up AS (
     WHERE a.parent_id IS NOT NULL AND u.depth < 8
 )
 SELECT m.id, m.kind, m.name, m.parent_id, m.timezone, m.source, m.user_added, m.category::text AS category,
-       st.stories
+       m.is_prefix, st.stories
 FROM candidates m
 -- Readable stories at the place and below, counted up to 100: enough to
 -- tell friends which of several same-named entries everyone writes in.
@@ -121,8 +147,33 @@ WHERE NOT EXISTS (
     SELECT 1 FROM up u JOIN places a ON a.id = u.ancestor_id
     WHERE u.place_id = m.id AND a.hidden_at IS NOT NULL)
 -- Within each match tier, places with stories first.
-ORDER BY m.is_exact DESC, m.is_prefix DESC, (st.stories > 0) DESC, m.level, char_length(m.name), lower(m.name), m.id
+ORDER BY m.under, m.is_exact DESC, m.is_prefix DESC, (st.stories > 0) DESC, m.level, m.len, m.lname, m.id
 LIMIT @result_limit::integer;
+
+-- name: FindLocalities :many
+-- The visible cities and towns named exactly one of names, for a search
+-- that reads as a place and the town it is in. Best first: a locality with
+-- a readable story at or below it, then a city before a town, then the one
+-- with more places directly in it (counted up to 500), so "tampa" means
+-- Tampa, Florida before Tampa, Kansas. Restricted to the descendants of
+-- parent_id when it is set.
+SELECT l.id, lower(l.name)::text AS name
+FROM places l
+WHERE l.hidden_at IS NULL
+  AND lower(l.name) = ANY(@names::text[])
+  AND l.kind IN ('PLACE_KIND_CITY', 'PLACE_KIND_TOWN')
+  AND (sqlc.narg(parent_id)::uuid IS NULL
+       OR (l.path @> ARRAY[sqlc.narg(parent_id)::uuid] AND l.id <> sqlc.narg(parent_id)::uuid))
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(l.path) AND h.hidden_at IS NOT NULL)
+ORDER BY
+    EXISTS (
+        SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
+        WHERE a.place_path @> ARRAY[l.id]
+          AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL) DESC,
+    l.kind = 'PLACE_KIND_CITY' DESC,
+    (SELECT count(*) FROM (SELECT 1 FROM places c WHERE c.parent_id = l.id LIMIT 500) x) DESC,
+    lower(l.name), l.id
+LIMIT @lim::integer;
 
 -- name: ListStates :many
 SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added
@@ -210,7 +261,12 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
                  LIMIT 1), '')::text AS excerpt,
        -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+       -- When the day's newest readable story was published, so a listing
+       -- can mark the days with something new.
+       (SELECT max(v.published_at) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[@place_id::uuid]
@@ -249,7 +305,12 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
                  LIMIT 1), '')::text AS excerpt,
        -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+       -- When the day's newest readable story was published, so a listing
+       -- can mark the days with something new.
+       (SELECT max(v.published_at) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[@place_id::uuid]
@@ -288,7 +349,12 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
                  LIMIT 1), '')::text AS excerpt,
        -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+       -- When the day's newest readable story was published, so a listing
+       -- can mark the days with something new.
+       (SELECT max(v.published_at) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
@@ -325,7 +391,12 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
                  LIMIT 1), '')::text AS excerpt,
        -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+       -- When the day's newest readable story was published, so a listing
+       -- can mark the days with something new.
+       (SELECT max(v.published_at) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
@@ -477,3 +548,66 @@ WHERE a.place_category IS NOT NULL
   AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
 GROUP BY a.place_category
 ORDER BY last_mod DESC, category;
+
+-- name: TwinCandidates :many
+-- For placectl dedupe's rule on a place page (GetPlace's twin): when the
+-- given place is a visible store or mall with coordinates and no readable
+-- story at it or below, every other visible store or mall with
+-- coordinates, a readable story at it or below, and either the same parent
+-- or a spot inside a box of @reach degrees of latitude around it (widened
+-- for longitude). Each row carries the given place's own coordinates, the
+-- names of the places above both, and the candidate's readable stories
+-- counted up to 100. The caller compares names and distances.
+--
+-- Candidates are found from the arcs of the place's state, so the cost is
+-- what that state's arcs cost, never a scan of its places.
+WITH me AS (
+    SELECT p.id, p.parent_id, p.lat::float8 AS lat, p.lng::float8 AS lng, p.path[1] AS state_id,
+           @reach::float8 AS lat_reach,
+           coalesce((SELECT array_agg(an.name ORDER BY array_position(p.path, an.id))
+                     FROM places an WHERE an.id = ANY(p.path) AND an.id <> p.id), '{}')::text[] AS ancestor_names
+    FROM places p
+    WHERE p.id = @id::uuid
+      AND p.kind IN ('PLACE_KIND_STORE', 'PLACE_KIND_MALL')
+      AND p.lat IS NOT NULL AND p.lng IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(p.path) AND h.hidden_at IS NOT NULL)
+      AND NOT EXISTS (
+            SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
+            WHERE a.place_path @> ARRAY[p.id]
+              AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
+),
+storied AS (
+    SELECT DISTINCT pid AS id
+    FROM me
+    JOIN arcs a ON a.place_path @> ARRAY[me.state_id]
+    CROSS JOIN LATERAL unnest(a.place_path) AS pid
+    WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+      AND EXISTS (SELECT 1 FROM perspectives v
+                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
+)
+SELECT q.id, q.kind, q.name, coalesce(q.category, '')::text AS category,
+       q.lat::float8 AS lat, q.lng::float8 AS lng,
+       (q.parent_id = me.parent_id)::boolean AS same_parent,
+       me.lat AS my_lat, me.lng AS my_lng, me.ancestor_names AS my_ancestor_names,
+       coalesce((SELECT array_agg(an.name ORDER BY array_position(q.path, an.id))
+                 FROM places an WHERE an.id = ANY(q.path) AND an.id <> q.id), '{}')::text[] AS ancestor_names,
+       st.stories
+FROM me
+JOIN storied s ON true
+JOIN places q ON q.id = s.id
+CROSS JOIN LATERAL (
+    SELECT count(*)::integer AS stories FROM (
+        SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
+        WHERE a.place_path @> ARRAY[q.id]
+          AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+          AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+        LIMIT 100) x
+) st
+WHERE q.id <> me.id
+  AND q.kind IN ('PLACE_KIND_STORE', 'PLACE_KIND_MALL')
+  AND q.lat IS NOT NULL AND q.lng IS NOT NULL
+  AND (q.parent_id = me.parent_id
+       OR (q.lat >= me.lat - me.lat_reach AND q.lat <= me.lat + me.lat_reach
+           AND abs(q.lng - me.lng) * cos(radians(me.lat)) <= me.lat_reach))
+ORDER BY q.id;

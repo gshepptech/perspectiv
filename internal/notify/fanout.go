@@ -460,7 +460,9 @@ func deliverEmail(ctx context.Context, q *dbq.Queries, tx pgx.Tx, enq *jobs.Enqu
 }
 
 // emailData is the notification template's data: the kind, the link path,
-// and the arc title and actor username when the event has them.
+// the arc title and actor username when the event has them, and for a new
+// story its unclaimed characters, read from the database as it is
+// delivered.
 func emailData(ctx context.Context, q *dbq.Queries, ev event) (map[string]string, error) {
 	data := map[string]string{dataKind: kindText(ev.kind), dataPath: ev.path}
 	if ev.payload.ArcID != nil {
@@ -480,6 +482,9 @@ func emailData(ctx context.Context, q *dbq.Queries, ev event) (map[string]string
 		if name != "" {
 			data[dataActor] = name
 		}
+	}
+	if err := addCastData(ctx, q, ev, data); err != nil {
+		return nil, err
 	}
 	return data, nil
 }

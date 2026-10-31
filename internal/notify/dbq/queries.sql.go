@@ -728,6 +728,50 @@ func (q *Queries) ThreadReplyFacts(ctx context.Context, id uuid.UUID) (ThreadRep
 	return i, err
 }
 
+const unclaimedCharacters = `-- name: UnclaimedCharacters :many
+SELECT ch.perspective_id, ch.label
+FROM characters ch
+JOIN perspectives p ON p.id = ch.perspective_id
+WHERE ch.perspective_id = ANY($1::uuid[])
+  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+  AND p.deleted_at IS NULL
+  AND p.hidden_at IS NULL
+  AND NOT EXISTS (
+        SELECT 1 FROM claims c
+        WHERE c.character_id = ch.id
+          AND c.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
+ORDER BY ch.perspective_id, ch.position
+`
+
+type UnclaimedCharactersRow struct {
+	PerspectiveID uuid.UUID
+	Label         string
+}
+
+// The labels of the characters nobody has claimed (no PENDING or ACCEPTED
+// claim) in each of a set of stories, in story order, for stories anyone may
+// still read: published, neither deleted nor hidden. A story that is not
+// readable has no rows. The arc's place is checked by the caller.
+func (q *Queries) UnclaimedCharacters(ctx context.Context, ids []uuid.UUID) ([]UnclaimedCharactersRow, error) {
+	rows, err := q.db.Query(ctx, unclaimedCharacters, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UnclaimedCharactersRow
+	for rows.Next() {
+		var i UnclaimedCharactersRow
+		if err := rows.Scan(&i.PerspectiveID, &i.Label); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertPreference = `-- name: UpsertPreference :exec
 INSERT INTO notification_preferences (user_id, kind, in_app, email)
 VALUES ($1::uuid, $2::text, $3::boolean, $4::boolean)

@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { EpicTab, Genre, PlaceCategory, PlaceKind, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
-import type { EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
+import type { EpicTale, Place, PlaceRef } from "@/gen/perspectiv/v1/place_pb";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { useShowMore } from "@/lib/showMore";
@@ -86,9 +86,10 @@ function TaleItem({ tale }: { tale: EpicTale }) {
 /**
  * What an empty epic says. A place with nothing yet asks the reader whether
  * they were there and offers the first story; a filter that empties the list
- * says so, so the place does not look abandoned when it is not.
+ * says so, so the place does not look abandoned when it is not. A second
+ * listing of a place people do write about points to that one.
  */
-function EmptyEpic({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Genre }) {
+function EmptyEpic({ place, twin, tab, genre }: { place: Place; twin?: PlaceRef; tab: EpicTab; genre: Genre }) {
   if (genre !== Genre.UNSPECIFIED) {
     return <p className="text-ink-muted">No {genreLabel(genre).toLowerCase()} stories here yet.</p>;
   }
@@ -98,6 +99,15 @@ function EmptyEpic({ place, tab, genre }: { place: Place; tab: EpicTab; genre: G
   return (
     <div className="rounded-xl border border-dashed border-control p-6">
       <p className="font-serif text-xl wrap-anywhere text-ink">No one has written about {place.name} yet.</p>
+      {twin && (
+        <p className="mt-2 text-ink">
+          People write about this place at{" "}
+          <Link to={`/places/${twin.id}`} className="inline-flex min-h-11 items-center font-medium wrap-anywhere text-accent underline underline-offset-4">
+            {twin.name}
+          </Link>
+          .
+        </p>
+      )}
       <p className="mt-2 text-ink-muted">
         Were you here? Write what you saw, and the people who were here with you can add their side.
       </p>
@@ -111,7 +121,7 @@ function EmptyEpic({ place, tab, genre }: { place: Place; tab: EpicTab; genre: G
   );
 }
 
-function EpicList({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Genre }) {
+function EpicList({ place, twin, tab, genre }: { place: Place; twin?: PlaceRef; tab: EpicTab; genre: Genre }) {
   const placeId = place.id;
   const epic = useInfiniteQuery({
     queryKey: ["place", "getEpic", { placeId, tab, genre }],
@@ -138,7 +148,7 @@ function EpicList({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Ge
     );
   }
   if ((isTales ? tales.length : arcs.length) === 0) {
-    return <EmptyEpic place={place} tab={tab} genre={genre} />;
+    return <EmptyEpic place={place} twin={twin} tab={tab} genre={genre} />;
   }
   return (
     <>
@@ -149,9 +159,9 @@ function EpicList({ place, tab, genre }: { place: Place; tab: EpicTab; genre: Ge
           ))}
         </ul>
       ) : (
-        <ul ref={more.list} aria-label="Arcs" className="divide-y divide-rule">
+        <ul ref={more.list} aria-label="Days" className="divide-y divide-rule">
           {arcs.map((arc) => (
-            <ArcItem key={arc.arcId} arc={arc} />
+            <ArcItem key={arc.arcId} arc={arc} markNew={tab === EpicTab.NEWEST} />
           ))}
         </ul>
       )}
@@ -453,7 +463,7 @@ export function Component() {
             </div>
             {tabs.map((t) => (
               <TabsContent key={t.slug} value={t.slug}>
-                {t.slug === tab && <EpicList place={place} tab={epicTab} genre={genre} />}
+                {t.slug === tab && <EpicList place={place} twin={placeQuery.data.twin} tab={epicTab} genre={genre} />}
               </TabsContent>
             ))}
           </Tabs>

@@ -33,6 +33,13 @@ message Notification {
   google.protobuf.Timestamp created_at = 10;
   // Unset while unread.
   google.protobuf.Timestamp read_at = 11;
+  // NEW_PERSPECTIVE_IN_ARC only: up to three labels of the new story's
+  // characters nobody has claimed (no PENDING or ACCEPTED claim), in the
+  // story's order, read when the inbox is. Empty when the story is no longer
+  // readable or every character is claimed.
+  repeated string unclaimed_characters = 12;
+  // How many more unclaimed characters the story has beyond those listed.
+  int32 more_unclaimed_characters = 13;
 }
 
 // Preference is the two toggles for one notification kind. Both default on.

@@ -136,7 +136,7 @@ func (s *Service) Vote(ctx context.Context, caller, perspectiveID uuid.UUID, on 
 		return VoteResult{}, apiutil.Internal(fmt.Errorf("read participation: %w", err))
 	}
 	if !participant {
-		return VoteResult{}, apiutil.PermissionDenied("only people in this arc can vote")
+		return VoteResult{}, apiutil.PermissionDenied("only people who wrote about this day can vote")
 	}
 	ids := dbq.InsertVoteParams{PerspectiveID: perspectiveID, UserID: caller}
 	if on {

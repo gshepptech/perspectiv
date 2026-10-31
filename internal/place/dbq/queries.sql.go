@@ -62,7 +62,12 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
                  LIMIT 1), '')::text AS excerpt,
        -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+       -- When the day's newest readable story was published, so a listing
+       -- can mark the days with something new.
+       (SELECT max(v.published_at) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[$1::uuid]
@@ -91,21 +96,22 @@ type EpicArcsNewestParams struct {
 }
 
 type EpicArcsNewestRow struct {
-	ID               uuid.UUID
-	Title            string
-	PlaceID          uuid.UUID
-	PlaceKind        string
-	PlaceName        string
-	LocalDate        pgtype.Date
-	Hour             pgtype.Int2
-	CanonLoreID      uuid.NullUUID
-	CanonScore       float64
-	MemberCount      int32
-	CreatedAt        pgtype.Timestamptz
-	PerspectiveCount int32
-	CityName         string
-	Excerpt          string
-	CanonLoreName    string
+	ID                uuid.UUID
+	Title             string
+	PlaceID           uuid.UUID
+	PlaceKind         string
+	PlaceName         string
+	LocalDate         pgtype.Date
+	Hour              pgtype.Int2
+	CanonLoreID       uuid.NullUUID
+	CanonScore        float64
+	MemberCount       int32
+	CreatedAt         pgtype.Timestamptz
+	PerspectiveCount  int32
+	CityName          string
+	Excerpt           string
+	CanonLoreName     string
+	LatestPublishedAt pgtype.Timestamptz
 }
 
 // The same arcs as EpicArcsRanked, newest first.
@@ -141,6 +147,7 @@ func (q *Queries) EpicArcsNewest(ctx context.Context, arg EpicArcsNewestParams) 
 			&i.CityName,
 			&i.Excerpt,
 			&i.CanonLoreName,
+			&i.LatestPublishedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -170,7 +177,12 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
                  LIMIT 1), '')::text AS excerpt,
        -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+       -- When the day's newest readable story was published, so a listing
+       -- can mark the days with something new.
+       (SELECT max(v.published_at) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE a.place_path @> ARRAY[$1::uuid]
@@ -204,21 +216,22 @@ type EpicArcsRankedParams struct {
 }
 
 type EpicArcsRankedRow struct {
-	ID               uuid.UUID
-	Title            string
-	PlaceID          uuid.UUID
-	PlaceKind        string
-	PlaceName        string
-	LocalDate        pgtype.Date
-	Hour             pgtype.Int2
-	CanonLoreID      uuid.NullUUID
-	CanonScore       float64
-	MemberCount      int32
-	CreatedAt        pgtype.Timestamptz
-	PerspectiveCount int32
-	CityName         string
-	Excerpt          string
-	CanonLoreName    string
+	ID                uuid.UUID
+	Title             string
+	PlaceID           uuid.UUID
+	PlaceKind         string
+	PlaceName         string
+	LocalDate         pgtype.Date
+	Hour              pgtype.Int2
+	CanonLoreID       uuid.NullUUID
+	CanonScore        float64
+	MemberCount       int32
+	CreatedAt         pgtype.Timestamptz
+	PerspectiveCount  int32
+	CityName          string
+	Excerpt           string
+	CanonLoreName     string
+	LatestPublishedAt pgtype.Timestamptz
 }
 
 // Arcs at the place and every visible descendant, found by arcs.place_path
@@ -265,6 +278,7 @@ func (q *Queries) EpicArcsRanked(ctx context.Context, arg EpicArcsRankedParams) 
 			&i.CityName,
 			&i.Excerpt,
 			&i.CanonLoreName,
+			&i.LatestPublishedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -388,7 +402,12 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
                  LIMIT 1), '')::text AS excerpt,
        -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+       -- When the day's newest readable story was published, so a listing
+       -- can mark the days with something new.
+       (SELECT max(v.published_at) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
@@ -414,21 +433,22 @@ type EverywhereArcsNewestParams struct {
 }
 
 type EverywhereArcsNewestRow struct {
-	ID               uuid.UUID
-	Title            string
-	PlaceID          uuid.UUID
-	PlaceKind        string
-	PlaceName        string
-	LocalDate        pgtype.Date
-	Hour             pgtype.Int2
-	CanonLoreID      uuid.NullUUID
-	CanonScore       float64
-	MemberCount      int32
-	CreatedAt        pgtype.Timestamptz
-	PerspectiveCount int32
-	CityName         string
-	Excerpt          string
-	CanonLoreName    string
+	ID                uuid.UUID
+	Title             string
+	PlaceID           uuid.UUID
+	PlaceKind         string
+	PlaceName         string
+	LocalDate         pgtype.Date
+	Hour              pgtype.Int2
+	CanonLoreID       uuid.NullUUID
+	CanonScore        float64
+	MemberCount       int32
+	CreatedAt         pgtype.Timestamptz
+	PerspectiveCount  int32
+	CityName          string
+	Excerpt           string
+	CanonLoreName     string
+	LatestPublishedAt pgtype.Timestamptz
 }
 
 // EverywhereArcsRanked, newest first.
@@ -463,6 +483,7 @@ func (q *Queries) EverywhereArcsNewest(ctx context.Context, arg EverywhereArcsNe
 			&i.CityName,
 			&i.Excerpt,
 			&i.CanonLoreName,
+			&i.LatestPublishedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -492,7 +513,12 @@ SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
                  ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
                  LIMIT 1), '')::text AS excerpt,
        -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name
+       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+       -- When the day's newest readable story was published, so a listing
+       -- can mark the days with something new.
+       (SELECT max(v.published_at) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
 FROM arcs a
 JOIN places pl ON pl.id = a.place_id
 WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
@@ -523,21 +549,22 @@ type EverywhereArcsRankedParams struct {
 }
 
 type EverywhereArcsRankedRow struct {
-	ID               uuid.UUID
-	Title            string
-	PlaceID          uuid.UUID
-	PlaceKind        string
-	PlaceName        string
-	LocalDate        pgtype.Date
-	Hour             pgtype.Int2
-	CanonLoreID      uuid.NullUUID
-	CanonScore       float64
-	MemberCount      int32
-	CreatedAt        pgtype.Timestamptz
-	PerspectiveCount int32
-	CityName         string
-	Excerpt          string
-	CanonLoreName    string
+	ID                uuid.UUID
+	Title             string
+	PlaceID           uuid.UUID
+	PlaceKind         string
+	PlaceName         string
+	LocalDate         pgtype.Date
+	Hour              pgtype.Int2
+	CanonLoreID       uuid.NullUUID
+	CanonScore        float64
+	MemberCount       int32
+	CreatedAt         pgtype.Timestamptz
+	PerspectiveCount  int32
+	CityName          string
+	Excerpt           string
+	CanonLoreName     string
+	LatestPublishedAt pgtype.Timestamptz
 }
 
 // EpicArcsRanked across every visible place: the front page. A separate
@@ -577,7 +604,65 @@ func (q *Queries) EverywhereArcsRanked(ctx context.Context, arg EverywhereArcsRa
 			&i.CityName,
 			&i.Excerpt,
 			&i.CanonLoreName,
+			&i.LatestPublishedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const findLocalities = `-- name: FindLocalities :many
+SELECT l.id, lower(l.name)::text AS name
+FROM places l
+WHERE l.hidden_at IS NULL
+  AND lower(l.name) = ANY($1::text[])
+  AND l.kind IN ('PLACE_KIND_CITY', 'PLACE_KIND_TOWN')
+  AND ($2::uuid IS NULL
+       OR (l.path @> ARRAY[$2::uuid] AND l.id <> $2::uuid))
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(l.path) AND h.hidden_at IS NOT NULL)
+ORDER BY
+    EXISTS (
+        SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
+        WHERE a.place_path @> ARRAY[l.id]
+          AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL) DESC,
+    l.kind = 'PLACE_KIND_CITY' DESC,
+    (SELECT count(*) FROM (SELECT 1 FROM places c WHERE c.parent_id = l.id LIMIT 500) x) DESC,
+    lower(l.name), l.id
+LIMIT $3::integer
+`
+
+type FindLocalitiesParams struct {
+	Names    []string
+	ParentID uuid.NullUUID
+	Lim      int32
+}
+
+type FindLocalitiesRow struct {
+	ID   uuid.UUID
+	Name string
+}
+
+// The visible cities and towns named exactly one of names, for a search
+// that reads as a place and the town it is in. Best first: a locality with
+// a readable story at or below it, then a city before a town, then the one
+// with more places directly in it (counted up to 500), so "tampa" means
+// Tampa, Florida before Tampa, Kansas. Restricted to the descendants of
+// parent_id when it is set.
+func (q *Queries) FindLocalities(ctx context.Context, arg FindLocalitiesParams) ([]FindLocalitiesRow, error) {
+	rows, err := q.db.Query(ctx, findLocalities, arg.Names, arg.ParentID, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindLocalitiesRow
+	for rows.Next() {
+		var i FindLocalitiesRow
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1148,45 +1233,62 @@ func (q *Queries) SearchCharacters(ctx context.Context, arg SearchCharactersPara
 
 const searchPlaces = `-- name: SearchPlaces :many
 WITH RECURSIVE prefixed AS (
-    SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
-           coalesce(p.category, '') AS category,
+    SELECT p.id,
            (lower(p.name) = $2::text) AS is_exact,
            true AS is_prefix,
            array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
-                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           -- Folds to 0 without parent_ids, so path is not read
+           -- (plan_cache_mode = force_custom_plan).
+           CASE WHEN $3::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position($3::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
     FROM places p
     WHERE p.hidden_at IS NULL
-      AND lower(p.name) LIKE $3::text
-      AND ($4::text IS NULL OR p.kind = $4::text)
-      -- Below parent_id: its id is on the place's path (places_path_idx).
-      AND ($5::uuid IS NULL
-           OR (p.path @> ARRAY[$5::uuid] AND p.id <> $5::uuid))
-    ORDER BY is_exact DESC, level, char_length(p.name), lower(p.name), p.id
+      AND lower(p.name) LIKE $4::text
+      AND ($5::text IS NULL OR p.kind = $5::text)
+      -- Below a parent: its id is on the place's path (places_path_idx).
+      AND ($3::uuid[] IS NULL
+           OR (p.path && $3::uuid[] AND p.id <> ALL($3::uuid[])))
+    ORDER BY under, is_exact DESC, level, len, lname, p.id
     LIMIT $6::integer
 ),
 contained AS (
-    SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
-           coalesce(p.category, '') AS category,
+    SELECT p.id,
            false AS is_exact,
            false AS is_prefix,
            array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
-                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN $3::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position($3::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
     FROM places p
     -- A one-time filter: with the candidates already full, no row is read.
     WHERE (SELECT count(*) FROM prefixed) < $6::integer
       AND p.hidden_at IS NULL
       AND lower(p.name) LIKE $7::text
-      AND lower(p.name) NOT LIKE $3::text
-      AND ($4::text IS NULL OR p.kind = $4::text)
-      AND ($5::uuid IS NULL
-           OR (p.path @> ARRAY[$5::uuid] AND p.id <> $5::uuid))
-    ORDER BY level, char_length(p.name), lower(p.name), p.id
+      AND lower(p.name) NOT LIKE $4::text
+      AND ($5::text IS NULL OR p.kind = $5::text)
+      AND ($3::uuid[] IS NULL
+           OR (p.path && $3::uuid[] AND p.id <> ALL($3::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    LIMIT $6::integer
+),
+ranked AS (
+    SELECT u.id, u.is_exact, u.is_prefix, u.level, u.under, u.len, u.lname FROM (SELECT id, is_exact, is_prefix, level, under, len, lname FROM prefixed UNION ALL SELECT id, is_exact, is_prefix, level, under, len, lname FROM contained) u
+    ORDER BY u.under, u.is_exact DESC, u.is_prefix DESC, u.level, u.len, u.lname, u.id
     LIMIT $6::integer
 ),
 candidates AS (
-    SELECT u.id, u.kind, u.name, u.parent_id, u.timezone, u.source, u.user_added, u.category, u.is_exact, u.is_prefix, u.level FROM (SELECT id, kind, name, parent_id, timezone, source, user_added, category, is_exact, is_prefix, level FROM prefixed UNION ALL SELECT id, kind, name, parent_id, timezone, source, user_added, category, is_exact, is_prefix, level FROM contained) u
-    ORDER BY u.is_exact DESC, u.is_prefix DESC, u.level, char_length(u.name), lower(u.name), u.id
-    LIMIT $6::integer
+    SELECT r.under, r.is_exact, r.is_prefix, r.level, r.len, r.lname,
+           p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+           coalesce(p.category, '') AS category
+    FROM ranked r
+    JOIN places p ON p.id = r.id
 ),
 up AS (
     SELECT m.id AS place_id, m.parent_id AS ancestor_id, 1 AS depth
@@ -1199,7 +1301,7 @@ up AS (
     WHERE a.parent_id IS NOT NULL AND u.depth < 8
 )
 SELECT m.id, m.kind, m.name, m.parent_id, m.timezone, m.source, m.user_added, m.category::text AS category,
-       st.stories
+       m.is_prefix, st.stories
 FROM candidates m
 CROSS JOIN LATERAL (
     SELECT count(*)::integer AS stories FROM (
@@ -1213,16 +1315,16 @@ CROSS JOIN LATERAL (
 WHERE NOT EXISTS (
     SELECT 1 FROM up u JOIN places a ON a.id = u.ancestor_id
     WHERE u.place_id = m.id AND a.hidden_at IS NOT NULL)
-ORDER BY m.is_exact DESC, m.is_prefix DESC, (st.stories > 0) DESC, m.level, char_length(m.name), lower(m.name), m.id
+ORDER BY m.under, m.is_exact DESC, m.is_prefix DESC, (st.stories > 0) DESC, m.level, m.len, m.lname, m.id
 LIMIT $1::integer
 `
 
 type SearchPlacesParams struct {
 	ResultLimit    int32
 	Exact          string
+	ParentIds      []uuid.UUID
 	Prefix         string
 	Kind           pgtype.Text
-	ParentID       uuid.NullUUID
 	CandidateLimit int32
 	Contains       string
 }
@@ -1236,20 +1338,30 @@ type SearchPlacesRow struct {
 	Source    string
 	UserAdded bool
 	Category  string
+	IsPrefix  bool
 	Stories   int32
 }
 
 // Typeahead. Candidates are visible-by-row places whose lowercased name
-// contains the pattern, restricted to the descendants of parent_id when it
-// is set. Ranking: exact name, then name prefix, then substring; within
-// each, broader kinds first (STATE before STORE), then shorter names, then
-// name and id. The top candidate_limit candidates are then checked for a
-// hidden ancestor, and the first result_limit survivors returned.
+// contains the pattern, restricted to the descendants of the parent_ids
+// places when that is set (the request's parent, or the cities and towns a
+// "starbucks tampa" search names, best first). Ranking: the place's first
+// parent_ids entry above it, then exact name, then name prefix, then
+// substring; within each, broader kinds first (STATE before STORE), then
+// shorter names, then name and id. The top candidate_limit candidates are
+// then checked for a hidden ancestor, and the first result_limit survivors
+// returned.
 //
 // Every prefix match outranks every substring match, so the prefix matches
-// (places_name_prefix_idx) are read first and the substring scan (the
-// trigram index) runs only when they leave room: a common word such as
-// "park" used to rank 15,000 substring matches to keep 100.
+// are read first and the substring scan (the trigram index) runs only when
+// they leave room: a common word such as "park" used to rank 15,000
+// substring matches to keep 100. The prefix ranking reads only the name,
+// kind and id, which places_name_rank_idx carries, so even "th" (21,000
+// matches) is ranked from the index without a heap read; the remaining
+// columns are read for the 100 candidates only. Under parent_ids, a prefix
+// match under a later entry can fill the candidates before a substring
+// match under an earlier one is read; the earlier entry still ranks first
+// among what was read.
 // Readable stories at the place and below, counted up to 100: enough to
 // tell friends which of several same-named entries everyone writes in.
 // Within each match tier, places with stories first.
@@ -1257,9 +1369,9 @@ func (q *Queries) SearchPlaces(ctx context.Context, arg SearchPlacesParams) ([]S
 	rows, err := q.db.Query(ctx, searchPlaces,
 		arg.ResultLimit,
 		arg.Exact,
+		arg.ParentIds,
 		arg.Prefix,
 		arg.Kind,
-		arg.ParentID,
 		arg.CandidateLimit,
 		arg.Contains,
 	)
@@ -1279,6 +1391,7 @@ func (q *Queries) SearchPlaces(ctx context.Context, arg SearchPlacesParams) ([]S
 			&i.Source,
 			&i.UserAdded,
 			&i.Category,
+			&i.IsPrefix,
 			&i.Stories,
 		); err != nil {
 			return nil, err
@@ -1403,6 +1516,123 @@ func (q *Queries) StoriedCategories(ctx context.Context, categories []string) ([
 			return nil, err
 		}
 		items = append(items, category)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const twinCandidates = `-- name: TwinCandidates :many
+WITH me AS (
+    SELECT p.id, p.parent_id, p.lat::float8 AS lat, p.lng::float8 AS lng, p.path[1] AS state_id,
+           $1::float8 AS lat_reach,
+           coalesce((SELECT array_agg(an.name ORDER BY array_position(p.path, an.id))
+                     FROM places an WHERE an.id = ANY(p.path) AND an.id <> p.id), '{}')::text[] AS ancestor_names
+    FROM places p
+    WHERE p.id = $2::uuid
+      AND p.kind IN ('PLACE_KIND_STORE', 'PLACE_KIND_MALL')
+      AND p.lat IS NOT NULL AND p.lng IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(p.path) AND h.hidden_at IS NOT NULL)
+      AND NOT EXISTS (
+            SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
+            WHERE a.place_path @> ARRAY[p.id]
+              AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
+),
+storied AS (
+    SELECT DISTINCT pid AS id
+    FROM me
+    JOIN arcs a ON a.place_path @> ARRAY[me.state_id]
+    CROSS JOIN LATERAL unnest(a.place_path) AS pid
+    WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+      AND EXISTS (SELECT 1 FROM perspectives v
+                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
+)
+SELECT q.id, q.kind, q.name, coalesce(q.category, '')::text AS category,
+       q.lat::float8 AS lat, q.lng::float8 AS lng,
+       (q.parent_id = me.parent_id)::boolean AS same_parent,
+       me.lat AS my_lat, me.lng AS my_lng, me.ancestor_names AS my_ancestor_names,
+       coalesce((SELECT array_agg(an.name ORDER BY array_position(q.path, an.id))
+                 FROM places an WHERE an.id = ANY(q.path) AND an.id <> q.id), '{}')::text[] AS ancestor_names,
+       st.stories
+FROM me
+JOIN storied s ON true
+JOIN places q ON q.id = s.id
+CROSS JOIN LATERAL (
+    SELECT count(*)::integer AS stories FROM (
+        SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
+        WHERE a.place_path @> ARRAY[q.id]
+          AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+          AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+        LIMIT 100) x
+) st
+WHERE q.id <> me.id
+  AND q.kind IN ('PLACE_KIND_STORE', 'PLACE_KIND_MALL')
+  AND q.lat IS NOT NULL AND q.lng IS NOT NULL
+  AND (q.parent_id = me.parent_id
+       OR (q.lat >= me.lat - me.lat_reach AND q.lat <= me.lat + me.lat_reach
+           AND abs(q.lng - me.lng) * cos(radians(me.lat)) <= me.lat_reach))
+ORDER BY q.id
+`
+
+type TwinCandidatesParams struct {
+	Reach float64
+	ID    uuid.UUID
+}
+
+type TwinCandidatesRow struct {
+	ID              uuid.UUID
+	Kind            string
+	Name            string
+	Category        string
+	Lat             float64
+	Lng             float64
+	SameParent      bool
+	MyLat           float64
+	MyLng           float64
+	MyAncestorNames []string
+	AncestorNames   []string
+	Stories         int32
+}
+
+// For placectl dedupe's rule on a place page (GetPlace's twin): when the
+// given place is a visible store or mall with coordinates and no readable
+// story at it or below, every other visible store or mall with
+// coordinates, a readable story at it or below, and either the same parent
+// or a spot inside a box of @reach degrees of latitude around it (widened
+// for longitude). Each row carries the given place's own coordinates, the
+// names of the places above both, and the candidate's readable stories
+// counted up to 100. The caller compares names and distances.
+//
+// Candidates are found from the arcs of the place's state, so the cost is
+// what that state's arcs cost, never a scan of its places.
+func (q *Queries) TwinCandidates(ctx context.Context, arg TwinCandidatesParams) ([]TwinCandidatesRow, error) {
+	rows, err := q.db.Query(ctx, twinCandidates, arg.Reach, arg.ID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TwinCandidatesRow
+	for rows.Next() {
+		var i TwinCandidatesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Kind,
+			&i.Name,
+			&i.Category,
+			&i.Lat,
+			&i.Lng,
+			&i.SameParent,
+			&i.MyLat,
+			&i.MyLng,
+			&i.MyAncestorNames,
+			&i.AncestorNames,
+			&i.Stories,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

@@ -22,6 +22,9 @@ import { NameLore } from "./NameLore";
 /** Members a lore needs before it can be canon (CANON_MIN_MEMBERS). */
 const CANON_MIN_MEMBERS = 4;
 
+/** What a lore its members have not named is called wherever a name is required. */
+const UNNAMED = "Unnamed lore";
+
 function Missing() {
   return (
     <section className="mx-auto max-w-measure py-12" aria-labelledby="lore-missing">
@@ -137,8 +140,11 @@ export function Component() {
   const stories = useQueries({
     queries: (lore?.members ?? []).map((m) => perspectiveQuery(m.perspectiveId)),
   });
+  // An unnamed lore is never titled with its day's own title, which is the
+  // day page's title.
+  const titleDay = arc.data?.arc?.title || stories.find((q) => q.data)?.data?.arcTitle || "";
   useDocumentTitle(
-    loreQuery.isError ? "Lore not found" : lore ? lore.name || arc.data?.arc?.title || stories.find((q) => q.data)?.data?.arcTitle || "A lore" : undefined,
+    loreQuery.isError ? "Lore not found" : lore ? lore.name || (titleDay ? `${UNNAMED} in ${titleDay}` : UNNAMED) : undefined,
   );
 
   if (loreQuery.isPending) {
@@ -168,7 +174,7 @@ export function Component() {
   };
   const memberIds = new Set(lore.members.map((m) => m.user?.userId ?? ""));
   const dayTitle = arc.data?.arc?.title || first?.arcTitle || "";
-  const title = lore.name || dayTitle || "A lore";
+  const title = lore.name || UNNAMED;
   const member = !!session && viewer?.loreId === lore.id;
   const span = arcSpan(arc.data?.arc ? arc.data.arc.hour : first?.hour);
 
@@ -186,7 +192,7 @@ export function Component() {
           {title}
         </h1>
         <p className="mt-2 text-ink-muted wrap-anywhere">
-          {[lore.name ? dayTitle : "", first?.place?.name, first ? formatDayBeside(dayTitle, first.localDate, first.hour) : ""].filter(Boolean).join(" · ")}
+          {[dayTitle, first?.place?.name, first ? formatDayBeside(dayTitle, first.localDate, first.hour) : ""].filter(Boolean).join(" · ")}
         </p>
         {lore.name && lore.namedBy && (
           <p className="mt-1 text-sm text-ink-muted">

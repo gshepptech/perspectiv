@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 
 import { formatDayBeside, loreStatusLabel } from "./format";
+import { storyTitle } from "./storyTitle";
 
 /** How much of a story's first part a row quotes; the row clamps it to two lines. */
 const OPENING_CHARS = 240;
@@ -23,7 +24,7 @@ function opening(p: Perspective): string {
  * first line with the writer, for a list that holds many writers.
  */
 export function StoryLinkRow({ p, withAuthor = false }: { p: Perspective; withAuthor?: boolean }) {
-  const title = p.arcTitle || "Untitled";
+  const title = storyTitle(p);
   const by = withAuthor && p.author ? `by ${p.author.username}` : "";
   const where = [p.place?.name, formatDayBeside(p.arcTitle, p.localDate, p.hour), by].filter(Boolean).join(" · ");
   const standing = loreStatusLabel(p.loreStatus);

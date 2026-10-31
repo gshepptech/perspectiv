@@ -87,6 +87,9 @@ message Perspective {
   string id = 1;
   // Empty while a draft.
   string arc_id = 2;
+  // The arc's title. For a draft, the title of the existing day (or hour)
+  // arc it would join when published, read when the draft is; empty when
+  // publishing it would start that arc.
   string arc_title = 3;
   UserRef author = 4;
   Genre genre = 5;
@@ -117,6 +120,11 @@ message Perspective {
   // True when the signed-in caller has saved it to read later; false when
   // signed out.
   bool saved = 23;
+  // Draft only: the author's own published story in the arc this draft
+  // would join, which makes the draft impossible to publish there. Set even
+  // when that story is hidden, since a hidden story still holds the slot;
+  // empty when there is none.
+  string superseded_by_id = 24;
 }
 
 // PerspectiveSummary is a perspective as an entry in a listing.

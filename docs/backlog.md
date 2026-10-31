@@ -14,12 +14,123 @@ Nothing in progress.
 
 ## Waiting on a decision or an event
 
+- **A voice for readers who were not there.** Today a reader can react
+  and save, but only the day's writers upvote, claim and post in a lore's
+  thread (A-012, A-072). A walkthrough found this lands as a closed door
+  for Reddit users. Options: a reader-comment area under each story, kept
+  apart from the lore thread; or a "readers' favourite" upvote that never
+  counts toward canon. Needs the founder: it changes who may speak.
+- **An author pointing at someone they wrote about.** Only the person who
+  was described can claim ("that was me"). An author-side "Was this you?"
+  suggestion, which the other writer accepts as a claim, would link more
+  stories; it changes who starts a claim (FR on claims). Needs the founder.
+- **Hour and day stories about the same moment.** Hour arcs keep their own
+  lore (A-015, A-019), so a day story and an hour story describing each
+  other can never form a lore. The composer now steers writers to the whole
+  day; letting a claim cross between a day and its hours would close the
+  gap. Needs the founder to revisit A-015/A-019.
+
 - **Legal review and a contact address.** The Terms, Privacy and
   Community guidelines pages describe what the code does today; they need a
   lawyer's review and a real contact address from the owner before launch.
 
 ## Done
 
+- A first-time visitor's walkthrough of finding a place. Search now reads
+  a name with the city or town it is in ("starbucks tampa", "tampa
+  starbucks", "starbucks in tampa", "starbucks, tampa, fl"; St./Saint,
+  Ft./Fort and Mt./Mount spelled either way), searches the name under each
+  matching visible city or town, best first (one with stories, then a
+  city before a town, then the larger), and keeps the plain search: its
+  name starts lead, its substring matches follow. A capped search says so
+  (`more` on SearchPlacesResponse) and every search list shows "More
+  places match: add a town to narrow it". Search is in the header on every
+  page (a dialog that "/" opens outside text fields); the composer's
+  picker shows what and where each place is and its story count, in the
+  server's storied-first order; "Your profile" heads the account menu; the
+  Inbox and Requests badges no longer cover their words. Migration 34
+  replaces places_name_prefix_idx with places_name_rank_idx, a covering
+  index the prefix ranking reads without the heap. docs/design-system.md
+  updated first. Verified on the dev database (640k places), EXPLAIN
+  ANALYZE warm: "starbucks tampa" 1.2 ms plain, 0.2 ms localities, 2.3 ms
+  under Tampa; "valley mall" 1.8, 1.0 and 0.6 ms; "starbucks" 2.7 ms; "ta"
+  3.2 ms and "th" 7 to 10 ms (55 ms and 87 ms before); whole requests 10 to
+  30 ms warm. Integration tests cover every form, the locality ranking, the
+  plain search first and as the fallback, hidden towns, the kind and
+  parent filters and `more`; unit tests cover the splits, spellings and
+  merge; a Chromium test measures the badges at 375 and 1280 pixels (fails
+  on the old placement) and the dialog's fit; place-search.spec.ts drives
+  the header search end to end. `make check` passes.
+- A new writer's walkthrough: drafts, the first welcome, who is in a new
+  story, and judging a request. Drafts no longer pile up as "Untitled":
+  a draft is titled by the day it joins (the server now fills a draft's
+  `arc_title` from the arc for its place, day and hour), else the title
+  it gave, else its first six words, else "Untitled draft", on the front
+  page and in every story row; opening the composer for a place, day and
+  hour where the writer has a draft resumes it with a note and names it
+  in the address; a draft the writer's own published story holds the day
+  for (new `superseded_by_id`, hidden stories included, deleted ones not)
+  reads "Draft · You already published for this day" (or hour) with a
+  one-press Delete, and nothing is deleted on its own. A member with no
+  published story is welcomed ("Welcome, *name*") with one call to
+  action, "Write about a place you were at", and a "How a day works"
+  explainer written into the design text; "Welcome back" stays for
+  members who have published. A new story's inbox row and email name up
+  to three characters nobody has claimed (no PENDING or ACCEPTED claim),
+  then "and N more", read from the database at delivery (email) and at
+  listing (inbox), never from the job, and left out once the story is
+  deleted or hidden. An incoming request quotes about 240 characters of
+  the claimant's story, cut at a word, with "Read their story", and says
+  "Their story can no longer be read." when it is deleted, hidden or at a
+  hidden place. docs/design-system.md updated first. Verified by
+  integration tests (a draft's day title and superseding story through
+  Get and ListMine for no day, someone else's day, the writer's own day,
+  an hour, a deleted and a hidden story, a hidden place; the unclaimed
+  characters in the email job and the inbox, with pending, accepted and
+  rejected claims, a claim, delete and hide after delivery, and other
+  kinds naming nobody; the claimant excerpt for a short, long, empty,
+  deleted, hidden and hidden-place story in both directions), unit tests
+  (email wording, draft titles, the welcome and explainer focus, the
+  superseded row and its Delete, the resumed draft, the inbox line, the
+  request quote), a new Playwright journey (`e2e/new-writer.spec.ts`,
+  with its own fixture place) through Mailpit, and by `make check` (946
+  Go unit, 628 web unit, 1870 integration tests, floors met) and `make
+  e2e` (18 passed). The composer, inbox, notification settings, Requests
+  page and notification emails now say "day" where they said "arc"
+  ("Title of the day", "one story per day", "your day"). The story page (`web/src/routes/read`) still titles a
+  draft with neither a day nor a title "Untitled"; it can use
+  `storyTitle` from `web/src/components/reader/storyTitle.ts`.
+- Reader walkthrough fixes: the day page, duplicate places, following,
+  "arc" in readers' words, and two visual slips. A reader who may not vote
+  on a day (signed out, or with no story there) now sees each row's count
+  with no button, and one note above the stories with the story page's
+  words ("Only people who wrote about this day can upvote its stories…",
+  "Were you there? Write your side", and signed out "Already wrote yours?
+  Sign in"); the story page's signed-out upvote note says the same, and
+  both say "hour" on an hour arc. GetPlace returns a `twin` for a
+  storyless store or mall that is a second listing of a storied one
+  (placectl dedupe's name key and radius, or the same parent within 2 km),
+  and the empty place page says "People write about this place at
+  <twin>." A followed place with new stories opens on its Newest tab,
+  where days with a story from the last seven days carry a "New" label
+  (EpicArc `new_this_week`). Readers see "day" or "hour" where they saw
+  "arc" (back link, hour timeline, not-found and loading states, the
+  place page's "Days" list), the Voice section says so, and an unnamed
+  lore's page is titled "Unnamed lore" instead of its day's title. The
+  author's Invite/Edit/Delete row and the draft banner now line up with
+  the story's text column. Verified by integration tests on the twin
+  rules (found under one parent 780 m away, under another parent within
+  200 m, a venue within 2 km, most stories wins; not found when hidden,
+  under a hidden parent, storyless, its only story hidden, too far under
+  either parent, a different name, the place having its own story, a
+  city) and on `new_this_week` (a hidden recent story does not count), by
+  unit tests for the inert rail and the note, the twin line, the New
+  label on Newest only, the Newest link from a followed place and the
+  unnamed lore title, against the dev data ("Raymond James Stadium,
+  Tampa" points to the storied "Raymond James Stadium"), and by `make
+  check` and `make e2e`. The composer, inbox, claims, notification labels,
+  emails and every server error a reader can see now say "day" too
+  ("you already have a story about this day").
 - Accessibility and phone-width pass over the newest screens (the lore
   thread, Follow and "Writers you follow", Save and /saved, /appearance,
   /best/<slug> and the front page's kinds row, "More from this day", the

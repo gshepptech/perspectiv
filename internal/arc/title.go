@@ -53,7 +53,7 @@ var dateLayouts = []string{
 func checkTitle(raw, placeName string, date time.Time) (string, error) {
 	title := strings.TrimSpace(raw)
 	if title == "" {
-		return "", apiutil.InvalidArg("a new arc needs a title")
+		return "", apiutil.InvalidArg("a new day needs a title")
 	}
 	if n := utf8.RuneCountInString(title); n < minTitleLen || n > maxTitleLen {
 		return "", apiutil.InvalidArg(fmt.Sprintf("title must be %d to %d characters", minTitleLen, maxTitleLen))

@@ -341,7 +341,7 @@ func claimantPerspective(ctx context.Context, q *dbq.Queries, ch dbq.GetCharacte
 		return uuid.Nil, err
 	}
 	if mine == uuid.Nil || !readable(own) {
-		return uuid.Nil, apiutil.FailedPrecondition("write your perspective in this arc first")
+		return uuid.Nil, apiutil.FailedPrecondition("write your story about this day first")
 	}
 	if removed(target) || removed(own) {
 		return uuid.Nil, apiutil.FailedPrecondition("this story was removed from lore")
@@ -368,7 +368,7 @@ func acceptable(target, claimant lockedPerspective) error {
 	case !readable(target) || !readable(claimant):
 		return apiutil.FailedPrecondition("one of these perspectives is no longer published")
 	case target.ArcID != claimant.ArcID:
-		return apiutil.FailedPrecondition("both perspectives must be in the same arc")
+		return apiutil.FailedPrecondition("both stories must be about the same day")
 	case removed(target) || removed(claimant):
 		return apiutil.FailedPrecondition("this story was removed from lore")
 	}

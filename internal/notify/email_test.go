@@ -165,6 +165,40 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 			wantSubject: "otter replied to your post",
 			wantText:    []string{"otter replied to your post in a lore's thread in Rainy Tuesday.", baseURL + "/lores/l-1"},
 		},
+		{
+			name: "a new story names three unclaimed characters, then how many more",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
+				"user_id": recipientID, "kind": "NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "actor": "wren",
+				"arc_title": "Rainy Tuesday", "path": "/perspectives/p-1",
+				"characters":      `["the woman with the foam parrot","the clerk","the <b>twins</b>"]`,
+				"more_characters": "2",
+			}},
+			wantSubject: "A new perspective in Rainy Tuesday",
+			wantText: []string{"wren published a new perspective in Rainy Tuesday. Who might be in it: " +
+				"“the woman with the foam parrot”, “the clerk”, “the <b>twins</b>” and 2 more. " +
+				"If one of them was you, open the story and claim them."},
+			wantHTML:  []string{"“the clerk”, “the &lt;b&gt;twins&lt;/b&gt;” and 2 more."},
+			notInHTML: []string{"<b>twins"},
+		},
+		{
+			name: "a new story with two unclaimed characters joins them with and",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
+				"user_id": recipientID, "kind": "NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "actor": "wren",
+				"arc_title": "Rainy Tuesday", "path": "/perspectives/p-1",
+				"characters": `["the clerk","the drummer"]`, "more_characters": "0",
+			}},
+			wantSubject: "A new perspective in Rainy Tuesday",
+			wantText:    []string{"Who might be in it: “the clerk” and “the drummer”. If one of them"},
+		},
+		{
+			name: "a new story with no unclaimed characters names nobody",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
+				"user_id": recipientID, "kind": "NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "actor": "wren",
+				"arc_title": "Rainy Tuesday", "path": "/perspectives/p-1",
+			}},
+			wantSubject: "A new perspective in Rainy Tuesday",
+			wantText:    []string{"wren published a new perspective in Rainy Tuesday.\n"},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

@@ -300,7 +300,8 @@ func assemble(r dbq.GetPerspectivesRow, c contents) (*perspectivv1.Perspective, 
 // A perspective filed at a hidden place, or below one, is hidden with it: a
 // published one reads as a hidden placeholder that names neither the place
 // nor the arc, which is NotFound on the arc page. A draft keeps its text for
-// its author but no longer names the place, as publishing there is refused.
+// its author but no longer names the place or the arc it would join, as
+// publishing there is refused.
 func placeholder(r dbq.GetPerspectivesRow) (*perspectivv1.Perspective, error) {
 	p, err := filed(r)
 	if err != nil || !r.PlaceHidden {
@@ -310,6 +311,8 @@ func placeholder(r dbq.GetPerspectivesRow) (*perspectivv1.Perspective, error) {
 	if r.Status != statusDraft {
 		p.Hidden = true
 		p.ArcId, p.ArcTitle, p.LoreId = "", "", ""
+	} else {
+		p.ArcTitle, p.SupersededById = "", ""
 	}
 	return p, nil
 }
@@ -345,6 +348,8 @@ func filed(r dbq.GetPerspectivesRow) (*perspectivv1.Perspective, error) {
 		if r.ArcTitle != nil {
 			p.ArcTitle = *r.ArcTitle
 		}
+	} else {
+		draftArc(p, r)
 	}
 	if r.LoreID != nil && loreStatus == perspectivv1.LoreStatus_LORE_STATUS_IN_LORE {
 		p.LoreId = r.LoreID.String()
@@ -357,6 +362,19 @@ func filed(r dbq.GetPerspectivesRow) (*perspectivv1.Perspective, error) {
 		p.Place = &perspectivv1.PlaceRef{Id: placeID.String(), Kind: kind, Name: *r.PlaceName}
 	}
 	return p, nil
+}
+
+// draftArc fills what a draft would join: the title of the arc that exists
+// for its place, day and hour, and the author's own published story there,
+// which makes the draft impossible to publish. Both stay empty when no arc
+// exists yet.
+func draftArc(p *perspectivv1.Perspective, r dbq.GetPerspectivesRow) {
+	if r.DraftArcTitle != nil {
+		p.ArcTitle = *r.DraftArcTitle
+	}
+	if r.SupersededByID != nil {
+		p.SupersededById = r.SupersededByID.String()
+	}
 }
 
 // Sitemap lists up to apiutil.SitemapLimit readable stories, most recently

@@ -22,13 +22,15 @@ import (
 	"perspectiv/internal/api/apiutil"
 )
 
-// Search returns at most SearchLimit places. The typeahead shows one short
-// list and the user narrows by typing, so it is not paginated. Ranking is
-// exact name, then name prefix, then substring; within each, broader kinds
-// first (a city before a store of the same name), then shorter names, then
-// alphabetical. The top searchCandidates matches are checked for a hidden
-// ancestor before the cut, so a page can come back short only when more than
-// searchCandidates-SearchLimit of the best matches sit under hidden places.
+// Search returns at most SearchLimit places and says when more match. The
+// typeahead shows one short list and the user narrows by typing, so it is
+// not paginated. Ranking is exact name, then name prefix, then substring;
+// within each, broader kinds first (a city before a store of the same
+// name), then shorter names, then alphabetical. The top searchCandidates
+// matches are checked for a hidden ancestor before the cut, so a page can
+// come back short only when more than searchCandidates-SearchLimit of the
+// best matches sit under hidden places. search.go adds the reading of a
+// search as a place and the town it is in.
 const (
 	SearchLimit      = 20
 	searchCandidates = 100
@@ -59,28 +61,6 @@ func notFound(err error) error {
 		return apiutil.NotFound("place not found")
 	}
 	return apiutil.Internal(err)
-}
-
-// Search runs the typeahead. parentID uuid.Nil searches every place; a
-// parent that is missing or hidden is NotFound. kind UNSPECIFIED matches
-// every kind.
-func (s *Service) Search(ctx context.Context, query string, parentID uuid.UUID, kind perspectivv1.PlaceKind) ([]Place, error) {
-	text := strings.ToLower(normalizeName(query))
-	if text == "" {
-		return nil, apiutil.InvalidArg("query is required")
-	}
-	if parentID != uuid.Nil {
-		if _, err := s.store.Get(ctx, parentID); err != nil {
-			return nil, notFound(err)
-		}
-	}
-	ps, err := s.store.Search(ctx, SearchQuery{
-		Text: text, ParentID: parentID, Kind: kind, Limit: SearchLimit, Candidates: searchCandidates,
-	})
-	if err != nil {
-		return nil, apiutil.Internal(err)
-	}
-	return ps, nil
 }
 
 // Get returns a visible place with its ancestors.
@@ -307,6 +287,11 @@ func (s *Service) Epic(ctx context.Context, req EpicRequest) (Epic, error) {
 	arcs, err := s.store.EpicArcs(ctx, q)
 	if err != nil {
 		return Epic{}, apiutil.Internal(err)
+	}
+	// The same window a followed place counts its new stories in.
+	since := time.Now().Add(-newStoryWindow)
+	for i := range arcs {
+		arcs[i].NewThisWeek = arcs[i].LatestPublishedAt.After(since)
 	}
 	out := Epic{Place: p, Arcs: arcs}
 	if len(arcs) > int(req.Page.Limit) {

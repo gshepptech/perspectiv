@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { MapPin } from "lucide-react";
 import { useId, useState } from "react";
 
+import { placeChain, storiesLabel } from "@/components/reader/format";
+import { MorePlacesNote } from "@/components/search/PlaceSearch";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { Place } from "@/gen/perspectiv/v1/place_pb";
@@ -12,7 +14,9 @@ import { MIN_QUERY, SEARCH_DEBOUNCE_MS, useDebounced } from "./search";
 
 /**
  * The first step of writing: find the place the story happened, or add the
- * mall or store when the search does not know it.
+ * mall or store when the search does not know it. Each result says what and
+ * where it is and how many stories it holds, in the server's order (places
+ * with stories first within a match tier), so friends pick the same entry.
  */
 export function PlacePicker({
   onPick,
@@ -74,17 +78,16 @@ export function PlacePicker({
                 <MapPin aria-hidden size={16} className="mt-1 shrink-0 text-accent" />
                 <span className="grid min-w-0">
                   <span className="font-medium text-ink [overflow-wrap:anywhere]">{p.name}</span>
-                  {p.ancestors.length > 0 && (
-                    <span className="text-sm text-ink-muted [overflow-wrap:anywhere]">
-                      {p.ancestors.map((a) => a.name).reverse().join(", ")}
-                    </span>
-                  )}
+                  <span className="text-sm text-ink-muted [overflow-wrap:anywhere]">
+                    {placeChain(p.kind, p.ancestors, p.category)} · {storiesLabel(p.stories)}
+                  </span>
                 </span>
               </button>
             </li>
           ))}
         </ul>
       )}
+      {search.data?.more && <MorePlacesNote />}
       {adding ? (
         <AddPlace initialName={text.trim()} initialParentId={addIn} onAdded={onPick} onCancel={() => setAdding(false)} />
       ) : (

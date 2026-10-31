@@ -1,11 +1,11 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
-import { categorySlug, formatDayBeside, placeCategories, placeCategoryLabel, placeChain, storiesLabel } from "@/components/reader/format";
+import { categorySlug, formatDayBeside, placeCategories, placeCategoryLabel } from "@/components/reader/format";
+import { storyTitle } from "@/components/reader/storyTitle";
+import { PLACE_SEARCH_DEBOUNCE_MS, PlaceSearchField, PlaceSearchResults, useDebounced } from "@/components/search/PlaceSearch";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
@@ -16,80 +16,6 @@ import { ExampleArc, HowItWorks } from "./ExampleArc";
 import { Following } from "./Following";
 import { Storied } from "./Storied";
 import { WelcomeBack } from "./WelcomeBack";
-
-const DEBOUNCE_MS = 200;
-
-function useDebounced(value: string, ms: number): string {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(t);
-  }, [value, ms]);
-  return debounced;
-}
-
-function SearchResults({ query }: { query: string }) {
-  const search = useQuery({
-    queryKey: ["place", "searchPlaces", { query }],
-    queryFn: ({ signal }) => clients.place.searchPlaces({ query }, { signal }),
-  });
-  const places = search.data?.places ?? [];
-  // One status line, always mounted, so a screen reader hears each result.
-  const status = search.isPending
-    ? "Searching…"
-    : search.isError
-      ? ""
-      : places.length === 0
-        ? `No places match “${query}”.`
-        : `${places.length} ${places.length === 1 ? "place matches" : "places match"} “${query}”.`;
-  return (
-    <>
-      <p role="status" className={places.length > 0 ? "sr-only" : "mt-4 text-sm text-ink-muted"}>
-        {status}
-      </p>
-      {search.isError && (
-        <p role="alert" className="mt-4 text-sm text-error">
-          Search is unavailable right now. Try again in a moment.
-        </p>
-      )}
-      {places.length > 0 && (
-        <ul aria-label="Matching places" className="mt-4 divide-y divide-rule border-y border-rule">
-          {places.map((place) => (
-            <li key={place.id}>
-              <Link
-                to={`/places/${place.id}`}
-                className="flex min-h-11 min-w-0 flex-col justify-center py-2 hover:bg-surface sm:px-2"
-              >
-                <span className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">{place.name}</span>
-                <span className="text-sm wrap-anywhere text-ink-muted">
-                  {placeChain(place.kind, place.ancestors, place.category)} · {storiesLabel(place.stories)}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-      {search.isSuccess && <AddPlaceLink name={query} />}
-    </>
-  );
-}
-
-/**
- * The way in when the place someone was at is not listed: it opens the
- * composer's add form with the name they searched for. A signed-out reader
- * is sent to sign in first and comes back here.
- */
-function AddPlaceLink({ name }: { name: string }) {
-  return (
-    <Link
-      to={`/compose?add=${encodeURIComponent(name)}`}
-      className="mt-3 inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border border-dashed border-control px-4 text-sm text-ink hover:border-accent hover:text-accent"
-    >
-      <Plus aria-hidden size={16} className="shrink-0" />
-      <span className="min-w-0 wrap-anywhere">Not here? Add “{name}” as a new place</span>
-    </Link>
-  );
-}
 
 /**
  * The kinds of place with at least one day, each linking to the best days at
@@ -152,25 +78,70 @@ function BrowseStates() {
 
 const MINE_PAGE_SIZE = 20;
 
-function MineRow({ p }: { p: Perspective }) {
+/**
+ * Deletes a draft the writer's own published story has made impossible to
+ * publish. One press, nothing automatic; the list is read again from the
+ * server afterwards.
+ */
+function DeleteDraft({ p, title, onDeleted }: { p: Perspective; title: string; onDeleted: () => void }) {
+  const queryClient = useQueryClient();
+  const remove = useMutation({
+    mutationFn: () => clients.perspective.delete({ perspectiveId: p.id }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["perspective", "listMine"] });
+      onDeleted();
+    },
+  });
+  return (
+    <span className="flex flex-col items-end">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="min-h-11 text-accent underline underline-offset-4"
+        aria-label={`Delete draft ${title}`}
+        pending={remove.isPending}
+        onClick={() => remove.mutate()}
+      >
+        Delete
+      </Button>
+      {remove.isError && (
+        <span role="alert" className="text-sm text-error">
+          Not deleted. Try again in a moment.
+        </span>
+      )}
+    </span>
+  );
+}
+
+function MineRow({ p, onDeleted }: { p: Perspective; onDeleted: () => void }) {
   const isDraft = p.status === PerspectiveStatus.DRAFT;
-  const title = p.arcTitle || p.titleIfNewArc || "Untitled";
+  const title = storyTitle(p);
+  // The writer's own published story holds this draft's day or hour, so it
+  // can never be published there.
+  const superseded = isDraft && p.supersededById !== "";
   const edit = `/compose?perspectiveId=${encodeURIComponent(p.id)}`;
   const where = [p.place?.name, formatDayBeside(p.arcTitle || p.titleIfNewArc, p.localDate, p.hour)].filter(Boolean).join(" · ");
   return (
     <li className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 py-2">
       <Link to={isDraft ? edit : `/perspectives/${encodeURIComponent(p.id)}`} className="flex min-h-11 min-w-0 flex-col justify-center">
         <span className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">{title}</span>
-        <span className="text-sm wrap-anywhere text-ink-muted">
-          {isDraft ? "Draft · " : "Published · "}
-          {where}
-        </span>
+        {superseded ? (
+          <span className="text-sm wrap-anywhere text-warning">
+            Draft · You already published for this {p.hour === undefined ? "day" : "hour"}
+          </span>
+        ) : (
+          <span className="text-sm wrap-anywhere text-ink-muted">
+            {isDraft ? "Draft · " : "Published · "}
+            {where}
+          </span>
+        )}
       </Link>
       {!isDraft && (
         <Link to={edit} aria-label={`Edit ${title}`} className="inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4">
           Edit
         </Link>
       )}
+      {superseded && <DeleteDraft p={p} title={title} onDeleted={onDeleted} />}
     </li>
   );
 }
@@ -181,6 +152,7 @@ function MineRow({ p }: { p: Perspective }) {
  * here and nothing of anyone else's is listed.
  */
 function YourPerspectives() {
+  const heading = useRef<HTMLHeadingElement>(null);
   const mine = useInfiniteQuery({
     queryKey: ["perspective", "listMine", {}],
     queryFn: ({ pageParam, signal }) => clients.perspective.listMine({ pageToken: pageParam, pageSize: MINE_PAGE_SIZE }, { signal }),
@@ -200,12 +172,13 @@ function YourPerspectives() {
   if (items.length === 0) return null;
   return (
     <section aria-labelledby="landing-mine" className="mt-12">
-      <h2 id="landing-mine" className="text-xl">
+      <h2 id="landing-mine" ref={heading} tabIndex={-1} className="text-xl focus:outline-none">
         Your perspectives
       </h2>
       <ul ref={more.list} className="mt-3 divide-y divide-rule border-y border-rule">
         {items.map((p) => (
-          <MineRow key={p.id} p={p} />
+          // A deleted row leaves the list, so focus goes to the heading.
+          <MineRow key={p.id} p={p} onDeleted={() => heading.current?.focus()} />
         ))}
       </ul>
       {mine.hasNextPage && (
@@ -226,8 +199,7 @@ function YourPerspectives() {
 export function Component() {
   const [params, setParams] = useSearchParams();
   const [text, setText] = useState(() => params.get("q") ?? "");
-  const query = useDebounced(text.trim(), DEBOUNCE_MS);
-  const inputId = useId();
+  const query = useDebounced(text.trim(), PLACE_SEARCH_DEBOUNCE_MS);
   const session = useSession();
 
   useEffect(() => {
@@ -237,25 +209,9 @@ export function Component() {
 
   const search = (
     <>
-      <form role="search" className="mt-8" onSubmit={(e) => e.preventDefault()}>
-        <label htmlFor={inputId} className="sr-only">
-          Search places
-        </label>
-        <div className="relative">
-          <Search aria-hidden size={20} className="pointer-events-none absolute top-1/2 left-5 -translate-y-1/2 text-ink-muted" />
-          <Input
-            id={inputId}
-            type="search"
-            autoComplete="off"
-            placeholder="A store, mall, town or city"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="min-h-14 rounded-full pr-5 pl-13 text-lg shadow-sm"
-          />
-        </div>
-      </form>
+      <PlaceSearchField value={text} onChange={setText} large className="mt-8" />
       {query ? (
-        <SearchResults query={query} />
+        <PlaceSearchResults query={query} />
       ) : (
         !session && <p className="mt-3 text-sm text-ink-muted">Anyone can read. Sign up to write your side.</p>
       )}
