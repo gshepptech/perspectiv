@@ -578,7 +578,23 @@ func TestHotQueriesAreIndexBacked(t *testing.T) {
 		name  string
 		query string
 		args  []any
+		// noSort also requires the index to give the order, so a page
+		// never sorts the whole table.
+		noSort bool
 	}{
+		{
+			name: "front page ranked, everywhere, after a cursor",
+			query: `SELECT id FROM arcs
+				WHERE ((canon_lore_id IS NOT NULL), canon_score, member_count, created_at, id) < (true, $1, $2, $3, $4)
+				ORDER BY (canon_lore_id IS NOT NULL) DESC, canon_score DESC, member_count DESC, created_at DESC, id DESC LIMIT 7`,
+			args:   []any{2.5, 3, "2026-10-11T00:00:00Z", uuid.New()},
+			noSort: true,
+		},
+		{
+			name:   "front page newest, everywhere",
+			query:  `SELECT id FROM arcs ORDER BY created_at DESC, id DESC LIMIT 7`,
+			noSort: true,
+		},
 		{
 			name: "place descendants by recursive CTE",
 			query: `WITH RECURSIVE sub AS (
@@ -679,6 +695,9 @@ func TestHotQueriesAreIndexBacked(t *testing.T) {
 			text := strings.Join(plan, "\n")
 			if strings.Contains(text, "Seq Scan") || !strings.Contains(text, "Index") {
 				t.Fatalf("plan is not index-backed:\n%s", text)
+			}
+			if tt.noSort && strings.Contains(text, "Sort") {
+				t.Fatalf("plan sorts instead of reading the index in order:\n%s", text)
 			}
 		})
 	}

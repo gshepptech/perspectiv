@@ -20,6 +20,11 @@ Nothing in progress.
 
 ## Done
 
+- The front page's everywhere listings read an index in rank and newest
+  order (migration 33) instead of sorting every day: 55 ms warm and 368 ms
+  cold at beta scale (90k days) become 0.5 ms. Verified by EXPLAIN ANALYZE
+  on generated beta-scale data (rolled back) and two new no-sort cases in
+  TestHotQueriesAreIndexBacked, which fail without the index.
 - Canon by category: GetEpic takes a PlaceCategory, so RANKED and NEWEST
   list only the days whose own place is of that kind, everywhere or under a
   place, and TALES filters the same way (an unknown value is
