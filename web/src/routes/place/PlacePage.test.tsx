@@ -291,6 +291,24 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     const heading = await screen.findByRole("heading", { level: 1, name: "Raymond James Stadium" });
     expect(heading.nextElementSibling).toHaveTextContent(/^Sports$/);
   });
+
+  it("links a venue's category to the best days at every place of that kind", async () => {
+    const stadium = { ...store, id: "so-st", name: "Raymond James Stadium", category: "PLACE_CATEGORY_SPORTS_AND_RECREATION", ancestors: [springfield, illinois] };
+    placePage("/places/so-st", { "PlaceService/GetPlace": () => ({ body: { place: stadium } }) });
+    const link = await screen.findByRole("link", { name: "Sports: the best days at sports and recreation places" });
+    expect(link).toHaveAttribute("href", "/best/sports-and-recreation");
+    expect(link).toHaveTextContent(/^Sports$/);
+  });
+
+  it.each([
+    { name: "a city", place: springfield },
+    { name: "a store with no category", place: { ...store, ancestors: [springfield, illinois] } },
+  ])("leaves the kind of $name as plain text", async ({ place }) => {
+    placePage(`/places/${place.id}`, { "PlaceService/GetPlace": () => ({ body: { place } }) });
+    const heading = await screen.findByRole("heading", { level: 1, name: place.name });
+    expect(heading.nextElementSibling).toHaveTextContent(/^(City|Store)$/);
+    expect(within(heading.nextElementSibling as HTMLElement).queryByRole("link")).toBeNull();
+  });
 });
 
 describe("reporting a duplicate place", () => {

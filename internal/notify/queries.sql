@@ -107,11 +107,20 @@ SELECT reporter_id FROM reports WHERE id = $1;
 -- name: Recipients :many
 -- Candidates who still have an account, are not the actor, and have not
 -- blocked the actor, with their toggles for kind (a missing preference row
--- means both on). actor_id is NULL for a system event.
+-- means both on). actor_id is NULL for a system event. Email goes only to a
+-- confirmed address: an account signed up with someone else's address never
+-- mails them. quiet_lore_id, when set, marks a recipient who already had a
+-- notification of this kind about that lore in the last hour, so a burst of
+-- thread replies is one email (every reply still reaches the inbox).
 SELECT u.id, u.email,
        COALESCE(np.in_app, true)::boolean AS in_app,
-       COALESCE(np.email, true)::boolean  AS email_on,
-       u.email_digest
+       (COALESCE(np.email, true) AND u.email_verified_at IS NOT NULL)::boolean AS email_on,
+       u.email_digest,
+       (sqlc.narg(quiet_lore_id)::uuid IS NOT NULL AND EXISTS (
+           SELECT 1 FROM notifications n
+           WHERE n.user_id = u.id AND n.kind = sqlc.arg(kind)::text
+             AND n.payload->>'lore_id' = sqlc.narg(quiet_lore_id)::uuid::text
+             AND n.created_at > now() - interval '1 hour'))::boolean AS emailed_recently
 FROM users u
 LEFT JOIN notification_preferences np
        ON np.user_id = u.id AND np.kind = sqlc.arg(kind)::text

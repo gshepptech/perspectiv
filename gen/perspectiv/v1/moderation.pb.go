@@ -40,8 +40,12 @@ type Report struct {
 	ResolutionReason string                 `protobuf:"bytes,11,opt,name=resolution_reason,json=resolutionReason,proto3" json:"resolution_reason,omitempty"`
 	CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	ResolvedAt       *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=resolved_at,json=resolvedAt,proto3" json:"resolved_at,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// What the target said when the report was filed (a post, a story's parts
+	// and characters, a name, a profile), at most 20,000 characters. It does
+	// not change when the author edits the target.
+	ReportedText  string `protobuf:"bytes,14,opt,name=reported_text,json=reportedText,proto3" json:"reported_text,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Report) Reset() {
@@ -163,6 +167,13 @@ func (x *Report) GetResolvedAt() *timestamppb.Timestamp {
 		return x.ResolvedAt
 	}
 	return nil
+}
+
+func (x *Report) GetReportedText() string {
+	if x != nil {
+		return x.ReportedText
+	}
+	return ""
 }
 
 type ReportRequest struct {
@@ -1406,7 +1417,7 @@ var File_perspectiv_v1_moderation_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_moderation_proto_rawDesc = "" +
 	"\n" +
-	"\x1eperspectiv/v1/moderation.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x18perspectiv/v1/user.proto\"\xf1\x04\n" +
+	"\x1eperspectiv/v1/moderation.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x18perspectiv/v1/user.proto\"\x96\x05\n" +
 	"\x06Report\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x122\n" +
 	"\breporter\x18\x02 \x01(\v2\x16.perspectiv.v1.UserRefR\breporter\x12@\n" +
@@ -1427,7 +1438,8 @@ const file_perspectiv_v1_moderation_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12;\n" +
 	"\vresolved_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"resolvedAt\"\xbd\x01\n" +
+	"resolvedAt\x12#\n" +
+	"\rreported_text\x18\x0e \x01(\tR\freportedText\"\xbd\x01\n" +
 	"\rReportRequest\x12@\n" +
 	"\vtarget_kind\x18\x01 \x01(\x0e2\x1f.perspectiv.v1.ReportTargetKindR\n" +
 	"targetKind\x12\x1b\n" +

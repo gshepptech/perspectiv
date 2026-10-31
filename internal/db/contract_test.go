@@ -161,15 +161,17 @@ func TestEnumValues(t *testing.T) {
 // EditLorePost and DeleteLorePost its replies, upvotes, edits and deletes),
 // NameLore a lore's name, FollowPlace and
 // ListFollowing the places a user follows, FollowUser and
-// ListFollowedWriters the writers a user follows, and SavePerspective and
-// ListSaved the stories a user saved to read later.
+// ListFollowedWriters the writers a user follows, SavePerspective and
+// ListSaved the stories a user saved to read later, and
+// ListStoriedCategories the "Browse by kind of place" links.
 var services = map[string][]string{
 	"AuthService": {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword",
 		"ChangePassword", "RequestEmailChange", "ConfirmEmailChange", "SignOutEverywhere", "ListSessions", "RevokeSession",
 		"GetSignUpInfo", "JoinWaitlist", "CreateAccessCode", "ListAccessCodes", "RevokeAccessCode", "ListWaitlist", "InviteFromWaitlist"},
 	"UserService": {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount", "ExportMyData",
 		"FollowUser", "ListFollowedWriters"},
-	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters"},
+	"PlaceService": {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters",
+		"ListStoriedCategories"},
 	"ArcService":         {"GetArc", "FindDayArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},
 	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite", "SavePerspective", "ListSaved"},
 	"LoreService": {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore",

@@ -29,6 +29,7 @@ type Page = {
 export const pages: readonly Page[] = [
   { path: "/", module: "landing/LandingPage" },
   { path: "/places/:placeId", module: "place/PlacePage" },
+  { path: "/best/:category", module: "best/BestPage" },
   { path: "/perspectives/:perspectiveId", module: "read/ReadPage" },
   { path: "/arcs/:arcId", module: "arc/ArcPage" },
   { path: "/lores/:loreId", module: "lore/LorePage" },

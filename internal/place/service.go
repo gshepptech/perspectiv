@@ -208,12 +208,15 @@ func kindWord(k perspectivv1.PlaceKind) string {
 	return strings.ToLower(strings.TrimPrefix(k.String(), "PLACE_KIND_"))
 }
 
-// EpicRequest asks for one page of a place's epic.
+// EpicRequest asks for one page of a place's epic. Category UNSPECIFIED
+// lists every place; any other value only the days and tales whose own place
+// has that category.
 type EpicRequest struct {
-	PlaceID uuid.UUID
-	Tab     perspectivv1.EpicTab
-	Genre   perspectivv1.Genre
-	Page    apiutil.PageToken
+	PlaceID  uuid.UUID
+	Tab      perspectivv1.EpicTab
+	Genre    perspectivv1.Genre
+	Category perspectivv1.PlaceCategory
+	Page     apiutil.PageToken
 }
 
 // Epic is one page of a place's epic: Arcs for RANKED and NEWEST, Tales for
@@ -261,8 +264,13 @@ func parseEpicCursor(after string, tab perspectivv1.EpicTab) (*epicCursor, error
 // arcs at the place and every visible descendant that have a readable
 // perspective; TALES lists their SOLO and REMOVED perspectives. A missing or
 // hidden place is NotFound. With no place, RANKED and NEWEST list the arcs
-// of every visible place (the front page) and TALES is InvalidArgument.
+// of every visible place (the front page) and TALES is InvalidArgument. A
+// category narrows any of them to the days at places of that category; an
+// unknown category is InvalidArgument.
 func (s *Service) Epic(ctx context.Context, req EpicRequest) (Epic, error) {
+	if _, ok := perspectivv1.PlaceCategory_name[int32(req.Category)]; !ok {
+		return Epic{}, apiutil.InvalidArg("unknown category")
+	}
 	var order ArcOrder
 	switch req.Tab {
 	case perspectivv1.EpicTab_EPIC_TAB_RANKED:
@@ -292,7 +300,7 @@ func (s *Service) Epic(ctx context.Context, req EpicRequest) (Epic, error) {
 		}
 		return s.tales(ctx, p, req, cur)
 	}
-	q := EpicArcsQuery{PlaceID: req.PlaceID, Order: order, Genre: req.Genre, Limit: req.Page.Limit + 1}
+	q := EpicArcsQuery{PlaceID: req.PlaceID, Order: order, Genre: req.Genre, Category: req.Category, Limit: req.Page.Limit + 1}
 	if cur != nil {
 		q.After = &ArcCursor{HasCanon: cur.HasCanon, Score: cur.Score, Members: cur.Members, CreatedAt: cur.At, ID: cur.ID}
 	}
@@ -312,7 +320,7 @@ func (s *Service) Epic(ctx context.Context, req EpicRequest) (Epic, error) {
 }
 
 func (s *Service) tales(ctx context.Context, p Place, req EpicRequest, cur *epicCursor) (Epic, error) {
-	q := TalesQuery{PlaceID: p.ID, Genre: req.Genre, Limit: req.Page.Limit + 1}
+	q := TalesQuery{PlaceID: p.ID, Genre: req.Genre, Category: req.Category, Limit: req.Page.Limit + 1}
 	if cur != nil {
 		q.After = &TaleCursor{PublishedAt: cur.At, ID: cur.ID}
 	}
@@ -417,4 +425,21 @@ func (s *Service) SearchCharacters(ctx context.Context, placeID uuid.UUID, query
 // Sitemap lists the places the sitemap names; see Store.Sitemap.
 func (s *Service) Sitemap(ctx context.Context) ([]apiutil.SitemapEntry, error) {
 	return s.store.Sitemap(ctx, apiutil.SitemapLimit)
+}
+
+// StoriedCategories lists, in enum order, the categories with a readable
+// day at a visible place of that category: the kinds of place worth a
+// "best days" link.
+func (s *Service) StoriedCategories(ctx context.Context) ([]perspectivv1.PlaceCategory, error) {
+	cats, err := s.store.StoriedCategories(ctx, Categories())
+	if err != nil {
+		return nil, apiutil.Internal(err)
+	}
+	return cats, nil
+}
+
+// CategorySitemap lists the "best days" pages the sitemap names; see
+// Store.CategorySitemap.
+func (s *Service) CategorySitemap(ctx context.Context) ([]CategoryPage, error) {
+	return s.store.CategorySitemap(ctx)
 }

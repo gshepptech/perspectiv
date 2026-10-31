@@ -1,17 +1,27 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Crown, PenLine, Plus } from "lucide-react";
+import { PenLine, Plus } from "lucide-react";
 import { useState, type RefObject } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 
-import { CanonName } from "@/components/reader/CanonName";
-import { formatDayBeside, genreLabel, loreStatusLabel, placeCategories, placeCategoryLabel, placeLabel } from "@/components/reader/format";
+import { ArcItem } from "@/components/reader/ArcItem";
+import {
+  categorySlug,
+  formatDayBeside,
+  genreLabel,
+  labelledCategory,
+  loreStatusLabel,
+  placeCategories,
+  placeCategoryLabel,
+  placeCategoryPlural,
+  placeLabel,
+} from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { EpicTab, Genre, PlaceCategory, PlaceKind, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
-import type { EpicArc, EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
+import type { EpicTale, Place } from "@/gen/perspectiv/v1/place_pb";
 import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { useShowMore } from "@/lib/showMore";
@@ -48,35 +58,6 @@ function parseGenre(value: string | null): Genre {
 
 function isNotFound(err: unknown): boolean {
   return ConnectError.from(err).code === Code.NotFound;
-}
-
-/**
- * One day in the epic: its title, the opening of its canon's first story (or
- * its first story), then its canon by name and how many are in it.
- */
-function ArcItem({ arc }: { arc: EpicArc }) {
-  return (
-    <li className="py-3">
-      <Link to={`/arcs/${arc.arcId}`} className="inline-flex min-h-11 items-center font-serif text-lg wrap-anywhere text-accent underline-offset-4 hover:underline">
-        {arc.title}
-      </Link>
-      {arc.excerpt && <p className="line-clamp-2 font-serif wrap-anywhere text-ink">{arc.excerpt}</p>}
-      <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
-        {arc.canonLoreId && (
-          <span className="inline-flex items-center gap-1 font-medium text-ink">
-            <Crown aria-hidden size={16} className="text-accent" />
-            <CanonName name={arc.canonLoreName} />
-          </span>
-        )}
-        <span className="wrap-anywhere">{arc.place?.name}</span>
-        <span>{formatDayBeside(arc.title, arc.localDate, arc.hour)}</span>
-        {arc.memberCount > 0 && <span>{arc.memberCount} in lore</span>}
-        <span>
-          {arc.perspectiveCount} {arc.perspectiveCount === 1 ? "perspective" : "perspectives"}
-        </span>
-      </p>
-    </li>
-  );
 }
 
 function TaleItem({ tale }: { tale: EpicTale }) {
@@ -322,6 +303,26 @@ function Children({ place }: { place: Place }) {
 }
 
 /**
+ * What the place is. A store or mall named by its category links that word
+ * to the best days at every place of the kind; a kind ("Store", "City")
+ * stays plain.
+ */
+function PlaceKindLabel({ place }: { place: Place }) {
+  const label = placeLabel(place.kind, place.category);
+  const category = labelledCategory(place.kind, place.category);
+  if (category === PlaceCategory.UNSPECIFIED) return label;
+  return (
+    <Link
+      to={`/best/${categorySlug(category)}`}
+      aria-label={`${label}: the best days at ${placeCategoryPlural(category)}`}
+      className="inline-flex min-h-11 items-center text-accent underline underline-offset-4"
+    >
+      {label}
+    </Link>
+  );
+}
+
+/**
  * A place page is its epic: arcs at the place and at every place inside it,
  * Ranked (the server's order: canon first, then member count, then newest),
  * Newest, or the Tales told there. The order is the server's and is never
@@ -398,7 +399,9 @@ export function Component() {
         )}
         <h1 className="text-2xl wrap-anywhere sm:text-3xl">{place.name}</h1>
         {/* What the place is, as search says it: a stadium reads "Sports", not "Store". */}
-        <p className="mt-1 text-sm text-ink-muted">{placeLabel(place.kind, place.category)}</p>
+        <p className="mt-1 text-sm text-ink-muted">
+          <PlaceKindLabel place={place} />
+        </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild variant="secondary">
             <Link to={`/compose?placeId=${encodeURIComponent(place.id)}`}>

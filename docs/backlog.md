@@ -20,6 +20,47 @@ Nothing in progress.
 
 ## Done
 
+- Canon by category: GetEpic takes a PlaceCategory, so RANKED and NEWEST
+  list only the days whose own place is of that kind, everywhere or under a
+  place, and TALES filters the same way (an unknown value is
+  InvalidArgument); ListStoriedCategories (public) names the kinds with a
+  readable day. The public page /best/<slug> ("The best days at sports and
+  recreation places", Ranked and Newest) is reached from a "Browse by kind
+  of place" row on the front page and from the category word in a place's
+  header, and the sitemap gains a "pages" file listing it per kind. The
+  slug is the enum name in lowercase with hyphens, derived once in Go
+  (place.CategorySlug) and once in the web app (categorySlug). An arc now
+  carries its place's category (migration 31, kept by triggers on arc
+  insert or move and on a place's re-categorisation, Down run on the dev
+  database) with ranked and newest indexes per category: at beta scale
+  (90k days, 225k stories, 638k places) the sports listing went from 95 ms
+  to 1.6 ms and the food-and-drink listing under Florida from 69 ms to
+  1.3 ms, and the category list takes 0.3 ms (13 index probes). Verified by
+  TestGetEpicCategory (everywhere, under a state and a city, hidden places,
+  one-at-a-time paging for every case, tales, an unknown category),
+  TestGetEpicCategoryFollowsReclassification, TestListStoriedCategories,
+  TestArcPlaceCategory, TestHotQueriesAreIndexBacked, TestCategorySlug,
+  TestPreview's sitemap cases, TestRobotsAndSitemap,
+  TestServicesExposeExactlyTheContractRPCs, TestRoutesCoverEveryProcedure,
+  the web suite (BestPage.test.tsx, LandingPage.test.tsx, PlacePage.test.tsx,
+  format.test.ts, router.test.tsx, the phone-width check) and
+  e2e/find-yourself.spec.ts (front page to the best days at shops to the
+  day) with /best/shopping in the axe scan. The front page's own ranked
+  listing (no category) still sorts every day, about 95 ms at beta scale;
+  a global ranked index would fix it and is not part of this change.
+- Security review of the follow, save, thread, sitemap and appearance work
+  (no high findings; all four lower ones fixed): a report keeps what its
+  target said when it was filed (migration 32; a post, a story's parts and
+  characters, a name or a profile), shown to moderators under "What it said
+  when reported", so editing a reported post to "ok" before review no
+  longer hides it; a burst of thread replies is one email an hour per lore
+  (every reply still reaches the inbox); notification email goes only to a
+  confirmed address, and follower counts leave out unconfirmed and
+  suspended accounts; and each sitemap file is built at most once per 30
+  minutes. Verified by TestReportKeepsWhatWasReported,
+  TestNotificationEmailLimits, TestFollowerCountLeavesOutUnconfirmedAndSuspended,
+  TestSitemapConcurrentRequestsBuildOnce, TestSitemapFailedBuildIsNotKept and
+  ReportsPage.test.tsx.
 - Search engines: /robots.txt keeps crawlers off the API, account, writing,
   admin and one-time-link pages and names /sitemap.xml, an index of three
   sitemaps (places, days, stories) built from the same readable-only rules

@@ -187,8 +187,12 @@ RETURNING id, kind, name, parent_id, timezone, source, user_added;
 -- Arcs at the place and every visible descendant, found by arcs.place_path
 -- (arcs_place_path_idx) (a listing only: each
 -- arc keeps its own stored canon). An arc is listed when it has at least one
--- readable perspective, of the genre when one is given. Order: arcs with a
--- canon first, then the stored canon score, member count, newest, id.
+-- readable perspective, of the genre when one is given, and when a category
+-- is given, when its own place has that category. Order: arcs with a canon
+-- first, then the stored canon score, member count, newest, id.
+--
+-- The optional filters are "argument IS NULL OR ...": the pool plans every
+-- call with its arguments (plan_cache_mode), so an unused filter folds away.
 SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
        a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
        (SELECT count(*) FROM perspectives v
@@ -217,6 +221,8 @@ WHERE a.place_path @> ARRAY[@place_id::uuid]
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+  -- Only days whose own place has the category, through arcs_category_*_idx.
+  AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
   AND (sqlc.narg(after_id)::uuid IS NULL
        OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
           < (sqlc.narg(after_has_canon)::boolean, sqlc.narg(after_score)::double precision,
@@ -254,6 +260,8 @@ WHERE a.place_path @> ARRAY[@place_id::uuid]
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+  -- Only days whose own place has the category, through arcs_category_*_idx.
+  AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
   AND (sqlc.narg(after_id)::uuid IS NULL
        OR (a.created_at, a.id) < (sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
 ORDER BY a.created_at DESC, a.id DESC
@@ -289,6 +297,8 @@ WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hi
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+  -- Only days whose own place has the category, through arcs_category_*_idx.
+  AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
   AND (sqlc.narg(after_id)::uuid IS NULL
        OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
           < (sqlc.narg(after_has_canon)::boolean, sqlc.narg(after_score)::double precision,
@@ -324,6 +334,8 @@ WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hi
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+  -- Only days whose own place has the category, through arcs_category_*_idx.
+  AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
   AND (sqlc.narg(after_id)::uuid IS NULL
        OR (a.created_at, a.id) < (sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
 ORDER BY a.created_at DESC, a.id DESC
@@ -348,10 +360,31 @@ WHERE a.place_path @> ARRAY[@place_id::uuid]
   AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
   AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text)
+  AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
   AND (sqlc.narg(after_id)::uuid IS NULL
        OR (v.published_at, v.id) < (sqlc.narg(after_published)::timestamptz, sqlc.narg(after_id)::uuid))
 ORDER BY v.published_at DESC, v.id DESC
 LIMIT @lim::integer;
+
+-- name: StoriedCategories :many
+-- Of the given categories, in the order given, those with a readable day at
+-- a visible place of that category. One probe of arcs_category_newest_idx
+-- per category, stopping at the newest readable day: well under a
+-- millisecond at beta scale, where an EXISTS planned as a bitmap scan of the
+-- whole category took 6 ms.
+SELECT c.category::text AS category
+FROM unnest(@categories::text[]) WITH ORDINALITY AS c(category, n)
+CROSS JOIN LATERAL (
+    SELECT 1 FROM arcs a
+    WHERE a.place_category = c.category
+      AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+      AND EXISTS (SELECT 1 FROM perspectives v
+                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
+    ORDER BY a.created_at DESC, a.id DESC
+    LIMIT 1
+) x
+ORDER BY c.n;
 
 -- name: FollowPlace :exec
 INSERT INTO place_follows (user_id, place_id) VALUES (@user_id::uuid, @place_id::uuid)
@@ -432,3 +465,15 @@ WHERE v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.h
 GROUP BY pid
 ORDER BY last_mod DESC, pid
 LIMIT @lim::integer;
+
+-- name: SitemapCategories :many
+-- The categories with a readable story at a visible place of that category,
+-- with when the newest was published: the "best days" pages in the sitemap.
+SELECT a.place_category::text AS category, max(v.published_at)::timestamptz AS last_mod
+FROM arcs a
+JOIN perspectives v ON v.arc_id = a.id
+WHERE a.place_category IS NOT NULL
+  AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+GROUP BY a.place_category
+ORDER BY last_mod DESC, category;

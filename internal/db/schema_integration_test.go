@@ -640,6 +640,19 @@ func TestHotQueriesAreIndexBacked(t *testing.T) {
 			args:  []any{uuid.New()},
 		},
 		{
+			name: "best days at a kind of place, ranked page after a cursor",
+			query: `SELECT id FROM arcs WHERE place_category = $1
+				AND ((canon_lore_id IS NOT NULL), canon_score, member_count, created_at, id) < (true, $2, $3, $4, $5)
+				ORDER BY (canon_lore_id IS NOT NULL) DESC, canon_score DESC, member_count DESC, created_at DESC, id DESC LIMIT 20`,
+			args: []any{"PLACE_CATEGORY_SPORTS_AND_RECREATION", 2.5, 3, "2026-10-11T00:00:00Z", uuid.New()},
+		},
+		{
+			name: "best days at a kind of place, newest page",
+			query: `SELECT id FROM arcs WHERE place_category = $1
+				ORDER BY created_at DESC, id DESC LIMIT 20`,
+			args: []any{"PLACE_CATEGORY_FOOD_AND_DRINK"},
+		},
+		{
 			name:  "rank job work queue",
 			query: `SELECT id FROM arcs WHERE lore_dirty_at IS NOT NULL ORDER BY lore_dirty_at LIMIT 100`,
 		},
@@ -720,5 +733,48 @@ func TestPlacePath(t *testing.T) {
 	}
 	if got, want := path(w.state), []uuid.UUID{w.state}; !slices.Equal(got, want) {
 		t.Fatalf("state path = %v, want %v", got, want)
+	}
+}
+
+// An arc carries its own place's category, kept by trigger when the arc is
+// made, when the place is re-filed under another category and when the arc
+// moves to another place.
+func TestArcPlaceCategory(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t)
+	gym := w.place("PLACE_KIND_STORE", "Iron Gym", &w.city)
+	category := func() string {
+		t.Helper()
+		var c *string
+		if err := w.pool.QueryRow(context.Background(), `SELECT place_category FROM arcs WHERE id = $1`, w.arc).Scan(&c); err != nil {
+			t.Fatalf("read place_category: %v", err)
+		}
+		if c == nil {
+			return ""
+		}
+		return *c
+	}
+	steps := []struct {
+		name string
+		sql  string
+		args []any
+		want string
+	}{
+		{name: "a place with no category", want: ""},
+		{name: "the place is filed under a category", sql: `UPDATE places SET category = 'PLACE_CATEGORY_FOOD_AND_DRINK' WHERE id = $1`, args: []any{w.store}, want: "PLACE_CATEGORY_FOOD_AND_DRINK"},
+		{name: "another place's category leaves it alone", sql: `UPDATE places SET category = 'PLACE_CATEGORY_SPORTS_AND_RECREATION' WHERE id = $1`, args: []any{gym}, want: "PLACE_CATEGORY_FOOD_AND_DRINK"},
+		{name: "the arc moves to another place", sql: `UPDATE arcs SET place_id = $1 WHERE id = $2`, args: []any{gym, w.arc}, want: "PLACE_CATEGORY_SPORTS_AND_RECREATION"},
+		{name: "its new place loses its category", sql: `UPDATE places SET category = NULL WHERE id = $1`, args: []any{gym}, want: ""},
+	}
+	// Serial: each step builds on the one before.
+	for _, s := range steps {
+		t.Run(s.name, func(t *testing.T) {
+			if s.sql != "" {
+				wantOK(t, w.exec(s.sql, s.args...))
+			}
+			if got := category(); got != s.want {
+				t.Fatalf("place_category = %q, want %q", got, s.want)
+			}
+		})
 	}
 }

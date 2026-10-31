@@ -161,7 +161,9 @@ func (h *Handler) GetEpic(ctx context.Context, req *connect.Request[perspectivv1
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	epic, err := h.svc.Epic(ctx, EpicRequest{PlaceID: id, Tab: req.Msg.GetTab(), Genre: req.Msg.GetGenre(), Page: page})
+	epic, err := h.svc.Epic(ctx, EpicRequest{
+		PlaceID: id, Tab: req.Msg.GetTab(), Genre: req.Msg.GetGenre(), Category: req.Msg.GetCategory(), Page: page,
+	})
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
@@ -176,6 +178,16 @@ func (h *Handler) GetEpic(ctx context.Context, req *connect.Request[perspectivv1
 		res.Tales = append(res.Tales, taleToProto(t))
 	}
 	return connect.NewResponse(res), nil
+}
+
+// ListStoriedCategories lists the categories with a readable day. It is
+// public.
+func (h *Handler) ListStoriedCategories(ctx context.Context, _ *connect.Request[perspectivv1.ListStoriedCategoriesRequest]) (*connect.Response[perspectivv1.ListStoriedCategoriesResponse], error) {
+	cats, err := h.svc.StoriedCategories(ctx)
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ListStoriedCategoriesResponse{Categories: cats}), nil
 }
 
 func idString(id uuid.UUID) string {

@@ -54,6 +54,21 @@ describe("report queue (FR-035)", () => {
     expect(api.callsTo("ModerationService/ListReports")[0]?.body).toMatchObject({ status: "REPORT_STATUS_OPEN" });
   });
 
+  it("keeps what the target said when reported behind a disclosure, so a later edit cannot hide it", async () => {
+    const user = userEvent.setup();
+    installApi(
+      { "ModerationService/ListReports": () => ok({ reports: [report({ reportedText: "Part one.\n\nCharacters: Jo Smith" })] }) },
+      admin,
+    );
+    renderRoute("/admin/reports");
+    const item = await screen.findByRole("listitem", { name: /The rainy Thursday/ });
+    const copy = within(item).getByText(/Characters: Jo Smith/);
+    expect(copy).not.toBeVisible();
+    await user.click(within(item).getByText("What it said when reported"));
+    expect(copy).toBeVisible();
+    expect(copy).toHaveClass("font-serif", "whitespace-pre-wrap");
+  });
+
   it("resolves a report with an action and an audit reason, then drops it from the open queue", async () => {
     const user = userEvent.setup();
     let open = true;

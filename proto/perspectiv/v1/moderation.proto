@@ -52,6 +52,10 @@ message Report {
   string resolution_reason = 11;
   google.protobuf.Timestamp created_at = 12;
   google.protobuf.Timestamp resolved_at = 13;
+  // What the target said when the report was filed (a post, a story's parts
+  // and characters, a name, a profile), at most 20,000 characters. It does
+  // not change when the author edits the target.
+  string reported_text = 14;
 }
 
 message ReportRequest {

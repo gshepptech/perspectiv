@@ -555,39 +555,55 @@ func (q *Queries) PerspectiveFacts(ctx context.Context, id uuid.UUID) (Perspecti
 const recipients = `-- name: Recipients :many
 SELECT u.id, u.email,
        COALESCE(np.in_app, true)::boolean AS in_app,
-       COALESCE(np.email, true)::boolean  AS email_on,
-       u.email_digest
+       (COALESCE(np.email, true) AND u.email_verified_at IS NOT NULL)::boolean AS email_on,
+       u.email_digest,
+       ($1::uuid IS NOT NULL AND EXISTS (
+           SELECT 1 FROM notifications n
+           WHERE n.user_id = u.id AND n.kind = $2::text
+             AND n.payload->>'lore_id' = $1::uuid::text
+             AND n.created_at > now() - interval '1 hour'))::boolean AS emailed_recently
 FROM users u
 LEFT JOIN notification_preferences np
-       ON np.user_id = u.id AND np.kind = $1::text
-WHERE u.id = ANY($2::uuid[])
+       ON np.user_id = u.id AND np.kind = $2::text
+WHERE u.id = ANY($3::uuid[])
   AND u.deleted_at IS NULL
-  AND u.id IS DISTINCT FROM $3::uuid
+  AND u.id IS DISTINCT FROM $4::uuid
   AND NOT EXISTS (
       SELECT 1 FROM blocks b
-      WHERE b.blocker_id = u.id AND b.blocked_id = $3::uuid)
+      WHERE b.blocker_id = u.id AND b.blocked_id = $4::uuid)
 ORDER BY u.id
 `
 
 type RecipientsParams struct {
-	Kind       string
-	Candidates []uuid.UUID
-	ActorID    *uuid.UUID
+	QuietLoreID *uuid.UUID
+	Kind        string
+	Candidates  []uuid.UUID
+	ActorID     *uuid.UUID
 }
 
 type RecipientsRow struct {
-	ID          uuid.UUID
-	Email       string
-	InApp       bool
-	EmailOn     bool
-	EmailDigest bool
+	ID              uuid.UUID
+	Email           string
+	InApp           bool
+	EmailOn         bool
+	EmailDigest     bool
+	EmailedRecently bool
 }
 
 // Candidates who still have an account, are not the actor, and have not
 // blocked the actor, with their toggles for kind (a missing preference row
-// means both on). actor_id is NULL for a system event.
+// means both on). actor_id is NULL for a system event. Email goes only to a
+// confirmed address: an account signed up with someone else's address never
+// mails them. quiet_lore_id, when set, marks a recipient who already had a
+// notification of this kind about that lore in the last hour, so a burst of
+// thread replies is one email (every reply still reaches the inbox).
 func (q *Queries) Recipients(ctx context.Context, arg RecipientsParams) ([]RecipientsRow, error) {
-	rows, err := q.db.Query(ctx, recipients, arg.Kind, arg.Candidates, arg.ActorID)
+	rows, err := q.db.Query(ctx, recipients,
+		arg.QuietLoreID,
+		arg.Kind,
+		arg.Candidates,
+		arg.ActorID,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -601,6 +617,7 @@ func (q *Queries) Recipients(ctx context.Context, arg RecipientsParams) ([]Recip
 			&i.InApp,
 			&i.EmailOn,
 			&i.EmailDigest,
+			&i.EmailedRecently,
 		); err != nil {
 			return nil, err
 		}

@@ -56,8 +56,22 @@ ORDER BY created_at, id
 LIMIT 1;
 
 -- name: InsertReport :one
-INSERT INTO reports (reporter_id, target_kind, target_id, reason, details)
-VALUES (@reporter_id::uuid, @target_kind::text, @target_id::uuid, @reason::text, @details::text)
+-- Keeps a copy of what the target says now (reported_text), capped, so a
+-- later edit cannot change what the moderator reads.
+INSERT INTO reports (reporter_id, target_kind, target_id, reason, details, reported_text)
+VALUES (@reporter_id::uuid, @target_kind::text, @target_id::uuid, @reason::text, @details::text,
+        left(coalesce(CASE @target_kind::text
+            WHEN 'REPORT_TARGET_KIND_LORE_POST' THEN (SELECT lp.body FROM lore_posts lp WHERE lp.id = @target_id::uuid)
+            WHEN 'REPORT_TARGET_KIND_LORE_NAME' THEN (SELECT l.name FROM lores l WHERE l.id = @target_id::uuid)
+            WHEN 'REPORT_TARGET_KIND_PLACE' THEN (SELECT p.name FROM places p WHERE p.id = @target_id::uuid)
+            WHEN 'REPORT_TARGET_KIND_USER' THEN (
+                SELECT concat_ws(E'\n\n', u.username, nullif(u.bio, '')) FROM users u WHERE u.id = @target_id::uuid)
+            WHEN 'REPORT_TARGET_KIND_PERSPECTIVE' THEN concat_ws(E'\n\n',
+                (SELECT string_agg(pp.body, E'\n\n' ORDER BY pp.position)
+                 FROM perspective_parts pp WHERE pp.perspective_id = @target_id::uuid),
+                (SELECT 'Characters: ' || string_agg(ch.label, '; ' ORDER BY ch.position)
+                 FROM characters ch WHERE ch.perspective_id = @target_id::uuid))
+        END, ''), 20000))
 RETURNING id;
 
 -- name: LockReport :one
@@ -173,7 +187,8 @@ SELECT r.id,
        r.resolution,
        r.resolution_reason,
        r.created_at,
-       r.resolved_at
+       r.resolved_at,
+       r.reported_text
 FROM reports r
 JOIN users ru ON ru.id = r.reporter_id
 LEFT JOIN users rb ON rb.id = r.resolved_by
@@ -207,7 +222,8 @@ SELECT r.id,
        r.resolution,
        r.resolution_reason,
        r.created_at,
-       r.resolved_at
+       r.resolved_at,
+       r.reported_text
 FROM reports r
 JOIN users ru ON ru.id = r.reporter_id
 LEFT JOIN users rb ON rb.id = r.resolved_by

@@ -23,19 +23,20 @@ type AccessCode struct {
 }
 
 type Arc struct {
-	ID          uuid.UUID
-	PlaceID     uuid.UUID
-	LocalDate   pgtype.Date
-	Hour        *int16
-	ParentArcID *uuid.UUID
-	Title       string
-	CreatedBy   uuid.UUID
-	CanonLoreID *uuid.UUID
-	CanonScore  float64
-	MemberCount int32
-	LoreDirtyAt *time.Time
-	CreatedAt   time.Time
-	PlacePath   []uuid.UUID
+	ID            uuid.UUID
+	PlaceID       uuid.UUID
+	LocalDate     pgtype.Date
+	Hour          *int16
+	ParentArcID   *uuid.UUID
+	Title         string
+	CreatedBy     uuid.UUID
+	CanonLoreID   *uuid.UUID
+	CanonScore    float64
+	MemberCount   int32
+	LoreDirtyAt   *time.Time
+	CreatedAt     time.Time
+	PlacePath     []uuid.UUID
+	PlaceCategory *string
 }
 
 type Block struct {
@@ -286,6 +287,7 @@ type Report struct {
 	ResolutionReason string
 	CreatedAt        time.Time
 	ResolvedAt       *time.Time
+	ReportedText     string
 }
 
 type SavedPerspective struct {

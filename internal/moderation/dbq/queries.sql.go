@@ -210,7 +210,8 @@ SELECT r.id,
        r.resolution,
        r.resolution_reason,
        r.created_at,
-       r.resolved_at
+       r.resolved_at,
+       r.reported_text
 FROM reports r
 JOIN users ru ON ru.id = r.reporter_id
 LEFT JOIN users rb ON rb.id = r.resolved_by
@@ -233,6 +234,7 @@ type GetReportRow struct {
 	ResolutionReason string
 	CreatedAt        time.Time
 	ResolvedAt       *time.Time
+	ReportedText     string
 }
 
 // One report as the admin queue shows it. A deleted account's username reads
@@ -256,6 +258,7 @@ func (q *Queries) GetReport(ctx context.Context, id uuid.UUID) (GetReportRow, er
 		&i.ResolutionReason,
 		&i.CreatedAt,
 		&i.ResolvedAt,
+		&i.ReportedText,
 	)
 	return i, err
 }
@@ -330,8 +333,20 @@ func (q *Queries) InsertAudit(ctx context.Context, arg InsertAuditParams) error 
 }
 
 const insertReport = `-- name: InsertReport :one
-INSERT INTO reports (reporter_id, target_kind, target_id, reason, details)
-VALUES ($1::uuid, $2::text, $3::uuid, $4::text, $5::text)
+INSERT INTO reports (reporter_id, target_kind, target_id, reason, details, reported_text)
+VALUES ($1::uuid, $2::text, $3::uuid, $4::text, $5::text,
+        left(coalesce(CASE $2::text
+            WHEN 'REPORT_TARGET_KIND_LORE_POST' THEN (SELECT lp.body FROM lore_posts lp WHERE lp.id = $3::uuid)
+            WHEN 'REPORT_TARGET_KIND_LORE_NAME' THEN (SELECT l.name FROM lores l WHERE l.id = $3::uuid)
+            WHEN 'REPORT_TARGET_KIND_PLACE' THEN (SELECT p.name FROM places p WHERE p.id = $3::uuid)
+            WHEN 'REPORT_TARGET_KIND_USER' THEN (
+                SELECT concat_ws(E'\n\n', u.username, nullif(u.bio, '')) FROM users u WHERE u.id = $3::uuid)
+            WHEN 'REPORT_TARGET_KIND_PERSPECTIVE' THEN concat_ws(E'\n\n',
+                (SELECT string_agg(pp.body, E'\n\n' ORDER BY pp.position)
+                 FROM perspective_parts pp WHERE pp.perspective_id = $3::uuid),
+                (SELECT 'Characters: ' || string_agg(ch.label, '; ' ORDER BY ch.position)
+                 FROM characters ch WHERE ch.perspective_id = $3::uuid))
+        END, ''), 20000))
 RETURNING id
 `
 
@@ -343,6 +358,8 @@ type InsertReportParams struct {
 	Details    string
 }
 
+// Keeps a copy of what the target says now (reported_text), capped, so a
+// later edit cannot change what the moderator reads.
 func (q *Queries) InsertReport(ctx context.Context, arg InsertReportParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, insertReport,
 		arg.ReporterID,
@@ -509,7 +526,8 @@ SELECT r.id,
        r.resolution,
        r.resolution_reason,
        r.created_at,
-       r.resolved_at
+       r.resolved_at,
+       r.reported_text
 FROM reports r
 JOIN users ru ON ru.id = r.reporter_id
 LEFT JOIN users rb ON rb.id = r.resolved_by
@@ -552,6 +570,7 @@ type ListReportsRow struct {
 	ResolutionReason string
 	CreatedAt        time.Time
 	ResolvedAt       *time.Time
+	ReportedText     string
 }
 
 // The admin queue, oldest first, keyset-paginated on (created_at, id). A NULL
@@ -590,6 +609,7 @@ func (q *Queries) ListReports(ctx context.Context, arg ListReportsParams) ([]Lis
 			&i.ResolutionReason,
 			&i.CreatedAt,
 			&i.ResolvedAt,
+			&i.ReportedText,
 		); err != nil {
 			return nil, err
 		}

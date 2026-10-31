@@ -234,11 +234,7 @@ func (s *Store) Children(ctx context.Context, parent uuid.UUID, category perspec
 		}
 		return ps, nil
 	}
-	var cat pgtype.Text
-	if category != perspectivv1.PlaceCategory_PLACE_CATEGORY_UNSPECIFIED {
-		cat = pgtype.Text{String: category.String(), Valid: true}
-	}
-	rows, err := s.q.ListChildren(ctx, dbq.ListChildrenParams{ParentID: parent, Category: cat, AfterID: afterID, AfterName: afterName, Lim: limit})
+	rows, err := s.q.ListChildren(ctx, dbq.ListChildrenParams{ParentID: parent, Category: categoryParam(category), AfterID: afterID, AfterName: afterName, Lim: limit})
 	if err != nil {
 		return nil, fmt.Errorf("list children: %w", err)
 	}
@@ -348,14 +344,17 @@ type ArcCursor struct {
 	ID        uuid.UUID
 }
 
-// EpicArcsQuery lists the arcs at PlaceID and its visible descendants.
-// Genre UNSPECIFIED means every genre.
+// EpicArcsQuery lists the arcs at PlaceID and its visible descendants, or
+// at every visible place when PlaceID is uuid.Nil. Genre UNSPECIFIED means
+// every genre; Category UNSPECIFIED means every place, and any other value
+// only the arcs whose own place has it.
 type EpicArcsQuery struct {
-	PlaceID uuid.UUID
-	Order   ArcOrder
-	Genre   perspectivv1.Genre
-	After   *ArcCursor
-	Limit   int32
+	PlaceID  uuid.UUID
+	Order    ArcOrder
+	Genre    perspectivv1.Genre
+	Category perspectivv1.PlaceCategory
+	After    *ArcCursor
+	Limit    int32
 }
 
 // EpicArc is one arc in an epic listing.
@@ -393,6 +392,15 @@ func genreParam(g perspectivv1.Genre) pgtype.Text {
 	return pgtype.Text{String: g.String(), Valid: true}
 }
 
+// categoryParam is the query argument for a category filter: NULL for
+// UNSPECIFIED, which lists every place.
+func categoryParam(c perspectivv1.PlaceCategory) pgtype.Text {
+	if c == perspectivv1.PlaceCategory_PLACE_CATEGORY_UNSPECIFIED {
+		return pgtype.Text{}
+	}
+	return pgtype.Text{String: c.String(), Valid: true}
+}
+
 func hourOf(h pgtype.Int2) *int32 {
 	if !h.Valid {
 		return nil
@@ -408,7 +416,7 @@ func (s *Store) EpicArcs(ctx context.Context, q EpicArcsQuery) ([]EpicArc, error
 	if q.Order == OrderNewest {
 		return s.epicArcsNewest(ctx, q)
 	}
-	p := dbq.EpicArcsRankedParams{PlaceID: q.PlaceID, Genre: genreParam(q.Genre), Lim: q.Limit}
+	p := dbq.EpicArcsRankedParams{PlaceID: q.PlaceID, Genre: genreParam(q.Genre), Category: categoryParam(q.Category), Lim: q.Limit}
 	if c := q.After; c != nil {
 		p.AfterID = uuid.NullUUID{UUID: c.ID, Valid: true}
 		p.AfterHasCanon = pgtype.Bool{Bool: c.HasCanon, Valid: true}
@@ -421,7 +429,7 @@ func (s *Store) EpicArcs(ctx context.Context, q EpicArcsQuery) ([]EpicArc, error
 	if q.PlaceID == uuid.Nil {
 		var all []dbq.EverywhereArcsRankedRow
 		all, err = s.q.EverywhereArcsRanked(ctx, dbq.EverywhereArcsRankedParams{
-			Genre: p.Genre, AfterID: p.AfterID, AfterHasCanon: p.AfterHasCanon, AfterScore: p.AfterScore,
+			Genre: p.Genre, Category: p.Category, AfterID: p.AfterID, AfterHasCanon: p.AfterHasCanon, AfterScore: p.AfterScore,
 			AfterMembers: p.AfterMembers, AfterCreated: p.AfterCreated, Lim: p.Lim,
 		})
 		for _, r := range all {
@@ -437,7 +445,7 @@ func (s *Store) EpicArcs(ctx context.Context, q EpicArcsQuery) ([]EpicArc, error
 }
 
 func (s *Store) epicArcsNewest(ctx context.Context, q EpicArcsQuery) ([]EpicArc, error) {
-	p := dbq.EpicArcsNewestParams{PlaceID: q.PlaceID, Genre: genreParam(q.Genre), Lim: q.Limit}
+	p := dbq.EpicArcsNewestParams{PlaceID: q.PlaceID, Genre: genreParam(q.Genre), Category: categoryParam(q.Category), Lim: q.Limit}
 	if c := q.After; c != nil {
 		p.AfterID = uuid.NullUUID{UUID: c.ID, Valid: true}
 		p.AfterCreated = pgtype.Timestamptz{Time: c.CreatedAt, Valid: true}
@@ -445,7 +453,7 @@ func (s *Store) epicArcsNewest(ctx context.Context, q EpicArcsQuery) ([]EpicArc,
 	var rows []dbq.EpicArcsRankedRow
 	if q.PlaceID == uuid.Nil {
 		all, err := s.q.EverywhereArcsNewest(ctx, dbq.EverywhereArcsNewestParams{
-			Genre: p.Genre, AfterID: p.AfterID, AfterCreated: p.AfterCreated, Lim: p.Lim,
+			Genre: p.Genre, Category: p.Category, AfterID: p.AfterID, AfterCreated: p.AfterCreated, Lim: p.Lim,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("everywhere newest: %w", err)
@@ -487,12 +495,15 @@ type TaleCursor struct {
 	ID          uuid.UUID
 }
 
-// TalesQuery lists the tales at PlaceID and its visible descendants.
+// TalesQuery lists the tales at PlaceID and its visible descendants;
+// Category UNSPECIFIED means every place, any other value only the tales in
+// arcs whose own place has it.
 type TalesQuery struct {
-	PlaceID uuid.UUID
-	Genre   perspectivv1.Genre
-	After   *TaleCursor
-	Limit   int32
+	PlaceID  uuid.UUID
+	Genre    perspectivv1.Genre
+	Category perspectivv1.PlaceCategory
+	After    *TaleCursor
+	Limit    int32
 }
 
 // EpicTale is one SOLO or REMOVED perspective in a TALES listing.
@@ -513,7 +524,7 @@ type EpicTale struct {
 
 // EpicTales lists SOLO and REMOVED perspectives, newest published first.
 func (s *Store) EpicTales(ctx context.Context, q TalesQuery) ([]EpicTale, error) {
-	p := dbq.EpicTalesParams{PlaceID: q.PlaceID, Genre: genreParam(q.Genre), Lim: q.Limit}
+	p := dbq.EpicTalesParams{PlaceID: q.PlaceID, Genre: genreParam(q.Genre), Category: categoryParam(q.Category), Lim: q.Limit}
 	if c := q.After; c != nil {
 		p.AfterID = uuid.NullUUID{UUID: c.ID, Valid: true}
 		p.AfterPublished = pgtype.Timestamptz{Time: c.PublishedAt, Valid: true}
@@ -669,6 +680,45 @@ func (s *Store) Sitemap(ctx context.Context, limit int32) ([]apiutil.SitemapEntr
 	out := make([]apiutil.SitemapEntry, len(rows))
 	for i, r := range rows {
 		out[i] = apiutil.SitemapEntry{ID: r.ID, LastMod: r.LastMod.Time}
+	}
+	return out, nil
+}
+
+// StoriedCategories returns, of cats and in their order, the categories
+// with a readable day at a visible place of that category.
+func (s *Store) StoriedCategories(ctx context.Context, cats []perspectivv1.PlaceCategory) ([]perspectivv1.PlaceCategory, error) {
+	names := make([]string, len(cats))
+	for i, c := range cats {
+		names[i] = c.String()
+	}
+	rows, err := s.q.StoriedCategories(ctx, names)
+	if err != nil {
+		return nil, fmt.Errorf("storied categories: %w", err)
+	}
+	out := make([]perspectivv1.PlaceCategory, len(rows))
+	for i, r := range rows {
+		out[i] = categoryOf(r)
+	}
+	return out, nil
+}
+
+// CategoryPage is one category's "best days" page in the sitemap, with when
+// its newest readable story was published.
+type CategoryPage struct {
+	Category perspectivv1.PlaceCategory
+	LastMod  time.Time
+}
+
+// CategorySitemap lists the categories with a readable story at a visible
+// place of that category, most recently written first.
+func (s *Store) CategorySitemap(ctx context.Context) ([]CategoryPage, error) {
+	rows, err := s.q.SitemapCategories(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("sitemap categories: %w", err)
+	}
+	out := make([]CategoryPage, len(rows))
+	for i, r := range rows {
+		out[i] = CategoryPage{Category: categoryOf(r.Category), LastMod: r.LastMod.Time}
 	}
 	return out, nil
 }

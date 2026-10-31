@@ -262,7 +262,9 @@ func (a *app) addAPI(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, enq *jo
 	placeSvc := place.NewService(place.NewStore(pool))
 	perspectiveSvc := perspective.NewService(pool, arcSvc, loreSvc, enq, m, cfg.ExpiryWindow)
 	a.preview = previewer{arcs: arcSvc, perspectives: perspectiveSvc, lores: loreSvc, places: placeSvc}.preview
-	a.sitemap = sitemap{places: placeSvc.Sitemap, days: arcSvc.Sitemap, stories: perspectiveSvc.Sitemap}.pages
+	a.sitemap = sitemap{
+		places: placeSvc.Sitemap, days: arcSvc.Sitemap, stories: perspectiveSvc.Sitemap, categories: placeSvc.CategorySitemap,
+	}.pages
 	chain := connect.WithInterceptors(append([]connect.Interceptor{api.MetricsInterceptor(m)},
 		api.Interceptors(log, authSvc, authSvc, limiter)...)...)
 	notifyHandler := notify.NewHandler(notify.NewService(pool, notify.NewUnsubscriber(cfg.JWTSecret)))

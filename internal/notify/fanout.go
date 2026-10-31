@@ -117,6 +117,9 @@ type event struct {
 	candidates []uuid.UUID
 	payload    Payload
 	path       string // app path the email links to
+	// quietLore, when set, emails a recipient about this lore at most once
+	// an hour; the inbox still gets every event.
+	quietLore *uuid.UUID
 }
 
 // resolve finds an event's recipients and payload from the database, the
@@ -147,6 +150,7 @@ func resolve(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, boo
 		ev, ok, err = resolveFollowedWriterStory(ctx, q, a)
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_THREAD_REPLY:
 		ev, ok, err = resolveThreadReply(ctx, q, a)
+		ev.quietLore = ev.payload.LoreID
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_UNSPECIFIED:
 		return event{}, false, nil
 	default:
@@ -404,7 +408,7 @@ func resolveReport(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (even
 // and an email job for each whose email toggle is on.
 func deliver(ctx context.Context, q *dbq.Queries, tx pgx.Tx, enq *jobs.Enqueuer, ev event) error {
 	recipients, err := q.Recipients(ctx, dbq.RecipientsParams{
-		Kind: kindText(ev.kind), Candidates: ev.candidates, ActorID: ev.actor,
+		Kind: kindText(ev.kind), Candidates: ev.candidates, ActorID: ev.actor, QuietLoreID: ev.quietLore,
 	})
 	if err != nil {
 		return fmt.Errorf("recipients: %w", err)
@@ -428,7 +432,7 @@ func deliver(ctx context.Context, q *dbq.Queries, tx pgx.Tx, enq *jobs.Enqueuer,
 				return fmt.Errorf("insert notification: %w", err)
 			}
 		}
-		if r.EmailOn {
+		if r.EmailOn && !r.EmailedRecently {
 			if err := deliverEmail(ctx, q, tx, enq, r, data); err != nil {
 				return err
 			}

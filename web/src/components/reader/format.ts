@@ -24,8 +24,16 @@ export function placeKindLabel(kind: PlaceKind): string {
  * that has one ("Sports" for a stadium), else the kind ("Store", "City").
  */
 export function placeLabel(kind: PlaceKind, category = PlaceCategory.UNSPECIFIED): string {
-  const named = (kind === PlaceKind.STORE || kind === PlaceKind.MALL) && category !== PlaceCategory.UNSPECIFIED;
-  return named ? placeCategoryLabel(category) : placeKindLabel(kind);
+  const named = labelledCategory(kind, category);
+  return named === PlaceCategory.UNSPECIFIED ? placeKindLabel(kind) : placeCategoryLabel(named);
+}
+
+/**
+ * The category placeLabel names a place by: a store's or mall's own
+ * category, or UNSPECIFIED when the label is the kind instead.
+ */
+export function labelledCategory(kind: PlaceKind, category = PlaceCategory.UNSPECIFIED): PlaceCategory {
+  return kind === PlaceKind.STORE || kind === PlaceKind.MALL ? category : PlaceCategory.UNSPECIFIED;
 }
 
 /**
@@ -202,6 +210,61 @@ export function placeCategoryLabel(c: PlaceCategory): string {
       return unhandled;
     }
   }
+}
+
+/**
+ * The places of a category in the words a reader uses, lower case, for
+ * "The best days at …": "sports and recreation places", "bars and clubs".
+ */
+export function placeCategoryPlural(c: PlaceCategory): string {
+  switch (c) {
+    case PlaceCategory.FOOD_AND_DRINK:
+      return "food and drink places";
+    case PlaceCategory.NIGHTLIFE:
+      return "bars and clubs";
+    case PlaceCategory.SHOPPING:
+      return "shops";
+    case PlaceCategory.OUTDOORS:
+      return "parks and outdoor places";
+    case PlaceCategory.ARTS_AND_ENTERTAINMENT:
+      return "arts and entertainment venues";
+    case PlaceCategory.SPORTS_AND_RECREATION:
+      return "sports and recreation places";
+    case PlaceCategory.CULTURE_AND_HISTORY:
+      return "museums and historic places";
+    case PlaceCategory.EDUCATION:
+      return "campuses and schools";
+    case PlaceCategory.COMMUNITY:
+      return "community places";
+    case PlaceCategory.LODGING:
+      return "hotels";
+    case PlaceCategory.TRAVEL:
+      return "travel and transport places";
+    case PlaceCategory.SERVICES:
+      return "service businesses";
+    case PlaceCategory.HEALTH:
+      return "hospitals and clinics";
+    case PlaceCategory.UNSPECIFIED:
+      return "places";
+    default: {
+      const unhandled: never = c;
+      return unhandled;
+    }
+  }
+}
+
+/**
+ * A category's URL slug, its proto enum name in lower case with hyphens:
+ * SPORTS_AND_RECREATION is "sports-and-recreation". The server's sitemap
+ * derives the same slug from the same enum (place.CategorySlug).
+ */
+export function categorySlug(c: PlaceCategory): string {
+  return PlaceCategory[c].toLowerCase().replaceAll("_", "-");
+}
+
+/** The category a slug names, or undefined for anything else (UNSPECIFIED included). */
+export function categoryFromSlug(slug: string): PlaceCategory | undefined {
+  return placeCategories.find((c) => categorySlug(c) === slug);
 }
 
 /** How many stories a search result has; the server counts up to 100. */

@@ -1,6 +1,7 @@
 /**
  * Finding yourself in someone else's story without knowing where to look:
- * a reader searches a place's unclaimed descriptions, and a writer who was
+ * a reader comes in from the front page's kinds of place to the best days
+ * at shops, searches a place's unclaimed descriptions, and a writer who was
  * there claims straight from the day's "Is this you?" list.
  */
 import { expect, test } from "@playwright/test";
@@ -25,9 +26,23 @@ test("a stranger is found by search, claimed from Is this you?, and leaves both 
     characters: [HAT],
   });
 
+  // A signed-out reader finds the day from the front page by the kind of
+  // place it happened at: a bait shop is a shop.
+  await test.step("the best days at shops, from the front page", async () => {
+    await anon.goto("/");
+    await anon.getByRole("navigation", { name: "Browse by kind of place" }).getByRole("link", { name: "Shopping" }).click();
+    await anon.waitForURL(/\/best\/shopping$/);
+    await expect(anon.getByRole("heading", { level: 1, name: "The best days at shops" })).toBeVisible();
+    await expect(anon).toHaveTitle("The best days at shops · Perspectiv");
+    await anon.getByRole("list", { name: "Days" }).getByRole("link", { name: "Mullet run at dawn" }).click();
+    await anon.waitForURL(new RegExp(`${arc}$`));
+  });
+
   // Anyone can search the place for how strangers were described.
   await anon.goto(arc);
   await anon.getByRole("navigation", { name: "Place" }).getByRole("link", { name: STORE }).click();
+  // The place says what it is, and that word leads back to its kind's best days.
+  await expect(anon.getByRole("link", { name: "Shopping: the best days at shops" })).toHaveAttribute("href", "/best/shopping");
   const find = anon.getByRole("region", { name: "Were you in someone's story?" });
   await find.getByRole("searchbox", { name: "Search descriptions" }).fill("Orange hat");
   await expect(find.getByRole("status")).toContainText("Nobody unclaimed matches");

@@ -515,6 +515,7 @@ func reportProto(r dbq.GetReportRow) (*perspectivv1.Report, error) {
 		Details:          r.Details,
 		Status:           status,
 		ResolutionReason: r.ResolutionReason,
+		ReportedText:     r.ReportedText,
 		CreatedAt:        timestamppb.New(r.CreatedAt),
 	}
 	if r.ResolvedBy != nil {

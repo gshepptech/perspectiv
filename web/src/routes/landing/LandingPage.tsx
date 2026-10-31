@@ -3,7 +3,7 @@ import { Plus, Search } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
-import { formatDayBeside, placeChain, storiesLabel } from "@/components/reader/format";
+import { categorySlug, formatDayBeside, placeCategories, placeCategoryLabel, placeChain, storiesLabel } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
@@ -88,6 +88,40 @@ function AddPlaceLink({ name }: { name: string }) {
       <Plus aria-hidden size={16} className="shrink-0" />
       <span className="min-w-0 wrap-anywhere">Not here? Add “{name}” as a new place</span>
     </Link>
+  );
+}
+
+/**
+ * The kinds of place with at least one day, each linking to the best days at
+ * every place of that kind. Left out while loading, on error and when none
+ * has a day: the front door does not show a broken row.
+ */
+function BrowseKinds() {
+  const kinds = useQuery({
+    queryKey: ["place", "listStoriedCategories", {}],
+    queryFn: ({ signal }) => clients.place.listStoriedCategories({}, { signal }),
+  });
+  const storied = new Set(kinds.data?.categories ?? []);
+  const shown = placeCategories.filter((c) => storied.has(c));
+  if (shown.length === 0) return null;
+  return (
+    <nav aria-labelledby="browse-kinds" className="mt-16">
+      <h2 id="browse-kinds" className="text-xl">
+        Browse by kind of place
+      </h2>
+      <ul className="mt-4 flex flex-wrap gap-2">
+        {shown.map((c) => (
+          <li key={c}>
+            <Link
+              to={`/best/${categorySlug(c)}`}
+              className="inline-flex min-h-11 items-center rounded-full border border-rule bg-paper px-3.5 text-sm text-ink hover:border-accent hover:text-accent"
+            >
+              {placeCategoryLabel(c)}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
@@ -238,6 +272,7 @@ export function Component() {
         <div className="max-w-2xl min-w-0">{search}</div>
         <Following />
         <Storied />
+        <BrowseKinds />
         <BrowseStates />
       </section>
     );
@@ -265,6 +300,7 @@ export function Component() {
         </div>
       </div>
       <Storied />
+      <BrowseKinds />
       <BrowseStates />
     </section>
   );

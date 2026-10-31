@@ -2,7 +2,18 @@ import { describe, expect, it } from "vitest";
 
 import { LoreStatus, PlaceCategory, PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
 
-import { formatDayBeside, placeChain, placeLabel, storiesLabel, storyStanding, storyStandingNote } from "./format";
+import {
+  categoryFromSlug,
+  categorySlug,
+  formatDayBeside,
+  placeCategories,
+  placeCategoryPlural,
+  placeChain,
+  placeLabel,
+  storiesLabel,
+  storyStanding,
+  storyStandingNote,
+} from "./format";
 
 describe("formatDayBeside", () => {
   it.each([
@@ -64,5 +75,32 @@ describe("storyStanding", () => {
         expect(note).not.toMatch(/reader/i);
       }
     }
+  });
+});
+
+describe("kinds of place in the address and in a title", () => {
+  it.each([
+    [PlaceCategory.SPORTS_AND_RECREATION, "sports-and-recreation", "sports and recreation places"],
+    [PlaceCategory.FOOD_AND_DRINK, "food-and-drink", "food and drink places"],
+    [PlaceCategory.NIGHTLIFE, "nightlife", "bars and clubs"],
+    [PlaceCategory.LODGING, "lodging", "hotels"],
+  ])("%s is /best/%s, the best days at %s", (category, slug, plural) => {
+    expect(categorySlug(category)).toBe(slug);
+    expect(categoryFromSlug(slug)).toBe(category);
+    expect(placeCategoryPlural(category)).toBe(plural);
+  });
+
+  it("gives every kind its own slug and a plural that reads after 'at'", () => {
+    const slugs = placeCategories.map(categorySlug);
+    expect(new Set(slugs).size).toBe(placeCategories.length);
+    for (const c of placeCategories) {
+      expect(categorySlug(c)).toMatch(/^[a-z]+(-[a-z]+)*$/);
+      expect(categoryFromSlug(categorySlug(c))).toBe(c);
+      expect(placeCategoryPlural(c)).toMatch(/^[a-z][a-z ]+$/);
+    }
+  });
+
+  it.each(["", "unspecified", "Sports-And-Recreation", "sports_and_recreation", "bowling"])("names no kind for %j", (slug) => {
+    expect(categoryFromSlug(slug)).toBeUndefined();
   });
 });

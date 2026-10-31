@@ -51,8 +51,8 @@ func TestPreview(t *testing.T) {
 	ann := user("ann")
 	state := insert(t, pool, `INSERT INTO places (kind, name, timezone, source) VALUES ('PLACE_KIND_STATE', 'Illinois', 'America/Chicago', 'PLACE_SOURCE_OVERTURE') RETURNING id`)
 	city := insert(t, pool, `INSERT INTO places (kind, name, parent_id, timezone, source) VALUES ('PLACE_KIND_CITY', 'Springfield', $1, 'America/Chicago', 'PLACE_SOURCE_OVERTURE') RETURNING id`, state)
-	store := insert(t, pool, `INSERT INTO places (kind, name, parent_id, timezone, source) VALUES ('PLACE_KIND_STORE', 'Corner Books', $1, 'America/Chicago', 'PLACE_SOURCE_OVERTURE') RETURNING id`, city)
-	hiddenPlace := insert(t, pool, `INSERT INTO places (kind, name, parent_id, timezone, source, hidden_at) VALUES ('PLACE_KIND_STORE', 'Gone Books', $1, 'America/Chicago', 'PLACE_SOURCE_OVERTURE', now()) RETURNING id`, city)
+	store := insert(t, pool, `INSERT INTO places (kind, name, parent_id, timezone, source, category) VALUES ('PLACE_KIND_STORE', 'Corner Books', $1, 'America/Chicago', 'PLACE_SOURCE_OVERTURE', 'PLACE_CATEGORY_SHOPPING') RETURNING id`, city)
+	hiddenPlace := insert(t, pool, `INSERT INTO places (kind, name, parent_id, timezone, source, hidden_at, category) VALUES ('PLACE_KIND_STORE', 'Gone Books', $1, 'America/Chicago', 'PLACE_SOURCE_OVERTURE', now(), 'PLACE_CATEGORY_LODGING') RETURNING id`, city)
 	arcID := insert(t, pool, `INSERT INTO arcs (place_id, local_date, title, created_by) VALUES ($1, '2026-10-03', 'Rain on the windows', $2) RETURNING id`, store, ann)
 	visible := insert(t, pool, `INSERT INTO perspectives (arc_id, author_id, genre, status, lore_status, published_at)
 		VALUES ($1, $2, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now()) RETURNING id`, arcID, ann)
@@ -66,11 +66,18 @@ func TestPreview(t *testing.T) {
 	draft := insert(t, pool, `INSERT INTO perspectives (author_id, genre, status)
 		VALUES ($1, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_DRAFT') RETURNING id`, cal)
 	loreID := insert(t, pool, `INSERT INTO lores (arc_id, name, named_by, member_count) VALUES ($1, 'The rainy regulars', $2, 4) RETURNING id`, arcID, ann)
+	// A readable story at the hidden place, whose category has no page.
+	hiddenArc := insert(t, pool, `INSERT INTO arcs (place_id, local_date, title, created_by) VALUES ($1, '2026-10-03', 'Closing day', $2) RETURNING id`, hiddenPlace, ann)
+	insert(t, pool, `INSERT INTO perspectives (arc_id, author_id, genre, status, lore_status, published_at)
+		VALUES ($1, $2, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now()) RETURNING id`, hiddenArc, cal)
 
-	// The sitemap lists the same readable pages: the store and every place
-	// above it, the day, and the visible story; never the hidden place, the
-	// hidden story or the draft.
-	checkSitemap(t, sitemap{places: p.places.Sitemap, days: arcs.Sitemap, stories: p.perspectives.Sitemap}, map[string][]string{
+	// The sitemap lists the same readable pages: the store's category, the
+	// store and every place above it, the day, and the visible story; never
+	// the hidden place or its category, the hidden story or the draft.
+	checkSitemap(t, sitemap{
+		places: p.places.Sitemap, days: arcs.Sitemap, stories: p.perspectives.Sitemap, categories: p.places.CategorySitemap,
+	}, map[string][]string{
+		"pages":   {"/best/shopping"},
 		"places":  {"/places/" + store.String(), "/places/" + city.String(), "/places/" + state.String()},
 		"days":    {"/arcs/" + arcID.String()},
 		"stories": {"/perspectives/" + visible.String()},

@@ -17,7 +17,9 @@ service PlaceService {
   // Adds a MALL or STORE under any place not hidden by moderation.
   rpc CreatePlace(CreatePlaceRequest) returns (CreatePlaceResponse);
   // A place page: arcs at the place and all its descendants, or its tales.
-  // Without a place, the arcs of every place: the front page.
+  // Without a place, the arcs of every place: the front page. With a
+  // category, only the days at places of that category: the best days at
+  // sports and recreation places, everywhere or under a place.
   rpc GetEpic(GetEpicRequest) returns (GetEpicResponse);
   // Follows or unfollows a place: a new story at it or anywhere under it
   // notifies the follower.
@@ -28,6 +30,9 @@ service PlaceService {
   // anywhere under it whose description contains the query: "were you in
   // someone's story?"
   rpc SearchCharacters(SearchCharactersRequest) returns (SearchCharactersResponse);
+  // Public. The categories with at least one readable day at a place of
+  // that category, in enum order: the "Browse by kind of place" links.
+  rpc ListStoriedCategories(ListStoriedCategoriesRequest) returns (ListStoriedCategoriesResponse);
 }
 
 // PlaceRef is a place as a link: id, kind and name.
@@ -126,6 +131,10 @@ message GetEpicRequest {
   // Reading filter; UNSPECIFIED shows every genre. Applies to TALES, and to
   // arcs through the genres of their perspectives.
   Genre genre = 5;
+  // Only the days, or for TALES the stories, whose own place has this
+  // category; UNSPECIFIED lists every place. A store's category does not
+  // carry to the places above it, so a city is never "food and drink".
+  PlaceCategory category = 6;
 }
 
 // EpicArc is one arc in a place's epic listing.
@@ -177,6 +186,12 @@ message GetEpicResponse {
   // Set for TALES.
   repeated EpicTale tales = 3;
   string next_page_token = 4;
+}
+
+message ListStoriedCategoriesRequest {}
+
+message ListStoriedCategoriesResponse {
+  repeated PlaceCategory categories = 1;
 }
 
 message FollowPlaceRequest {

@@ -101,11 +101,13 @@ SELECT EXISTS (
 )::boolean AS following;
 
 -- name: CountFollowers :one
--- Accounts that follow the writer and are not deleted.
+-- Accounts that follow the writer, counted only once they are confirmed,
+-- not suspended and not deleted, so throwaway accounts cannot inflate it.
 SELECT count(*)::int
 FROM user_follows f
 JOIN users u ON u.id = f.follower_id
-WHERE f.followee_id = sqlc.arg(followee_id)::uuid AND u.deleted_at IS NULL;
+WHERE f.followee_id = sqlc.arg(followee_id)::uuid AND u.deleted_at IS NULL
+  AND u.email_verified_at IS NOT NULL AND u.suspended_at IS NULL;
 
 -- name: ListFollowedWriters :many
 -- The writers an account follows, most recently followed first, leaving out

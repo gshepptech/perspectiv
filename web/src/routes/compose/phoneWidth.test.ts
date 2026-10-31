@@ -185,6 +185,16 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
       return { place: store, arcs: epicArcs };
     case "PlaceService/SearchCharacters":
       return { characters: [] };
+    case "PlaceService/ListStoriedCategories":
+      // Every kind, so the front page's row wraps at its longest.
+      return {
+        categories: [
+          "PLACE_CATEGORY_FOOD_AND_DRINK", "PLACE_CATEGORY_NIGHTLIFE", "PLACE_CATEGORY_SHOPPING", "PLACE_CATEGORY_OUTDOORS",
+          "PLACE_CATEGORY_ARTS_AND_ENTERTAINMENT", "PLACE_CATEGORY_SPORTS_AND_RECREATION", "PLACE_CATEGORY_CULTURE_AND_HISTORY",
+          "PLACE_CATEGORY_EDUCATION", "PLACE_CATEGORY_COMMUNITY", "PLACE_CATEGORY_TRAVEL", "PLACE_CATEGORY_LODGING",
+          "PLACE_CATEGORY_SERVICES", "PLACE_CATEGORY_HEALTH",
+        ],
+      };
     case "ArcService/GetArc":
       return {
         arc: dayArc,
@@ -494,6 +504,7 @@ const cases: Case[] = [
   { path: "/", signedIn: false, text: city },
   { path: "/", text: `Welcome back, ${username}` },
   { path: "/places/p-store", text: longTitle },
+  { path: "/best/arts-and-entertainment", signedIn: false, text: longTitle },
   { path: "/arcs/a-day", text: "23:00" },
   { path: "/perspectives/pub-1", label: "Heart, 9999" },
   { path: "/lores/lore-canon", text: label },

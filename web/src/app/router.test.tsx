@@ -56,6 +56,7 @@ const signedIn = (role = "ROLE_USER") => () => sessionReply({ token: "tok", user
 const contract: [string, string][] = [
   ["/", "landing/LandingPage"],
   ["/places/p-1", "place/PlacePage"],
+  ["/best/sports-and-recreation", "best/BestPage"],
   ["/perspectives/x-1", "read/ReadPage"],
   ["/arcs/a-1", "arc/ArcPage"],
   ["/users/wren", "profile/ProfilePage"],

@@ -354,6 +354,11 @@ than "Store") and how many stories it holds, so friends pick the same entry.
 - Under the place name, one `text-sm` `ink-muted` word says what the place
   is, the same way search does: an imported store or mall with a category
   shows the category ("Sports"), never "Store" for a stadium.
+- That category word is a link (`accent`, underlined, 44px tall) to the best
+  days at every place of that kind, `/best/<slug>`. Its accessible name
+  starts with the word it shows and says where it goes ("Sports: the best
+  days at sports and recreation places"). A kind such as "Store" or "City"
+  stays plain text.
 - "Report place" opens the report dialog with an intro about places only
   (no talk of real names). When the reason is "Same place as another
   listing", the details field is required and is labelled "Which listing
@@ -366,7 +371,36 @@ title as the link, the opening of its canon's first story (or its first story)
 in the serif face clamped to two lines, then a `text-sm` line: "Canon" and
 a crown when the day has one, followed by the canon lore's name in italics
 when its members have named it ("Canon: *The long queue*"), the place, the
-day, how many are in lore and the story count.
+day, how many are in lore and the story count. The row is one shared
+component (`ArcItem` in `web/src/components/reader/`), so the place page and
+the best-days pages cannot drift apart.
+
+## Best days at a kind of place
+
+`/best/<slug>`, public, one page per place category, where the slug is the
+category's enum name in lowercase with hyphens (`sports-and-recreation`).
+It is the place page's epic across every place of one kind, and it reads
+like one.
+
+- **Heading.** The page title in Literata at the page-title size: "The best
+  days at *plural*", where the plural says what the places are in words a
+  reader uses ("The best days at sports and recreation places", "The best
+  days at bars and clubs", "The best days at hotels"). The tab says the
+  same. Under it, one line in Public Sans, `ink-muted`: "Days ranked by
+  their canon across every place of this kind."
+- **Tabs.** Ranked and Newest, the place page's `Tabs` with the same
+  underline for the current tab, kept in the address as `?tab=newest` (the
+  bare address is Ranked). There is no Tales tab and no genre filter: the
+  page answers one question, which days at this kind of place people
+  remember best.
+- **Rows.** The place page's day rows, with the place named with its city
+  ("Iron Gym, Tampa") because the list spans every city. "Show more" pages
+  as on the place page.
+- **Empty.** "No one has written about a day at *plural* yet." and a link
+  back to the front page's search.
+- **Unknown slug.** The not-found pattern of a missing place: "Kind of place
+  not found", a line saying the address does not name one, and a link to
+  the front page.
 
 ## Profile
 
@@ -558,6 +592,11 @@ heading, a plain list of entries with `rule` dividers, "Show more" to page.
   line" as its actor. A target that has a page links to it; a user target
   links to its dossier.
 - In the report queue, the reporter's name links to their dossier.
+- A report shows what its target said when it was filed, so an edit after
+  the report cannot hide it: a `<details>` disclosure, "What it said when
+  reported", closed by default, holding the text in `whitespace-pre-wrap`
+  with the serif face for story and post text, at most 20 lines tall with
+  its own scroll.
 - **Undoing a decision.** A suspended account's dossier offers "Lift
   suspension…" beside its standing; a hide entry in the audit log
   (perspective, place or thread post) offers "Restore…". Both open the
@@ -644,7 +683,15 @@ are writing, each of which opens its place page.
   notifications · Open your inbox", "1 request waiting on you · Review
   requests"), or "Nothing is waiting on you." when both are zero. "Your
   perspectives" follows it, then the search field, then "Places you
-  follow", "Where people are writing" and "Browse by state".
+  follow", "Where people are writing", "Browse by kind of place" and
+  "Browse by state".
+- **Browse by kind of place** sits above "Browse by state" for everyone: the
+  heading "Browse by kind of place", then one pill per category that has at
+  least one day, in the order of the place page's category chips, each its
+  short label ("Sports", "Food & drink") linking to `/best/<slug>`. The
+  pills look like the state pills. The section is left out when no category
+  has a day, and while the list loads or fails, rather than showing an
+  error on the front door.
 - "Browse by state" closes the page for everyone.
 - Nothing animates, and everything keeps the 16px gutter with no sideways
   scroll at 375px.

@@ -96,6 +96,7 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
   const member: [string, ((page: Page) => Locator)?][] = [
     ["/", (p) => p.getByRole("heading", { level: 1, name: `Welcome back, ${ivyAcct.username}` })],
     [place as string, (p) => p.getByRole("link", { name: "Record Store Day line around the block" })],
+    ["/best/shopping", (p) => p.getByRole("link", { name: "Record Store Day line around the block" })],
     [arc, (p) => p.getByRole("article", { name: `${gilAcct.username}'s perspective` })],
     [perspective, (p) => p.getByText("The line started before dawn.")],
     [lore as string, (p) => p.getByText("The line started before dawn.")],

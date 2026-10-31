@@ -73,15 +73,18 @@ WHERE a.place_path @> ARRAY[$1::uuid]
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND ($2::text IS NULL OR v.genre = $2::text))
-  AND ($3::uuid IS NULL
-       OR (a.created_at, a.id) < ($4::timestamptz, $3::uuid))
+  -- Only days whose own place has the category, through arcs_category_*_idx.
+  AND ($3::text IS NULL OR a.place_category = $3::text)
+  AND ($4::uuid IS NULL
+       OR (a.created_at, a.id) < ($5::timestamptz, $4::uuid))
 ORDER BY a.created_at DESC, a.id DESC
-LIMIT $5::integer
+LIMIT $6::integer
 `
 
 type EpicArcsNewestParams struct {
 	PlaceID      uuid.UUID
 	Genre        pgtype.Text
+	Category     pgtype.Text
 	AfterID      uuid.NullUUID
 	AfterCreated pgtype.Timestamptz
 	Lim          int32
@@ -110,6 +113,7 @@ func (q *Queries) EpicArcsNewest(ctx context.Context, arg EpicArcsNewestParams) 
 	rows, err := q.db.Query(ctx, epicArcsNewest,
 		arg.PlaceID,
 		arg.Genre,
+		arg.Category,
 		arg.AfterID,
 		arg.AfterCreated,
 		arg.Lim,
@@ -177,17 +181,20 @@ WHERE a.place_path @> ARRAY[$1::uuid]
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND ($2::text IS NULL OR v.genre = $2::text))
-  AND ($3::uuid IS NULL
+  -- Only days whose own place has the category, through arcs_category_*_idx.
+  AND ($3::text IS NULL OR a.place_category = $3::text)
+  AND ($4::uuid IS NULL
        OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
-          < ($4::boolean, $5::double precision,
-             $6::integer, $7::timestamptz, $3::uuid))
+          < ($5::boolean, $6::double precision,
+             $7::integer, $8::timestamptz, $4::uuid))
 ORDER BY (a.canon_lore_id IS NOT NULL) DESC, a.canon_score DESC, a.member_count DESC, a.created_at DESC, a.id DESC
-LIMIT $8::integer
+LIMIT $9::integer
 `
 
 type EpicArcsRankedParams struct {
 	PlaceID       uuid.UUID
 	Genre         pgtype.Text
+	Category      pgtype.Text
 	AfterID       uuid.NullUUID
 	AfterHasCanon pgtype.Bool
 	AfterScore    pgtype.Float8
@@ -217,12 +224,17 @@ type EpicArcsRankedRow struct {
 // Arcs at the place and every visible descendant, found by arcs.place_path
 // (arcs_place_path_idx) (a listing only: each
 // arc keeps its own stored canon). An arc is listed when it has at least one
-// readable perspective, of the genre when one is given. Order: arcs with a
-// canon first, then the stored canon score, member count, newest, id.
+// readable perspective, of the genre when one is given, and when a category
+// is given, when its own place has that category. Order: arcs with a canon
+// first, then the stored canon score, member count, newest, id.
+//
+// The optional filters are "argument IS NULL OR ...": the pool plans every
+// call with its arguments (plan_cache_mode), so an unused filter folds away.
 func (q *Queries) EpicArcsRanked(ctx context.Context, arg EpicArcsRankedParams) ([]EpicArcsRankedRow, error) {
 	rows, err := q.db.Query(ctx, epicArcsRanked,
 		arg.PlaceID,
 		arg.Genre,
+		arg.Category,
 		arg.AfterID,
 		arg.AfterHasCanon,
 		arg.AfterScore,
@@ -280,15 +292,17 @@ WHERE a.place_path @> ARRAY[$1::uuid]
   AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
   AND ($2::text IS NULL OR v.genre = $2::text)
-  AND ($3::uuid IS NULL
-       OR (v.published_at, v.id) < ($4::timestamptz, $3::uuid))
+  AND ($3::text IS NULL OR a.place_category = $3::text)
+  AND ($4::uuid IS NULL
+       OR (v.published_at, v.id) < ($5::timestamptz, $4::uuid))
 ORDER BY v.published_at DESC, v.id DESC
-LIMIT $5::integer
+LIMIT $6::integer
 `
 
 type EpicTalesParams struct {
 	PlaceID        uuid.UUID
 	Genre          pgtype.Text
+	Category       pgtype.Text
 	AfterID        uuid.NullUUID
 	AfterPublished pgtype.Timestamptz
 	Lim            int32
@@ -318,6 +332,7 @@ func (q *Queries) EpicTales(ctx context.Context, arg EpicTalesParams) ([]EpicTal
 	rows, err := q.db.Query(ctx, epicTales,
 		arg.PlaceID,
 		arg.Genre,
+		arg.Category,
 		arg.AfterID,
 		arg.AfterPublished,
 		arg.Lim,
@@ -382,14 +397,17 @@ WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hi
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND ($1::text IS NULL OR v.genre = $1::text))
-  AND ($2::uuid IS NULL
-       OR (a.created_at, a.id) < ($3::timestamptz, $2::uuid))
+  -- Only days whose own place has the category, through arcs_category_*_idx.
+  AND ($2::text IS NULL OR a.place_category = $2::text)
+  AND ($3::uuid IS NULL
+       OR (a.created_at, a.id) < ($4::timestamptz, $3::uuid))
 ORDER BY a.created_at DESC, a.id DESC
-LIMIT $4::integer
+LIMIT $5::integer
 `
 
 type EverywhereArcsNewestParams struct {
 	Genre        pgtype.Text
+	Category     pgtype.Text
 	AfterID      uuid.NullUUID
 	AfterCreated pgtype.Timestamptz
 	Lim          int32
@@ -417,6 +435,7 @@ type EverywhereArcsNewestRow struct {
 func (q *Queries) EverywhereArcsNewest(ctx context.Context, arg EverywhereArcsNewestParams) ([]EverywhereArcsNewestRow, error) {
 	rows, err := q.db.Query(ctx, everywhereArcsNewest,
 		arg.Genre,
+		arg.Category,
 		arg.AfterID,
 		arg.AfterCreated,
 		arg.Lim,
@@ -482,16 +501,19 @@ WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hi
         WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
           AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND ($1::text IS NULL OR v.genre = $1::text))
-  AND ($2::uuid IS NULL
+  -- Only days whose own place has the category, through arcs_category_*_idx.
+  AND ($2::text IS NULL OR a.place_category = $2::text)
+  AND ($3::uuid IS NULL
        OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
-          < ($3::boolean, $4::double precision,
-             $5::integer, $6::timestamptz, $2::uuid))
+          < ($4::boolean, $5::double precision,
+             $6::integer, $7::timestamptz, $3::uuid))
 ORDER BY (a.canon_lore_id IS NOT NULL) DESC, a.canon_score DESC, a.member_count DESC, a.created_at DESC, a.id DESC
-LIMIT $7::integer
+LIMIT $8::integer
 `
 
 type EverywhereArcsRankedParams struct {
 	Genre         pgtype.Text
+	Category      pgtype.Text
 	AfterID       uuid.NullUUID
 	AfterHasCanon pgtype.Bool
 	AfterScore    pgtype.Float8
@@ -524,6 +546,7 @@ type EverywhereArcsRankedRow struct {
 func (q *Queries) EverywhereArcsRanked(ctx context.Context, arg EverywhereArcsRankedParams) ([]EverywhereArcsRankedRow, error) {
 	rows, err := q.db.Query(ctx, everywhereArcsRanked,
 		arg.Genre,
+		arg.Category,
 		arg.AfterID,
 		arg.AfterHasCanon,
 		arg.AfterScore,
@@ -1268,6 +1291,44 @@ func (q *Queries) SearchPlaces(ctx context.Context, arg SearchPlacesParams) ([]S
 	return items, nil
 }
 
+const sitemapCategories = `-- name: SitemapCategories :many
+SELECT a.place_category::text AS category, max(v.published_at)::timestamptz AS last_mod
+FROM arcs a
+JOIN perspectives v ON v.arc_id = a.id
+WHERE a.place_category IS NOT NULL
+  AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+GROUP BY a.place_category
+ORDER BY last_mod DESC, category
+`
+
+type SitemapCategoriesRow struct {
+	Category string
+	LastMod  pgtype.Timestamptz
+}
+
+// The categories with a readable story at a visible place of that category,
+// with when the newest was published: the "best days" pages in the sitemap.
+func (q *Queries) SitemapCategories(ctx context.Context) ([]SitemapCategoriesRow, error) {
+	rows, err := q.db.Query(ctx, sitemapCategories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SitemapCategoriesRow
+	for rows.Next() {
+		var i SitemapCategoriesRow
+		if err := rows.Scan(&i.Category, &i.LastMod); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const sitemapPlaces = `-- name: SitemapPlaces :many
 SELECT pid::uuid AS id, max(v.published_at)::timestamptz AS last_mod
 FROM arcs a
@@ -1301,6 +1362,47 @@ func (q *Queries) SitemapPlaces(ctx context.Context, lim int32) ([]SitemapPlaces
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const storiedCategories = `-- name: StoriedCategories :many
+SELECT c.category::text AS category
+FROM unnest($1::text[]) WITH ORDINALITY AS c(category, n)
+CROSS JOIN LATERAL (
+    SELECT 1 FROM arcs a
+    WHERE a.place_category = c.category
+      AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+      AND EXISTS (SELECT 1 FROM perspectives v
+                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
+    ORDER BY a.created_at DESC, a.id DESC
+    LIMIT 1
+) x
+ORDER BY c.n
+`
+
+// Of the given categories, in the order given, those with a readable day at
+// a visible place of that category. One probe of arcs_category_newest_idx
+// per category, stopping at the newest readable day: well under a
+// millisecond at beta scale, where an EXISTS planned as a bitmap scan of the
+// whole category took 6 ms.
+func (q *Queries) StoriedCategories(ctx context.Context, categories []string) ([]string, error) {
+	rows, err := q.db.Query(ctx, storiedCategories, categories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var category string
+		if err := rows.Scan(&category); err != nil {
+			return nil, err
+		}
+		items = append(items, category)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

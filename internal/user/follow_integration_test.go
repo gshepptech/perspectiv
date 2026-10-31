@@ -87,6 +87,32 @@ func TestFollowUser(t *testing.T) {
 	}
 }
 
+// Unconfirmed and suspended followers do not count, so throwaway accounts
+// cannot inflate a writer's number.
+func TestFollowerCountLeavesOutUnconfirmedAndSuspended(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	other, writer := e.user("other"), e.user("writer")
+	if _, err := e.client(other).FollowUser(context.Background(), followReq("writer", true)); err != nil {
+		t.Fatalf("FollowUser: %v", err)
+	}
+	if !e.follows(other, writer) {
+		t.Fatal("follow not recorded")
+	}
+	e.exec(`UPDATE users SET email_verified_at = NULL WHERE id = $1`, other)
+	if got := e.profileOf(uuid.Nil, "writer").GetFollowers(); got != 0 {
+		t.Fatalf("followers with an unconfirmed follower = %d, want 0", got)
+	}
+	e.exec(`UPDATE users SET email_verified_at = now(), suspended_at = now() WHERE id = $1`, other)
+	if got := e.profileOf(uuid.Nil, "writer").GetFollowers(); got != 0 {
+		t.Fatalf("followers with a suspended follower = %d, want 0", got)
+	}
+	e.exec(`UPDATE users SET suspended_at = NULL WHERE id = $1`, other)
+	if got := e.profileOf(uuid.Nil, "writer").GetFollowers(); got != 1 {
+		t.Fatalf("followers once reinstated = %d, want 1", got)
+	}
+}
+
 // FollowUser refuses what cannot be followed, and follows a suspended writer,
 // whose profile stays public.
 func TestFollowUserRefusals(t *testing.T) {

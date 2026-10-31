@@ -90,9 +90,11 @@ SELECT count(*)::int
 FROM user_follows f
 JOIN users u ON u.id = f.follower_id
 WHERE f.followee_id = $1::uuid AND u.deleted_at IS NULL
+  AND u.email_verified_at IS NOT NULL AND u.suspended_at IS NULL
 `
 
-// Accounts that follow the writer and are not deleted.
+// Accounts that follow the writer, counted only once they are confirmed,
+// not suspended and not deleted, so throwaway accounts cannot inflate it.
 func (q *Queries) CountFollowers(ctx context.Context, followeeID uuid.UUID) (int32, error) {
 	row := q.db.QueryRow(ctx, countFollowers, followeeID)
 	var column_1 int32

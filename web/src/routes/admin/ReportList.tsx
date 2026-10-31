@@ -5,9 +5,10 @@ import { useId, useState } from "react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/Button";
-import { ReportStatus } from "@/gen/perspectiv/v1/enums_pb";
+import { ReportStatus, ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { Report } from "@/gen/perspectiv/v1/moderation_pb";
 import { reportReasonLabel } from "@/components/actions/labels";
+import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { useShowMore } from "@/lib/showMore";
 
@@ -33,6 +34,21 @@ function ReportItem({ report, onResolve }: { report: Report; onResolve?: () => v
       </h2>
       <p className="font-medium">{reportReasonLabel(report.reason)}</p>
       {report.details && <p className="[overflow-wrap:anywhere]">{report.details}</p>}
+      {report.reportedText && (
+        <details className="min-w-0">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-medium text-accent">
+            What it said when reported
+          </summary>
+          <p
+            className={cn(
+              "max-h-[34em] overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]",
+              (report.targetKind === ReportTargetKind.PERSPECTIVE || report.targetKind === ReportTargetKind.LORE_POST) && "font-serif",
+            )}
+          >
+            {report.reportedText}
+          </p>
+        </details>
+      )}
       <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
         Reported by{" "}
         {report.reporter ? (

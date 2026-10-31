@@ -1,9 +1,11 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
@@ -134,6 +136,36 @@ func TestValidate(t *testing.T) {
 			}
 			if tc.wantMsg != "" && cerr.Message() != tc.wantMsg {
 				t.Fatalf("message = %q, want %q", cerr.Message(), tc.wantMsg)
+			}
+		})
+	}
+}
+
+// A kept sitemap is served until its time is up, then built again.
+func TestSitemapCacheExpires(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 10, 30, 12, 0, 0, 0, time.UTC)
+	builds := 0
+	c := newSitemapCache(func(context.Context, string) ([]SitemapPage, error) {
+		builds++
+		return []SitemapPage{{Path: "/best/health"}}, nil
+	}, 30*time.Minute, func() time.Time { return now })
+	tests := []struct {
+		name       string
+		advance    time.Duration
+		wantBuilds int
+	}{
+		{name: "first read builds", wantBuilds: 1},
+		{name: "a read inside the window is kept", advance: 29 * time.Minute, wantBuilds: 1},
+		{name: "a read past the window builds again", advance: 2 * time.Minute, wantBuilds: 2},
+	}
+	// Serial: the clock moves forward case by case.
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			now = now.Add(tc.advance)
+			pages, err := c.pages(context.Background(), "pages")
+			if err != nil || len(pages) != 1 || builds != tc.wantBuilds {
+				t.Fatalf("pages = %v, %v after %d builds, want %d", pages, err, builds, tc.wantBuilds)
 			}
 		})
 	}

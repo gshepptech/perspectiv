@@ -50,11 +50,13 @@ const everywhere = {
 function landing(
   search: (body: Record<string, unknown>) => { status?: number; body: unknown } = () => ({ body: results }),
   epic: () => { status?: number; body: unknown } = () => ({ body: { arcs: [] } }),
+  kinds: () => { status?: number; body: unknown } = () => ({ body: { categories: [] } }),
 ) {
   return renderApp("/", {
     "PlaceService/SearchPlaces": search,
     "PlaceService/ListChildren": () => ({ body: states }),
     "PlaceService/GetEpic": epic,
+    "PlaceService/ListStoriedCategories": kinds,
   });
 }
 
@@ -67,7 +69,7 @@ describe("landing page (AC-006, OT-036)", () => {
     // No feed of posts: the only listings are of places.
     await screen.findByRole("link", { name: "Ohio" });
     const fetched = sent.map((r) => r.procedure).filter((p) => !p.startsWith("AuthService/"));
-    expect(fetched.toSorted()).toEqual(["PlaceService/GetEpic", "PlaceService/ListChildren"]);
+    expect(fetched.toSorted()).toEqual(["PlaceService/GetEpic", "PlaceService/ListChildren", "PlaceService/ListStoriedCategories"]);
     expect(screen.queryByRole("article")).not.toBeInTheDocument();
     // With no stories anywhere, the places section is left out.
     expect(screen.queryByRole("region", { name: "Where people are writing" })).not.toBeInTheDocument();
@@ -177,6 +179,50 @@ describe("landing page (AC-006, OT-036)", () => {
     await router.navigate(-1);
     expect(await screen.findByRole("searchbox", { name: "Search places" })).toHaveValue("Spring");
     expect(await screen.findByRole("list", { name: "Matching places" })).toBeInTheDocument();
+  });
+
+  it("links the kinds of place with days to their best days, above the states", async () => {
+    // The server answers in enum order; the row keeps the place page's chip order.
+    landing(undefined, undefined, () => ({
+      body: { categories: ["PLACE_CATEGORY_FOOD_AND_DRINK", "PLACE_CATEGORY_SPORTS_AND_RECREATION", "PLACE_CATEGORY_LODGING", "PLACE_CATEGORY_TRAVEL"] },
+    }));
+    const kinds = await screen.findByRole("navigation", { name: "Browse by kind of place" });
+    const links = within(kinds).getAllByRole("link");
+    expect(links.map((l) => [l.textContent, l.getAttribute("href")])).toEqual([
+      ["Food & drink", "/best/food-and-drink"],
+      ["Sports", "/best/sports-and-recreation"],
+      ["Hotels", "/best/lodging"],
+      ["Travel", "/best/travel"],
+    ]);
+    const states = await screen.findByRole("navigation", { name: "Browse by state" });
+    expect(kinds.compareDocumentPosition(states) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it.each([
+    { name: "no kind of place has a day", kinds: () => ({ body: { categories: [] } }) },
+    { name: "the list fails", kinds: () => connectError("unavailable") },
+  ])("leaves the kinds of place out when $name", async ({ kinds }) => {
+    const { calls } = landing(undefined, undefined, kinds);
+    await screen.findByRole("navigation", { name: "Browse by state" });
+    await waitFor(() => expect(calls("PlaceService/ListStoriedCategories")).toHaveLength(1));
+    expect(screen.queryByRole("navigation", { name: "Browse by kind of place" })).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("shows the kinds of place to a returning member too", async () => {
+    renderApp(
+      "/",
+      {
+        "PlaceService/ListChildren": () => ({ body: states }),
+        "PlaceService/ListStoriedCategories": () => ({ body: { categories: ["PLACE_CATEGORY_NIGHTLIFE"] } }),
+        "PerspectiveService/ListMine": () => ({ body: { perspectives: [] } }),
+        "NotifyService/ListInbox": () => ({ body: { unreadCount: 0 } }),
+        "LoreService/ListClaims": () => ({ body: { claims: [] } }),
+      },
+      { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
+    );
+    const kinds = await screen.findByRole("navigation", { name: "Browse by kind of place" });
+    expect(within(kinds).getByRole("link", { name: "Nightlife" })).toHaveAttribute("href", "/best/nightlife");
   });
 
   it("lets a reader drill down from the states", async () => {

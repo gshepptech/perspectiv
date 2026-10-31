@@ -55,6 +55,9 @@ const (
 	// PlaceServiceSearchCharactersProcedure is the fully-qualified name of the PlaceService's
 	// SearchCharacters RPC.
 	PlaceServiceSearchCharactersProcedure = "/perspectiv.v1.PlaceService/SearchCharacters"
+	// PlaceServiceListStoriedCategoriesProcedure is the fully-qualified name of the PlaceService's
+	// ListStoriedCategories RPC.
+	PlaceServiceListStoriedCategoriesProcedure = "/perspectiv.v1.PlaceService/ListStoriedCategories"
 )
 
 // PlaceServiceClient is a client for the perspectiv.v1.PlaceService service.
@@ -67,7 +70,9 @@ type PlaceServiceClient interface {
 	// Adds a MALL or STORE under any place not hidden by moderation.
 	CreatePlace(context.Context, *connect.Request[v1.CreatePlaceRequest]) (*connect.Response[v1.CreatePlaceResponse], error)
 	// A place page: arcs at the place and all its descendants, or its tales.
-	// Without a place, the arcs of every place: the front page.
+	// Without a place, the arcs of every place: the front page. With a
+	// category, only the days at places of that category: the best days at
+	// sports and recreation places, everywhere or under a place.
 	GetEpic(context.Context, *connect.Request[v1.GetEpicRequest]) (*connect.Response[v1.GetEpicResponse], error)
 	// Follows or unfollows a place: a new story at it or anywhere under it
 	// notifies the follower.
@@ -78,6 +83,9 @@ type PlaceServiceClient interface {
 	// anywhere under it whose description contains the query: "were you in
 	// someone's story?"
 	SearchCharacters(context.Context, *connect.Request[v1.SearchCharactersRequest]) (*connect.Response[v1.SearchCharactersResponse], error)
+	// Public. The categories with at least one readable day at a place of
+	// that category, in enum order: the "Browse by kind of place" links.
+	ListStoriedCategories(context.Context, *connect.Request[v1.ListStoriedCategoriesRequest]) (*connect.Response[v1.ListStoriedCategoriesResponse], error)
 }
 
 // NewPlaceServiceClient constructs a client for the perspectiv.v1.PlaceService service. By default,
@@ -139,19 +147,26 @@ func NewPlaceServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(placeServiceMethods.ByName("SearchCharacters")),
 			connect.WithClientOptions(opts...),
 		),
+		listStoriedCategories: connect.NewClient[v1.ListStoriedCategoriesRequest, v1.ListStoriedCategoriesResponse](
+			httpClient,
+			baseURL+PlaceServiceListStoriedCategoriesProcedure,
+			connect.WithSchema(placeServiceMethods.ByName("ListStoriedCategories")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // placeServiceClient implements PlaceServiceClient.
 type placeServiceClient struct {
-	searchPlaces     *connect.Client[v1.SearchPlacesRequest, v1.SearchPlacesResponse]
-	getPlace         *connect.Client[v1.GetPlaceRequest, v1.GetPlaceResponse]
-	listChildren     *connect.Client[v1.ListChildrenRequest, v1.ListChildrenResponse]
-	createPlace      *connect.Client[v1.CreatePlaceRequest, v1.CreatePlaceResponse]
-	getEpic          *connect.Client[v1.GetEpicRequest, v1.GetEpicResponse]
-	followPlace      *connect.Client[v1.FollowPlaceRequest, v1.FollowPlaceResponse]
-	listFollowing    *connect.Client[v1.ListFollowingRequest, v1.ListFollowingResponse]
-	searchCharacters *connect.Client[v1.SearchCharactersRequest, v1.SearchCharactersResponse]
+	searchPlaces          *connect.Client[v1.SearchPlacesRequest, v1.SearchPlacesResponse]
+	getPlace              *connect.Client[v1.GetPlaceRequest, v1.GetPlaceResponse]
+	listChildren          *connect.Client[v1.ListChildrenRequest, v1.ListChildrenResponse]
+	createPlace           *connect.Client[v1.CreatePlaceRequest, v1.CreatePlaceResponse]
+	getEpic               *connect.Client[v1.GetEpicRequest, v1.GetEpicResponse]
+	followPlace           *connect.Client[v1.FollowPlaceRequest, v1.FollowPlaceResponse]
+	listFollowing         *connect.Client[v1.ListFollowingRequest, v1.ListFollowingResponse]
+	searchCharacters      *connect.Client[v1.SearchCharactersRequest, v1.SearchCharactersResponse]
+	listStoriedCategories *connect.Client[v1.ListStoriedCategoriesRequest, v1.ListStoriedCategoriesResponse]
 }
 
 // SearchPlaces calls perspectiv.v1.PlaceService.SearchPlaces.
@@ -194,6 +209,11 @@ func (c *placeServiceClient) SearchCharacters(ctx context.Context, req *connect.
 	return c.searchCharacters.CallUnary(ctx, req)
 }
 
+// ListStoriedCategories calls perspectiv.v1.PlaceService.ListStoriedCategories.
+func (c *placeServiceClient) ListStoriedCategories(ctx context.Context, req *connect.Request[v1.ListStoriedCategoriesRequest]) (*connect.Response[v1.ListStoriedCategoriesResponse], error) {
+	return c.listStoriedCategories.CallUnary(ctx, req)
+}
+
 // PlaceServiceHandler is an implementation of the perspectiv.v1.PlaceService service.
 type PlaceServiceHandler interface {
 	// Typeahead over place names.
@@ -204,7 +224,9 @@ type PlaceServiceHandler interface {
 	// Adds a MALL or STORE under any place not hidden by moderation.
 	CreatePlace(context.Context, *connect.Request[v1.CreatePlaceRequest]) (*connect.Response[v1.CreatePlaceResponse], error)
 	// A place page: arcs at the place and all its descendants, or its tales.
-	// Without a place, the arcs of every place: the front page.
+	// Without a place, the arcs of every place: the front page. With a
+	// category, only the days at places of that category: the best days at
+	// sports and recreation places, everywhere or under a place.
 	GetEpic(context.Context, *connect.Request[v1.GetEpicRequest]) (*connect.Response[v1.GetEpicResponse], error)
 	// Follows or unfollows a place: a new story at it or anywhere under it
 	// notifies the follower.
@@ -215,6 +237,9 @@ type PlaceServiceHandler interface {
 	// anywhere under it whose description contains the query: "were you in
 	// someone's story?"
 	SearchCharacters(context.Context, *connect.Request[v1.SearchCharactersRequest]) (*connect.Response[v1.SearchCharactersResponse], error)
+	// Public. The categories with at least one readable day at a place of
+	// that category, in enum order: the "Browse by kind of place" links.
+	ListStoriedCategories(context.Context, *connect.Request[v1.ListStoriedCategoriesRequest]) (*connect.Response[v1.ListStoriedCategoriesResponse], error)
 }
 
 // NewPlaceServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -272,6 +297,12 @@ func NewPlaceServiceHandler(svc PlaceServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(placeServiceMethods.ByName("SearchCharacters")),
 		connect.WithHandlerOptions(opts...),
 	)
+	placeServiceListStoriedCategoriesHandler := connect.NewUnaryHandler(
+		PlaceServiceListStoriedCategoriesProcedure,
+		svc.ListStoriedCategories,
+		connect.WithSchema(placeServiceMethods.ByName("ListStoriedCategories")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.PlaceService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PlaceServiceSearchPlacesProcedure:
@@ -290,6 +321,8 @@ func NewPlaceServiceHandler(svc PlaceServiceHandler, opts ...connect.HandlerOpti
 			placeServiceListFollowingHandler.ServeHTTP(w, r)
 		case PlaceServiceSearchCharactersProcedure:
 			placeServiceSearchCharactersHandler.ServeHTTP(w, r)
+		case PlaceServiceListStoriedCategoriesProcedure:
+			placeServiceListStoriedCategoriesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -329,4 +362,8 @@ func (UnimplementedPlaceServiceHandler) ListFollowing(context.Context, *connect.
 
 func (UnimplementedPlaceServiceHandler) SearchCharacters(context.Context, *connect.Request[v1.SearchCharactersRequest]) (*connect.Response[v1.SearchCharactersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PlaceService.SearchCharacters is not implemented"))
+}
+
+func (UnimplementedPlaceServiceHandler) ListStoriedCategories(context.Context, *connect.Request[v1.ListStoriedCategoriesRequest]) (*connect.Response[v1.ListStoriedCategoriesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.PlaceService.ListStoriedCategories is not implemented"))
 }
