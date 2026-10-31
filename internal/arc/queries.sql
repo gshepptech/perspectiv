@@ -86,10 +86,15 @@ UPDATE arcs SET title = $2 WHERE id = $1;
 -- name: ListHourArcs :many
 -- A day arc's hour children in hour order, a page at a time after
 -- after_hour (NULL on the first page); served by arcs_parent_arc_id_hour_idx.
--- One hour arc exists per hour, so the hour alone is the cursor.
+-- One hour arc exists per hour, so the hour alone is the cursor. Each hour
+-- carries its count of published perspectives that are neither deleted nor
+-- hidden, so a page of hours needs no count query per hour.
 SELECT a.id, a.place_id, a.local_date, a.hour, a.parent_arc_id, a.title, a.created_by,
        a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
-       u.username AS creator_username
+       u.username AS creator_username,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::int AS perspective_count
 FROM arcs a
 JOIN users u ON u.id = a.created_by
 WHERE a.parent_arc_id = sqlc.arg(parent_arc_id)::uuid
@@ -161,12 +166,14 @@ WHERE lm.lore_id = ANY(sqlc.arg(lore_ids)::uuid[])
   AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
 ORDER BY pe.published_at, pe.id;
 
--- name: GetArcLore :one
+-- name: ListLoresByID :many
+-- The given lores, in no order: an arc page's canon, or the canon of every
+-- hour on a page of hours in one query.
 SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
        coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
 FROM lores l
 LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
-WHERE l.id = $1;
+WHERE l.id = ANY(sqlc.arg(lore_ids)::uuid[]);
 
 -- name: ListArcSublores :many
 -- Every lore in the arc but the canon that has a member, highest rank
@@ -195,13 +202,6 @@ JOIN lore_members m1 ON m1.perspective_id = ch.perspective_id
 JOIN lore_members m2 ON m2.perspective_id = c.claimant_perspective_id AND m2.lore_id = m1.lore_id
 WHERE m1.lore_id = ANY(sqlc.arg(lore_ids)::uuid[]) AND c.status = 'CLAIM_STATUS_ACCEPTED'
 ORDER BY c.resolved_at, c.id;
-
--- name: CountVisiblePerspectives :one
--- Published perspectives in the arc that are neither deleted nor hidden.
-SELECT count(*)::int AS visible
-FROM perspectives
-WHERE arc_id = $1 AND status = 'PERSPECTIVE_STATUS_PUBLISHED'
-  AND deleted_at IS NULL AND hidden_at IS NULL;
 
 -- name: ViewerInArc :one
 -- The caller's readable published perspective in the arc and its lore.

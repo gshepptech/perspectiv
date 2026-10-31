@@ -140,6 +140,10 @@ func openPool(ctx context.Context, dsn string, maxConns int, log zerolog.Logger)
 	// them badly (12 ms planned per call, 550 ms generic, measured at beta
 	// scale). Planning each call costs a few milliseconds and is always right.
 	cfg.ConnConfig.RuntimeParams["plan_cache_mode"] = "force_custom_plan"
+	// The app's statements are short index reads. Once the planner's row
+	// estimates grow, JIT compiles them for 20 to 30 ms each, far longer than
+	// they run (measured on place search with beta-scale arcs loaded).
+	cfg.ConnConfig.RuntimeParams["jit"] = "off"
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect to database: %w", err)

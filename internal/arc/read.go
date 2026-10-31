@@ -275,7 +275,9 @@ func arcProto(r dbq.ListHourArcsRow, chain []*perspectivv1.PlaceRef) *perspectiv
 
 // listHours pages a day arc's hour children in hour order, each with its
 // canon and the number of its perspectives that are neither deleted nor
-// hidden. The cursor is the last hour listed.
+// hidden. The cursor is the last hour listed. A page of hours is at most
+// four statements however many hours it holds: the hours with their counts,
+// then their canons, the canons' members and the canons' encounters.
 func listHours(ctx context.Context, q *dbq.Queries, dayID uuid.UUID, chain []*perspectivv1.PlaceRef, page apiutil.PageToken) ([]*perspectivv1.HourArc, string, error) {
 	params := dbq.ListHourArcsParams{ParentArcID: dayID, RowLimit: page.Limit + 1}
 	if page.After != "" {
@@ -294,17 +296,17 @@ func listHours(ctx context.Context, q *dbq.Queries, dayID uuid.UUID, chain []*pe
 		rows = rows[:page.Limit]
 		next = apiutil.NextPageToken(strconv.Itoa(int(rows[len(rows)-1].Hour.Int16)))
 	}
+	owners := make([]canonOwner, len(rows))
+	for i, r := range rows {
+		owners[i] = canonOwner{arcID: r.ID, canonID: r.CanonLoreID.UUID}
+	}
+	canons, err := loadCanons(ctx, q, owners)
+	if err != nil {
+		return nil, "", err
+	}
 	hours := make([]*perspectivv1.HourArc, 0, len(rows))
-	for _, r := range rows {
-		canon, err := loadCanon(ctx, q, r.ID, r.CanonLoreID.UUID)
-		if err != nil {
-			return nil, "", err
-		}
-		visible, err := q.CountVisiblePerspectives(ctx, uuid.NullUUID{UUID: r.ID, Valid: true})
-		if err != nil {
-			return nil, "", apiutil.Internal(fmt.Errorf("count perspectives: %w", err))
-		}
-		hours = append(hours, &perspectivv1.HourArc{Arc: arcProto(r, chain), Canon: canon, PerspectiveCount: visible})
+	for i, r := range rows {
+		hours = append(hours, &perspectivv1.HourArc{Arc: arcProto(r, chain), Canon: canons[i], PerspectiveCount: r.PerspectiveCount})
 	}
 	return hours, next, nil
 }
@@ -319,25 +321,62 @@ type perspectiveRow = dbq.ListArcTalesRow
 // loreRow is one lore on an arc page.
 type loreRow = dbq.ListArcSubloresRow
 
-// loadCanon reads the lore the rank job made canon, with its members and
-// encounters; nil when canonID is uuid.Nil or names no lore. The canon is
-// shown while the rank job points at it, even with no members left.
+// loadCanon reads the lore the rank job made the arc's canon, with its
+// members and encounters; nil when canonID is uuid.Nil or names no lore.
 func loadCanon(ctx context.Context, q *dbq.Queries, arcID, canonID uuid.UUID) (*perspectivv1.ArcLore, error) {
-	if canonID == uuid.Nil {
-		return nil, nil
-	}
-	row, err := q.GetArcLore(ctx, canonID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, apiutil.Internal(fmt.Errorf("read canon lore: %w", err))
-	}
-	lores, err := withMembers(ctx, q, arcID, []loreRow{loreRow(row)})
+	canons, err := loadCanons(ctx, q, []canonOwner{{arcID: arcID, canonID: canonID}})
 	if err != nil {
 		return nil, err
 	}
-	return lores[0], nil
+	return canons[0], nil
+}
+
+// canonOwner is an arc and the lore the rank job made its canon, uuid.Nil
+// when it has none.
+type canonOwner struct {
+	arcID, canonID uuid.UUID
+}
+
+// loadCanons reads the canon of each arc, with its members and encounters,
+// in three statements however many arcs there are, and returns them in the
+// order of owners. An arc's entry is nil when it has no canon or its canon
+// names no lore. A canon is shown while the rank job points at it, even
+// with no members left.
+func loadCanons(ctx context.Context, q *dbq.Queries, owners []canonOwner) ([]*perspectivv1.ArcLore, error) {
+	out := make([]*perspectivv1.ArcLore, len(owners))
+	var ids []uuid.UUID
+	for _, o := range owners {
+		if o.canonID != uuid.Nil {
+			ids = append(ids, o.canonID)
+		}
+	}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := q.ListLoresByID(ctx, ids)
+	if err != nil {
+		return nil, apiutil.Internal(fmt.Errorf("read canon lores: %w", err))
+	}
+	byID := make(map[uuid.UUID]loreRow, len(rows))
+	for _, r := range rows {
+		byID[r.ID] = loreRow(r)
+	}
+	var shown []shownLore
+	var at []int
+	for i, o := range owners {
+		if r, ok := byID[o.canonID]; ok {
+			shown = append(shown, shownLore{arcID: o.arcID, row: r})
+			at = append(at, i)
+		}
+	}
+	lores, err := withMembers(ctx, q, shown)
+	if err != nil {
+		return nil, err
+	}
+	for j, l := range lores {
+		out[at[j]] = l
+	}
+	return out, nil
 }
 
 // listSublores pages every lore but the canon that has a member, highest
@@ -367,42 +406,58 @@ func listSublores(ctx context.Context, q *dbq.Queries, arcID, canonID uuid.UUID,
 		last := rows[len(rows)-1]
 		next = apiutil.NextPageToken(strconv.FormatFloat(last.RankScore, 'g', -1, 64) + "|" + last.ID.String())
 	}
-	lores, err := withMembers(ctx, q, arcID, rows)
+	shown := make([]shownLore, len(rows))
+	for i, r := range rows {
+		shown[i] = shownLore{arcID: arcID, row: r}
+	}
+	lores, err := withMembers(ctx, q, shown)
 	if err != nil {
 		return nil, "", err
 	}
 	return lores, next, nil
 }
 
-// withMembers builds the wire lores for rows, reading their member
-// perspectives and encounters in one query each.
-func withMembers(ctx context.Context, q *dbq.Queries, arcID uuid.UUID, rows []loreRow) ([]*perspectivv1.ArcLore, error) {
-	out := make([]*perspectivv1.ArcLore, 0, len(rows))
-	if len(rows) == 0 {
+// shownLore is a lore and the arc whose page shows it: the arc's own lores,
+// or an hour's canon on its day's page.
+type shownLore struct {
+	arcID uuid.UUID
+	row   loreRow
+}
+
+// withMembers builds the wire lores for lores, in order, reading the member
+// perspectives and encounters of all of them in one query each, whichever
+// arcs they belong to.
+func withMembers(ctx context.Context, q *dbq.Queries, lores []shownLore) ([]*perspectivv1.ArcLore, error) {
+	out := make([]*perspectivv1.ArcLore, 0, len(lores))
+	if len(lores) == 0 {
 		return out, nil
 	}
-	ids := make([]uuid.UUID, len(rows))
-	for i, r := range rows {
-		ids[i] = r.ID
+	ids := make([]uuid.UUID, len(lores))
+	for i, l := range lores {
+		ids[i] = l.row.ID
 	}
 	memberRows, err := q.ListLorePerspectives(ctx, ids)
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("list lore members: %w", err))
 	}
-	members := map[uuid.UUID][]*perspectivv1.PerspectiveSummary{}
+	members := map[uuid.UUID][]perspectiveRow{}
 	for _, m := range memberRows {
-		sum, err := summary(arcID, memberRow(m))
-		if err != nil {
-			return nil, apiutil.Internal(err)
-		}
-		members[m.MemberOf] = append(members[m.MemberOf], sum)
+		members[m.MemberOf] = append(members[m.MemberOf], memberRow(m))
 	}
 	encounters, err := q.ListLoreEncounters(ctx, ids)
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("list encounters: %w", err))
 	}
-	for _, r := range rows {
-		al, err := arcLore(arcID, r, members[r.ID], encounters)
+	for _, l := range lores {
+		var sums []*perspectivv1.PerspectiveSummary
+		for _, m := range members[l.row.ID] {
+			sum, err := summary(l.arcID, m)
+			if err != nil {
+				return nil, apiutil.Internal(err)
+			}
+			sums = append(sums, sum)
+		}
+		al, err := arcLore(l.arcID, l.row, sums, encounters)
 		if err != nil {
 			return nil, apiutil.Internal(err)
 		}

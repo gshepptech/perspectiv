@@ -12,21 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countVisiblePerspectives = `-- name: CountVisiblePerspectives :one
-SELECT count(*)::int AS visible
-FROM perspectives
-WHERE arc_id = $1 AND status = 'PERSPECTIVE_STATUS_PUBLISHED'
-  AND deleted_at IS NULL AND hidden_at IS NULL
-`
-
-// Published perspectives in the arc that are neither deleted nor hidden.
-func (q *Queries) CountVisiblePerspectives(ctx context.Context, arcID uuid.NullUUID) (int32, error) {
-	row := q.db.QueryRow(ctx, countVisiblePerspectives, arcID)
-	var visible int32
-	err := row.Scan(&visible)
-	return visible, err
-}
-
 const dayArcStories = `-- name: DayArcStories :many
 SELECT a.id, a.hour, a.title,
        (SELECT count(*) FROM perspectives v
@@ -83,43 +68,6 @@ func (q *Queries) DayArcStories(ctx context.Context, arg DayArcStoriesParams) ([
 		return nil, err
 	}
 	return items, nil
-}
-
-const getArcLore = `-- name: GetArcLore :one
-SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
-       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
-FROM lores l
-LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
-WHERE l.id = $1
-`
-
-type GetArcLoreRow struct {
-	ID              uuid.UUID
-	Status          string
-	MemberCount     int32
-	Upvotes         int32
-	RankScore       float64
-	ComputedAt      pgtype.Timestamptz
-	Name            string
-	NamedBy         uuid.NullUUID
-	NamedByUsername string
-}
-
-func (q *Queries) GetArcLore(ctx context.Context, id uuid.UUID) (GetArcLoreRow, error) {
-	row := q.db.QueryRow(ctx, getArcLore, id)
-	var i GetArcLoreRow
-	err := row.Scan(
-		&i.ID,
-		&i.Status,
-		&i.MemberCount,
-		&i.Upvotes,
-		&i.RankScore,
-		&i.ComputedAt,
-		&i.Name,
-		&i.NamedBy,
-		&i.NamedByUsername,
-	)
-	return i, err
 }
 
 const getArcRow = `-- name: GetArcRow :one
@@ -557,7 +505,10 @@ func (q *Queries) ListArcUnlinked(ctx context.Context, arg ListArcUnlinkedParams
 const listHourArcs = `-- name: ListHourArcs :many
 SELECT a.id, a.place_id, a.local_date, a.hour, a.parent_arc_id, a.title, a.created_by,
        a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
-       u.username AS creator_username
+       u.username AS creator_username,
+       (SELECT count(*) FROM perspectives v
+        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::int AS perspective_count
 FROM arcs a
 JOIN users u ON u.id = a.created_by
 WHERE a.parent_arc_id = $1::uuid
@@ -573,23 +524,26 @@ type ListHourArcsParams struct {
 }
 
 type ListHourArcsRow struct {
-	ID              uuid.UUID
-	PlaceID         uuid.UUID
-	LocalDate       pgtype.Date
-	Hour            pgtype.Int2
-	ParentArcID     uuid.NullUUID
-	Title           string
-	CreatedBy       uuid.UUID
-	CanonLoreID     uuid.NullUUID
-	CanonScore      float64
-	MemberCount     int32
-	CreatedAt       pgtype.Timestamptz
-	CreatorUsername string
+	ID               uuid.UUID
+	PlaceID          uuid.UUID
+	LocalDate        pgtype.Date
+	Hour             pgtype.Int2
+	ParentArcID      uuid.NullUUID
+	Title            string
+	CreatedBy        uuid.UUID
+	CanonLoreID      uuid.NullUUID
+	CanonScore       float64
+	MemberCount      int32
+	CreatedAt        pgtype.Timestamptz
+	CreatorUsername  string
+	PerspectiveCount int32
 }
 
 // A day arc's hour children in hour order, a page at a time after
 // after_hour (NULL on the first page); served by arcs_parent_arc_id_hour_idx.
-// One hour arc exists per hour, so the hour alone is the cursor.
+// One hour arc exists per hour, so the hour alone is the cursor. Each hour
+// carries its count of published perspectives that are neither deleted nor
+// hidden, so a page of hours needs no count query per hour.
 func (q *Queries) ListHourArcs(ctx context.Context, arg ListHourArcsParams) ([]ListHourArcsRow, error) {
 	rows, err := q.db.Query(ctx, listHourArcs, arg.ParentArcID, arg.AfterHour, arg.RowLimit)
 	if err != nil {
@@ -612,6 +566,7 @@ func (q *Queries) ListHourArcs(ctx context.Context, arg ListHourArcsParams) ([]L
 			&i.MemberCount,
 			&i.CreatedAt,
 			&i.CreatorUsername,
+			&i.PerspectiveCount,
 		); err != nil {
 			return nil, err
 		}
@@ -721,6 +676,58 @@ func (q *Queries) ListLorePerspectives(ctx context.Context, loreIds []uuid.UUID)
 			&i.Opening,
 			&i.PartCount,
 			&i.Upvotes,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLoresByID = `-- name: ListLoresByID :many
+SELECT l.id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
+       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
+FROM lores l
+LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
+WHERE l.id = ANY($1::uuid[])
+`
+
+type ListLoresByIDRow struct {
+	ID              uuid.UUID
+	Status          string
+	MemberCount     int32
+	Upvotes         int32
+	RankScore       float64
+	ComputedAt      pgtype.Timestamptz
+	Name            string
+	NamedBy         uuid.NullUUID
+	NamedByUsername string
+}
+
+// The given lores, in no order: an arc page's canon, or the canon of every
+// hour on a page of hours in one query.
+func (q *Queries) ListLoresByID(ctx context.Context, loreIds []uuid.UUID) ([]ListLoresByIDRow, error) {
+	rows, err := q.db.Query(ctx, listLoresByID, loreIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListLoresByIDRow
+	for rows.Next() {
+		var i ListLoresByIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Status,
+			&i.MemberCount,
+			&i.Upvotes,
+			&i.RankScore,
+			&i.ComputedAt,
+			&i.Name,
+			&i.NamedBy,
+			&i.NamedByUsername,
 		); err != nil {
 			return nil, err
 		}

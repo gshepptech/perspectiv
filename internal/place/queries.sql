@@ -2,26 +2,35 @@
 --
 -- A place is visible when neither it nor any ancestor has hidden_at set:
 -- hiding a place by moderation hides its whole subtree from every read here.
--- Recursive walks stop at depth 8; the hierarchy has five levels, so the cap
--- only matters for a corrupt cycle, which it turns into a short result rather
--- than an endless query.
+-- Recursive walks stop at depth 8 (9 in GetVisiblePlace, which walks from the
+-- place itself); the hierarchy has five levels, so the cap only matters for a
+-- corrupt cycle, which it turns into a short result rather than an endless
+-- query.
 
 -- name: GetVisiblePlace :one
+-- The place with its ancestors, read in one walk up the hierarchy. The
+-- ancestors run from the STATE down to the parent, as three arrays in the
+-- same order, and are the eight places above it at most, as ListAncestors
+-- reads them. The place is visible when neither it nor any of the seven
+-- places above it is hidden.
 WITH RECURSIVE chain AS (
-    SELECT p.id, p.parent_id, p.hidden_at, 1 AS depth
+    SELECT p.id, p.parent_id, p.kind, p.name, p.hidden_at, 1 AS depth
     FROM places p
     WHERE p.id = @id::uuid
     UNION ALL
-    SELECT a.id, a.parent_id, a.hidden_at, c.depth + 1
+    SELECT a.id, a.parent_id, a.kind, a.name, a.hidden_at, c.depth + 1
     FROM places a
     JOIN chain c ON a.id = c.parent_id
-    WHERE c.depth < 8
+    WHERE c.depth < 9
 )
 SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
-       coalesce(p.category, '')::text AS category
+       coalesce(p.category, '')::text AS category,
+       coalesce((SELECT array_agg(c.id ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::uuid[] AS ancestor_ids,
+       coalesce((SELECT array_agg(c.kind ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_kinds,
+       coalesce((SELECT array_agg(c.name ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_names
 FROM places p
 WHERE p.id = @id::uuid
-  AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.hidden_at IS NOT NULL);
+  AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.depth <= 8 AND chain.hidden_at IS NOT NULL);
 
 -- name: ListAncestors :many
 -- Every ancestor of each given place, root first within a place.
@@ -61,6 +70,21 @@ ORDER BY c.place_id, c.depth DESC;
 -- match under a later entry can fill the candidates before a substring
 -- match under an earlier one is read; the earlier entry still ranks first
 -- among what was read.
+--
+-- broad_first reads the prefix matches in rank order a kind at a time
+-- instead of all at once: the exact names (an equality lookup), then the
+-- states and cities, then the towns (both through places_name_locality_idx,
+-- which also carries the path a parent filter reads), then the malls and
+-- stores, each only while the ones before leave fewer than
+-- candidate_limit. "a" matches 35,000 places and 264 states and cities, so
+-- it reads 265 rows instead of 35,000. Every exact name outranks every
+-- other prefix match and a broader kind a narrower one, so the candidates
+-- are the ones prefixed reads, provided the rank does not also turn on the
+-- parent (at most one parent_ids entry, whose descendants all rank under it
+-- alike) and there is no substring step. The caller sets broad_first only
+-- then: under three characters contains is the prefix itself, so that step
+-- could find nothing. With it set, prefixed and contained read no row;
+-- without it, the four steps read none.
 WITH RECURSIVE prefixed AS (
     SELECT p.id,
            (lower(p.name) = @exact::text) AS is_exact,
@@ -75,7 +99,9 @@ WITH RECURSIVE prefixed AS (
            char_length(p.name) AS len,
            lower(p.name) AS lname
     FROM places p
-    WHERE p.hidden_at IS NULL
+    -- broad_first folds to a constant, so the plan keeps one of the two ways.
+    WHERE NOT @broad_first::boolean
+      AND p.hidden_at IS NULL
       AND lower(p.name) LIKE @prefix::text
       AND (sqlc.narg(kind)::text IS NULL OR p.kind = sqlc.narg(kind)::text)
       -- Below a parent: its id is on the place's path (places_path_idx).
@@ -83,6 +109,104 @@ WITH RECURSIVE prefixed AS (
            OR (p.path && sqlc.narg(parent_ids)::uuid[] AND p.id <> ALL(sqlc.narg(parent_ids)::uuid[])))
     ORDER BY under, is_exact DESC, level, len, lname, p.id
     LIMIT @candidate_limit::integer
+),
+exact_named AS (
+    SELECT p.id,
+           true AS is_exact,
+           true AS is_prefix,
+           array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN sqlc.narg(parent_ids)::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position(sqlc.narg(parent_ids)::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
+    FROM places p
+    WHERE @broad_first::boolean
+      AND p.hidden_at IS NULL
+      AND lower(p.name) = @exact::text
+      AND lower(p.name) LIKE @prefix::text
+      AND (sqlc.narg(kind)::text IS NULL OR p.kind = sqlc.narg(kind)::text)
+      AND (sqlc.narg(parent_ids)::uuid[] IS NULL
+           OR (p.path && sqlc.narg(parent_ids)::uuid[] AND p.id <> ALL(sqlc.narg(parent_ids)::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    LIMIT @candidate_limit::integer
+),
+broad AS (
+    SELECT p.id,
+           false AS is_exact,
+           true AS is_prefix,
+           array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN sqlc.narg(parent_ids)::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position(sqlc.narg(parent_ids)::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
+    FROM places p
+    WHERE @broad_first::boolean
+      AND p.hidden_at IS NULL
+      AND p.kind IN ('PLACE_KIND_STATE', 'PLACE_KIND_CITY')
+      AND lower(p.name) LIKE @prefix::text
+      AND lower(p.name) <> @exact::text
+      AND (sqlc.narg(kind)::text IS NULL OR p.kind = sqlc.narg(kind)::text)
+      AND (sqlc.narg(parent_ids)::uuid[] IS NULL
+           OR (p.path && sqlc.narg(parent_ids)::uuid[] AND p.id <> ALL(sqlc.narg(parent_ids)::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    -- Nothing once the steps before fill the candidates: a LIMIT of 0
+    -- returns before its scan starts (a WHERE filter would still start the
+    -- parallel workers a large scan is planned with, some 3 to 8 ms).
+    LIMIT CASE WHEN (SELECT count(*) FROM exact_named) < @candidate_limit::integer
+               THEN @candidate_limit::integer ELSE 0 END
+),
+towns AS (
+    SELECT p.id,
+           false AS is_exact,
+           true AS is_prefix,
+           array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN sqlc.narg(parent_ids)::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position(sqlc.narg(parent_ids)::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
+    FROM places p
+    WHERE @broad_first::boolean
+      AND p.hidden_at IS NULL
+      AND p.kind = 'PLACE_KIND_TOWN'
+      AND lower(p.name) LIKE @prefix::text
+      AND lower(p.name) <> @exact::text
+      AND (sqlc.narg(kind)::text IS NULL OR p.kind = sqlc.narg(kind)::text)
+      AND (sqlc.narg(parent_ids)::uuid[] IS NULL
+           OR (p.path && sqlc.narg(parent_ids)::uuid[] AND p.id <> ALL(sqlc.narg(parent_ids)::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    LIMIT CASE WHEN (SELECT count(*) FROM exact_named) + (SELECT count(*) FROM broad) < @candidate_limit::integer
+               THEN @candidate_limit::integer ELSE 0 END
+),
+venues AS (
+    SELECT p.id,
+           false AS is_exact,
+           true AS is_prefix,
+           array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN sqlc.narg(parent_ids)::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position(sqlc.narg(parent_ids)::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
+    FROM places p
+    WHERE @broad_first::boolean
+      AND p.hidden_at IS NULL
+      AND p.kind IN ('PLACE_KIND_MALL', 'PLACE_KIND_STORE')
+      AND lower(p.name) LIKE @prefix::text
+      AND lower(p.name) <> @exact::text
+      AND (sqlc.narg(kind)::text IS NULL OR p.kind = sqlc.narg(kind)::text)
+      AND (sqlc.narg(parent_ids)::uuid[] IS NULL
+           OR (p.path && sqlc.narg(parent_ids)::uuid[] AND p.id <> ALL(sqlc.narg(parent_ids)::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    LIMIT CASE WHEN (SELECT count(*) FROM exact_named) + (SELECT count(*) FROM broad)
+                    + (SELECT count(*) FROM towns) < @candidate_limit::integer
+               THEN @candidate_limit::integer ELSE 0 END
 ),
 contained AS (
     SELECT p.id,
@@ -96,8 +220,7 @@ contained AS (
            char_length(p.name) AS len,
            lower(p.name) AS lname
     FROM places p
-    -- A one-time filter: with the candidates already full, no row is read.
-    WHERE (SELECT count(*) FROM prefixed) < @candidate_limit::integer
+    WHERE NOT @broad_first::boolean
       AND p.hidden_at IS NULL
       AND lower(p.name) LIKE @contains::text
       AND lower(p.name) NOT LIKE @prefix::text
@@ -105,10 +228,14 @@ contained AS (
       AND (sqlc.narg(parent_ids)::uuid[] IS NULL
            OR (p.path && sqlc.narg(parent_ids)::uuid[] AND p.id <> ALL(sqlc.narg(parent_ids)::uuid[])))
     ORDER BY under, level, len, lname, p.id
-    LIMIT @candidate_limit::integer
+    -- With the candidates already full, no row is read (see broad).
+    LIMIT CASE WHEN (SELECT count(*) FROM prefixed) < @candidate_limit::integer
+               THEN @candidate_limit::integer ELSE 0 END
 ),
 ranked AS (
-    SELECT u.* FROM (SELECT * FROM prefixed UNION ALL SELECT * FROM contained) u
+    SELECT u.* FROM (SELECT * FROM prefixed UNION ALL SELECT * FROM exact_named
+                     UNION ALL SELECT * FROM broad UNION ALL SELECT * FROM towns
+                     UNION ALL SELECT * FROM venues UNION ALL SELECT * FROM contained) u
     ORDER BY u.under, u.is_exact DESC, u.is_prefix DESC, u.level, u.len, u.lname, u.id
     LIMIT @candidate_limit::integer
 ),

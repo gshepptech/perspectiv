@@ -48,6 +48,58 @@ Nothing in progress.
 
 ## Done
 
+- The app's pool runs with JIT off: once row estimates grew (beta-scale
+  arcs loaded), Postgres JIT-compiled each short search for 20 to 30 ms,
+  longer than it ran. Verified by TestOpenPoolSessionSettings.
+- Place reads send fewer statements, and short searches read a few
+  hundred names instead of tens of thousands. GetVisiblePlace returns the
+  place's ancestors from the walk that checks it is visible, so every read
+  of one place drops ListAncestors (statements per call, pinned by
+  querycount_integration_test.go): GetPlace 2 to 1 for a town, 3 to 2 for
+  a store signed out, 4 to 3 signed in; GetEpic for a place 3 to 2 on each
+  tab; a search under a parent 4 to 3; the parent check in ListChildren,
+  StoriedChildren, FollowPlace, SearchCharacters and CreatePlace, and each
+  place ListFollowing reads, one fewer. A one- or two-letter search (at
+  most one parent) now reads exact names, then states and cities, then
+  towns, through migration 36's places_name_locality_idx (kind, name, with
+  the path, 18 MB), and malls and stores only when those leave fewer than
+  100 candidates; the substring step's gate moved into its LIMIT, so a
+  skipped step no longer starts parallel workers. EXPLAIN ANALYZE on the
+  dev database (638k places), median of 15 warm runs interleaved with the
+  old query: "a" 35,627 names read to 265, 12.5 to 1.6 ms; "sa" 10,420 to
+  146, 4.3 to 1.3 ms; "th" 21,121 to 814, 7.6 to 1.4 ms; "a" under
+  Florida 160 to 180 ms to 2.1 ms; "th" under Miami 7.8 ms both (two towns,
+  so the old malls-and-stores read still runs); "park" 1.6 to 1.5 ms and
+  "starbucks tampa" 1.3 to 1.4 ms (plain) and 2.3 to 2.5 ms (under Tampa),
+  the same plans. Results are unchanged: the old and new SearchPlaces SQL
+  returned identical rows for 1,301 searches on the dev database (every
+  one- and two-letter prefix, each kind, under each state and 40 cities,
+  under Tampa's three localities, wildcards), and
+  TestSearchPlacesBroadFirst compares the two ways row for row on a
+  mixed-kind fixture at limits 1 to 100 (two mutations of the new steps
+  each fail it). Migration 36 Down run on the dev database.
+
+- A day page's statements no longer grow with its hours. GetArc read each
+  hour's canon, members, encounters and story count one hour at a time (1
+  to 4 statements an hour); it now reads every hour on the page together:
+  ListHourArcs carries each hour's readable story count, and the hours'
+  canons, their members and their encounters are one array query each
+  (ListLoresByID, ListLorePerspectives, ListLoreEncounters).
+  GetArcLore and CountVisiblePerspectives are gone. Statements per call,
+  BEGIN and ROLLBACK included (querycount_integration_test.go): GetArc on
+  a day with two hours 17 to 15 signed out and 19 to 17 signed in; the
+  hours section 9 to 7; a day of five hours with a canon each sends 10,
+  the same as a day of one. The response is unchanged: a temporary harness
+  compared the old and new GetArc on 64 calls (days and hours, signed out
+  and in, page sizes 0 to 10, hidden and deleted members, named lores) and
+  the marshalled bytes matched; a new test checks five hours' canons,
+  members, encounters and counts each land on their own hour. EXPLAIN
+  ANALYZE on generated data in the dev database (120k arcs, 300k stories,
+  100k claims, 50k users, rolled back): every batched query is
+  index-backed (arcs_parent_arc_id_hour_idx, perspectives_arc_author_key,
+  lores_pkey, lore_members_pkey, claims_active_character_key), each under
+  4 ms cold; no migration was needed.
+
 - Security review of commit e8a5bd2, six findings fixed. (1) A character
   label, and a new day's title (the only other writer text an email
   reads), is put on one line when a draft is saved and when a story is

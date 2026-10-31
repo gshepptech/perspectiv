@@ -95,7 +95,7 @@ func placeOf(id uuid.UUID, kind, name string, parent uuid.NullUUID, tz, source s
 	}
 }
 
-// Get returns a visible place with its ancestors.
+// Get returns a visible place with its ancestors, in one query.
 func (s *Store) Get(ctx context.Context, id uuid.UUID) (Place, error) {
 	r, err := s.q.GetVisiblePlace(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -104,12 +104,17 @@ func (s *Store) Get(ctx context.Context, id uuid.UUID) (Place, error) {
 	if err != nil {
 		return Place{}, fmt.Errorf("get place: %w", err)
 	}
-	ps := []Place{placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded)}
-	ps[0].Category = categoryOf(r.Category)
-	if err := s.withAncestors(ctx, ps); err != nil {
-		return Place{}, err
+	if len(r.AncestorKinds) != len(r.AncestorIds) || len(r.AncestorNames) != len(r.AncestorIds) {
+		return Place{}, fmt.Errorf("get place: ancestor arrays differ in length (%d ids, %d kinds, %d names)",
+			len(r.AncestorIds), len(r.AncestorKinds), len(r.AncestorNames))
 	}
-	return ps[0], nil
+	p := placeOf(r.ID, r.Kind, r.Name, r.ParentID, r.Timezone, r.Source, r.UserAdded)
+	p.Category = categoryOf(r.Category)
+	p.Ancestors = make([]Ref, len(r.AncestorIds))
+	for i, id := range r.AncestorIds {
+		p.Ancestors[i] = Ref{ID: id, Kind: kindOf(r.AncestorKinds[i]), Name: r.AncestorNames[i]}
+	}
+	return p, nil
 }
 
 // withAncestors fills Ancestors on every place in ps with one query.
@@ -165,14 +170,19 @@ func (s *Store) Search(ctx context.Context, q SearchQuery) ([]Place, error) {
 	contains := "%" + lit + "%"
 	if utf8.RuneCountInString(q.Text) < minSubstringRunes {
 		// The trigram index needs three characters; shorter input is matched
-		// as a name prefix, which places_name_rank_idx serves, instead of
-		// scanning every place for the substring.
+		// as a name prefix, which places_name_rank_idx and
+		// places_name_locality_idx serve, instead of scanning every place for
+		// the substring.
 		contains = lit + "%"
 	}
+	prefix := lit + "%"
 	params := dbq.SearchPlacesParams{
-		Exact:          q.Text,
-		Prefix:         lit + "%",
-		Contains:       contains,
+		Exact:    q.Text,
+		Prefix:   prefix,
+		Contains: contains,
+		// Read a kind at a time only when that keeps the ranking: there is
+		// no substring step, and every match ranks under its parent alike.
+		BroadFirst:     contains == prefix && len(q.ParentIDs) <= 1,
 		ParentIds:      q.ParentIDs,
 		ResultLimit:    q.Limit,
 		CandidateLimit: q.Candidates,

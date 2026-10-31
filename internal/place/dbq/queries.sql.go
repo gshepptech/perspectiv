@@ -725,40 +725,52 @@ func (q *Queries) FollowedPlaceIDs(ctx context.Context, arg FollowedPlaceIDsPara
 const getVisiblePlace = `-- name: GetVisiblePlace :one
 
 WITH RECURSIVE chain AS (
-    SELECT p.id, p.parent_id, p.hidden_at, 1 AS depth
+    SELECT p.id, p.parent_id, p.kind, p.name, p.hidden_at, 1 AS depth
     FROM places p
     WHERE p.id = $1::uuid
     UNION ALL
-    SELECT a.id, a.parent_id, a.hidden_at, c.depth + 1
+    SELECT a.id, a.parent_id, a.kind, a.name, a.hidden_at, c.depth + 1
     FROM places a
     JOIN chain c ON a.id = c.parent_id
-    WHERE c.depth < 8
+    WHERE c.depth < 9
 )
 SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
-       coalesce(p.category, '')::text AS category
+       coalesce(p.category, '')::text AS category,
+       coalesce((SELECT array_agg(c.id ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::uuid[] AS ancestor_ids,
+       coalesce((SELECT array_agg(c.kind ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_kinds,
+       coalesce((SELECT array_agg(c.name ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_names
 FROM places p
 WHERE p.id = $1::uuid
-  AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.hidden_at IS NOT NULL)
+  AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.depth <= 8 AND chain.hidden_at IS NOT NULL)
 `
 
 type GetVisiblePlaceRow struct {
-	ID        uuid.UUID
-	Kind      string
-	Name      string
-	ParentID  uuid.NullUUID
-	Timezone  string
-	Source    string
-	UserAdded bool
-	Category  string
+	ID            uuid.UUID
+	Kind          string
+	Name          string
+	ParentID      uuid.NullUUID
+	Timezone      string
+	Source        string
+	UserAdded     bool
+	Category      string
+	AncestorIds   []uuid.UUID
+	AncestorKinds []string
+	AncestorNames []string
 }
 
 // Place hierarchy reads, user-created places and the epic listings.
 //
 // A place is visible when neither it nor any ancestor has hidden_at set:
 // hiding a place by moderation hides its whole subtree from every read here.
-// Recursive walks stop at depth 8; the hierarchy has five levels, so the cap
-// only matters for a corrupt cycle, which it turns into a short result rather
-// than an endless query.
+// Recursive walks stop at depth 8 (9 in GetVisiblePlace, which walks from the
+// place itself); the hierarchy has five levels, so the cap only matters for a
+// corrupt cycle, which it turns into a short result rather than an endless
+// query.
+// The place with its ancestors, read in one walk up the hierarchy. The
+// ancestors run from the STATE down to the parent, as three arrays in the
+// same order, and are the eight places above it at most, as ListAncestors
+// reads them. The place is visible when neither it nor any of the seven
+// places above it is hidden.
 func (q *Queries) GetVisiblePlace(ctx context.Context, id uuid.UUID) (GetVisiblePlaceRow, error) {
 	row := q.db.QueryRow(ctx, getVisiblePlace, id)
 	var i GetVisiblePlaceRow
@@ -771,6 +783,9 @@ func (q *Queries) GetVisiblePlace(ctx context.Context, id uuid.UUID) (GetVisible
 		&i.Source,
 		&i.UserAdded,
 		&i.Category,
+		&i.AncestorIds,
+		&i.AncestorKinds,
+		&i.AncestorNames,
 	)
 	return i, err
 }
@@ -1248,14 +1263,114 @@ WITH RECURSIVE prefixed AS (
            char_length(p.name) AS len,
            lower(p.name) AS lname
     FROM places p
-    WHERE p.hidden_at IS NULL
-      AND lower(p.name) LIKE $4::text
-      AND ($5::text IS NULL OR p.kind = $5::text)
+    -- broad_first folds to a constant, so the plan keeps one of the two ways.
+    WHERE NOT $4::boolean
+      AND p.hidden_at IS NULL
+      AND lower(p.name) LIKE $5::text
+      AND ($6::text IS NULL OR p.kind = $6::text)
       -- Below a parent: its id is on the place's path (places_path_idx).
       AND ($3::uuid[] IS NULL
            OR (p.path && $3::uuid[] AND p.id <> ALL($3::uuid[])))
     ORDER BY under, is_exact DESC, level, len, lname, p.id
-    LIMIT $6::integer
+    LIMIT $7::integer
+),
+exact_named AS (
+    SELECT p.id,
+           true AS is_exact,
+           true AS is_prefix,
+           array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN $3::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position($3::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
+    FROM places p
+    WHERE $4::boolean
+      AND p.hidden_at IS NULL
+      AND lower(p.name) = $2::text
+      AND lower(p.name) LIKE $5::text
+      AND ($6::text IS NULL OR p.kind = $6::text)
+      AND ($3::uuid[] IS NULL
+           OR (p.path && $3::uuid[] AND p.id <> ALL($3::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    LIMIT $7::integer
+),
+broad AS (
+    SELECT p.id,
+           false AS is_exact,
+           true AS is_prefix,
+           array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN $3::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position($3::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
+    FROM places p
+    WHERE $4::boolean
+      AND p.hidden_at IS NULL
+      AND p.kind IN ('PLACE_KIND_STATE', 'PLACE_KIND_CITY')
+      AND lower(p.name) LIKE $5::text
+      AND lower(p.name) <> $2::text
+      AND ($6::text IS NULL OR p.kind = $6::text)
+      AND ($3::uuid[] IS NULL
+           OR (p.path && $3::uuid[] AND p.id <> ALL($3::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    -- Nothing once the steps before fill the candidates: a LIMIT of 0
+    -- returns before its scan starts (a WHERE filter would still start the
+    -- parallel workers a large scan is planned with, some 3 to 8 ms).
+    LIMIT CASE WHEN (SELECT count(*) FROM exact_named) < $7::integer
+               THEN $7::integer ELSE 0 END
+),
+towns AS (
+    SELECT p.id,
+           false AS is_exact,
+           true AS is_prefix,
+           array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN $3::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position($3::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
+    FROM places p
+    WHERE $4::boolean
+      AND p.hidden_at IS NULL
+      AND p.kind = 'PLACE_KIND_TOWN'
+      AND lower(p.name) LIKE $5::text
+      AND lower(p.name) <> $2::text
+      AND ($6::text IS NULL OR p.kind = $6::text)
+      AND ($3::uuid[] IS NULL
+           OR (p.path && $3::uuid[] AND p.id <> ALL($3::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    LIMIT CASE WHEN (SELECT count(*) FROM exact_named) + (SELECT count(*) FROM broad) < $7::integer
+               THEN $7::integer ELSE 0 END
+),
+venues AS (
+    SELECT p.id,
+           false AS is_exact,
+           true AS is_prefix,
+           array_position(ARRAY['PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN',
+                                'PLACE_KIND_MALL', 'PLACE_KIND_STORE']::text[], p.kind) AS level,
+           CASE WHEN $3::uuid[] IS NULL THEN 0
+                ELSE (SELECT min(array_position($3::uuid[], a)) FROM unnest(p.path) a)
+           END AS under,
+           char_length(p.name) AS len,
+           lower(p.name) AS lname
+    FROM places p
+    WHERE $4::boolean
+      AND p.hidden_at IS NULL
+      AND p.kind IN ('PLACE_KIND_MALL', 'PLACE_KIND_STORE')
+      AND lower(p.name) LIKE $5::text
+      AND lower(p.name) <> $2::text
+      AND ($6::text IS NULL OR p.kind = $6::text)
+      AND ($3::uuid[] IS NULL
+           OR (p.path && $3::uuid[] AND p.id <> ALL($3::uuid[])))
+    ORDER BY under, level, len, lname, p.id
+    LIMIT CASE WHEN (SELECT count(*) FROM exact_named) + (SELECT count(*) FROM broad)
+                    + (SELECT count(*) FROM towns) < $7::integer
+               THEN $7::integer ELSE 0 END
 ),
 contained AS (
     SELECT p.id,
@@ -1269,21 +1384,24 @@ contained AS (
            char_length(p.name) AS len,
            lower(p.name) AS lname
     FROM places p
-    -- A one-time filter: with the candidates already full, no row is read.
-    WHERE (SELECT count(*) FROM prefixed) < $6::integer
+    WHERE NOT $4::boolean
       AND p.hidden_at IS NULL
-      AND lower(p.name) LIKE $7::text
-      AND lower(p.name) NOT LIKE $4::text
-      AND ($5::text IS NULL OR p.kind = $5::text)
+      AND lower(p.name) LIKE $8::text
+      AND lower(p.name) NOT LIKE $5::text
+      AND ($6::text IS NULL OR p.kind = $6::text)
       AND ($3::uuid[] IS NULL
            OR (p.path && $3::uuid[] AND p.id <> ALL($3::uuid[])))
     ORDER BY under, level, len, lname, p.id
-    LIMIT $6::integer
+    -- With the candidates already full, no row is read (see broad).
+    LIMIT CASE WHEN (SELECT count(*) FROM prefixed) < $7::integer
+               THEN $7::integer ELSE 0 END
 ),
 ranked AS (
-    SELECT u.id, u.is_exact, u.is_prefix, u.level, u.under, u.len, u.lname FROM (SELECT id, is_exact, is_prefix, level, under, len, lname FROM prefixed UNION ALL SELECT id, is_exact, is_prefix, level, under, len, lname FROM contained) u
+    SELECT u.id, u.is_exact, u.is_prefix, u.level, u.under, u.len, u.lname FROM (SELECT id, is_exact, is_prefix, level, under, len, lname FROM prefixed UNION ALL SELECT id, is_exact, is_prefix, level, under, len, lname FROM exact_named
+                     UNION ALL SELECT id, is_exact, is_prefix, level, under, len, lname FROM broad UNION ALL SELECT id, is_exact, is_prefix, level, under, len, lname FROM towns
+                     UNION ALL SELECT id, is_exact, is_prefix, level, under, len, lname FROM venues UNION ALL SELECT id, is_exact, is_prefix, level, under, len, lname FROM contained) u
     ORDER BY u.under, u.is_exact DESC, u.is_prefix DESC, u.level, u.len, u.lname, u.id
-    LIMIT $6::integer
+    LIMIT $7::integer
 ),
 candidates AS (
     SELECT r.under, r.is_exact, r.is_prefix, r.level, r.len, r.lname,
@@ -1325,6 +1443,7 @@ type SearchPlacesParams struct {
 	ResultLimit    int32
 	Exact          string
 	ParentIds      []uuid.UUID
+	BroadFirst     bool
 	Prefix         string
 	Kind           pgtype.Text
 	CandidateLimit int32
@@ -1364,6 +1483,21 @@ type SearchPlacesRow struct {
 // match under a later entry can fill the candidates before a substring
 // match under an earlier one is read; the earlier entry still ranks first
 // among what was read.
+//
+// broad_first reads the prefix matches in rank order a kind at a time
+// instead of all at once: the exact names (an equality lookup), then the
+// states and cities, then the towns (both through places_name_locality_idx,
+// which also carries the path a parent filter reads), then the malls and
+// stores, each only while the ones before leave fewer than
+// candidate_limit. "a" matches 35,000 places and 264 states and cities, so
+// it reads 265 rows instead of 35,000. Every exact name outranks every
+// other prefix match and a broader kind a narrower one, so the candidates
+// are the ones prefixed reads, provided the rank does not also turn on the
+// parent (at most one parent_ids entry, whose descendants all rank under it
+// alike) and there is no substring step. The caller sets broad_first only
+// then: under three characters contains is the prefix itself, so that step
+// could find nothing. With it set, prefixed and contained read no row;
+// without it, the four steps read none.
 // Readable stories at the place and below, counted up to 100: enough to
 // tell friends which of several same-named entries everyone writes in.
 // Within each match tier, places with stories first.
@@ -1372,6 +1506,7 @@ func (q *Queries) SearchPlaces(ctx context.Context, arg SearchPlacesParams) ([]S
 		arg.ResultLimit,
 		arg.Exact,
 		arg.ParentIds,
+		arg.BroadFirst,
 		arg.Prefix,
 		arg.Kind,
 		arg.CandidateLimit,
