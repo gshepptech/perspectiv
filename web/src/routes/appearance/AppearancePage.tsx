@@ -63,10 +63,13 @@ export function Component() {
   useEffect(() => heading.current?.focus(), []);
   const [theme, setTheme] = useState<Theme>(readTheme);
   const [size, setSize] = useState<TextSize>(readTextSize);
-  const [saved, setSaved] = useState(false);
+  // Counts the choices made here. Each one puts a new node in the status
+  // line, so a screen reader reads "Saved on this device." every time, not
+  // only after the first change of text.
+  const [saves, setSaves] = useState(0);
   return (
     <div className="mx-auto grid w-full max-w-2xl min-w-0 gap-8">
-      <h1 ref={heading} tabIndex={-1} className="text-2xl focus:outline-none sm:text-3xl">
+      <h1 ref={heading} tabIndex={-1} className="text-2xl sm:text-3xl">
         Appearance
       </h1>
       <Choice
@@ -77,7 +80,7 @@ export function Component() {
         onChange={(v) => {
           setTheme(v);
           saveTheme(v);
-          setSaved(true);
+          setSaves((n) => n + 1);
         }}
       />
       <div className="grid gap-3">
@@ -89,13 +92,13 @@ export function Component() {
           onChange={(v) => {
             setSize(v);
             saveTextSize(v);
-            setSaved(true);
+            setSaves((n) => n + 1);
           }}
         />
         <p className="prose-body text-ink-muted">The doors opened at nine, and the line already wrapped past the fountain.</p>
       </div>
       <p role="status" className="text-sm text-ink-muted">
-        {saved ? "Saved on this device." : "These choices are kept on this device only."}
+        {saves > 0 ? <span key={saves}>Saved on this device.</span> : "These choices are kept on this device only."}
       </p>
     </div>
   );

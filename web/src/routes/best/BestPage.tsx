@@ -1,4 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
 import { ArcItem } from "@/components/reader/ArcItem";
@@ -13,9 +14,11 @@ import { useDocumentTitle } from "@/lib/title";
 // The tab lives in the address (?tab=newest) so a listing is linkable;
 // Ranked is the bare address.
 const tabs = [
-  { slug: "ranked", label: "Ranked", tab: EpicTab.RANKED },
-  { slug: "newest", label: "Newest", tab: EpicTab.NEWEST },
+  { slug: "ranked", label: "Ranked", tab: EpicTab.RANKED, said: "Ranked by canon." },
+  { slug: "newest", label: "Newest", tab: EpicTab.NEWEST, said: "Newest first." },
 ] as const;
+
+const linkClass = "inline-flex min-h-11 items-center text-accent underline underline-offset-4";
 type TabSlug = (typeof tabs)[number]["slug"];
 
 function parseTab(value: string | null): TabSlug {
@@ -50,7 +53,7 @@ function BestList({ category, tab, plural }: { category: PlaceCategory; tab: Epi
     return (
       <p className="text-ink-muted">
         No one has written about a day at {plural} yet.{" "}
-        <Link to="/" className="text-accent underline underline-offset-4">
+        <Link to="/" className={linkClass}>
           Search for a place
         </Link>
       </p>
@@ -80,7 +83,7 @@ function UnknownKind() {
       </h1>
       <p className="mt-3 text-ink-muted">This address does not name a kind of place.</p>
       <p className="mt-6">
-        <Link to="/" className="text-accent underline underline-offset-4">
+        <Link to="/" className={linkClass}>
           Search for a place
         </Link>
       </p>
@@ -96,6 +99,8 @@ function UnknownKind() {
 export function Component() {
   const { category: slug = "" } = useParams();
   const [params, setParams] = useSearchParams();
+  // Empty until the reader picks an order, so arriving announces nothing.
+  const [orderSaid, setOrderSaid] = useState("");
   const category = categoryFromSlug(slug);
   const plural = category === undefined ? "" : placeCategoryPlural(category);
   const title = category === undefined ? "Kind of place not found" : `The best days at ${plural}`;
@@ -105,6 +110,7 @@ export function Component() {
   const tab = parseTab(params.get("tab"));
   const epicTab = tabs.find((t) => t.slug === tab)!.tab;
   function pick(value: string) {
+    setOrderSaid(tabs.find((t) => t.slug === value)?.said ?? "");
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -125,6 +131,9 @@ export function Component() {
         <p className="mt-2 text-ink-muted">Days ranked by their canon across every place of this kind.</p>
       </header>
       <div className="mt-8 min-w-0 max-w-3xl">
+        <p role="status" className="sr-only">
+          {orderSaid}
+        </p>
         <Tabs value={tab} onValueChange={pick}>
           <TabsList aria-label="Order">
             {tabs.map((t) => (

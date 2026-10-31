@@ -121,6 +121,8 @@ describe("lore thread", () => {
     await waitFor(() => expect(within(top).getByRole("button", { name: "Upvote otter's post" })).toHaveAttribute("aria-pressed", "true"));
     expect(top).toHaveTextContent("5 upvotes");
     expect(calls("LoreService/VoteLorePost")).toEqual([{ postId: "lp-1", on: true }]);
+    // The new count is announced, not only shown.
+    expect(within(top).getByRole("status")).toHaveTextContent("Upvoted. 5 upvotes.");
   });
 
   it("switches between Top and New, asking the server for that order", async () => {
@@ -129,8 +131,13 @@ describe("lore thread", () => {
     const { calls } = renderApp("/lores/lore-1", handlers());
     const top = await screen.findByRole("tab", { name: "Top" });
     expect(top).toHaveAttribute("aria-selected", "true");
+    const thread = screen.getByRole("region", { name: "Thread" });
+    // Arriving announces nothing; picking an order says which it is.
+    const said = within(thread).getAllByRole("status")[0]!;
+    expect(said).toHaveTextContent(/^$/);
     await user.click(screen.getByRole("tab", { name: "New" }));
     expect(screen.getByRole("tab", { name: "New" })).toHaveAttribute("aria-selected", "true");
+    expect(said).toHaveTextContent("Newest first.");
     await waitFor(() =>
       expect(calls("LoreService/ListLorePosts")).toEqual([
         { loreId: "lore-1", sort: "LORE_POST_SORT_TOP", pageSize: 20 },
@@ -166,6 +173,63 @@ describe("lore thread", () => {
     await waitFor(() => expect(calls("LoreService/AddLorePost")).toEqual([{ loreId: "lore-1", body: "Me too.", replyToId: "r-1" }]));
     const posted = await within(replies).findByText("Me too.");
     await waitFor(() => expect(posted.closest("article")).toHaveFocus());
+  });
+
+  it("shows a new post at once and moves focus to it", async () => {
+    polyfillRadix();
+    const user = userEvent.setup();
+    const { calls } = renderApp(
+      "/lores/lore-1",
+      handlers(thread, {
+        // The re-read does not bring it (it sorts onto a later page), so the
+        // thread shows the server's copy at the end.
+        "LoreService/AddLorePost": () => ({ body: { post: { id: "lp-new", author: me, body: "Kept the cables.", createdAt: at } } }),
+      }),
+      signedIn,
+    );
+    await user.type(await screen.findByRole("textbox", { name: "Add to the thread" }), "Kept the cables.");
+    await user.click(screen.getByRole("button", { name: "Post" }));
+    await waitFor(() => expect(calls("LoreService/AddLorePost")).toEqual([{ loreId: "lore-1", body: "Kept the cables." }]));
+    const posts = screen.getByRole("list", { name: "Posts" });
+    const posted = await within(posts).findByText("Kept the cables.");
+    await waitFor(() => expect(posted.closest("article")).toHaveFocus());
+    expect(within(posts).getAllByRole("article", { name: "teller's post" }).at(-1)).toBe(posted.closest("article"));
+  });
+
+  it("keeps a reply the viewer just wrote current through an edit, and drops it once deleted", async () => {
+    polyfillRadix();
+    const user = userEvent.setup();
+    // Otter's post has no inline replies and the re-read never brings the
+    // new one, so only the viewer's own copy shows it.
+    const lone = [{ id: "lp-1", author: otter, body: "Who brought the jumper cables?", createdAt: at }];
+    const { calls } = renderApp(
+      "/lores/lore-1",
+      handlers(lone, {
+        "LoreService/AddLorePost": () => ({ body: { post: reply("r-new", me, "Me.") } }),
+        "LoreService/EditLorePost": () => ({ body: { post: reply("r-new", me, "Me, with the red clamps.", { editedAt: at }) } }),
+        "LoreService/DeleteLorePost": () => ({ body: {} }),
+      }),
+      signedIn,
+    );
+    const top = await screen.findByRole("article", { name: "otter's post" });
+    await user.click(within(top).getByRole("button", { name: "Reply" }));
+    await user.type(within(top).getByRole("textbox", { name: "Reply to otter" }), "Me.");
+    await user.click(within(top).getByRole("button", { name: "Post reply" }));
+    const mine = await screen.findByRole("article", { name: "teller's post" });
+
+    await user.click(within(mine).getByRole("button", { name: "Edit" }));
+    const box = within(mine).getByRole("textbox", { name: "Edit your post" });
+    await user.clear(box);
+    await user.type(box, "Me, with the red clamps.");
+    await user.click(within(mine).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(calls("LoreService/EditLorePost")).toHaveLength(1));
+    expect(await within(mine).findByText("Me, with the red clamps.")).toBeInTheDocument();
+
+    await user.click(within(mine).getByRole("button", { name: "Delete" }));
+    await user.click(within(await screen.findByRole("dialog", { name: "Delete your post?" })).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(calls("LoreService/DeleteLorePost")).toEqual([{ postId: "r-new" }]));
+    await waitFor(() => expect(screen.queryByRole("article", { name: "teller's post" })).toBeNull());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Thread" })).toHaveFocus());
   });
 
   it("edits and deletes the viewer's own post", async () => {

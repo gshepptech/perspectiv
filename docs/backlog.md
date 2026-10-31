@@ -20,6 +20,34 @@ Nothing in progress.
 
 ## Done
 
+- Accessibility and phone-width pass over the newest screens (the lore
+  thread, Follow and "Writers you follow", Save and /saved, /appearance,
+  /best/<slug> and the front page's kinds row, "More from this day", the
+  report queue's "What it said when reported"), at 375 and 1280 pixels, in
+  both themes and at Larger story text. axe found no WCAG 2.1 A/AA
+  violations, nothing scrolled sideways and nothing moved under reduced
+  motion. Found and fixed: a reply written and then deleted (or edited)
+  stayed on screen as its stale local copy; a new top-level post left focus
+  on Post and was not shown until the re-read; vote counts, the thread's
+  Top/New order and the Best page's order changed silently; Appearance said
+  "Saved on this device." only after the first choice and hid the
+  heading's focus outline; Unfollow in Settings dropped focus to the page
+  when its row left; the follower count changed silently; thread byline
+  author links (20px), Unfollow (36px), the queue's Resolve (36px) and
+  target link (20px), and the Best page's "Search for a place" links were
+  under 44px; the queue's disclosure had no open/closed marker, a box 22
+  lines tall instead of 20, and a scrolling box the keyboard could not
+  reach. docs/design-system.md updated first. Verified by new unit tests
+  (thread post focus, reply edit and delete, vote and sort status,
+  unfollow focus, follower count live region, Appearance re-announce,
+  report box in the tab order, Best order status), a 375-pixel target-size
+  check of these screens in phoneWidth.test.ts (fails on the old code),
+  and a11y.spec.ts, which now scans the thread, /saved, /appearance, a
+  profile with Follow and the open report copy in both themes. Seen and
+  left for another pass, outside the screens in scope: the lore page's
+  "Name this lore" (36px), its story-list author links and cast-tag links
+  (20px).
+
 - The front page's everywhere listings read an index in rank and newest
   order (migration 33) instead of sorting every day: 55 ms warm and 368 ms
   cold at beta scale (90k days) become 0.5 ms. Verified by EXPLAIN ANALYZE

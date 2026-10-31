@@ -234,6 +234,8 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
           { ...perspective("pub-2"), loreStatus: "LORE_STATUS_SOLO" },
         ],
       };
+    case "PerspectiveService/ListSaved":
+      return { perspectives: [perspective("pub-5"), { ...perspective("pub-6"), loreStatus: "LORE_STATUS_SOLO" }], nextPageToken: "more" };
     case "PerspectiveService/ListByAuthor":
       return { perspectives: [perspective("pub-3"), { ...perspective("pub-4"), loreStatus: "LORE_STATUS_SOLO" }] };
     case "LoreService/GetLore":
@@ -278,8 +280,11 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
       };
     case "UserService/GetProfile":
       return {
+        // Another writer's profile, so the Follow toggle shows.
+        following: body.username === "other",
+        followers: 12345,
         profile: {
-          userId: "u-me",
+          userId: body.username === "other" ? "u-other" : "u-me",
           username,
           bio: prose.slice(0, 280),
           joinedAt: ts,
@@ -363,6 +368,7 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
           targetLabel: k === "PLACE" ? storeName : title,
           reason: "REPORT_REASON_REAL_NAME_OR_HANDLE_OF_NON_USER",
           details: `${longWord} `.repeat(12),
+          reportedText: `${prose}\n`.repeat(6),
           status: "REPORT_STATUS_OPEN",
           createdAt: ts,
         })),
@@ -516,6 +522,9 @@ const cases: Case[] = [
   { path: "/login", signedIn: false, label: "Email" },
   { path: "/signup", signedIn: false, label: "Username" },
   { path: "/settings", text: "Mobile/15E148" },
+  { path: "/saved", text: longTitle },
+  { path: "/appearance", label: "Larger" },
+  { path: "/users/other", text: "12345 followers" },
   { path: "/inbox", text: longTitle },
   { path: "/admin/audit", text: "hid a place" },
   { path: `/admin/users?q=${username}`, text: "23456, 3456 hidden" },
@@ -534,6 +543,54 @@ describe("every route at 375 pixels (OT-037, AC-034)", () => {
       const got = await overflow(page);
       expect(got.offenders, got.offenders.join("\n")).toEqual([]);
       expect(got.scrollWidth).toBe(PHONE.width);
+      await page.context().close();
+    },
+    120_000,
+  );
+});
+
+/**
+ * Every control on the newest screens is a 44-pixel target (Folio,
+ * Interaction), measured in the browser at 375 pixels with Larger story
+ * text: the thread, Writers you follow, Saved, Appearance, a profile's
+ * Follow, the best days at a kind of place and the report queue with its
+ * disclosure open. A link set inline in a sentence is exempt, as WCAG's
+ * target size is.
+ */
+describe("the newest screens' targets at 375 pixels", () => {
+  const screens: (Case & { scope: string; open?: string })[] = [
+    { path: "/lores/lore-canon", text: "Show 4 more replies", scope: "section:has(> h2:text-is('Thread'))" },
+    { path: "/settings", text: "Mobile/15E148", scope: "section:has(> h2:text-is('Writers you follow'))" },
+    { path: "/saved", text: longTitle, scope: "main" },
+    { path: "/appearance", label: "Larger", scope: "main" },
+    { path: "/users/other", text: "12345 followers", scope: "main" },
+    { path: "/best/arts-and-entertainment", signedIn: false, text: longTitle, scope: "main" },
+    { path: "/best/bowling", signedIn: false, text: "Kind of place not found", scope: "main" },
+    { path: "/admin/reports", text: storeName, scope: "main", open: "What it said when reported" },
+  ];
+  it.each(screens)(
+    "$path: no target in $scope is under 44 pixels tall, and nothing scrolls sideways",
+    async ({ path, signedIn = true, label: field, text, scope, open }) => {
+      const page = await phonePage(signedIn);
+      await page.addInitScript(() => localStorage.setItem("perspectiv.text", "larger"));
+      await page.goto(base + path);
+      await page.locator("h1").first().waitFor();
+      if (field) await page.getByLabel(field).first().waitFor();
+      if (text) await page.getByText(text, { exact: false }).first().waitFor();
+      await page.waitForLoadState("networkidle");
+      if (open) for (const summary of await page.getByText(open, { exact: true }).all()) await summary.click();
+      const small = await page.locator(scope).first().evaluate((root) => {
+        const targets = root.querySelectorAll<HTMLElement>("a[href], button, summary, [role='tab'], label:has(input)");
+        return [...targets]
+          .filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).display !== "inline")
+          .filter((el) => !(el.tagName === "BUTTON" && el.closest("label")))
+          .map((el) => ({ el, h: el.getBoundingClientRect().height }))
+          .filter(({ h }) => h < 43.5)
+          .map(({ el, h }) => `${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 40)}" ${h.toFixed(1)}px`);
+      });
+      expect(small, small.join("\n")).toEqual([]);
+      const got = await overflow(page);
+      expect(got.offenders, got.offenders.join("\n")).toEqual([]);
       await page.context().close();
     },
     120_000,

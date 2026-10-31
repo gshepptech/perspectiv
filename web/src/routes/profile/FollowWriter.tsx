@@ -62,7 +62,10 @@ export function FollowWriter({
           {following ? "Following" : "Follow"}
         </Button>
       )}
-      <p className="text-sm text-ink-muted">{followerCount(followers)}</p>
+      {/* Polite and live, so the new count is read after a press. */}
+      <p aria-live="polite" className="text-sm text-ink-muted">
+        {followerCount(followers)}
+      </p>
       {follow.isError && (
         <p role="alert" className="w-full text-sm text-error">
           {actionError(follow.error)}

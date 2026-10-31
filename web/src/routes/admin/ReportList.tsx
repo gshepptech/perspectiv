@@ -1,6 +1,7 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronRight } from "lucide-react";
 import { useId, useState } from "react";
 import { Link } from "react-router";
 
@@ -35,18 +36,24 @@ function ReportItem({ report, onResolve }: { report: Report; onResolve?: () => v
       <p className="font-medium">{reportReasonLabel(report.reason)}</p>
       {report.details && <p className="[overflow-wrap:anywhere]">{report.details}</p>}
       {report.reportedText && (
-        <details className="min-w-0">
-          <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-medium text-accent">
+        <details className="group min-w-0">
+          {/* The chevron, not the browser's marker, shows it open or closed, as on the arc page. */}
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-medium text-accent [&::-webkit-details-marker]:hidden">
+            <ChevronRight aria-hidden size={16} className="shrink-0 group-open:rotate-90" />
             What it said when reported
           </summary>
-          <p
+          {/* Its own scroll past 20 lines, so it is in the tab order to scroll by keyboard. */}
+          <div
+            role="region"
+            aria-label="What it said when reported"
+            tabIndex={0}
             className={cn(
-              "max-h-[34em] overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]",
+              "max-h-[20lh] overflow-y-auto whitespace-pre-wrap [overflow-wrap:anywhere]",
               (report.targetKind === ReportTargetKind.PERSPECTIVE || report.targetKind === ReportTargetKind.LORE_POST) && "font-serif",
             )}
           >
             {report.reportedText}
-          </p>
+          </div>
         </details>
       )}
       <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
@@ -72,12 +79,12 @@ function ReportItem({ report, onResolve }: { report: Report; onResolve?: () => v
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         {target && (
-          <Link to={target.href} className="text-sm text-accent underline underline-offset-4">
+          <Link to={target.href} className="inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4">
             {target.text}
           </Link>
         )}
         {onResolve && (
-          <Button size="sm" onClick={onResolve}>
+          <Button size="sm" className="min-h-11" onClick={onResolve}>
             Resolve
           </Button>
         )}

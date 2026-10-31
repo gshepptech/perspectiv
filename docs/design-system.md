@@ -296,10 +296,12 @@ answer, and nothing deeper than one step of indent.
   Tabs, "Top" (most upvoted first, ties oldest first; the default) and
   "New" (newest first). The tabs are 44px tall with the accent underline on
   the current one; switching keeps the reader's place on the page and
-  moves no focus. Replies are always oldest first, whatever the sort.
+  moves no focus, and a visually hidden polite `status` names the new
+  order ("Most upvoted first." or "Newest first."). Replies are always
+  oldest first, whatever the sort.
 - **A post** is an `<article>` named by its author ("otter's post"). Its
-  byline is one `text-sm` `ink-muted` line: the author link, "In this
-  lore" flair for a member, the time, and "· edited" when the author
+  byline is one `text-sm` `ink-muted` line: the author link (44px tall,
+  as in a story's byline), "In this lore" flair for a member, the time, and "· edited" when the author
   changed it (the time of the edit in the `<time>` title). The body follows
   in the interface face, wrapping anywhere, keeping the writer's line breaks.
 - **Action row** under the body, every control at least 44px tall and
@@ -307,7 +309,9 @@ answer, and nothing deeper than one step of indent.
   `aria-pressed` for the viewer's own vote, named "Upvote otter's post");
   "Reply"; then "Edit" and "Delete" on the viewer's own post, or "Report"
   on anyone else's. Someone who may not vote sees the count without the
-  toggle, and never sees the toggle on their own post.
+  toggle, and never sees the toggle on their own post. After the viewer's
+  own vote a visually hidden polite `status` gives the result and the new
+  count ("Upvoted. 5 upvotes." or "Upvote removed. 4 upvotes.").
 - **Replies** sit under their post in an `<ol>` indented one step
   (`pl-4`, a 2px `rule` left border), oldest first. A reply that answered
   another reply opens with "Replying to @name" in `text-sm` `ink-muted`.
@@ -319,6 +323,9 @@ answer, and nothing deeper than one step of indent.
   Cancel closes it and returns focus to the "Reply" button. "Edit" turns the
   body into the same form ("Edit your post", "Save" and "Cancel"). The
   1,000-character limit and the errors read as they do on the main form.
+  A new post or reply shows at once and takes focus: a reply at the end of
+  its group, a new post at the end of the list until the thread re-reads
+  it into its place in the sort.
 - **Delete** asks first in a Radix Dialog ("Delete your post?", with a
   `danger` "Delete" and "Cancel"). A deleted post with replies stays as
   "[deleted]" in `ink-muted` italic with no byline, actions or count, its
@@ -388,6 +395,9 @@ like one.
   days at bars and clubs", "The best days at hotels"). The tab says the
   same. Under it, one line in Public Sans, `ink-muted`: "Days ranked by
   their canon across every place of this kind."
+- **Order changes are announced.** Switching tabs moves no focus; a
+  visually hidden polite `status` names the new order ("Ranked by canon." or
+  "Newest first.").
 - **Tabs.** Ranked and Newest, the place page's `Tabs` with the same
   underline for the current tab, kept in the address as `?tab=newest` (the
   bare address is Ranked). There is no Tales tab and no genre filter: the
@@ -397,7 +407,7 @@ like one.
   ("Iron Gym, Tampa") because the list spans every city. "Show more" pages
   as on the place page.
 - **Empty.** "No one has written about a day at *plural* yet." and a link
-  back to the front page's search.
+  back to the front page's search, 44px tall.
 - **Unknown slug.** The not-found pattern of a missing place: "Kind of place
   not found", a line saying the address does not name one, and a link to
   the front page.
@@ -464,7 +474,8 @@ two rows for the same browser are told apart.
   on, `aria-pressed` either way, and its accessible name adds the writer
   ("Follow wren"). A signed-out reader who presses it is sent to sign in.
   Beside it a `text-sm` `ink-muted` line counts followers ("1 follower",
-  "12 followers"); the count shows to everyone, the toggle only on someone
+  "12 followers"), a polite live region so the new count is read after a
+  press; the count shows to everyone, the toggle only on someone
   else's live profile, never on your own or a deleted one. A refusal (a
   block either way) is a `role="alert"` line in `error` under the toggle.
 - **Settings: Writers you follow.** A section headed "Writers you follow"
@@ -473,9 +484,11 @@ two rows for the same browser are told apart.
   follow first, each row the avatar (32px, round, only when set) and the
   username as a link to their profile, and an "Unfollow" `secondary` `sm`
   button on the right whose accessible name adds the writer ("Unfollow
-  wren"). Unfollowing removes the row once the server confirms. With none,
-  the section says "You do not follow any writers yet." Rows keep the 44px
-  target and wrap long usernames at 375px.
+  wren"). Unfollowing removes the row once the server confirms, and a
+  `status` line under the list, "You no longer follow wren.", takes focus,
+  since the button that had it is gone. With none, the section says "You
+  do not follow any writers yet." The username link and the Unfollow
+  button are each at least 44px tall, and long usernames wrap at 375px.
 - **Inbox.** A followed writer's story reads "*writer* wrote a new story in
   *day*." and opens the story; its settings toggle is "A new story by a
   writer you follow".
@@ -521,8 +534,10 @@ two rows for the same browser are told apart.
   "Larger" (22px). It sizes story text (`prose-body`) only; the interface
   keeps its size, and the measure stays 65 characters.
 - A choice applies at once, with no save button, and a `text-sm` line under
-  the groups says "Saved on this device." Every option is a native radio
-  with a visible label, at least 44px tall.
+  the groups says "Saved on this device." It is a polite `status` that is
+  read again after every choice, not only the first. Every option is a
+  native radio with a visible label, at least 44px tall. The page heading
+  takes focus on arrival and shows the focus outline like any other.
 - The choice is applied before the first paint by `public/appearance.js`,
   which sets `data-theme` and `data-text` on the root element and the page's
   `theme-color`, so a page never flashes the other theme.
@@ -594,9 +609,13 @@ heading, a plain list of entries with `rule` dividers, "Show more" to page.
 - In the report queue, the reporter's name links to their dossier.
 - A report shows what its target said when it was filed, so an edit after
   the report cannot hide it: a `<details>` disclosure, "What it said when
-  reported", closed by default, holding the text in `whitespace-pre-wrap`
-  with the serif face for story and post text, at most 20 lines tall with
-  its own scroll.
+  reported", closed by default, its summary 44px tall with a 16px
+  `ChevronRight` that points down while it is open, holding the text in
+  `whitespace-pre-wrap` with the serif face for story and post text, at
+  most 20 lines tall (`20lh`) with its own scroll. The scrolling box is in
+  the tab order, named "What it said when reported", so a keyboard can
+  scroll it. A report's "Resolve" and its link to the target are 44px
+  tall.
 - **Undoing a decision.** A suspended account's dossier offers "Lift
   suspension…" beside its standing; a hide entry in the audit log
   (perspective, place or thread post) offers "Restore…". Both open the

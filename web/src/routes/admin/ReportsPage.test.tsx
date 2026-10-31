@@ -67,6 +67,9 @@ describe("report queue (FR-035)", () => {
     await user.click(within(item).getByText("What it said when reported"));
     expect(copy).toBeVisible();
     expect(copy).toHaveClass("font-serif", "whitespace-pre-wrap");
+    // The text scrolls on its own past 20 lines, so the keyboard reaches it next.
+    await user.tab();
+    expect(within(item).getByRole("region", { name: "What it said when reported" })).toHaveFocus();
   });
 
   it("resolves a report with an action and an audit reason, then drops it from the open queue", async () => {

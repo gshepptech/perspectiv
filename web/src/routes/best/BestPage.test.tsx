@@ -66,7 +66,10 @@ describe("best days at a kind of place", () => {
     const user = userEvent.setup();
     const { router, calls } = bestPage();
     await screen.findByRole("list", { name: "Days" });
+    expect(screen.queryByText("Ranked by canon.")).toBeNull();
     await user.click(screen.getByRole("tab", { name: "Newest" }));
+    // Focus stays on the tab; a hidden status says the order changed.
+    expect(screen.getByText("Newest first.")).toHaveAttribute("role", "status");
     expect(await screen.findByRole("link", { name: "Rain delay" })).toHaveAttribute("href", "/arcs/arc-new");
     expect(router.state.location.search).toBe("?tab=newest");
     expect(calls("PlaceService/GetEpic").at(-1)).toEqual({ tab: "EPIC_TAB_NEWEST", category: "PLACE_CATEGORY_SPORTS_AND_RECREATION" });

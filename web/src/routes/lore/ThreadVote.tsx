@@ -9,6 +9,10 @@ import { clients } from "@/lib/connect";
 
 import { useInvalidateThread } from "./threadQueries";
 
+function upvoteCount(n: number): string {
+  return `${n} ${n === 1 ? "upvote" : "upvotes"}`;
+}
+
 /**
  * A thread post's upvote toggle and count. There is no downvote: pressing it
  * again clears the vote. Without `canVote` (signed out, no story in the arc,
@@ -19,9 +23,15 @@ export function ThreadVote({ post, canVote, targetName }: { post: LorePost; canV
   // The server's last answer, shown until the post refetches with it.
   const [answer, setAnswer] = useState<{ on: boolean; upvotes: number } | null>(null);
   useEffect(() => setAnswer(null), [post.viewerUpvoted, post.upvotes]);
+  // What the hidden status says after the viewer's own vote. It outlives
+  // `answer`, which clears when the post refetches.
+  const [said, setSaid] = useState("");
   const vote = useMutation({
     mutationFn: (on: boolean) => clients.lore.voteLorePost({ postId: post.id, on }),
-    onSuccess: (res) => setAnswer({ on: res.on, upvotes: res.upvotes }),
+    onSuccess: (res) => {
+      setAnswer({ on: res.on, upvotes: res.upvotes });
+      setSaid(`${res.on ? "Upvoted" : "Upvote removed"}. ${upvoteCount(res.upvotes)}.`);
+    },
     onSettled: () => invalidate(),
   });
   const on = answer?.on ?? post.viewerUpvoted;
@@ -51,6 +61,11 @@ export function ThreadVote({ post, canVote, targetName }: { post: LorePost; canV
         {upvotes}
         <span className="sr-only"> {upvotes === 1 ? "upvote" : "upvotes"}</span>
       </span>
+      {canVote && (
+        <span role="status" className="sr-only">
+          {said}
+        </span>
+      )}
       {vote.isError && (
         <p role="alert" className="text-sm text-error">
           {actionError(vote.error)}

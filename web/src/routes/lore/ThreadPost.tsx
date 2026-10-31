@@ -25,6 +25,8 @@ type Props = {
   viewerId: string | undefined;
   /** The server's copy of a reply the viewer just wrote here. */
   onReplied: (reply: LorePost) => void;
+  /** The server's copy of this post after the viewer edited it. */
+  onEdited: (post: LorePost) => void;
   /** The viewer deleted this post. */
   onGone: () => void;
 };
@@ -34,7 +36,7 @@ type Props = {
  * when the viewer opens one. A deleted post that stays for its replies is a
  * bare "[deleted]".
  */
-export function ThreadPost({ post, loreId, canPost, viewerId, onReplied, onGone }: Props) {
+export function ThreadPost({ post, loreId, canPost, viewerId, onReplied, onEdited, onGone }: Props) {
   if (post.deleted) {
     return (
       <article aria-label="Deleted post" data-post-id={post.id}>
@@ -42,10 +44,12 @@ export function ThreadPost({ post, loreId, canPost, viewerId, onReplied, onGone 
       </article>
     );
   }
-  return <LivePost post={post} loreId={loreId} canPost={canPost} viewerId={viewerId} onReplied={onReplied} onGone={onGone} />;
+  return (
+    <LivePost post={post} loreId={loreId} canPost={canPost} viewerId={viewerId} onReplied={onReplied} onEdited={onEdited} onGone={onGone} />
+  );
 }
 
-function LivePost({ post, loreId, canPost, viewerId, onReplied, onGone }: Props) {
+function LivePost({ post, loreId, canPost, viewerId, onReplied, onEdited, onGone }: Props) {
   const invalidate = useInvalidateThread();
   const name = post.author?.username ?? "someone";
   const mine = !!viewerId && post.author?.userId === viewerId;
@@ -74,7 +78,8 @@ function LivePost({ post, loreId, canPost, viewerId, onReplied, onGone }: Props)
   });
   const edit = useMutation({
     mutationFn: (body: string) => clients.lore.editLorePost({ postId: post.id, body }),
-    onSuccess: async () => {
+    onSuccess: async (res) => {
+      if (res.post) onEdited(res.post);
       close();
       await invalidate();
     },
@@ -83,7 +88,7 @@ function LivePost({ post, loreId, canPost, viewerId, onReplied, onGone }: Props)
   return (
     <article aria-label={`${name}'s post`} data-post-id={post.id} className="min-w-0">
       <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-ink-muted">
-        {post.author && <AuthorLink username={post.author.username} />}
+        {post.author && <AuthorLink username={post.author.username} className="inline-flex min-h-11 items-center" />}
         {post.byMember && <span className="rounded-full bg-accent/10 px-2 text-xs font-medium text-accent">In this lore</span>}
         {post.createdAt && <time dateTime={timestampDate(post.createdAt).toISOString()}>{when.format(timestampDate(post.createdAt))}</time>}
         {post.editedAt && (

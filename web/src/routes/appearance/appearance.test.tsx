@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -31,6 +31,21 @@ describe("appearance", () => {
     await user.click(screen.getByRole("radio", { name: /Match this device/ }));
     expect(document.documentElement.dataset.theme).toBeUndefined();
     expect(localStorage.getItem("perspectiv.theme")).toBeNull();
+  });
+
+  it('puts "Saved on this device." in the status line again after every choice, so each is announced', async () => {
+    const user = userEvent.setup();
+    renderApp("/appearance", {});
+    await screen.findByRole("heading", { level: 1, name: "Appearance" });
+    const status = screen.getByRole("status");
+    const added: string[] = [];
+    new MutationObserver((records) => {
+      for (const r of records) for (const n of r.addedNodes) added.push(n.textContent ?? "");
+    }).observe(status, { childList: true, subtree: true });
+    await user.click(screen.getByRole("radio", { name: "Lamplight (dark)" }));
+    await user.click(screen.getByRole("radio", { name: "Larger" }));
+    await user.click(screen.getByRole("radio", { name: "Paper (light)" }));
+    await waitFor(() => expect(added).toEqual(["Saved on this device.", "Saved on this device.", "Saved on this device."]));
   });
 
   it("opens with the saved choices and ignores values it does not know", async () => {

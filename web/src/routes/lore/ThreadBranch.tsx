@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/Button";
 import type { LorePost } from "@/gen/perspectiv/v1/lore_pb";
@@ -7,13 +7,17 @@ import { useShowMore } from "@/lib/showMore";
 
 import { repliesQuery } from "./threadQueries";
 import { ThreadPost } from "./ThreadPost";
+import { useFocusPost, useWritten, withWritten } from "./written";
 
 type Props = {
   top: LorePost;
   loreId: string;
   canPost: boolean;
   viewerId: string | undefined;
-  onGone: () => void;
+  /** The viewer deleted the top post or one of its replies. */
+  onGone: (id: string) => void;
+  /** The viewer edited the top post. */
+  onEdited: (post: LorePost) => void;
 };
 
 /**
@@ -22,18 +26,16 @@ type Props = {
  * at a time behind "Show N more replies". A reply the viewer writes here
  * shows at once, at the end, and takes focus.
  */
-export function ThreadBranch({ top, loreId, canPost, viewerId, onGone }: Props) {
+export function ThreadBranch({ top, loreId, canPost, viewerId, onGone, onEdited }: Props) {
   const client = useQueryClient();
-  const [posted, setPosted] = useState<LorePost[]>([]);
-  const [focusId, setFocusId] = useState<string | null>(null);
+  const written = useWritten();
   const [expanded, setExpanded] = useState(false);
   const options = repliesQuery(top.id, top.moreRepliesToken);
   const more = useInfiniteQuery({ ...options, enabled: expanded && top.moreRepliesToken !== "" });
 
   const loaded = dedupe([...top.replies, ...(more.data?.pages.flatMap((p) => p.replies) ?? [])]);
-  const loadedIds = new Set(loaded.map((r) => r.id));
-  const extra = posted.filter((p) => !loadedIds.has(p.id));
-  const remaining = top.moreRepliesToken === "" ? 0 : Math.max(0, top.replyCount - loaded.length - extra.length);
+  const replies = withWritten(loaded, written.written);
+  const remaining = top.moreRepliesToken === "" ? 0 : Math.max(0, top.replyCount - replies.length);
 
   const fetchMore = (): Promise<{ isError: boolean }> => {
     if (!expanded) {
@@ -46,30 +48,40 @@ export function ThreadBranch({ top, loreId, canPost, viewerId, onGone }: Props) 
     return more.hasNextPage ? more.fetchNextPage() : more.refetch();
   };
   const show = useShowMore<HTMLOListElement>(loaded.length, fetchMore);
-
-  useEffect(() => {
-    if (!focusId) return;
-    const el = show.list.current?.querySelector<HTMLElement>(`[data-post-id="${focusId}"]`);
-    if (!el) return;
-    el.tabIndex = -1;
-    el.focus();
-    setFocusId(null);
-  });
+  const focusPost = useFocusPost(show.list);
 
   const replied = (reply: LorePost) => {
-    setPosted((ps) => [...ps, reply]);
-    setFocusId(reply.id);
+    written.add(reply);
+    focusPost(reply.id);
   };
-  const replies = [...loaded, ...extra];
 
   return (
     <>
-      <ThreadPost post={top} loreId={loreId} canPost={canPost} viewerId={viewerId} onReplied={replied} onGone={onGone} />
+      <ThreadPost
+        post={top}
+        loreId={loreId}
+        canPost={canPost}
+        viewerId={viewerId}
+        onReplied={replied}
+        onEdited={onEdited}
+        onGone={() => onGone(top.id)}
+      />
       {replies.length > 0 && (
         <ol ref={show.list} aria-label={`Replies to ${top.author?.username ?? "a deleted post"}`} className="mt-3 grid gap-3 border-l-2 border-rule pl-4">
           {replies.map((r) => (
             <li key={r.id} className="min-w-0">
-              <ThreadPost post={r} loreId={loreId} canPost={canPost} viewerId={viewerId} onReplied={replied} onGone={onGone} />
+              <ThreadPost
+                post={r}
+                loreId={loreId}
+                canPost={canPost}
+                viewerId={viewerId}
+                onReplied={replied}
+                onEdited={written.edited}
+                onGone={() => {
+                  written.gone(r.id);
+                  onGone(r.id);
+                }}
+              />
             </li>
           ))}
         </ol>

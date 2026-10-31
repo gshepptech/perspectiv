@@ -5,6 +5,10 @@
  * place, arc, story, claims and lore pages are scanned with real content.
  * The second writer is the find-yourself spec's Gil, signed in with his
  * password in a session of his own (see a11yAccounts for why).
+ * The lore's thread (a post, an upvote and a reply), Saved, Appearance, a
+ * profile's Follow toggle and the report queue with its disclosure open are
+ * scanned in both themes, forced through the root's data-theme as the
+ * Appearance page forces them.
  * The scan fails on any serious or critical WCAG 2.1 A or AA violation and
  * lists every one, route by route.
  */
@@ -17,6 +21,9 @@ import { reader, signedIn, signInWithPassword, visit, writeAt, writeInArc, type 
 const STORE = "Palafox Record Exchange";
 const CLERK = "the clerk sorting a crate of jazz records";
 const WCAG21_AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+// Thirty short lines, under the 1,000-character limit: taller than the
+// report queue's 20-line box, so that box scrolls.
+const LONG_POST = Array.from({ length: 30 }, (_, i) => `Bin ${i + 1}: Coltrane, Monk, Mingus.`).join("\n");
 
 type Finding = { route: string; id: string; impact: string; help: string; targets: string[] };
 
@@ -47,6 +54,20 @@ async function scanAs(w: Writer, path: string, ready?: (page: Page) => Locator):
   return scan(w.page, path);
 }
 
+/**
+ * Scans the page as it stands in Paper and then in Lamplight, forced on the
+ * root element, and puts the reader's own theme back.
+ */
+async function scanBothThemes(page: Page, route: string, ready?: Locator): Promise<Finding[]> {
+  const found: Finding[] = [];
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate((t) => (document.documentElement.dataset.theme = t), theme);
+    found.push(...(await scan(page, `${route} (${theme})`, ready)));
+  }
+  await page.evaluate(() => delete document.documentElement.dataset.theme);
+  return found;
+}
+
 function report(findings: Finding[]): string {
   return findings
     .map((f) => `${f.route}: [${f.impact}] ${f.id}: ${f.help}\n${f.targets.map((t) => `    ${t}`).join("\n")}`)
@@ -54,7 +75,7 @@ function report(findings: Finding[]): string {
 }
 
 test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violations", async ({ browser }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(360_000);
   const { ivy: ivyAcct } = a11yAccounts();
   const { gil: gilAcct } = findAccounts();
   const ivy = await signedIn(browser, ivyAcct);
@@ -68,7 +89,7 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
     parts: ["The line started before dawn.", "By noon the jazz bins were empty."],
     characters: [CLERK],
   });
-  await writeInArc(gil, arc, { genre: "Comedy", parts: ["I sorted that crate three times and nobody bought a thing."] });
+  const gilStory = await writeInArc(gil, arc, { genre: "Comedy", parts: ["I sorted that crate three times and nobody bought a thing."] });
   await visit(gil.page, gilAcct, arc);
   await gil.page.getByRole("link", { name: `Read ${ivyAcct.username}'s perspective` }).click();
   const actions = gil.page.getByRole("region", { name: "Respond to this story" });
@@ -92,6 +113,46 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
   const lore = await ivy.page.getByRole("link", { name: /Open (this lore|the canon)/ }).first().getAttribute("href");
   expect(place).toMatch(/^\/places\//);
   expect(lore).toMatch(/^\/lores\//);
+
+  // The thread: Ivy posts, and her post takes focus; Gil upvotes it, which
+  // is announced, replies, and reports it for the queue below.
+  await visit(ivy.page, ivyAcct, lore as string);
+  const thread = (p: Page) => p.getByRole("region", { name: "Thread" });
+  const ivysPost = (p: Page) => thread(p).getByRole("article", { name: `${ivyAcct.username}'s post` });
+  await thread(ivy.page).getByRole("textbox", { name: "Add to the thread" }).fill(LONG_POST);
+  await thread(ivy.page).getByRole("button", { name: "Post", exact: true }).click();
+  await expect(ivysPost(ivy.page)).toBeFocused();
+  await visit(gil.page, gilAcct, lore as string);
+  await ivysPost(gil.page).getByRole("button", { name: `Upvote ${ivyAcct.username}'s post` }).click();
+  await expect(ivysPost(gil.page).getByRole("status")).toHaveText("Upvoted. 1 upvote.");
+  await ivysPost(gil.page).getByRole("button", { name: "Reply" }).click();
+  await thread(gil.page).getByRole("textbox", { name: `Reply to ${ivyAcct.username}` }).fill("Me. Sorry about Monk.");
+  await thread(gil.page).getByRole("button", { name: "Post reply" }).click();
+  const gilsReply = thread(gil.page).getByRole("article", { name: `${gilAcct.username}'s post` });
+  await expect(gilsReply).toBeFocused();
+  await ivysPost(gil.page).getByRole("button", { name: /^Report/ }).click();
+  const reportDialog = gil.page.getByRole("dialog", { name: `Report ${ivyAcct.username}'s post` });
+  await reportDialog.getByRole("combobox", { name: "Reason" }).click();
+  await gil.page.getByRole("option").first().click();
+  await reportDialog.getByRole("button", { name: "Send report" }).click();
+  await expect(reportDialog.getByRole("status")).toBeVisible();
+  await gil.page.keyboard.press("Escape");
+  findings.push(...(await scanBothThemes(gil.page, `${lore} (thread, as a member)`, gilsReply)));
+
+  // Ivy saves Gil's story and follows him, so Saved, his profile and
+  // Settings' "Writers you follow" have something in them.
+  await visit(ivy.page, ivyAcct, gilStory.perspective);
+  await ivy.page.getByRole("button", { name: `Save ${gilAcct.username}'s perspective` }).click();
+  await expect(ivy.page.getByRole("button", { name: `Saved ${gilAcct.username}'s perspective` })).toHaveAttribute("aria-pressed", "true");
+  await visit(ivy.page, ivyAcct, "/saved");
+  findings.push(...(await scanBothThemes(ivy.page, "/saved", ivy.page.getByRole("list", { name: "Saved stories" }))));
+  await visit(ivy.page, ivyAcct, `/users/${gilAcct.username}`);
+  await ivy.page.getByRole("button", { name: `Follow ${gilAcct.username}` }).click();
+  const following = ivy.page.getByRole("button", { name: `Following ${gilAcct.username}` });
+  await expect(following).toHaveAttribute("aria-pressed", "true");
+  findings.push(...(await scanBothThemes(ivy.page, `/users/${gilAcct.username}`, following)));
+  await visit(ivy.page, ivyAcct, "/appearance");
+  findings.push(...(await scanBothThemes(ivy.page, "/appearance", ivy.page.getByRole("radio", { name: "Larger" }))));
 
   const member: [string, ((page: Page) => Locator)?][] = [
     ["/", (p) => p.getByRole("heading", { level: 1, name: `Welcome back, ${ivyAcct.username}` })],
@@ -117,6 +178,14 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
     ["/admin/access"],
   ];
   for (const [path, ready] of adminRoutes) findings.push(...(await scanAs(ivy, path, ready)));
+
+  // The queue's copy of Ivy's post, opened: taller than its box, so it scrolls.
+  await visit(ivy.page, ivyAcct, "/admin/reports");
+  await ivy.page.getByText("What it said when reported").first().click();
+  const copy = ivy.page.getByRole("region", { name: "What it said when reported" }).first();
+  await expect(copy).toContainText("Bin 30");
+  expect(await copy.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+  findings.push(...(await scanBothThemes(ivy.page, "/admin/reports (what it said, open)", copy)));
 
   const anon = await reader(browser);
   for (const path of ["/login", "/signup"]) {

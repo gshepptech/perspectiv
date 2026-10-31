@@ -31,10 +31,11 @@ describe("following a writer from their profile", () => {
     );
     const follow = await screen.findByRole("button", { name: "Follow wren" });
     expect(follow).toHaveAttribute("aria-pressed", "false");
-    expect(screen.getByText("2 followers")).toBeInTheDocument();
+    // The count is a polite live region, so the new count is read after a press.
+    expect(screen.getByText("2 followers")).toHaveAttribute("aria-live", "polite");
     await user.click(follow);
     expect(await screen.findByRole("button", { name: "Following wren" })).toHaveAttribute("aria-pressed", "true");
-    expect(await screen.findByText("3 followers")).toBeInTheDocument();
+    expect(await screen.findByText("3 followers")).toHaveAttribute("aria-live", "polite");
     await user.click(screen.getByRole("button", { name: "Following wren" }));
     expect(await screen.findByRole("button", { name: "Follow wren" })).toHaveAttribute("aria-pressed", "false");
     expect(await screen.findByText("2 followers")).toBeInTheDocument();

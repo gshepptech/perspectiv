@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/Button";
@@ -11,21 +12,29 @@ import { Section } from "./Section";
 
 /**
  * The writers the caller follows, newest follow first, each with an
- * Unfollow. A row leaves once the server confirms the unfollow.
+ * Unfollow. A row leaves once the server confirms the unfollow, and focus,
+ * which was on its button, moves to a status line saying so.
  */
 export function FollowedWritersSection() {
   const queryClient = useQueryClient();
+  const [unfollowed, setUnfollowed] = useState<string | null>(null);
+  const status = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (unfollowed) status.current?.focus();
+  }, [unfollowed]);
   const list = useQuery({
     queryKey: followedWritersKey,
     queryFn: ({ signal }) => clients.user.listFollowedWriters({}, { signal }),
   });
   const unfollow = useMutation({
     mutationFn: (username: string) => clients.user.followUser({ username, on: false }),
-    onSuccess: (_res, username) =>
-      Promise.all([
+    onSuccess: (_res, username) => {
+      setUnfollowed(username);
+      return Promise.all([
         queryClient.invalidateQueries({ queryKey: followedWritersKey }),
         queryClient.invalidateQueries({ queryKey: ["user", "getProfile", { username }] }),
-      ]),
+      ]);
+    },
   });
 
   const writers = list.data?.writers ?? [];
@@ -49,7 +58,7 @@ export function FollowedWritersSection() {
             <li key={w.userId} className="flex min-h-11 min-w-0 items-center justify-between gap-3 py-2">
               <Link
                 to={`/users/${encodeURIComponent(w.username)}`}
-                className="flex min-w-0 items-center gap-2 text-accent underline-offset-4 hover:underline"
+                className="flex min-h-11 min-w-0 items-center gap-2 text-accent underline-offset-4 hover:underline"
               >
                 {w.avatarUrl && <img src={w.avatarUrl} alt="" className="size-8 shrink-0 rounded-full border border-rule object-cover" />}
                 <span className="min-w-0 break-words">{w.username}</span>
@@ -57,6 +66,7 @@ export function FollowedWritersSection() {
               <Button
                 variant="secondary"
                 size="sm"
+                className="min-h-11"
                 aria-label={`Unfollow ${w.username}`}
                 pending={unfollow.isPending && unfollow.variables === w.username}
                 onClick={() => unfollow.mutate(w.username)}
@@ -66,6 +76,11 @@ export function FollowedWritersSection() {
             </li>
           ))}
         </ul>
+      )}
+      {unfollowed && (
+        <p ref={status} role="status" tabIndex={-1} className="mt-2 text-sm wrap-anywhere">
+          You no longer follow {unfollowed}.
+        </p>
       )}
       {unfollow.isError && (
         <div className="mt-2">

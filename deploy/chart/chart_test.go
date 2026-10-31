@@ -3,12 +3,14 @@ package chart
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -324,6 +326,33 @@ func checkWaiterRBAC(t *testing.T, objs map[string]object, sa string) {
 	}
 }
 
+// Every pod's pool together stays under the connections Postgres allows,
+// leaving room for the migration job, a backup and an operator's psql.
+func TestPoolsFitPostgresConnections(t *testing.T) {
+	t.Parallel()
+	objs := manifests(t)
+	pg := container(t, podSpec(must(t, objs, "StatefulSet/perspectiv-postgres")), "containers", "postgres")
+	maxConns := 0
+	for _, a := range list(pg, "args") {
+		if v, ok := strings.CutPrefix(fmt.Sprint(a), "max_connections="); ok {
+			maxConns, _ = strconv.Atoi(v)
+		}
+	}
+	total := 0
+	for _, name := range []string{"Deployment/perspectiv-api", "Deployment/perspectiv-worker"} {
+		d := must(t, objs, name)
+		replicas, _ := strconv.Atoi(fmt.Sprint(get(d, "spec", "replicas")))
+		pool, _ := strconv.Atoi(configEnv(t, objs, container(t, podSpec(d), "containers", "perspectiv"))["DB_MAX_CONNS"])
+		if replicas < 1 || pool < 1 {
+			t.Fatalf("%s: replicas %d, DB_MAX_CONNS %d", name, replicas, pool)
+		}
+		total += replicas * pool
+	}
+	if maxConns == 0 || total > maxConns-10 {
+		t.Fatalf("pools hold up to %d connections; postgres allows %d, and 10 are kept for jobs and operators", total, maxConns)
+	}
+}
+
 func TestProductionConfig(t *testing.T) {
 	t.Parallel()
 	objs := manifests(t)
@@ -337,7 +366,8 @@ func TestProductionConfig(t *testing.T) {
 		"MAIL_PROVIDER":    "resend",
 		"MAIL_FROM":        "Perspectiv <no-reply@perspectiv.example>",
 		// The beta: production starts invite-only.
-		"SIGNUP_MODE": "invite",
+		"SIGNUP_MODE":  "invite",
+		"DB_MAX_CONNS": "25",
 	}
 	for k, v := range want {
 		if vals[k] != v {

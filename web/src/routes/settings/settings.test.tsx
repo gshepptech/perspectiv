@@ -230,6 +230,10 @@ describe("SettingsPage writers you follow", () => {
     await waitFor(() => expect(within(region).queryByText("otter")).not.toBeInTheDocument());
     expect(within(region).getByText("heron")).toBeInTheDocument();
     expect(api.sent("UserService/FollowUser")).toEqual([{ username: "otter" }]);
+    // The button that had focus left with its row: focus is on the line that says so.
+    const said = within(region).getByRole("status");
+    expect(said).toHaveTextContent("You no longer follow otter.");
+    expect(said).toHaveFocus();
   });
 
   it("says when the member follows no one", async () => {
