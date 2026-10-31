@@ -2,14 +2,13 @@ package notify
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
+	"perspectiv/internal/api/apiutil"
 	"perspectiv/internal/notify/dbq"
 )
 
@@ -17,12 +16,9 @@ import (
 // names; the rest are counted ("and 2 more").
 const listedCharacters = 3
 
-// Email data keys of a new-story notification: the listed labels as a JSON
-// array and how many more there are.
-const (
-	dataCharacters     = "characters"
-	dataMoreCharacters = "more_characters"
-)
+// dataPerspectiveID is the email data key naming a new story, whose
+// unclaimed characters the email worker reads as it sends.
+const dataPerspectiveID = "perspective_id"
 
 // cast is the unclaimed characters a notification names: up to
 // listedCharacters labels, in the story's order, and how many more.
@@ -31,10 +27,11 @@ type cast struct {
 	More   int32
 }
 
-// unclaimedCast reads, for each story in ids that anyone may still read, the
-// characters nobody has claimed yet. A story that is deleted, hidden or has
-// every character claimed is absent from the map. The caller checks the
-// arc's place, which is not read here.
+// unclaimedCast reads, for each story in ids that anyone may still read and
+// claim from, the characters nobody has claimed yet: the rule
+// ListOpenCharacters and the claim path apply. A story that is deleted,
+// hidden, at or below a hidden place, voted out of its lore, by a deleted
+// account, or has every character claimed is absent from the map.
 func unclaimedCast(ctx context.Context, q *dbq.Queries, ids []uuid.UUID) (map[uuid.UUID]cast, error) {
 	out := map[uuid.UUID]cast{}
 	if len(ids) == 0 {
@@ -87,51 +84,29 @@ func castSubject(n Notification) (uuid.UUID, bool) {
 	return *n.Payload.PerspectiveID, true
 }
 
-// addCastData puts a new story's unclaimed characters into its email data,
-// read from the database now; nothing is added when it has none.
-func addCastData(ctx context.Context, q *dbq.Queries, ev event, data map[string]string) error {
-	if ev.kind != perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC || ev.payload.PerspectiveID == nil {
-		return nil
+// addCastSubject names, in a new story's email data, the story whose
+// unclaimed characters the email lists. The labels themselves are read when
+// the email is sent (see emailWorker.castFor), never copied into the job: a
+// story hidden, deleted or voted out of its lore while the job waits or
+// retries names nobody.
+func addCastSubject(ev event, data map[string]string) {
+	if ev.kind == perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC && ev.payload.PerspectiveID != nil {
+		data[dataPerspectiveID] = ev.payload.PerspectiveID.String()
 	}
-	id := *ev.payload.PerspectiveID
-	casts, err := unclaimedCast(ctx, q, []uuid.UUID{id})
-	if err != nil {
-		return err
-	}
-	c, ok := casts[id]
-	if !ok {
-		return nil
-	}
-	labels, err := json.Marshal(c.Labels)
-	if err != nil {
-		return err
-	}
-	data[dataCharacters] = string(labels)
-	data[dataMoreCharacters] = strconv.Itoa(int(c.More))
-	return nil
-}
-
-// castFromData reads back what addCastData wrote; a job without it, or with
-// data it cannot read, names nobody.
-func castFromData(data map[string]string) cast {
-	var c cast
-	if err := json.Unmarshal([]byte(data[dataCharacters]), &c.Labels); err != nil {
-		return cast{}
-	}
-	more, err := strconv.ParseInt(data[dataMoreCharacters], 10, 32)
-	if err == nil && more > 0 {
-		c.More = int32(more)
-	}
-	return c
 }
 
 // castPhrase lists the labels in quotes, joined as a sentence would, then
 // "and N more": “a”, “b” and “c”; or “a”, “b”, “c” and 2 more. It is ""
-// when there are no labels.
+// when there are no labels. Each label is put on one line with hidden
+// characters dropped (apiutil.PlainLine): a label stored before saving
+// enforced that cannot forge a line in the email. A label with nothing
+// left is not listed.
 func castPhrase(c cast) string {
-	quoted := make([]string, len(c.Labels))
-	for i, l := range c.Labels {
-		quoted[i] = "“" + l + "”"
+	quoted := make([]string, 0, len(c.Labels)+1)
+	for _, l := range c.Labels {
+		if l = apiutil.PlainLine(l); l != "" {
+			quoted = append(quoted, "“"+l+"”")
+		}
 	}
 	if c.More > 0 {
 		quoted = append(quoted, fmt.Sprintf("%d more", c.More))

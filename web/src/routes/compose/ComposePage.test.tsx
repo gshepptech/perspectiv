@@ -523,7 +523,9 @@ describe("choosing a place", () => {
     await user.click(screen.getByRole("button", { name: "Add a place" }));
     const form = await screen.findByRole("form", { name: "Add a place" });
     expect(within(form).getByRole("textbox", { name: "Name" })).toHaveValue("Tiny Tea");
-    await user.type(within(form).getByRole("searchbox", { name: "Where is it?" }), "new york");
+    const where = within(form).getByRole("searchbox", { name: "Where is it?" });
+    expect(where).toHaveAttribute("maxlength", "200");
+    await user.type(where, "new york");
     const parents = await within(form).findByRole("radiogroup", { name: "Places it can be in" });
     // A store cannot sit inside another store, so only the city is offered.
     expect(within(parents).queryByRole("radio", { name: /Corner Books/ })).toBeNull();

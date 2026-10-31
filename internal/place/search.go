@@ -2,8 +2,10 @@ package place
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -25,6 +27,10 @@ const (
 	maxLocalitiesPerName = 10
 	// maxSplitSearches bounds the searches under localities per request.
 	maxSplitSearches = 3
+	// maxSearchQuery bounds a search's text, in characters as sent: room
+	// for the longest place name (120) and the town it is in. The web
+	// search boxes stop typing at the same length.
+	maxSearchQuery = 200
 )
 
 // split is one reading of a search as a place name and the city or town it
@@ -42,13 +48,18 @@ type SearchResult struct {
 
 // Search runs the typeahead. parentID uuid.Nil searches every place; a
 // parent that is missing or hidden is NotFound. kind UNSPECIFIED matches
-// every kind.
+// every kind. A query longer than maxSearchQuery characters is
+// InvalidArgument before anything is read: each search can run up to
+// maxSplitSearches more under the towns it names.
 //
 // The places whose name starts with the whole text come first, then the
 // matches under each locality the text names, then the rest of the plain
 // search: "miami beach" still leads with Miami Beach, while "starbucks
 // tampa", which no name starts with, leads with the Starbucks in Tampa.
 func (s *Service) Search(ctx context.Context, query string, parentID uuid.UUID, kind perspectivv1.PlaceKind) (SearchResult, error) {
+	if utf8.RuneCountInString(query) > maxSearchQuery {
+		return SearchResult{}, apiutil.InvalidArg(fmt.Sprintf("search for at most %d characters", maxSearchQuery))
+	}
 	text := searchText(query)
 	if text == "" {
 		return SearchResult{}, apiutil.InvalidArg("query is required")

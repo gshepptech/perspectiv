@@ -117,6 +117,45 @@ func TestSearchPlacesByLocality(t *testing.T) {
 	})
 }
 
+// A story under a hidden place is not readable, so it does not make its
+// town the best locality: the search would otherwise tell anyone that the
+// hidden place holds a story.
+func TestSearchLocalityIgnoresHiddenStories(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	c := client(t, h.pool)
+	store := perspectivv1.PlaceKind_PLACE_KIND_STORE
+	indiana := h.place(perspectivv1.PlaceKind_PLACE_KIND_STATE, "Indiana", uuid.Nil)
+	chicagoTown := h.place(perspectivv1.PlaceKind_PLACE_KIND_TOWN, "Chicago", indiana)
+	inChicago := h.place(store, "Starbucks", h.otherCity)
+	inChicagoTown := h.place(store, "Starbucks", chicagoTown)
+	hiddenShop := h.place(store, "Closed Shop", chicagoTown)
+	by := h.user(true)
+	t0 := time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC)
+	h.perspective(h.arc(hiddenShop, "2026-10-01", "Coffee", by, t0), by,
+		perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_PENDING, t0, "text")
+
+	tests := []struct {
+		name string
+		hide bool
+		want []string
+	}{
+		{name: "a readable story lifts the town", want: idStrings(inChicagoTown, inChicago)},
+		{name: "a story under a hidden place does not", hide: true, want: idStrings(inChicago, inChicagoTown)},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.hide {
+				h.hide(hiddenShop)
+			}
+			got, _ := searchIDs(t, c, &perspectivv1.SearchPlacesRequest{Query: "starbucks chicago"})
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("ids = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 // TestSearchPlacesMore covers the more flag: a search that hits the result
 // cap says so, by itself or under a town, and one that fits does not.
 func TestSearchPlacesMore(t *testing.T) {

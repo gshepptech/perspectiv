@@ -162,6 +162,37 @@ func TestGetPlaceTwin(t *testing.T) {
 			},
 		},
 		{
+			name: "a story under a hidden place below it does not make a place storied",
+			setup: func(f twinFx) (uuid.UUID, uuid.UUID) {
+				f.exec(`UPDATE places SET kind = 'PLACE_KIND_MALL' WHERE id = $1`, f.empty)
+				inside := f.listing(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Gate A Shop", f.empty, emptyLat, emptyLng, arts)
+				f.story(inside)
+				f.hide(inside)
+				twin := f.listing(perspectivv1.PlaceKind_PLACE_KIND_MALL, "Raymond James Stadium", f.tampa, 27.975933, -82.503369, arts)
+				f.story(twin)
+				return f.empty, twin
+			},
+		},
+		{
+			name: "a story under a visible place below it makes a place storied",
+			setup: func(f twinFx) (uuid.UUID, uuid.UUID) {
+				f.exec(`UPDATE places SET kind = 'PLACE_KIND_MALL' WHERE id = $1`, f.empty)
+				f.story(f.listing(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Gate A Shop", f.empty, emptyLat, emptyLng, arts))
+				twin := f.listing(perspectivv1.PlaceKind_PLACE_KIND_MALL, "Raymond James Stadium", f.tampa, 27.975933, -82.503369, arts)
+				f.story(twin)
+				return f.empty, uuid.Nil
+			},
+		},
+		{
+			name: "a twin in another state within 200 m is not offered",
+			setup: func(f twinFx) (uuid.UUID, uuid.UUID) {
+				other := f.place(perspectivv1.PlaceKind_PLACE_KIND_STATE, "Georgia", uuid.Nil)
+				city := f.place(perspectivv1.PlaceKind_PLACE_KIND_CITY, "Tampa", other)
+				f.story(f.listing(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Raymond James Stadium", city, emptyLat+0.001, emptyLng, arts))
+				return f.empty, uuid.Nil
+			},
+		},
+		{
 			name: "a place with its own story has no twin",
 			setup: func(f twinFx) (uuid.UUID, uuid.UUID) {
 				twin := f.listing(perspectivv1.PlaceKind_PLACE_KIND_STORE, "Raymond James Stadium", f.tampa, 27.975933, -82.503369, arts)

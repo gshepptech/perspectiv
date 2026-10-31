@@ -732,10 +732,15 @@ const unclaimedCharacters = `-- name: UnclaimedCharacters :many
 SELECT ch.perspective_id, ch.label
 FROM characters ch
 JOIN perspectives p ON p.id = ch.perspective_id
+JOIN users u ON u.id = p.author_id
+JOIN arcs a ON a.id = p.arc_id
 WHERE ch.perspective_id = ANY($1::uuid[])
   AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND p.deleted_at IS NULL
   AND p.hidden_at IS NULL
+  AND p.lore_status <> 'LORE_STATUS_REMOVED'
+  AND u.deleted_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
   AND NOT EXISTS (
         SELECT 1 FROM claims c
         WHERE c.character_id = ch.id
@@ -750,8 +755,9 @@ type UnclaimedCharactersRow struct {
 
 // The labels of the characters nobody has claimed (no PENDING or ACCEPTED
 // claim) in each of a set of stories, in story order, for stories anyone may
-// still read: published, neither deleted nor hidden. A story that is not
-// readable has no rows. The arc's place is checked by the caller.
+// still read and claim from, by ListOpenCharacters' rule: published, neither
+// deleted nor hidden, not voted out of its lore, by an account that is not
+// deleted, and not at or below a hidden place. Any other story has no rows.
 func (q *Queries) UnclaimedCharacters(ctx context.Context, ids []uuid.UUID) ([]UnclaimedCharactersRow, error) {
 	rows, err := q.db.Query(ctx, unclaimedCharacters, ids)
 	if err != nil {

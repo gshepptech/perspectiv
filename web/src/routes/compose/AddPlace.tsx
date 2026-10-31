@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { PLACE_QUERY_MAX } from "@/components/search/PlaceSearch";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
@@ -169,6 +170,7 @@ export function AddPlace({
         <Input
           id={whereId}
           type="search"
+          maxLength={PLACE_QUERY_MAX}
           value={whereText}
           onChange={(e) => setWhereText(e.target.value)}
           placeholder="The mall, town or city it is in"

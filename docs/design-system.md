@@ -509,10 +509,11 @@ their days share a title.
   "Who might be in it: “the woman with the foam parrot”, “the clerk” and
   2 more." It names up to three of the story's characters nobody has
   claimed yet, in the story's order, then "and N more". The line is left
-  out when every character is claimed, and when the story has since been
-  deleted or hidden. The email for the same event ends its paragraph with
-  the same sentence, then "If one of them was you, open the story and
-  claim them."
+  out when every character is claimed, and when the story can no longer be
+  claimed from: deleted, hidden, voted out of its lore, at a hidden place,
+  or by a deleted account. The email for the same event ends its paragraph
+  with the same sentence, read when the email is sent, then "If one of
+  them was you, open the story and claim them." Each label is one line.
 - **Judging a request.** An incoming request card quotes the claimant's
   own story under the "*claimant* says they are “…”" line: about 240
   characters of its opening, cut at a word and ending "…", in Literata at

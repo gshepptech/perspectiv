@@ -3,6 +3,8 @@ package perspective
 import (
 	"strings"
 	"testing"
+
+	perspectivv1 "perspectiv/gen/perspectiv/v1"
 )
 
 // The 300-word limit counts words as runs of non-whitespace separated by
@@ -69,4 +71,40 @@ func repeat(s string, n int) []string {
 		out[i] = s
 	}
 	return out
+}
+
+// A label is put on one line and refused when it holds a character that
+// hides itself; see TestCharacterLabelsReadAsOneLine for save and publish.
+func TestCheckCharacters(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, label, want string
+		wantErr           bool
+	}{
+		{name: "a plain label is kept", label: "the cook", want: "the cook"},
+		{name: "a line break becomes one space", label: "the\r\ncook", want: "the cook"},
+		{name: "a unicode line separator becomes one space", label: "the\u2028cook", want: "the cook"},
+		{name: "blank after collapsing is refused", label: " \n ", wantErr: true},
+		{name: "eighty characters after collapsing is kept", label: strings.Repeat("x", 40) + "\n\n\n" + strings.Repeat("y", 39), want: strings.Repeat("x", 40) + " " + strings.Repeat("y", 39)},
+		{name: "a zero-width joiner is refused", label: "the\u200dcook", wantErr: true},
+		{name: "a left-to-right mark is refused", label: "the\u200ecook", wantErr: true},
+		{name: "a pop directional formatting is refused", label: "the\u202ccook", wantErr: true},
+		{name: "a first strong isolate is refused", label: "the\u2068cook", wantErr: true},
+		{name: "a NUL is refused", label: "the\x00cook", wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := checkCharacters([]*perspectivv1.CharacterInput{{Label: tc.label}})
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("checkCharacters(%q) = %v, want an error", tc.label, got)
+				}
+				return
+			}
+			if err != nil || len(got) != 1 || got[0].label != tc.want {
+				t.Fatalf("checkCharacters(%q) = %v, %v, want %q", tc.label, got, err, tc.want)
+			}
+		})
+	}
 }

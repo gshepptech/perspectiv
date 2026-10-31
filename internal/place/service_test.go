@@ -189,6 +189,7 @@ func TestSearchPlaces(t *testing.T) {
 			want: []string{"Springfield", "Springfield Coffee", "Springfield Outlet"},
 		},
 		{name: "no match", req: &perspectivv1.SearchPlacesRequest{Query: "zzzz"}, want: []string{}},
+		{name: "two hundred characters are searched", req: &perspectivv1.SearchPlacesRequest{Query: strings.Repeat("spring ", 28) + "fiel"}, want: []string{}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -233,6 +234,8 @@ func TestSearchPlaces(t *testing.T) {
 	}{
 		{name: "empty query", req: &perspectivv1.SearchPlacesRequest{}, code: connect.CodeInvalidArgument},
 		{name: "blank query", req: &perspectivv1.SearchPlacesRequest{Query: " \t "}, code: connect.CodeInvalidArgument},
+		{name: "a query over two hundred characters", req: &perspectivv1.SearchPlacesRequest{Query: strings.Repeat("spring ", 28) + "field"}, code: connect.CodeInvalidArgument},
+		{name: "two hundred and one multibyte characters", req: &perspectivv1.SearchPlacesRequest{Query: strings.Repeat("é", 201)}, code: connect.CodeInvalidArgument},
 		{name: "malformed parent", req: &perspectivv1.SearchPlacesRequest{Query: "a", ParentId: "nope"}, code: connect.CodeInvalidArgument},
 		{name: "unknown parent", req: &perspectivv1.SearchPlacesRequest{Query: "a", ParentId: uuid.NewString()}, code: connect.CodeNotFound},
 		{name: "hidden parent", req: &perspectivv1.SearchPlacesRequest{Query: "a", ParentId: h.mall.String()}, code: connect.CodeNotFound},

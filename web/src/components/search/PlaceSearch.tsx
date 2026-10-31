@@ -20,6 +20,9 @@ export function useDebounced(value: string, ms: number): string {
   return debounced;
 }
 
+/** The longest place search the server takes, in characters. */
+export const PLACE_QUERY_MAX = 200;
+
 /** What a search that reached its cap says under the list. */
 export const MORE_PLACES = "More places match: add a town to narrow it";
 
@@ -59,6 +62,7 @@ export function PlaceSearchField({
           id={inputId}
           type="search"
           autoComplete="off"
+          maxLength={PLACE_QUERY_MAX}
           placeholder="A store, mall, town or city"
           value={value}
           onChange={(e) => onChange(e.target.value)}

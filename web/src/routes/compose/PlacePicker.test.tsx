@@ -46,6 +46,11 @@ describe("PlacePicker results", () => {
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: "p-busy" }));
   });
 
+  it("stops the search at the 200 characters the server takes", () => {
+    renderPicker({ places: [] });
+    expect(screen.getByRole("searchbox", { name: "Where were you?" })).toHaveAttribute("maxlength", "200");
+  });
+
   it("tells the writer to add a town when the search hit its cap", async () => {
     const user = userEvent.setup();
     renderPicker({ places: [busy], more: true });

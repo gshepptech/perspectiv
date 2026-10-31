@@ -73,8 +73,11 @@ type characterInput struct {
 }
 
 // checkCharacters validates declared characters: at most 10, each with a
-// label of 1 to 80 characters after trimming, and no id named twice. Whether
-// a named id belongs to the perspective is checked against the store.
+// label of 1 to 80 characters on one line (every run of whitespace, line
+// breaks included, becomes one space) with no control, zero-width or bidi
+// override characters, and no id named twice. A label is read out in other
+// people's email, so it may not forge a line there. Whether a named id
+// belongs to the perspective is checked against the store.
 func checkCharacters(in []*perspectivv1.CharacterInput) ([]characterInput, error) {
 	if len(in) > maxCharacters {
 		return nil, apiutil.InvalidArg(fmt.Sprintf("a perspective declares at most %d characters", maxCharacters))
@@ -82,12 +85,9 @@ func checkCharacters(in []*perspectivv1.CharacterInput) ([]characterInput, error
 	out := make([]characterInput, 0, len(in))
 	seen := make(map[uuid.UUID]bool, len(in))
 	for i, c := range in {
-		label := strings.TrimSpace(c.GetLabel())
-		if label == "" {
-			return nil, apiutil.InvalidArg(fmt.Sprintf("character %d needs a label", i+1))
-		}
-		if utf8.RuneCountInString(label) > maxLabelRunes {
-			return nil, apiutil.InvalidArg(fmt.Sprintf("character %d's label is longer than %d characters", i+1, maxLabelRunes))
+		label, err := checkLabel(i, c.GetLabel())
+		if err != nil {
+			return nil, err
 		}
 		ci := characterInput{label: label}
 		if raw := c.GetId(); raw != "" {
@@ -104,6 +104,21 @@ func checkCharacters(in []*perspectivv1.CharacterInput) ([]characterInput, error
 		out = append(out, ci)
 	}
 	return out, nil
+}
+
+// checkLabel returns the i-th character's label on one line, or why it is
+// refused.
+func checkLabel(i int, raw string) (string, error) {
+	label := apiutil.OneLine(raw)
+	switch {
+	case label == "":
+		return "", apiutil.InvalidArg(fmt.Sprintf("character %d needs a label", i+1))
+	case utf8.RuneCountInString(label) > maxLabelRunes:
+		return "", apiutil.InvalidArg(fmt.Sprintf("character %d's label is longer than %d characters", i+1, maxLabelRunes))
+	case apiutil.HasHiddenRune(label):
+		return "", apiutil.InvalidArg(fmt.Sprintf("character %d's label has an invisible or control character; remove it", i+1))
+	}
+	return label, nil
 }
 
 // parseGenre returns the stored name of g. A publish or edit needs one of the

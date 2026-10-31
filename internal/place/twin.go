@@ -41,7 +41,7 @@ type twinOrigin struct {
 // twinCandidates returns the storied stores and malls that may be another
 // listing of p, and what p itself is compared by; see the TwinCandidates
 // query. None means p is not a storyless store or mall with coordinates,
-// or nothing storied lies near it.
+// or nothing storied lies within twinReach of it in its state.
 func (s *Store) twinCandidates(ctx context.Context, p Place) ([]twinCandidate, twinOrigin, error) {
 	rows, err := s.q.TwinCandidates(ctx, dbq.TwinCandidatesParams{ID: p.ID, Reach: twinReach})
 	if err != nil {

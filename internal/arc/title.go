@@ -41,22 +41,27 @@ var dateLayouts = []string{
 	"1/2",
 }
 
-// checkTitle validates a title an author gives an arc and returns it with
-// surrounding whitespace trimmed. A title is required, 3 to 80 characters
-// after trimming, and may not be the place name, the date, or the place name
-// and the date together in either order.
+// checkTitle validates a title an author gives an arc and returns it on one
+// line: every run of whitespace, line breaks included, becomes one space. A
+// title is required, 3 to 80 characters, holds no control, zero-width or
+// bidi override characters (it is read out in other people's email, so it
+// may not forge a line there), and may not be the place name, the date, or
+// the place name and the date together in either order.
 //
 // "Equal" is decided on titleKey: lower case with everything but letters and
 // digits removed, so "Joe's Diner, 2026-10-16" equals the place "Joe's Diner"
 // plus the date, and "joes   DINER" equals the place name. A title that merely
 // contains the place name ("Last call at Joe's Diner") is accepted.
 func checkTitle(raw, placeName string, date time.Time) (string, error) {
-	title := strings.TrimSpace(raw)
+	title := apiutil.OneLine(raw)
 	if title == "" {
 		return "", apiutil.InvalidArg("a new day needs a title")
 	}
 	if n := utf8.RuneCountInString(title); n < minTitleLen || n > maxTitleLen {
 		return "", apiutil.InvalidArg(fmt.Sprintf("title must be %d to %d characters", minTitleLen, maxTitleLen))
+	}
+	if apiutil.HasHiddenRune(title) {
+		return "", apiutil.InvalidArg("title has an invisible or control character; remove it")
 	}
 	key := titleKey(title)
 	place := titleKey(placeName)

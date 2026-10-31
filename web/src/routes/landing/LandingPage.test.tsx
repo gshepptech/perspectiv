@@ -63,7 +63,7 @@ function landing(
 describe("landing page (AC-006, OT-036)", () => {
   it("renders a place search box and no feed for a signed-out reader", async () => {
     const { sent } = landing();
-    expect(await screen.findByRole("searchbox", { name: "Search places" })).toBeInTheDocument();
+    expect(await screen.findByRole("searchbox", { name: "Search places" })).toHaveAttribute("maxlength", "200");
     expect(screen.getByRole("search")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in" })).toBeInTheDocument();
     // No feed of posts: the only listings are of places.

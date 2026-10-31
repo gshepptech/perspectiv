@@ -253,9 +253,12 @@ func draftInput(m *perspectivv1.SaveDraftRequest) (DraftInput, error) {
 	if err := checkHour(m.Hour); err != nil {
 		return in, err
 	}
-	if title := strings.TrimSpace(m.GetTitleIfNewArc()); title != "" {
+	if title := apiutil.OneLine(m.GetTitleIfNewArc()); title != "" {
 		if utf8.RuneCountInString(title) > maxDraftTitleRunes {
 			return in, apiutil.InvalidArg("title must be at most 80 characters")
+		}
+		if apiutil.HasHiddenRune(title) {
+			return in, apiutil.InvalidArg("title has an invisible or control character; remove it")
 		}
 		in.Title = &title
 	}

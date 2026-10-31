@@ -677,6 +677,11 @@ func TestHotQueriesAreIndexBacked(t *testing.T) {
 			query: `SELECT id FROM places WHERE lower(name) LIKE '%' || lower($1) || '%' LIMIT 20`,
 			args:  []any{"mall"},
 		},
+		{
+			name:  "places within a twin's 2 km box",
+			query: `SELECT id FROM places WHERE point(lng, lat) <@ box(point($1::float8, $2::float8), point($3::float8, $4::float8))`,
+			args:  []any{-80.21, 25.75, -80.17, 25.79},
+		},
 	}
 	pool := testdb.New(t)
 	for _, tt := range tests {
@@ -700,6 +705,22 @@ func TestHotQueriesAreIndexBacked(t *testing.T) {
 				t.Fatalf("plan sorts instead of reading the index in order:\n%s", text)
 			}
 		})
+	}
+}
+
+// TestArcPlacePathIndexWritesThrough checks that arcs_place_path_idx keeps
+// no pending list: with one, every place_path probe scanned it, and the
+// twin lookup's probes cost 12 ms each after a burst of new days.
+func TestArcPlacePathIndexWritesThrough(t *testing.T) {
+	t.Parallel()
+	pool := testdb.New(t)
+	var opts []string
+	if err := pool.QueryRow(context.Background(),
+		`SELECT coalesce(reloptions, '{}') FROM pg_class WHERE relname = 'arcs_place_path_idx'`).Scan(&opts); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(opts, "fastupdate=off") {
+		t.Fatalf("arcs_place_path_idx options = %q, want fastupdate=off", opts)
 	}
 }
 

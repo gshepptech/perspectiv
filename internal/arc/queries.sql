@@ -35,25 +35,29 @@ ON CONFLICT (place_id, local_date, hour) DO NOTHING
 RETURNING id;
 
 -- name: GetArcRow :one
--- place_hidden is true when the arc's place or any ancestor is hidden.
+-- The arc with its place chain, read in one walk up the places. The chain
+-- is the arc's place and every ancestor, root (STATE) first, as three
+-- arrays in the same order. place_hidden is true when the arc's place or
+-- any of the seven places above it is hidden; the chain itself is not cut
+-- off there.
 WITH RECURSIVE up AS (
-    SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
+    SELECT pl.id, pl.parent_id, pl.kind, pl.name, pl.hidden_at, 1 AS depth
     FROM places pl
     JOIN arcs a0 ON a0.place_id = pl.id
     WHERE a0.id = @id::uuid
     UNION ALL
-    SELECT parent.id, parent.parent_id, parent.hidden_at, up.depth + 1
+    SELECT parent.id, parent.parent_id, parent.kind, parent.name, parent.hidden_at, up.depth + 1
     FROM places parent
     JOIN up ON parent.id = up.parent_id
-    WHERE up.depth < 8
 )
 SELECT a.id, a.place_id, a.local_date, a.hour, a.parent_arc_id, a.title, a.created_by,
        a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
-       p.name AS place_name,
-       EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::bool AS place_hidden,
-       u.username AS creator_username
+       EXISTS (SELECT 1 FROM up WHERE up.depth <= 8 AND up.hidden_at IS NOT NULL)::bool AS place_hidden,
+       u.username AS creator_username,
+       (SELECT array_agg(up.id ORDER BY up.depth DESC) FROM up)::uuid[] AS chain_ids,
+       (SELECT array_agg(up.kind ORDER BY up.depth DESC) FROM up)::text[] AS chain_kinds,
+       (SELECT array_agg(up.name ORDER BY up.depth DESC) FROM up)::text[] AS chain_names
 FROM arcs a
-JOIN places p ON p.id = a.place_id
 JOIN users u ON u.id = a.created_by
 WHERE a.id = @id::uuid;
 
@@ -78,21 +82,6 @@ FOR UPDATE OF a;
 
 -- name: UpdateArcTitle :exec
 UPDATE arcs SET title = $2 WHERE id = $1;
-
--- name: PlaceChain :many
--- The arc's place and its ancestors, root (STATE) first.
-WITH RECURSIVE chain AS (
-    SELECT pl.id, pl.kind, pl.name, pl.parent_id, 0 AS depth
-    FROM places pl
-    WHERE pl.id = $1
-    UNION ALL
-    SELECT parent.id, parent.kind, parent.name, parent.parent_id, chain.depth + 1
-    FROM places parent
-    JOIN chain ON parent.id = chain.parent_id
-)
-SELECT chain.id, chain.kind, chain.name
-FROM chain
-ORDER BY chain.depth DESC;
 
 -- name: ListHourArcs :many
 -- A day arc's hour children in hour order, a page at a time after

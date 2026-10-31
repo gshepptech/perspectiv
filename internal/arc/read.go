@@ -85,38 +85,64 @@ func (s *Service) ListArcSection(ctx context.Context, viewer, arcID uuid.UUID, s
 		return nil, err
 	}
 	resp := &perspectivv1.ListArcSectionResponse{}
-	err = s.readTx(ctx, func(q *dbq.Queries) error {
-		arc, err := loadArc(ctx, q, arcID)
-		if err != nil {
-			return err
-		}
-		switch section {
-		case perspectivv1.ArcSection_ARC_SECTION_SUBLORES:
-			resp.Sublores, resp.NextPageToken, err = listSublores(ctx, q, arcID, parseID(arc.GetCanonLoreId()), page)
-		case perspectivv1.ArcSection_ARC_SECTION_TALES, perspectivv1.ArcSection_ARC_SECTION_UNLINKED:
-			resp.Perspectives, resp.NextPageToken, err = listPerspectives(ctx, q, arcID, section, page)
-		case perspectivv1.ArcSection_ARC_SECTION_HOURS:
-			if arc.Hour == nil {
-				resp.Hours, resp.NextPageToken, err = listHours(ctx, q, arcID, arc.GetPlaceChain(), page)
-			}
-		case perspectivv1.ArcSection_ARC_SECTION_UNSPECIFIED:
-			err = apiutil.InvalidArg("section is required")
-		default:
-			err = apiutil.InvalidArg("section is not a known arc page list")
-		}
-		if err != nil || viewer == uuid.Nil {
-			return err
-		}
-		lists := [][]*perspectivv1.PerspectiveSummary{resp.Perspectives}
-		for _, l := range resp.Sublores {
-			lists = append(lists, l.GetPerspectives())
-		}
-		return markVoted(ctx, q, viewer, lists...)
-	})
+	read := func(q *dbq.Queries) error { return listSection(ctx, q, viewer, arcID, section, page, resp) }
+	if needsSnapshot(viewer, section) {
+		err = s.readTx(ctx, read)
+	} else {
+		err = read(dbq.New(s.pool))
+	}
 	if err != nil {
 		return nil, err
 	}
 	return resp, nil
+}
+
+// needsSnapshot reports whether a ListArcSection page must be read in one
+// snapshot. A signed-out page of tales or unlinked perspectives is two
+// statements, the arc and the list, and needs none: the arc row only decides
+// NotFound and the list reads nothing from it, so a hide or a new story
+// landing between the two shows the reader what one request a moment
+// earlier or later would have. Every other page has statements a reader
+// could catch disagreeing: a lore's member count against the members listed
+// under it and its encounters, an hour's canon against its story count, or
+// a signed-in viewer's upvote mark against the vote count beside it.
+func needsSnapshot(viewer uuid.UUID, section perspectivv1.ArcSection) bool {
+	switch section {
+	case perspectivv1.ArcSection_ARC_SECTION_TALES, perspectivv1.ArcSection_ARC_SECTION_UNLINKED:
+		return viewer != uuid.Nil
+	default:
+		return true
+	}
+}
+
+// listSection reads one ListArcSection page into resp.
+func listSection(ctx context.Context, q *dbq.Queries, viewer, arcID uuid.UUID, section perspectivv1.ArcSection, page apiutil.PageToken, resp *perspectivv1.ListArcSectionResponse) error {
+	arc, err := loadArc(ctx, q, arcID)
+	if err != nil {
+		return err
+	}
+	switch section {
+	case perspectivv1.ArcSection_ARC_SECTION_SUBLORES:
+		resp.Sublores, resp.NextPageToken, err = listSublores(ctx, q, arcID, parseID(arc.GetCanonLoreId()), page)
+	case perspectivv1.ArcSection_ARC_SECTION_TALES, perspectivv1.ArcSection_ARC_SECTION_UNLINKED:
+		resp.Perspectives, resp.NextPageToken, err = listPerspectives(ctx, q, arcID, section, page)
+	case perspectivv1.ArcSection_ARC_SECTION_HOURS:
+		if arc.Hour == nil {
+			resp.Hours, resp.NextPageToken, err = listHours(ctx, q, arcID, arc.GetPlaceChain(), page)
+		}
+	case perspectivv1.ArcSection_ARC_SECTION_UNSPECIFIED:
+		err = apiutil.InvalidArg("section is required")
+	default:
+		err = apiutil.InvalidArg("section is not a known arc page list")
+	}
+	if err != nil || viewer == uuid.Nil {
+		return err
+	}
+	lists := [][]*perspectivv1.PerspectiveSummary{resp.Perspectives}
+	for _, l := range resp.Sublores {
+		lists = append(lists, l.GetPerspectives())
+	}
+	return markVoted(ctx, q, viewer, lists...)
 }
 
 // forViewer adds what only a signed-in viewer sees: where they stand in the
@@ -168,7 +194,10 @@ func markVoted(ctx context.Context, q *dbq.Queries, viewer uuid.UUID, lists ...[
 	return nil
 }
 
-// readTx runs fn in one read-only REPEATABLE READ snapshot.
+// readTx runs fn in one read-only REPEATABLE READ snapshot. BEGIN and
+// ROLLBACK are two round trips of their own, so a read that sends only
+// statements that cannot disagree goes straight to the pool instead (see
+// needsSnapshot and ListOpenCharacters).
 func (s *Service) readTx(ctx context.Context, fn func(q *dbq.Queries) error) error {
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
 	if err != nil {
@@ -188,9 +217,9 @@ func loadArc(ctx context.Context, q *dbq.Queries, arcID uuid.UUID) (*perspectivv
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("read arc: %w", err))
 	}
-	chain, err := placeChain(ctx, q, row.PlaceID)
+	chain, err := placeChain(row)
 	if err != nil {
-		return nil, err
+		return nil, apiutil.Internal(err)
 	}
 	return arcProto(dbq.ListHourArcsRow{
 		ID: row.ID, PlaceID: row.PlaceID, LocalDate: row.LocalDate, Hour: row.Hour,
@@ -200,18 +229,20 @@ func loadArc(ctx context.Context, q *dbq.Queries, arcID uuid.UUID) (*perspectivv
 	}, chain), nil
 }
 
-func placeChain(ctx context.Context, q *dbq.Queries, placeID uuid.UUID) ([]*perspectivv1.PlaceRef, error) {
-	rows, err := q.PlaceChain(ctx, placeID)
-	if err != nil {
-		return nil, apiutil.Internal(fmt.Errorf("read place chain: %w", err))
+// placeChain builds the wire chain from GetArcRow's three parallel arrays,
+// root (STATE) first.
+func placeChain(row dbq.GetArcRowRow) ([]*perspectivv1.PlaceRef, error) {
+	if len(row.ChainKinds) != len(row.ChainIds) || len(row.ChainNames) != len(row.ChainIds) {
+		return nil, fmt.Errorf("place chain of arc %s: %d ids, %d kinds, %d names",
+			row.ID, len(row.ChainIds), len(row.ChainKinds), len(row.ChainNames))
 	}
-	chain := make([]*perspectivv1.PlaceRef, 0, len(rows))
-	for _, r := range rows {
-		kind, err := placeKindFromDB(r.Kind)
+	chain := make([]*perspectivv1.PlaceRef, len(row.ChainIds))
+	for i, id := range row.ChainIds {
+		kind, err := placeKindFromDB(row.ChainKinds[i])
 		if err != nil {
-			return nil, apiutil.Internal(err)
+			return nil, err
 		}
-		chain = append(chain, &perspectivv1.PlaceRef{Id: r.ID.String(), Kind: kind, Name: r.Name})
+		chain[i] = &perspectivv1.PlaceRef{Id: id.String(), Kind: kind, Name: row.ChainNames[i]}
 	}
 	return chain, nil
 }
@@ -549,27 +580,26 @@ func parseID(s string) uuid.UUID {
 // ListOpenCharacters lists the characters in the arc's readable stories that
 // nobody holds yet, for the arc page's "Is this you?" list. A missing arc,
 // or one at or under a hidden place, is NotFound.
+//
+// The two statements read through the pool, not in a snapshot: the arc row
+// only decides NotFound and the list reads nothing from it, so a hide or a
+// claim landing between them shows what a request a moment earlier or later
+// would have.
 func (s *Service) ListOpenCharacters(ctx context.Context, arcID uuid.UUID) ([]*perspectivv1.OpenCharacter, error) {
-	var out []*perspectivv1.OpenCharacter
-	err := s.readTx(ctx, func(q *dbq.Queries) error {
-		if _, err := loadArc(ctx, q, arcID); err != nil {
-			return err
-		}
-		rows, err := q.ListOpenCharacters(ctx, arcID)
-		if err != nil {
-			return apiutil.Internal(fmt.Errorf("list open characters: %w", err))
-		}
-		out = make([]*perspectivv1.OpenCharacter, len(rows))
-		for i, r := range rows {
-			out[i] = &perspectivv1.OpenCharacter{
-				CharacterId: r.ID.String(), Label: r.Label, PerspectiveId: r.PerspectiveID.String(),
-				Author: &perspectivv1.UserRef{UserId: r.AuthorID.String(), Username: r.Username},
-			}
-		}
-		return nil
-	})
-	if err != nil {
+	q := dbq.New(s.pool)
+	if _, err := loadArc(ctx, q, arcID); err != nil {
 		return nil, err
+	}
+	rows, err := q.ListOpenCharacters(ctx, arcID)
+	if err != nil {
+		return nil, apiutil.Internal(fmt.Errorf("list open characters: %w", err))
+	}
+	out := make([]*perspectivv1.OpenCharacter, len(rows))
+	for i, r := range rows {
+		out[i] = &perspectivv1.OpenCharacter{
+			CharacterId: r.ID.String(), Label: r.Label, PerspectiveId: r.PerspectiveID.String(),
+			Author: &perspectivv1.UserRef{UserId: r.AuthorID.String(), Username: r.Username},
+		}
 	}
 	return out, nil
 }

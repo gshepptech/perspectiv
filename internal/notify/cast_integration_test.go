@@ -4,15 +4,21 @@ package notify_test
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
+	"io"
 	"slices"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog"
 
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
+	"perspectiv/internal/api/metrics"
 	"perspectiv/internal/jobs"
+	"perspectiv/internal/notify"
 )
 
 // castLabels is the characters every case's new story declares, in order.
@@ -22,9 +28,10 @@ var castLabels = []string{
 }
 
 // A new story's notification names the characters nobody has claimed: up to
-// three in the story's order, then a count. The email reads them as it is
-// delivered; the inbox reads them each time it is listed, so a later claim,
-// delete or hide shows there. Neither ever reads them from the job.
+// three in the story's order, then a count. The email reads them as each
+// attempt sends it and the inbox each time it is listed, by the rule the
+// claim path applies, so a claim, delete, hide, vote-out or hidden place
+// made after delivery shows in both. Neither ever reads them from the job.
 func TestNewStoryNamesUnclaimedCharacters(t *testing.T) {
 	t.Parallel()
 	listed := []string{"the woman with the foam parrot", "the man in the red hat", "the drummer"}
@@ -34,7 +41,7 @@ func TestNewStoryNamesUnclaimedCharacters(t *testing.T) {
 		claims    map[int]string
 		after     func(s *story, chars []uuid.UUID)
 		wantMail  []string
-		mailMore  string
+		mailMore  int32
 		wantInbox []string
 		inboxMore int32
 	}{
@@ -42,39 +49,55 @@ func TestNewStoryNamesUnclaimedCharacters(t *testing.T) {
 			name:      "three listed then a count, claimed characters left out",
 			claims:    map[int]string{1: "CLAIM_STATUS_PENDING", 3: "CLAIM_STATUS_ACCEPTED"},
 			wantMail:  listed,
-			mailMore:  "1",
+			mailMore:  1,
 			wantInbox: listed,
 			inboxMore: 1,
 		},
 		{
 			name:     "a rejected claim leaves the character unclaimed",
 			claims:   map[int]string{0: "CLAIM_STATUS_REJECTED", 1: "CLAIM_STATUS_PENDING", 3: "CLAIM_STATUS_ACCEPTED"},
-			wantMail: listed, mailMore: "1",
+			wantMail: listed, mailMore: 1,
 			wantInbox: listed, inboxMore: 1,
 		},
 		{
-			name:   "a claim made after delivery drops out of the inbox",
+			name:   "a claim made after delivery drops out of the inbox and the email",
 			claims: map[int]string{1: "CLAIM_STATUS_PENDING", 3: "CLAIM_STATUS_ACCEPTED"},
 			after: func(s *story, chars []uuid.UUID) {
 				s.exec(`INSERT INTO claims (character_id, claimant_user_id, claimant_perspective_id, status)
 					VALUES ($1, $2, $3, 'CLAIM_STATUS_PENDING')`, chars[4], s.dan, s.pDan)
 			},
-			wantMail: listed, mailMore: "1",
+			wantMail:  []string{"the woman with the foam parrot", "the man in the red hat", "the dog walker"},
 			wantInbox: []string{"the woman with the foam parrot", "the man in the red hat", "the dog walker"},
 		},
 		{
-			name: "a story deleted after delivery names nobody in the inbox",
+			name: "a story deleted after delivery names nobody",
 			after: func(s *story, _ []uuid.UUID) {
 				s.exec(`UPDATE perspectives SET deleted_at = now() WHERE id = $1`, s.pAnn)
 			},
-			wantMail: castLabels[:3], mailMore: "3",
 		},
 		{
-			name: "a story hidden after delivery names nobody in the inbox",
+			name: "a story hidden after delivery names nobody",
 			after: func(s *story, _ []uuid.UUID) {
 				s.exec(`UPDATE perspectives SET hidden_at = now() WHERE id = $1`, s.pAnn)
 			},
-			wantMail: castLabels[:3], mailMore: "3",
+		},
+		{
+			name: "a story voted out of its lore names nobody",
+			after: func(s *story, _ []uuid.UUID) {
+				s.exec(`UPDATE perspectives SET lore_status = 'LORE_STATUS_REMOVED' WHERE id = $1`, s.pAnn)
+			},
+		},
+		{
+			name: "a story at a place hidden after delivery names nobody",
+			after: func(s *story, _ []uuid.UUID) {
+				s.exec(`UPDATE places SET hidden_at = now() WHERE id = (SELECT place_id FROM arcs WHERE id = $1)`, s.arc)
+			},
+		},
+		{
+			name: "a story by an account deleted after delivery names nobody",
+			after: func(s *story, _ []uuid.UUID) {
+				s.exec(`UPDATE users SET deleted_at = now() WHERE id = $1`, s.ann)
+			},
 		},
 		{
 			name: "a story whose characters are all claimed names nobody",
@@ -99,7 +122,10 @@ func TestNewStoryNamesUnclaimedCharacters(t *testing.T) {
 			if len(mails) != 1 {
 				t.Fatalf("ben's email jobs = %d, want 1", len(mails))
 			}
-			checkMailCast(t, mails[0].args.Data, tc.wantMail, tc.mailMore)
+			if _, ok := mails[0].args.Data["characters"]; ok {
+				t.Fatalf("email job carries labels %q; they are read as it sends", mails[0].args.Data["characters"])
+			}
+			checkMailCast(t, s, mails[0].args, tc.wantMail, tc.mailMore)
 
 			checkInboxCast(t, s, tc.wantInbox, tc.inboxMore)
 		})
@@ -146,25 +172,32 @@ func checkInboxCast(t *testing.T, s *story, want []string, more int32) {
 	}
 }
 
-// checkMailCast checks the characters a notification email job carries.
-func checkMailCast(t *testing.T, data map[string]string, want []string, more string) {
+// checkMailCast sends the email job args again, as a retry would now, and
+// checks the characters the email names.
+func checkMailCast(t *testing.T, s *story, args jobs.EmailArgs, want []string, more int32) {
 	t.Helper()
-	raw, ok := data["characters"]
+	rec := &recorder{}
+	w := notify.NewEmailWorker(s.pool, rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
+	if err := w.Work(context.Background(), emailJob(2, args)); err != nil {
+		t.Fatalf("Work: %v", err)
+	}
+	text := rec.messages()[0].Text
 	if len(want) == 0 {
-		if ok {
-			t.Fatalf("email names characters %s, want none", raw)
+		if strings.Contains(text, "Who might be in it") {
+			t.Fatalf("email names characters, want none: %q", text)
 		}
 		return
 	}
-	var got []string
-	if err := json.Unmarshal([]byte(raw), &got); err != nil {
-		t.Fatalf("email characters %q: %v", raw, err)
+	quoted := make([]string, len(want))
+	for i, l := range want {
+		quoted[i] = "“" + l + "”"
 	}
-	if !slices.Equal(got, want) {
-		t.Errorf("email characters = %q, want %q", got, want)
+	if more > 0 {
+		quoted = append(quoted, fmt.Sprintf("%d more", more))
 	}
-	if data["more_characters"] != more {
-		t.Errorf("email more = %q, want %q", data["more_characters"], more)
+	phrase := strings.Join(quoted[:len(quoted)-1], ", ") + " and " + quoted[len(quoted)-1]
+	if !strings.Contains(text, "Who might be in it: "+phrase+".") {
+		t.Fatalf("email %q does not name %s", text, phrase)
 	}
 }
 

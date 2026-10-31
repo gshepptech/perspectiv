@@ -1,11 +1,17 @@
 package place
 
 import (
+	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
+	"connectrpc.com/connect"
 	"github.com/google/uuid"
+
+	perspectivv1 "perspectiv/gen/perspectiv/v1"
+	"perspectiv/internal/api/apiutil"
 )
 
 func TestLocalitySplits(t *testing.T) {
@@ -172,6 +178,28 @@ func TestMergeSearch(t *testing.T) {
 			got, more := mergeSearch(tc.plain, tc.scoped)
 			if !slices.Equal(names(got), tc.want) || more != tc.wantMore {
 				t.Fatalf("merge = %q, more %v; want %q, more %v", names(got), more, tc.want, tc.wantMore)
+			}
+		})
+	}
+}
+
+// A query over maxSearchQuery characters is refused before the store is
+// read: the Service here has none.
+func TestSearchRefusesLongQueries(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, query string
+	}{
+		{name: "two hundred and one letters", query: strings.Repeat("a", maxSearchQuery+1)},
+		{name: "two hundred and one multibyte characters", query: strings.Repeat("é", maxSearchQuery+1)},
+		{name: "a megabyte of words", query: strings.Repeat("starbucks tampa ", 1<<16)},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := (&Service{}).Search(context.Background(), tc.query, uuid.Nil, perspectivv1.PlaceKind_PLACE_KIND_UNSPECIFIED)
+			if code, ok := apiutil.CodeOf(err); !ok || code != connect.CodeInvalidArgument {
+				t.Fatalf("Search error = %v, want InvalidArgument", err)
 			}
 		})
 	}

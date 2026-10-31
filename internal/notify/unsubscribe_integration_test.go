@@ -26,7 +26,7 @@ import (
 func unsubscribeLink(t *testing.T, user uuid.UUID) url.Values {
 	t.Helper()
 	rec := &recorder{}
-	w := notify.NewEmailWorker(rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
+	w := notify.NewEmailWorker(nil, rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
 	if err := w.Work(context.Background(), emailJob(1, jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
 		"user_id": user.String(), "kind": "NOTIFICATION_KIND_CLAIM_ACCEPTED", "path": "/arcs/a-1",
 	}})); err != nil {

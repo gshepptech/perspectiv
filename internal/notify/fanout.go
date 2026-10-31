@@ -33,7 +33,7 @@ func (FanoutArgs) Kind() string { return "notify" }
 // AddWorkers registers the fan-out and email workers on w.
 func AddWorkers(w *river.Workers, pool *pgxpool.Pool, m mailer.Mailer, met *metrics.Metrics, log zerolog.Logger, publicBaseURL string, unsub Unsubscriber) {
 	river.AddWorker(w, NewFanoutWorker(pool, log))
-	river.AddWorker(w, NewEmailWorker(m, met, log, publicBaseURL, unsub))
+	river.AddWorker(w, NewEmailWorker(pool, m, met, log, publicBaseURL, unsub))
 	river.AddWorker(w, NewDigestWorker(pool, log))
 }
 
@@ -461,8 +461,8 @@ func deliverEmail(ctx context.Context, q *dbq.Queries, tx pgx.Tx, enq *jobs.Enqu
 
 // emailData is the notification template's data: the kind, the link path,
 // the arc title and actor username when the event has them, and for a new
-// story its unclaimed characters, read from the database as it is
-// delivered.
+// story the story, whose unclaimed characters are read as the email is
+// sent.
 func emailData(ctx context.Context, q *dbq.Queries, ev event) (map[string]string, error) {
 	data := map[string]string{dataKind: kindText(ev.kind), dataPath: ev.path}
 	if ev.payload.ArcID != nil {
@@ -483,8 +483,6 @@ func emailData(ctx context.Context, q *dbq.Queries, ev event) (map[string]string
 			data[dataActor] = name
 		}
 	}
-	if err := addCastData(ctx, q, ev, data); err != nil {
-		return nil, err
-	}
+	addCastSubject(ev, data)
 	return data, nil
 }

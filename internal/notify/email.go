@@ -12,12 +12,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/rs/zerolog"
 
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
+	"perspectiv/internal/api/apiutil"
 	"perspectiv/internal/api/metrics"
 	"perspectiv/internal/jobs"
+	"perspectiv/internal/notify/dbq"
 	"perspectiv/internal/notify/mailer"
 )
 
@@ -52,6 +55,7 @@ const (
 
 type emailWorker struct {
 	river.WorkerDefaults[jobs.EmailArgs]
+	pool    *pgxpool.Pool
 	mailer  mailer.Mailer
 	metrics *metrics.Metrics
 	log     zerolog.Logger
@@ -60,13 +64,17 @@ type emailWorker struct {
 }
 
 // NewEmailWorker returns the worker for email jobs. It renders the job's
-// template, with links under publicBaseURL, and sends it through m.
+// template, with links under publicBaseURL, and sends it through m. A new
+// story's unclaimed characters are read from pool as each attempt sends, so
+// a story no longer readable by then names nobody; no other email reads the
+// database.
 //
 // A provider failure never reaches the request that queued the email: the
 // request only inserted the job. The failure increments
 // email_send_failures_total and the job is retried on the schedule above.
-func NewEmailWorker(m mailer.Mailer, met *metrics.Metrics, log zerolog.Logger, publicBaseURL string, unsub Unsubscriber) river.Worker[jobs.EmailArgs] {
+func NewEmailWorker(pool *pgxpool.Pool, m mailer.Mailer, met *metrics.Metrics, log zerolog.Logger, publicBaseURL string, unsub Unsubscriber) river.Worker[jobs.EmailArgs] {
 	return &emailWorker{
+		pool:    pool,
 		mailer:  m,
 		metrics: met,
 		log:     log.With().Str("component", "email").Logger(),
@@ -76,7 +84,11 @@ func NewEmailWorker(m mailer.Mailer, met *metrics.Metrics, log zerolog.Logger, p
 }
 
 func (w *emailWorker) Work(ctx context.Context, job *river.Job[jobs.EmailArgs]) error {
-	msg, err := w.render(job.Args)
+	c, err := w.castFor(ctx, job.Args)
+	if err != nil {
+		return fmt.Errorf("read unclaimed characters: %w", err)
+	}
+	msg, err := w.render(job.Args, c)
 	if err != nil {
 		// Retrying cannot fix a job that does not render.
 		w.log.Error().Err(err).Int64("job_id", job.ID).Str("template", job.Args.Template).Msg("email job cannot be rendered")
@@ -100,6 +112,25 @@ func (w *emailWorker) Work(ctx context.Context, job *river.Job[jobs.EmailArgs]) 
 	return nil
 }
 
+// castFor reads, for a new-story notification email, the story's unclaimed
+// characters as they stand now (see unclaimedCast). Any other email, and a
+// new-story job that does not name its story, names nobody.
+func (w *emailWorker) castFor(ctx context.Context, a jobs.EmailArgs) (cast, error) {
+	if a.Template != jobs.TemplateNotification ||
+		a.Data[dataKind] != perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC.String() {
+		return cast{}, nil
+	}
+	id, err := uuid.Parse(a.Data[dataPerspectiveID])
+	if err != nil {
+		return cast{}, nil
+	}
+	casts, err := unclaimedCast(ctx, dbq.New(w.pool), []uuid.UUID{id})
+	if err != nil {
+		return cast{}, err
+	}
+	return casts[id], nil
+}
+
 // NextRetry doubles the delay from emailFirstRetry, capped at emailMaxBackoff.
 func (w *emailWorker) NextRetry(job *river.Job[jobs.EmailArgs]) time.Time {
 	return time.Now().Add(emailBackoff(job.Attempt))
@@ -118,43 +149,44 @@ func emailBackoff(attempt int) time.Duration {
 
 func (w *emailWorker) Timeout(*river.Job[jobs.EmailArgs]) time.Duration { return emailTimeout }
 
-// render turns an email job into a message.
-func (w *emailWorker) render(a jobs.EmailArgs) (mailer.Message, error) {
+// render turns an email job into a message; c is the unclaimed characters
+// a new-story notification names.
+func (w *emailWorker) render(a jobs.EmailArgs, c cast) (mailer.Message, error) {
 	if a.To == "" {
 		return mailer.Message{}, errors.New("no recipient")
 	}
-	var c content
+	var body content
 	var err error
 	switch a.Template {
 	case jobs.TemplateVerifyEmail:
-		c, err = w.accountContent(a.Data, "/verify-email",
+		body, err = w.accountContent(a.Data, "/verify-email",
 			"Verify your email",
 			"Confirm this address to start writing perspectives on Perspectiv.",
 			"Verify email")
 	case jobs.TemplatePasswordReset:
-		c, err = w.accountContent(a.Data, "/reset-password",
+		body, err = w.accountContent(a.Data, "/reset-password",
 			"Reset your password",
 			"Someone asked to reset the password for this Perspectiv account. If it was not you, ignore this email.",
 			"Choose a new password")
 	case jobs.TemplateBetaInvite:
-		c, err = w.accountContent(a.Data, "/signup",
+		body, err = w.accountContent(a.Data, "/signup",
 			"You're invited to Perspectiv",
 			"A place in the Perspectiv beta is yours. Perspectiv is where people who were at the same place on the same day each write what they saw, and find the strangers who were in their story.",
 			"Create your account")
 	case jobs.TemplateChangeEmail:
-		c, err = w.accountContent(a.Data, "/confirm-email",
+		body, err = w.accountContent(a.Data, "/confirm-email",
 			"Confirm your new email",
 			"Confirm this address to make it the email of your Perspectiv account. Until you do, your account keeps its old address.",
 			"Confirm new email")
 	case jobs.TemplateEmailChangeNotice:
-		c, err = w.accountContent(a.Data, "/forgot-password",
+		body, err = w.accountContent(a.Data, "/forgot-password",
 			"Your Perspectiv email is being changed",
 			"Someone signed in to your Perspectiv account asked to change its email away from this address. If it was you, there is nothing to do. If it was not, reset your password now: that also cancels the change.",
 			"Reset your password")
 	case jobs.TemplateDigest:
-		c, err = w.digestContent(a.Data)
+		body, err = w.digestContent(a.Data)
 	case jobs.TemplateNotification:
-		c, err = w.notificationContent(a.Data)
+		body, err = w.notificationContent(a.Data, c)
 	default:
 		err = fmt.Errorf("unknown template %q", a.Template)
 	}
@@ -165,12 +197,12 @@ func (w *emailWorker) render(a jobs.EmailArgs) (mailer.Message, error) {
 	if a.Template == jobs.TemplateDigest || a.Template == jobs.TemplateNotification {
 		// Notification email is the kind a reader can turn off, so it never
 		// goes out without a working unsubscribe link.
-		unsubscribe, err = w.withUnsubscribe(&c, a.Data)
+		unsubscribe, err = w.withUnsubscribe(&body, a.Data)
 		if err != nil {
 			return mailer.Message{}, err
 		}
 	}
-	msg, err := c.message(a.To)
+	msg, err := body.message(a.To)
 	msg.Unsubscribe = unsubscribe
 	return msg, err
 }
@@ -252,13 +284,17 @@ func (w *emailWorker) accountContent(data map[string]string, path, subject, body
 	return content{Subject: subject, Body: body, Action: action, Link: link}, nil
 }
 
-func (w *emailWorker) notificationContent(data map[string]string) (content, error) {
+// notificationContent builds one notification's email; cast is the
+// unclaimed characters a new story names. The arc title is put on one line
+// with hidden characters dropped (apiutil.PlainLine), so a title stored
+// before saving enforced that cannot forge a line or a header.
+func (w *emailWorker) notificationContent(data map[string]string, cast cast) (content, error) {
 	kind := perspectivv1.NotificationKind(perspectivv1.NotificationKind_value[data[dataKind]])
 	actor := data[dataActor]
 	if actor == "" {
 		actor = "Someone"
 	}
-	arc := data[dataArcTitle]
+	arc := apiutil.PlainLine(data[dataArcTitle])
 	if arc == "" {
 		arc = "your day"
 	}
@@ -273,7 +309,7 @@ func (w *emailWorker) notificationContent(data map[string]string) (content, erro
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC:
 		subject = "A new perspective in " + arc
 		body = actor + " published a new perspective in " + arc + "."
-		if who := castPhrase(castFromData(data)); who != "" {
+		if who := castPhrase(cast); who != "" {
 			body += " Who might be in it: " + who + ". If one of them was you, open the story and claim them."
 		}
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_VOTE_OUT_OPENED:
@@ -328,7 +364,7 @@ func (w *emailWorker) digestContent(data map[string]string) (content, error) {
 	}
 	lines := make([]digestLine, 0, len(items))
 	for _, item := range items {
-		c, err := w.notificationContent(item)
+		c, err := w.notificationContent(item, cast{})
 		if err != nil {
 			return content{}, err
 		}

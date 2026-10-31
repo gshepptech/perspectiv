@@ -7,6 +7,18 @@ moves to Done in the same commit as the work, with what was verified.
 
 Nothing in progress.
 
+## Measured and set aside
+
+- From the second load test (HEAD e8a5bd2, 20/50/100 readers): turning
+  off parallel query for the API pool (two A/B runs disagreed, so no gain
+  was shown); forcing fresh plans only for the wide listings rather than
+  the whole pool (saves Postgres CPU at 4 to 6 cores busy, not a limit
+  yet, and adds a second query path); running the town lookup alongside
+  the plain search (cuts its latency but holds two connections). Raising
+  DB_MAX_CONNS past 25 bought nothing: Postgres ran queries on 5 to 8
+  connections, and the rest was round trips. Revisit with production
+  traffic.
+
 ## Out of scope for v1
 
 - Full-text search over stories: the spec leaves it out (A-057); place
@@ -36,6 +48,66 @@ Nothing in progress.
 
 ## Done
 
+- Security review of commit e8a5bd2, six findings fixed. (1) A character
+  label, and a new day's title (the only other writer text an email
+  reads), is put on one line when a draft is saved and when a story is
+  published or edited: every run of whitespace, line breaks included,
+  becomes one space, and a label or title holding a control, zero-width or
+  bidi override or isolate character (U+200B to U+200F, U+202A to U+202E,
+  U+2066 to U+2069, U+FEFF) is InvalidArgument ("has an invisible or
+  control character; remove it"). The email also flattens labels and
+  titles stored before this (apiutil.PlainLine). Lore names, thread posts
+  and place names were checked and never reach an email; usernames are
+  ASCII letters, digits and underscore. (2) A new story's email no longer
+  carries its labels: the email worker reads them as each attempt sends,
+  so a story hidden, deleted or voted out while the job waits names
+  nobody. (3) Place search refuses a query over 200 characters, before any
+  read; the three web search boxes stop at 200. (4) The twin lookup reads
+  the places in a 2 km box (migration 35: places_point_idx, a GiST index
+  on the point, and arcs_place_path_idx with fastupdate off so probes never
+  scan a pending list) instead of every arc in the state. EXPLAIN ANALYZE
+  on generated beta-scale data (90k days, 225k stories, rolled back): a
+  storyless store in downtown Miami (5,300 places within 2 km) went from
+  1.1 s warm (33 s with 90k new days in the GIN pending list) to 25 to
+  43 ms warm, and one in a small town from 0.8 s to 0.1 ms; the same 951
+  candidates inside 2 km, the 963 left out all same-parent places beyond
+  2 km that the rule rejects anyway. (5) The twin lookup and the
+  locality ranking no longer count a story under a hidden place. (6) The
+  unclaimed-characters read (inbox and email) follows ListOpenCharacters:
+  no story voted out of its lore, by a deleted account or at a hidden
+  place. Migration 35 Down run on the dev database. Verified by new tests
+  that fail on the code before the fix: TestCharacterLabelsReadAsOneLine
+  and TestDraftTitleReadsAsOneLine (save and publish), TestCheckCharacters,
+  TestCheckTitle, TestCastPhrase, TestEmailWorkerRendersTemplates (labels
+  in a job are not mailed; a two-line title), TestNewStoryNamesUnclaimedCharacters
+  (hidden, deleted, voted-out, hidden-place and deleted-account stories
+  after delivery, in the email and the inbox), TestSearchRefusesLongQueries,
+  TestSearchPlaces, TestSearchLocalityIgnoresHiddenStories,
+  TestGetPlaceTwin (a story under a hidden place below; the same-parent,
+  200 m and 2 km cases still pass), TestHotQueriesAreIndexBacked and
+  TestArcPlacePathIndexWritesThrough; plus TestOneLine, TestHasHiddenRune,
+  TestPlainLine and the web suite's maxlength checks. make check and
+  make e2e (18 passed) pass.
+
+- Fewer round trips on the day page's reads, from the second load test
+  (GetArc sent 10.3 statements a call and took 16% of database time;
+  BEGIN and ROLLBACK of read-only snapshots another 10 to 11%). GetArcRow
+  now returns the place chain from its own walk up the places, so the
+  PlaceChain query is gone; the hidden-place rule (the place and seven
+  above it) and the chain's order and fields are unchanged. A signed-out
+  ListArcSection page of tales or unlinked perspectives, and
+  ListOpenCharacters, read through the pool without a snapshot: each is
+  the arc row and one list that reads nothing from it. Sublore and hour
+  pages, and any signed-in page, keep the snapshot, because a lore's
+  member count against its members, an hour's canon against its story
+  count, or an upvote mark against its count could disagree. Statements
+  a call, BEGIN and ROLLBACK included, on the TestArcReads_QueryCount
+  fixture (a day with a canon, a sublore, a tale, an unlinked story and
+  two hours), before and after: GetArc day 18 to 17 signed out and 20 to
+  19 signed in, GetArc hour 10 to 9; ListArcSection tales or unlinked
+  signed out 5 to 2, tales signed in 6 to 5, sublores 7 to 6, hours 10 to
+  9; ListOpenCharacters 5 to 2. That test pins the new counts with a
+  counting tracer on its pool.
 - A first-time visitor's walkthrough of finding a place. Search now reads
   a name with the city or town it is in ("starbucks tampa", "tampa
   starbucks", "starbucks in tampa", "starbucks, tampa, fl"; St./Saint,

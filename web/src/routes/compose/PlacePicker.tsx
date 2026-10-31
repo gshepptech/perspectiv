@@ -3,7 +3,7 @@ import { MapPin } from "lucide-react";
 import { useId, useState } from "react";
 
 import { placeChain, storiesLabel } from "@/components/reader/format";
-import { MorePlacesNote } from "@/components/search/PlaceSearch";
+import { MorePlacesNote, PLACE_QUERY_MAX } from "@/components/search/PlaceSearch";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import type { Place } from "@/gen/perspectiv/v1/place_pb";
@@ -52,6 +52,7 @@ export function PlacePicker({
         <Input
           id={inputId}
           type="search"
+          maxLength={PLACE_QUERY_MAX}
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="A shop, restaurant, park, town or city"

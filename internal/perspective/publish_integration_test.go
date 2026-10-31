@@ -115,6 +115,95 @@ func TestPublishCharacterLimit(t *testing.T) {
 	}
 }
 
+// A character's label is read out in other people's email, so saving or
+// publishing puts it on one line and refuses characters that hide
+// themselves: a label cannot forge a line or reorder the text around it.
+func TestCharacterLabelsReadAsOneLine(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, label, want string
+		code              connect.Code
+	}{
+		{name: "a plain label is kept", label: "the cook", want: "the cook"},
+		{name: "line breaks inside become one space", label: "the cook”.\r\n\r\nReset your password: https://evil.test", want: "the cook”. Reset your password: https://evil.test"},
+		{name: "a run of spaces and tabs becomes one space", label: " the \t  cook ", want: "the cook"},
+		{name: "a zero-width space is refused", label: "the\u200bcook", code: connect.CodeInvalidArgument},
+		{name: "a right-to-left override is refused", label: "the \u202ekooc", code: connect.CodeInvalidArgument},
+		{name: "a bidi isolate is refused", label: "the \u2067cook", code: connect.CodeInvalidArgument},
+		{name: "a byte order mark is refused", label: "\ufeffthe cook", code: connect.CodeInvalidArgument},
+		{name: "a control character is refused", label: "the\x1b[2Kcook", code: connect.CodeInvalidArgument},
+	}
+	for _, tc := range tests {
+		t.Run("save/"+tc.name, func(t *testing.T) {
+			t.Parallel()
+			w := newWorld(t)
+			resp, err := w.client.SaveDraft(context.Background(), as(w.user(), &perspectivv1.SaveDraftRequest{
+				PlaceId: w.place.String(), LocalDate: day, Parts: []string{"First line"},
+				Characters: []*perspectivv1.CharacterInput{{Label: tc.label}},
+			}))
+			checkLabel(t, err, tc.code, func() []*perspectivv1.Character { return resp.Msg.GetPerspective().GetCharacters() }, tc.want)
+		})
+		t.Run("publish/"+tc.name, func(t *testing.T) {
+			t.Parallel()
+			w := newWorld(t)
+			req := w.publishReq()
+			req.Characters = []*perspectivv1.CharacterInput{{Label: tc.label}}
+			resp, err := w.client.Publish(context.Background(), as(w.user(), req))
+			checkLabel(t, err, tc.code, func() []*perspectivv1.Character {
+				return w.get(uuid.Nil, resp.Msg.GetPerspectiveId()).GetCharacters()
+			}, tc.want)
+		})
+	}
+}
+
+// A draft's title for a new day is put on one line as it is saved, and one
+// with a character that hides itself is refused, as publishing does.
+func TestDraftTitleReadsAsOneLine(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, title, want string
+		code              connect.Code
+	}{
+		{name: "line breaks inside become one space", title: "Pancakes\n\nat midnight", want: "Pancakes at midnight"},
+		{name: "a right-to-left override is refused", title: "Pancakes \u202eat midnight", code: connect.CodeInvalidArgument},
+		{name: "a control character is refused", title: "Pancakes\x00 at midnight", code: connect.CodeInvalidArgument},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			w := newWorld(t)
+			resp, err := w.client.SaveDraft(context.Background(), as(w.user(), &perspectivv1.SaveDraftRequest{
+				PlaceId: w.place.String(), LocalDate: day, Parts: []string{"First line"}, TitleIfNewArc: tc.title,
+			}))
+			if got := codeOf(err); got != tc.code {
+				t.Fatalf("code = %v, want %v (err %v)", got, tc.code, err)
+			}
+			if tc.code == 0 && resp.Msg.GetPerspective().GetTitleIfNewArc() != tc.want {
+				t.Fatalf("title = %q, want %q", resp.Msg.GetPerspective().GetTitleIfNewArc(), tc.want)
+			}
+		})
+	}
+}
+
+// checkLabel checks a save or publish of one character: refused with code,
+// or stored with the label want.
+func checkLabel(t *testing.T, err error, code connect.Code, stored func() []*perspectivv1.Character, want string) {
+	t.Helper()
+	if got := codeOf(err); got != code {
+		t.Fatalf("code = %v, want %v (err %v)", got, code, err)
+	}
+	if code != 0 {
+		if !strings.Contains(err.Error(), "invisible or control character") {
+			t.Fatalf("message = %q, want it to name the invisible or control character", err)
+		}
+		return
+	}
+	chars := stored()
+	if len(chars) != 1 || chars[0].GetLabel() != want {
+		t.Fatalf("stored characters = %v, want one labelled %q", chars, want)
+	}
+}
+
 // AC-011, CT-005: the first publish needs a valid title and creates the arc.
 func TestPublishNewArcTitle(t *testing.T) {
 	t.Parallel()

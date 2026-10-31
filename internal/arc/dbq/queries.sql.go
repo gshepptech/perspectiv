@@ -124,23 +124,23 @@ func (q *Queries) GetArcLore(ctx context.Context, id uuid.UUID) (GetArcLoreRow, 
 
 const getArcRow = `-- name: GetArcRow :one
 WITH RECURSIVE up AS (
-    SELECT pl.id, pl.parent_id, pl.hidden_at, 1 AS depth
+    SELECT pl.id, pl.parent_id, pl.kind, pl.name, pl.hidden_at, 1 AS depth
     FROM places pl
     JOIN arcs a0 ON a0.place_id = pl.id
     WHERE a0.id = $1::uuid
     UNION ALL
-    SELECT parent.id, parent.parent_id, parent.hidden_at, up.depth + 1
+    SELECT parent.id, parent.parent_id, parent.kind, parent.name, parent.hidden_at, up.depth + 1
     FROM places parent
     JOIN up ON parent.id = up.parent_id
-    WHERE up.depth < 8
 )
 SELECT a.id, a.place_id, a.local_date, a.hour, a.parent_arc_id, a.title, a.created_by,
        a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
-       p.name AS place_name,
-       EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::bool AS place_hidden,
-       u.username AS creator_username
+       EXISTS (SELECT 1 FROM up WHERE up.depth <= 8 AND up.hidden_at IS NOT NULL)::bool AS place_hidden,
+       u.username AS creator_username,
+       (SELECT array_agg(up.id ORDER BY up.depth DESC) FROM up)::uuid[] AS chain_ids,
+       (SELECT array_agg(up.kind ORDER BY up.depth DESC) FROM up)::text[] AS chain_kinds,
+       (SELECT array_agg(up.name ORDER BY up.depth DESC) FROM up)::text[] AS chain_names
 FROM arcs a
-JOIN places p ON p.id = a.place_id
 JOIN users u ON u.id = a.created_by
 WHERE a.id = $1::uuid
 `
@@ -157,12 +157,18 @@ type GetArcRowRow struct {
 	CanonScore      float64
 	MemberCount     int32
 	CreatedAt       pgtype.Timestamptz
-	PlaceName       string
 	PlaceHidden     bool
 	CreatorUsername string
+	ChainIds        []uuid.UUID
+	ChainKinds      []string
+	ChainNames      []string
 }
 
-// place_hidden is true when the arc's place or any ancestor is hidden.
+// The arc with its place chain, read in one walk up the places. The chain
+// is the arc's place and every ancestor, root (STATE) first, as three
+// arrays in the same order. place_hidden is true when the arc's place or
+// any of the seven places above it is hidden; the chain itself is not cut
+// off there.
 func (q *Queries) GetArcRow(ctx context.Context, id uuid.UUID) (GetArcRowRow, error) {
 	row := q.db.QueryRow(ctx, getArcRow, id)
 	var i GetArcRowRow
@@ -178,9 +184,11 @@ func (q *Queries) GetArcRow(ctx context.Context, id uuid.UUID) (GetArcRowRow, er
 		&i.CanonScore,
 		&i.MemberCount,
 		&i.CreatedAt,
-		&i.PlaceName,
 		&i.PlaceHidden,
 		&i.CreatorUsername,
+		&i.ChainIds,
+		&i.ChainKinds,
+		&i.ChainNames,
 	)
 	return i, err
 }
@@ -820,48 +828,6 @@ func (q *Queries) LockArcForRetitle(ctx context.Context, id uuid.UUID) (LockArcF
 		&i.PlaceHidden,
 	)
 	return i, err
-}
-
-const placeChain = `-- name: PlaceChain :many
-WITH RECURSIVE chain AS (
-    SELECT pl.id, pl.kind, pl.name, pl.parent_id, 0 AS depth
-    FROM places pl
-    WHERE pl.id = $1
-    UNION ALL
-    SELECT parent.id, parent.kind, parent.name, parent.parent_id, chain.depth + 1
-    FROM places parent
-    JOIN chain ON parent.id = chain.parent_id
-)
-SELECT chain.id, chain.kind, chain.name
-FROM chain
-ORDER BY chain.depth DESC
-`
-
-type PlaceChainRow struct {
-	ID   uuid.UUID
-	Kind string
-	Name string
-}
-
-// The arc's place and its ancestors, root (STATE) first.
-func (q *Queries) PlaceChain(ctx context.Context, id uuid.UUID) ([]PlaceChainRow, error) {
-	rows, err := q.db.Query(ctx, placeChain, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []PlaceChainRow
-	for rows.Next() {
-		var i PlaceChainRow
-		if err := rows.Scan(&i.ID, &i.Kind, &i.Name); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const sitemapArcs = `-- name: SitemapArcs :many

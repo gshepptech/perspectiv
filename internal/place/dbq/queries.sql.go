@@ -629,6 +629,8 @@ ORDER BY
     EXISTS (
         SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
         WHERE a.place_path @> ARRAY[l.id]
+          -- A story under a hidden place is not readable, so not counted.
+          AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
           AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL) DESC,
     l.kind = 'PLACE_KIND_CITY' DESC,
     (SELECT count(*) FROM (SELECT 1 FROM places c WHERE c.parent_id = l.id LIMIT 500) x) DESC,
@@ -649,10 +651,10 @@ type FindLocalitiesRow struct {
 
 // The visible cities and towns named exactly one of names, for a search
 // that reads as a place and the town it is in. Best first: a locality with
-// a readable story at or below it, then a city before a town, then the one
-// with more places directly in it (counted up to 500), so "tampa" means
-// Tampa, Florida before Tampa, Kansas. Restricted to the descendants of
-// parent_id when it is set.
+// a readable story at or below it (not under a hidden place), then a city
+// before a town, then the one with more places directly in it (counted up
+// to 500), so "tampa" means Tampa, Florida before Tampa, Kansas. Restricted
+// to the descendants of parent_id when it is set.
 func (q *Queries) FindLocalities(ctx context.Context, arg FindLocalitiesParams) ([]FindLocalitiesRow, error) {
 	rows, err := q.db.Query(ctx, findLocalities, arg.Names, arg.ParentID, arg.Lim)
 	if err != nil {
@@ -1526,7 +1528,8 @@ func (q *Queries) StoriedCategories(ctx context.Context, categories []string) ([
 const twinCandidates = `-- name: TwinCandidates :many
 WITH me AS (
     SELECT p.id, p.parent_id, p.lat::float8 AS lat, p.lng::float8 AS lng, p.path[1] AS state_id,
-           $1::float8 AS lat_reach,
+           box(point(p.lng - $1::float8 / cos(radians(p.lat)), p.lat - $1::float8),
+               point(p.lng + $1::float8 / cos(radians(p.lat)), p.lat + $1::float8)) AS reach_box,
            coalesce((SELECT array_agg(an.name ORDER BY array_position(p.path, an.id))
                      FROM places an WHERE an.id = ANY(p.path) AND an.id <> p.id), '{}')::text[] AS ancestor_names
     FROM places p
@@ -1537,17 +1540,8 @@ WITH me AS (
       AND NOT EXISTS (
             SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
             WHERE a.place_path @> ARRAY[p.id]
+              AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
               AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
-),
-storied AS (
-    SELECT DISTINCT pid AS id
-    FROM me
-    JOIN arcs a ON a.place_path @> ARRAY[me.state_id]
-    CROSS JOIN LATERAL unnest(a.place_path) AS pid
-    WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
-      AND EXISTS (SELECT 1 FROM perspectives v
-                  WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-                    AND v.deleted_at IS NULL AND v.hidden_at IS NULL)
 )
 SELECT q.id, q.kind, q.name, coalesce(q.category, '')::text AS category,
        q.lat::float8 AS lat, q.lng::float8 AS lng,
@@ -1557,9 +1551,10 @@ SELECT q.id, q.kind, q.name, coalesce(q.category, '')::text AS category,
                  FROM places an WHERE an.id = ANY(q.path) AND an.id <> q.id), '{}')::text[] AS ancestor_names,
        st.stories
 FROM me
-JOIN storied s ON true
-JOIN places q ON q.id = s.id
+JOIN places q ON point(q.lng, q.lat) <@ me.reach_box
 CROSS JOIN LATERAL (
+    -- A readable story counted here lies under the whole path of q, so q
+    -- and every place above it are visible.
     SELECT count(*)::integer AS stories FROM (
         SELECT 1 FROM arcs a JOIN perspectives v ON v.arc_id = a.id
         WHERE a.place_path @> ARRAY[q.id]
@@ -1569,10 +1564,8 @@ CROSS JOIN LATERAL (
 ) st
 WHERE q.id <> me.id
   AND q.kind IN ('PLACE_KIND_STORE', 'PLACE_KIND_MALL')
-  AND q.lat IS NOT NULL AND q.lng IS NOT NULL
-  AND (q.parent_id = me.parent_id
-       OR (q.lat >= me.lat - me.lat_reach AND q.lat <= me.lat + me.lat_reach
-           AND abs(q.lng - me.lng) * cos(radians(me.lat)) <= me.lat_reach))
+  AND q.path[1] = me.state_id
+  AND st.stories > 0
 ORDER BY q.id
 `
 
@@ -1598,15 +1591,20 @@ type TwinCandidatesRow struct {
 
 // For placectl dedupe's rule on a place page (GetPlace's twin): when the
 // given place is a visible store or mall with coordinates and no readable
-// story at it or below, every other visible store or mall with
-// coordinates, a readable story at it or below, and either the same parent
-// or a spot inside a box of @reach degrees of latitude around it (widened
-// for longitude). Each row carries the given place's own coordinates, the
-// names of the places above both, and the candidate's readable stories
-// counted up to 100. The caller compares names and distances.
+// story at it or below, every other visible store or mall in its state with
+// coordinates, a readable story at it or below, and a spot inside a box of
+// @reach degrees of latitude around it (widened for longitude). A story
+// under a hidden place is not readable, here as everywhere. The reach is
+// the widest distance any twin may lie at, so the same-parent, 200 m and
+// 2 km cases all fall inside the box. Each row carries the given place's own
+// coordinates, the names of the places above both, whether the two share a
+// parent, and the candidate's readable stories counted up to 100. The
+// caller compares names and distances.
 //
-// Candidates are found from the arcs of the place's state, so the cost is
-// what that state's arcs cost, never a scan of its places.
+// Candidates are the places in the box, read through places_point_idx, and
+// each is probed in arcs_place_path_idx, so the cost is what the places
+// within about 2 km cost (some 5,000 in downtown Miami), never what the
+// arcs of the whole state cost.
 func (q *Queries) TwinCandidates(ctx context.Context, arg TwinCandidatesParams) ([]TwinCandidatesRow, error) {
 	rows, err := q.db.Query(ctx, twinCandidates, arg.Reach, arg.ID)
 	if err != nil {

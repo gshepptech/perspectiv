@@ -166,29 +166,27 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 			wantText:    []string{"otter replied to your post in a lore's thread in Rainy Tuesday.", baseURL + "/lores/l-1"},
 		},
 		{
-			name: "a new story names three unclaimed characters, then how many more",
+			// The labels are read as the email is sent, never from the job:
+			// a job that carries them (as jobs once did) names nobody.
+			name: "labels carried in the job are not mailed",
 			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
 				"user_id": recipientID, "kind": "NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "actor": "wren",
 				"arc_title": "Rainy Tuesday", "path": "/perspectives/p-1",
-				"characters":      `["the woman with the foam parrot","the clerk","the <b>twins</b>"]`,
+				"characters":      `["the woman with the foam parrot","the clerk"]`,
 				"more_characters": "2",
 			}},
 			wantSubject: "A new perspective in Rainy Tuesday",
-			wantText: []string{"wren published a new perspective in Rainy Tuesday. Who might be in it: " +
-				"“the woman with the foam parrot”, “the clerk”, “the <b>twins</b>” and 2 more. " +
-				"If one of them was you, open the story and claim them."},
-			wantHTML:  []string{"“the clerk”, “the &lt;b&gt;twins&lt;/b&gt;” and 2 more."},
-			notInHTML: []string{"<b>twins"},
+			wantText:    []string{"wren published a new perspective in Rainy Tuesday.\n"},
+			notInHTML:   []string{"Who might be in it", "the clerk"},
 		},
 		{
-			name: "a new story with two unclaimed characters joins them with and",
+			name: "an arc title stored over two lines reads as one",
 			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
 				"user_id": recipientID, "kind": "NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "actor": "wren",
-				"arc_title": "Rainy Tuesday", "path": "/perspectives/p-1",
-				"characters": `["the clerk","the drummer"]`, "more_characters": "0",
+				"arc_title": "Rainy\r\n\r\nBcc: x@evil.test\u202e", "path": "/perspectives/p-1",
 			}},
-			wantSubject: "A new perspective in Rainy Tuesday",
-			wantText:    []string{"Who might be in it: “the clerk” and “the drummer”. If one of them"},
+			wantSubject: "A new perspective in Rainy Bcc: x@evil.test",
+			wantText:    []string{"wren published a new perspective in Rainy Bcc: x@evil.test.\n"},
 		},
 		{
 			name: "a new story with no unclaimed characters names nobody",
@@ -204,7 +202,7 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			rec := &recorder{}
-			w := notify.NewEmailWorker(rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
+			w := notify.NewEmailWorker(nil, rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
 			if err := w.Work(context.Background(), emailJob(1, tc.args)); err != nil {
 				t.Fatalf("Work: %v", err)
 			}
@@ -252,7 +250,7 @@ func TestEmailWorkerCancelsUnrenderableJobs(t *testing.T) {
 			t.Parallel()
 			rec := &recorder{}
 			m := metrics.New(prometheus.NewRegistry())
-			w := notify.NewEmailWorker(rec, m, zerolog.New(io.Discard), baseURL, unsub)
+			w := notify.NewEmailWorker(nil, rec, m, zerolog.New(io.Discard), baseURL, unsub)
 			err := w.Work(context.Background(), emailJob(1, tc.args))
 			var cancel *rivertype.JobCancelError
 			if !errors.As(err, &cancel) {
@@ -287,7 +285,7 @@ func TestEmailWorkerProviderFailure(t *testing.T) {
 			t.Parallel()
 			provider := errors.New("provider down")
 			m := metrics.New(prometheus.NewRegistry())
-			w := notify.NewEmailWorker(&recorder{err: provider}, m, zerolog.New(io.Discard), baseURL, unsub)
+			w := notify.NewEmailWorker(nil, &recorder{err: provider}, m, zerolog.New(io.Discard), baseURL, unsub)
 			err := w.Work(context.Background(), emailJob(tc.attempt, args))
 			if !errors.Is(err, provider) {
 				t.Fatalf("Work = %v, want the provider error", err)
@@ -306,7 +304,7 @@ func TestEmailWorkerProviderFailure(t *testing.T) {
 // The retry schedule doubles from 30 seconds and is capped at one hour.
 func TestEmailWorkerRetrySchedule(t *testing.T) {
 	t.Parallel()
-	w := notify.NewEmailWorker(&recorder{}, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
+	w := notify.NewEmailWorker(nil, &recorder{}, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
 	tests := []struct {
 		attempt int
 		want    time.Duration
@@ -356,7 +354,7 @@ func TestNotificationEmailsCanBeUnsubscribed(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			rec := &recorder{}
-			w := notify.NewEmailWorker(rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
+			w := notify.NewEmailWorker(nil, rec, metrics.New(prometheus.NewRegistry()), zerolog.New(io.Discard), baseURL, unsub)
 			err := w.Work(context.Background(), emailJob(1, tc.args))
 			if tc.wantErr {
 				if err == nil || len(rec.messages()) != 0 {
