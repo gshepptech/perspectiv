@@ -205,7 +205,7 @@ export function RootLayout() {
       <footer className="border-t border-rule">
         <div className="mx-auto flex w-full max-w-shell flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-2 text-sm text-ink-muted">
           <p>Perspectiv. Stories from the people who were there.</p>
-          <nav aria-label="Policies" className="flex flex-wrap gap-x-4">
+          <nav aria-label="About this site" className="flex flex-wrap gap-x-4">
             <Link to="/terms" className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">
               Terms
             </Link>
@@ -214,6 +214,9 @@ export function RootLayout() {
             </Link>
             <Link to="/guidelines" className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">
               Community guidelines
+            </Link>
+            <Link to="/appearance" className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">
+              Appearance
             </Link>
           </nav>
         </div>

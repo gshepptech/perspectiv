@@ -40,6 +40,9 @@ export default defineConfig({
       "/healthz": serverURL,
       "/metrics": serverURL,
       "/about": serverURL,
+      "/robots.txt": serverURL,
+      "/sitemap.xml": serverURL,
+      "/sitemaps": serverURL,
     },
   },
   build: {

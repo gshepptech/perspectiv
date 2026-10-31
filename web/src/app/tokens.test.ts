@@ -17,9 +17,12 @@ function block(source: string, start: number): string {
   throw new Error("unbalanced block");
 }
 
-function tokens(body: string): Record<string, string> {
+// Each token is light-dark(<Paper>, <Lamplight>); side 0 is Paper, 1 Lamplight.
+function tokens(body: string, side: 0 | 1): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const m of body.matchAll(/--([a-z-]+):\s*(#[0-9a-f]{6})\s*;/gi)) out[m[1]!] = m[2]!;
+  for (const m of body.matchAll(/--([a-z-]+):\s*light-dark\(\s*(#[0-9a-f]{6})\s*,\s*(#[0-9a-f]{6})\s*\)\s*;/gi)) {
+    out[m[1]!] = m[side + 2]!;
+  }
   return out;
 }
 
@@ -36,9 +39,9 @@ function contrast(a: string, b: string): number {
   return (hi! + 0.05) / (lo! + 0.05);
 }
 
-const light = tokens(block(css, css.indexOf(":root")));
-const darkAt = css.indexOf("@media (prefers-color-scheme: dark)");
-const dark = tokens(block(css, css.indexOf(":root", darkAt)));
+const root = block(css, css.indexOf(":root"));
+const light = tokens(root, 0);
+const dark = tokens(root, 1);
 
 const textOnBackgrounds = ["ink", "ink-muted", "accent", "success", "warning", "error", "info"];
 
@@ -73,6 +76,12 @@ describe("Folio palette", () => {
       }
     });
   }
+
+  it("lets the device pick the theme unless the reader forces one", () => {
+    expect(root).toMatch(/color-scheme:\s*light dark;/);
+    expect(block(css, css.indexOf(':root[data-theme="light"]'))).toMatch(/color-scheme:\s*light;/);
+    expect(block(css, css.indexOf(':root[data-theme="dark"]'))).toMatch(/color-scheme:\s*dark;/);
+  });
 
   it("cuts all motion to zero under prefers-reduced-motion", () => {
     const at = css.indexOf("@media (prefers-reduced-motion: reduce)");

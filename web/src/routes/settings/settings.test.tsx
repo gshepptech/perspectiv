@@ -18,6 +18,7 @@ const KINDS = [
   "NOTIFICATION_KIND_INVITE_ANSWERED",
   "NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE",
   "NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER",
+  "NOTIFICATION_KIND_THREAD_REPLY",
 ];
 
 type Blocked = { userId: string; username: string };
@@ -259,6 +260,7 @@ describe("SettingsPage notification toggles", () => {
       "Someone you invited writes their side",
       "A new story at a place you follow",
       "A new story by a writer you follow",
+      "Someone replies to your post in a lore's thread",
     ];
     for (const label of labels) {
       expect(await within(region).findByRole("checkbox", { name: `${label}: in app` })).toBeChecked();

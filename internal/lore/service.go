@@ -7,6 +7,9 @@
 // the arc's advisory lock, then perspective rows in id order, then claim rows,
 // and the arc row (lore_dirty_at) last.
 //
+// It also owns each lore's name and its thread: posts, replies two levels
+// deep, their upvotes, edits and deletes (thread.go, thread_write.go).
+//
 // The lore service never writes canon state from a request: lores.status,
 // lores.rank_score, lores.upvotes and arcs.canon_lore_id belong to the rank
 // job.

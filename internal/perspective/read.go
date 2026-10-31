@@ -358,3 +358,17 @@ func filed(r dbq.GetPerspectivesRow) (*perspectivv1.Perspective, error) {
 	}
 	return p, nil
 }
+
+// Sitemap lists up to apiutil.SitemapLimit readable stories, most recently
+// changed first.
+func (s *Service) Sitemap(ctx context.Context) ([]apiutil.SitemapEntry, error) {
+	rows, err := dbq.New(s.pool).SitemapStories(ctx, apiutil.SitemapLimit)
+	if err != nil {
+		return nil, fmt.Errorf("sitemap stories: %w", err)
+	}
+	out := make([]apiutil.SitemapEntry, len(rows))
+	for i, r := range rows {
+		out[i] = apiutil.SitemapEntry{ID: r.ID, LastMod: r.LastMod}
+	}
+	return out, nil
+}

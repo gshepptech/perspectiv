@@ -606,21 +606,25 @@ const (
 	// A writer you follow published a new story. Not sent for a story you
 	// already hear of as NEW_STORY_AT_FOLLOWED_PLACE or NEW_PERSPECTIVE_IN_ARC.
 	NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER NotificationKind = 9
+	// Someone replied to your post in a lore's thread. Not sent for your own
+	// reply, nor when either of you has blocked the other.
+	NotificationKind_NOTIFICATION_KIND_THREAD_REPLY NotificationKind = 10
 )
 
 // Enum value maps for NotificationKind.
 var (
 	NotificationKind_name = map[int32]string{
-		0: "NOTIFICATION_KIND_UNSPECIFIED",
-		1: "NOTIFICATION_KIND_CLAIM_RECEIVED",
-		2: "NOTIFICATION_KIND_CLAIM_ACCEPTED",
-		3: "NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC",
-		4: "NOTIFICATION_KIND_VOTE_OUT_OPENED",
-		5: "NOTIFICATION_KIND_CANON_CHANGE",
-		6: "NOTIFICATION_KIND_REPORT_RESOLVED",
-		7: "NOTIFICATION_KIND_INVITE_ANSWERED",
-		8: "NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE",
-		9: "NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER",
+		0:  "NOTIFICATION_KIND_UNSPECIFIED",
+		1:  "NOTIFICATION_KIND_CLAIM_RECEIVED",
+		2:  "NOTIFICATION_KIND_CLAIM_ACCEPTED",
+		3:  "NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC",
+		4:  "NOTIFICATION_KIND_VOTE_OUT_OPENED",
+		5:  "NOTIFICATION_KIND_CANON_CHANGE",
+		6:  "NOTIFICATION_KIND_REPORT_RESOLVED",
+		7:  "NOTIFICATION_KIND_INVITE_ANSWERED",
+		8:  "NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE",
+		9:  "NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER",
+		10: "NOTIFICATION_KIND_THREAD_REPLY",
 	}
 	NotificationKind_value = map[string]int32{
 		"NOTIFICATION_KIND_UNSPECIFIED":                  0,
@@ -633,6 +637,7 @@ var (
 		"NOTIFICATION_KIND_INVITE_ANSWERED":              7,
 		"NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE":  8,
 		"NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER": 9,
+		"NOTIFICATION_KIND_THREAD_REPLY":                 10,
 	}
 )
 
@@ -1271,6 +1276,60 @@ func (PlaceCategory) EnumDescriptor() ([]byte, []int) {
 	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{19}
 }
 
+// LorePostSort orders a lore thread's top-level posts. Replies are always
+// oldest first.
+type LorePostSort int32
+
+const (
+	// Read as TOP.
+	LorePostSort_LORE_POST_SORT_UNSPECIFIED LorePostSort = 0
+	// Most upvoted first; ties oldest first.
+	LorePostSort_LORE_POST_SORT_TOP LorePostSort = 1
+	// Newest first.
+	LorePostSort_LORE_POST_SORT_NEW LorePostSort = 2
+)
+
+// Enum value maps for LorePostSort.
+var (
+	LorePostSort_name = map[int32]string{
+		0: "LORE_POST_SORT_UNSPECIFIED",
+		1: "LORE_POST_SORT_TOP",
+		2: "LORE_POST_SORT_NEW",
+	}
+	LorePostSort_value = map[string]int32{
+		"LORE_POST_SORT_UNSPECIFIED": 0,
+		"LORE_POST_SORT_TOP":         1,
+		"LORE_POST_SORT_NEW":         2,
+	}
+)
+
+func (x LorePostSort) Enum() *LorePostSort {
+	p := new(LorePostSort)
+	*p = x
+	return p
+}
+
+func (x LorePostSort) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LorePostSort) Descriptor() protoreflect.EnumDescriptor {
+	return file_perspectiv_v1_enums_proto_enumTypes[20].Descriptor()
+}
+
+func (LorePostSort) Type() protoreflect.EnumType {
+	return &file_perspectiv_v1_enums_proto_enumTypes[20]
+}
+
+func (x LorePostSort) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LorePostSort.Descriptor instead.
+func (LorePostSort) EnumDescriptor() ([]byte, []int) {
+	return file_perspectiv_v1_enums_proto_rawDescGZIP(), []int{20}
+}
+
 var File_perspectiv_v1_enums_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_enums_proto_rawDesc = "" +
@@ -1335,7 +1394,7 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\n" +
 	"EMOJI_FIRE\x10\x05\x12\x0e\n" +
 	"\n" +
-	"EMOJI_CLAP\x10\x06*\xaf\x03\n" +
+	"EMOJI_CLAP\x10\x06*\xd3\x03\n" +
 	"\x10NotificationKind\x12!\n" +
 	"\x1dNOTIFICATION_KIND_UNSPECIFIED\x10\x00\x12$\n" +
 	" NOTIFICATION_KIND_CLAIM_RECEIVED\x10\x01\x12$\n" +
@@ -1346,7 +1405,9 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"!NOTIFICATION_KIND_REPORT_RESOLVED\x10\x06\x12%\n" +
 	"!NOTIFICATION_KIND_INVITE_ANSWERED\x10\a\x121\n" +
 	"-NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE\x10\b\x122\n" +
-	".NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER\x10\t*\xd9\x01\n" +
+	".NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER\x10\t\x12\"\n" +
+	"\x1eNOTIFICATION_KIND_THREAD_REPLY\x10\n" +
+	"*\xd9\x01\n" +
 	"\x10ReportTargetKind\x12\"\n" +
 	"\x1eREPORT_TARGET_KIND_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eREPORT_TARGET_KIND_PERSPECTIVE\x10\x01\x12\x1c\n" +
@@ -1429,7 +1490,11 @@ const file_perspectiv_v1_enums_proto_rawDesc = "" +
 	"\x12\x1a\n" +
 	"\x16PLACE_CATEGORY_LODGING\x10\v\x12\x1b\n" +
 	"\x17PLACE_CATEGORY_SERVICES\x10\f\x12\x19\n" +
-	"\x15PLACE_CATEGORY_HEALTH\x10\rB\x9f\x01\n" +
+	"\x15PLACE_CATEGORY_HEALTH\x10\r*^\n" +
+	"\fLorePostSort\x12\x1e\n" +
+	"\x1aLORE_POST_SORT_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12LORE_POST_SORT_TOP\x10\x01\x12\x16\n" +
+	"\x12LORE_POST_SORT_NEW\x10\x02B\x9f\x01\n" +
 	"\x11com.perspectiv.v1B\n" +
 	"EnumsProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
@@ -1445,7 +1510,7 @@ func file_perspectiv_v1_enums_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_enums_proto_rawDescData
 }
 
-var file_perspectiv_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 20)
+var file_perspectiv_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 21)
 var file_perspectiv_v1_enums_proto_goTypes = []any{
 	(PlaceKind)(0),         // 0: perspectiv.v1.PlaceKind
 	(PlaceSource)(0),       // 1: perspectiv.v1.PlaceSource
@@ -1467,6 +1532,7 @@ var file_perspectiv_v1_enums_proto_goTypes = []any{
 	(EpicTab)(0),           // 17: perspectiv.v1.EpicTab
 	(ArcSection)(0),        // 18: perspectiv.v1.ArcSection
 	(PlaceCategory)(0),     // 19: perspectiv.v1.PlaceCategory
+	(LorePostSort)(0),      // 20: perspectiv.v1.LorePostSort
 }
 var file_perspectiv_v1_enums_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1486,7 +1552,7 @@ func file_perspectiv_v1_enums_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_enums_proto_rawDesc), len(file_perspectiv_v1_enums_proto_rawDesc)),
-			NumEnums:      20,
+			NumEnums:      21,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

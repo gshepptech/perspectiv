@@ -21,6 +21,7 @@ var allKinds = []perspectivv1.NotificationKind{
 	perspectivv1.NotificationKind_NOTIFICATION_KIND_INVITE_ANSWERED,
 	perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE,
 	perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER,
+	perspectivv1.NotificationKind_NOTIFICATION_KIND_THREAD_REPLY,
 }
 
 // validKind reports whether k is a defined, non-zero kind.
@@ -34,7 +35,8 @@ func validKind(k perspectivv1.NotificationKind) bool {
 		perspectivv1.NotificationKind_NOTIFICATION_KIND_REPORT_RESOLVED,
 		perspectivv1.NotificationKind_NOTIFICATION_KIND_INVITE_ANSWERED,
 		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE,
-		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER:
+		perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER,
+		perspectivv1.NotificationKind_NOTIFICATION_KIND_THREAD_REPLY:
 		return true
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_UNSPECIFIED:
 		return false

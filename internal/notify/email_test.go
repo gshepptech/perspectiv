@@ -156,6 +156,15 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 			wantSubject: "wren wrote a new story",
 			wantText:    []string{"wren, a writer you follow, wrote a new story in Rainy Tuesday.", baseURL + "/perspectives/p-1"},
 		},
+		{
+			name: "a thread reply names the replier and links the lore",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
+				"user_id": recipientID, "kind": "NOTIFICATION_KIND_THREAD_REPLY", "actor": "otter",
+				"arc_title": "Rainy Tuesday", "path": "/lores/l-1",
+			}},
+			wantSubject: "otter replied to your post",
+			wantText:    []string{"otter replied to your post in a lore's thread in Rainy Tuesday.", baseURL + "/lores/l-1"},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

@@ -109,6 +109,9 @@ func serveErr(ctx context.Context, cfg config, log zerolog.Logger) error {
 		Handlers: app.mounts,
 		Static:   app.static,
 		Preview:  app.preview,
+		// The sitemap names pages by their public address.
+		PublicBaseURL: cfg.PublicBaseURL,
+		Sitemap:       app.sitemap,
 	})
 
 	// Bind before starting workers so a taken port fails fast.
@@ -149,6 +152,8 @@ type app struct {
 	static fs.FS
 	// preview names a shared link's page for its link preview.
 	preview api.Previewer
+	// sitemap lists the public reading pages; nil unless the API runs.
+	sitemap api.SitemapSource
 	// worker is the working River client; nil unless the workers run.
 	worker *river.Client[pgx.Tx]
 }
@@ -257,6 +262,7 @@ func (a *app) addAPI(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, enq *jo
 	placeSvc := place.NewService(place.NewStore(pool))
 	perspectiveSvc := perspective.NewService(pool, arcSvc, loreSvc, enq, m, cfg.ExpiryWindow)
 	a.preview = previewer{arcs: arcSvc, perspectives: perspectiveSvc, lores: loreSvc, places: placeSvc}.preview
+	a.sitemap = sitemap{places: placeSvc.Sitemap, days: arcSvc.Sitemap, stories: perspectiveSvc.Sitemap}.pages
 	chain := connect.WithInterceptors(append([]connect.Interceptor{api.MetricsInterceptor(m)},
 		api.Interceptors(log, authSvc, authSvc, limiter)...)...)
 	notifyHandler := notify.NewHandler(notify.NewService(pool, notify.NewUnsubscriber(cfg.JWTSecret)))

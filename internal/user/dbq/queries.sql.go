@@ -217,9 +217,13 @@ SELECT jsonb_build_object(
     SELECT jsonb_agg(jsonb_build_object('perspective_id', rv.perspective_id, 'created_at', rv.created_at) ORDER BY rv.created_at)
     FROM remove_votes rv WHERE rv.user_id = $1::uuid), '[]'::jsonb),
   'thread_posts', coalesce((
-    SELECT jsonb_agg(jsonb_build_object('lore_id', lp.lore_id, 'body', lp.body, 'created_at', lp.created_at,
-                                        'deleted_at', lp.deleted_at, 'hidden_at', lp.hidden_at) ORDER BY lp.created_at)
+    SELECT jsonb_agg(jsonb_build_object('id', lp.id, 'lore_id', lp.lore_id, 'reply_to_id', lp.reply_to_id,
+                                        'answered_id', lp.answered_id, 'body', lp.body, 'created_at', lp.created_at,
+                                        'edited_at', lp.edited_at, 'deleted_at', lp.deleted_at, 'hidden_at', lp.hidden_at) ORDER BY lp.created_at)
     FROM lore_posts lp WHERE lp.author_id = $1::uuid), '[]'::jsonb),
+  'thread_upvotes', coalesce((
+    SELECT jsonb_agg(jsonb_build_object('post_id', pv.post_id, 'created_at', pv.created_at) ORDER BY pv.created_at)
+    FROM lore_post_votes pv WHERE pv.user_id = $1::uuid), '[]'::jsonb),
   'lores_named', coalesce((
     SELECT jsonb_agg(jsonb_build_object('lore_id', l.id, 'name', l.name))
     FROM lores l WHERE l.named_by = $1::uuid), '[]'::jsonb),

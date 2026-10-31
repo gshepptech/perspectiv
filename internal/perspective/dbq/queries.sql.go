@@ -983,6 +983,43 @@ func (q *Queries) SetInviteCode(ctx context.Context, arg SetInviteCodeParams) er
 	return err
 }
 
+const sitemapStories = `-- name: SitemapStories :many
+SELECT v.id, v.updated_at AS last_mod
+FROM perspectives v
+JOIN arcs a ON a.id = v.arc_id
+WHERE v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+ORDER BY v.updated_at DESC, v.id
+LIMIT $1::integer
+`
+
+type SitemapStoriesRow struct {
+	ID      uuid.UUID
+	LastMod time.Time
+}
+
+// Readable stories, most recently changed first: the stories listed in the
+// sitemap.
+func (q *Queries) SitemapStories(ctx context.Context, lim int32) ([]SitemapStoriesRow, error) {
+	rows, err := q.db.Query(ctx, sitemapStories, lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SitemapStoriesRow
+	for rows.Next() {
+		var i SitemapStoriesRow
+		if err := rows.Scan(&i.ID, &i.LastMod); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const softDelete = `-- name: SoftDelete :exec
 UPDATE perspectives
 SET deleted_at = now(), updated_at = now()

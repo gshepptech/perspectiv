@@ -20,6 +20,50 @@ Nothing in progress.
 
 ## Done
 
+- Search engines: /robots.txt keeps crawlers off the API, account, writing,
+  admin and one-time-link pages and names /sitemap.xml, an index of three
+  sitemaps (places, days, stories) built from the same readable-only rules
+  as the pages: nothing hidden, under a hidden place, deleted or a draft.
+  Each lists the 50,000 most recently active pages, the protocol's per-file
+  limit; past that, the files need paging (a follow-up, not needed at beta
+  scale). Verified by TestRobotsAndSitemap, TestRobotsWithoutSitemap and
+  TestPreview's sitemap cases; on the dev data each file builds in about
+  2 ms.
+- Lore threads with replies, upvotes, sort, edit and delete: a post is
+  top-level or a reply under one, two levels deep; a reply to a reply sits
+  under the same post and shows "Replying to @name". Replies read oldest
+  first, three inline and the rest behind "Show N more replies"
+  (ListLorePostReplies). The people who may post (A-012) upvote a post once,
+  never their own and not when its author blocked them (VoteLorePost, on
+  the vote limiter). ListLorePosts sorts TOP (score, then oldest; the
+  default) or NEW (newest first), keyset-paged for both. Authors edit
+  ("edited") and delete their own posts; a deleted post with replies stays
+  as "[deleted]" above them. Hiding a top-level post hides its replies and
+  makes them unreportable; restoring brings them back. A reply notifies the
+  answered post's author (THREAD_REPLY: inbox, email, preference), never
+  the replier and never across a block either way. The export lists each
+  post's place in its thread, its edit time and the member's post upvotes.
+  Reacts stay on stories (A-033). Migration 30, its Down run on the dev
+  database. Verified by TestThreadReplies, TestVoteLorePost,
+  TestLorePostSort, TestEditLorePost, TestDeleteLorePost,
+  TestThreadHideAndRestore, TestLoreThread, TestFanoutThreadReply,
+  TestHideAndRestoreThreadPostWithReplies, TestExportMyDataThread,
+  TestMigrationsRollBack, TestEnumValues,
+  TestServicesExposeExactlyTheContractRPCs, TestRoutePolicies,
+  TestEmailWorkerRendersTemplates, the web suite (LoreThread.test.tsx,
+  LorePage.test.tsx, inbox, settings and phone-width tests) and
+  e2e/lore-journey.spec.ts (a post, a reply that reaches its author's
+  inbox, two upvotes, and Top and New).
+- Appearance, for every reader: /appearance (linked from the footer and
+  Settings) picks the theme (match the device, Paper or Lamplight) and the
+  story text size (18, 20 or 22px), kept on the device and applied before
+  the first paint by public/appearance.js. The palette is now one
+  light-dark() token set, so the two themes cannot drift apart. Kept per
+  device rather than per account on purpose: it works signed out, and a
+  phone and a desktop often want different sizes. Verified by
+  tokens.test.ts (both themes still meet WCAG 2.1 AA), appearance.test.tsx
+  and e2e/appearance.spec.ts (the choice is on the root before the app
+  loads, survives a reload and sets theme-color).
 - Cast tags link the claimant's own story from the server: each character
   carries claimed_by_story_id while that story is readable, so the tag no
   longer depends on the story being on the day's first page, and the

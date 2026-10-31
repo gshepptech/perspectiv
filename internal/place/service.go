@@ -413,3 +413,8 @@ func (s *Service) SearchCharacters(ctx context.Context, placeID uuid.UUID, query
 	}
 	return found, nil
 }
+
+// Sitemap lists the places the sitemap names; see Store.Sitemap.
+func (s *Service) Sitemap(ctx context.Context) ([]apiutil.SitemapEntry, error) {
+	return s.store.Sitemap(ctx, apiutil.SitemapLimit)
+}

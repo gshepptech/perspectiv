@@ -23,9 +23,14 @@ SELECT EXISTS (
 )::boolean AS ok;
 
 -- name: LorePostReportable :one
--- A thread post can be reported while readers can see it.
+-- A thread post can be reported while readers can see it: neither it nor,
+-- for a reply, the top-level post it sits under is hidden, since hiding a
+-- top-level post hides its replies too.
 SELECT EXISTS (
-    SELECT 1 FROM lore_posts WHERE id = @id::uuid AND deleted_at IS NULL AND hidden_at IS NULL
+    SELECT 1 FROM lore_posts lp
+    LEFT JOIN lore_posts top ON top.id = lp.reply_to_id
+    WHERE lp.id = @id::uuid AND lp.deleted_at IS NULL AND lp.hidden_at IS NULL
+      AND top.hidden_at IS NULL
 )::boolean AS ok;
 
 -- name: LoreNameReportable :one

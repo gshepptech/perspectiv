@@ -65,6 +65,8 @@ type fanoutWorker struct {
 //     place above it, except the arc's authors.
 //   - new story by a followed writer: the author's followers with no block
 //     either way, except the arc's authors and the place followers above.
+//   - thread reply: the author of the post the reply answered, unless
+//     either of the two has blocked the other.
 //
 // For every kind the actor never hears about their own action, a recipient
 // who has blocked the actor hears nothing from them, and a deleted account
@@ -143,6 +145,8 @@ func resolve(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, boo
 		ev, ok, err = resolveFollowedPlaceStory(ctx, q, a)
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER:
 		ev, ok, err = resolveFollowedWriterStory(ctx, q, a)
+	case perspectivv1.NotificationKind_NOTIFICATION_KIND_THREAD_REPLY:
+		ev, ok, err = resolveThreadReply(ctx, q, a)
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_UNSPECIFIED:
 		return event{}, false, nil
 	default:
@@ -353,6 +357,31 @@ func resolveFollowedWriterStory(ctx context.Context, q *dbq.Queries, a jobs.Noti
 		candidates: followers,
 		path:       "/perspectives/" + a.PerspectiveID.String(),
 		payload:    Payload{ActorID: actor, ArcID: p.ArcID, PerspectiveID: ref(a.PerspectiveID)},
+	}, true, nil
+}
+
+// resolveThreadReply tells the author of a thread post that someone
+// replied to it. Recipients drops only a recipient who blocked the actor;
+// a reply never notifies across a block in either direction, so the other
+// direction is checked here.
+func resolveThreadReply(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) (event, bool, error) {
+	if a.LorePostID == uuid.Nil {
+		return event{}, false, nil
+	}
+	f, err := q.ThreadReplyFacts(ctx, a.LorePostID)
+	if err != nil {
+		return event{}, false, unlessMissing(err)
+	}
+	if f.Blocked {
+		return event{}, false, nil
+	}
+	actor := ref(f.ReplierID)
+	return event{
+		actor:      actor,
+		showActor:  true,
+		candidates: []uuid.UUID{f.AnsweredAuthorID},
+		path:       "/lores/" + f.LoreID.String(),
+		payload:    Payload{ActorID: actor, ArcID: ref(f.ArcID), LoreID: ref(f.LoreID)},
 	}, true, nil
 }
 

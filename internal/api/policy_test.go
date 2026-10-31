@@ -58,6 +58,8 @@ func TestRoutePolicies(t *testing.T) {
 		"/perspectiv.v1.PerspectiveService/CreateInvite": "",
 		"/perspectiv.v1.LoreService/AddLorePost":         api.LimitPost,
 		"/perspectiv.v1.LoreService/NameLore":            api.LimitPost,
+		"/perspectiv.v1.LoreService/EditLorePost":        api.LimitPost,
+		"/perspectiv.v1.LoreService/VoteLorePost":        api.LimitVote,
 		"/perspectiv.v1.ArcService/RetitleHourArc":       "",
 		"/perspectiv.v1.LoreService/ResolveClaim":        "",
 		"/perspectiv.v1.LoreService/ClaimCharacter":      api.LimitClaim,

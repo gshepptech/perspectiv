@@ -50,6 +50,18 @@ const (
 	LoreServiceAddLorePostProcedure = "/perspectiv.v1.LoreService/AddLorePost"
 	// LoreServiceNameLoreProcedure is the fully-qualified name of the LoreService's NameLore RPC.
 	LoreServiceNameLoreProcedure = "/perspectiv.v1.LoreService/NameLore"
+	// LoreServiceListLorePostRepliesProcedure is the fully-qualified name of the LoreService's
+	// ListLorePostReplies RPC.
+	LoreServiceListLorePostRepliesProcedure = "/perspectiv.v1.LoreService/ListLorePostReplies"
+	// LoreServiceVoteLorePostProcedure is the fully-qualified name of the LoreService's VoteLorePost
+	// RPC.
+	LoreServiceVoteLorePostProcedure = "/perspectiv.v1.LoreService/VoteLorePost"
+	// LoreServiceEditLorePostProcedure is the fully-qualified name of the LoreService's EditLorePost
+	// RPC.
+	LoreServiceEditLorePostProcedure = "/perspectiv.v1.LoreService/EditLorePost"
+	// LoreServiceDeleteLorePostProcedure is the fully-qualified name of the LoreService's
+	// DeleteLorePost RPC.
+	LoreServiceDeleteLorePostProcedure = "/perspectiv.v1.LoreService/DeleteLorePost"
 )
 
 // LoreServiceClient is a client for the perspectiv.v1.LoreService service.
@@ -62,14 +74,26 @@ type LoreServiceClient interface {
 	ListClaims(context.Context, *connect.Request[v1.ListClaimsRequest]) (*connect.Response[v1.ListClaimsResponse], error)
 	// Public. One lore with its members and encounters.
 	GetLore(context.Context, *connect.Request[v1.GetLoreRequest]) (*connect.Response[v1.GetLoreResponse], error)
-	// Public. A lore's thread, oldest first.
+	// Public. A lore's thread: its top-level posts in the requested order,
+	// each with its first replies.
 	ListLorePosts(context.Context, *connect.Request[v1.ListLorePostsRequest]) (*connect.Response[v1.ListLorePostsResponse], error)
-	// Posts to a lore's thread: a lore member, or anyone with a perspective in
-	// the lore's arc. Plain text, 1 to 1,000 characters.
+	// Posts to a lore's thread, or replies to a post in it: a lore member, or
+	// anyone with a perspective in the lore's arc. Plain text, 1 to 1,000
+	// characters.
 	AddLorePost(context.Context, *connect.Request[v1.AddLorePostRequest]) (*connect.Response[v1.AddLorePostResponse], error)
 	// Names a lore: any member of it, 1 to 60 characters after trimming. The
 	// latest name wins.
 	NameLore(context.Context, *connect.Request[v1.NameLoreRequest]) (*connect.Response[v1.NameLoreResponse], error)
+	// Public. The replies under one top-level post, oldest first.
+	ListLorePostReplies(context.Context, *connect.Request[v1.ListLorePostRepliesRequest]) (*connect.Response[v1.ListLorePostRepliesResponse], error)
+	// Sets or clears the caller's upvote on a thread post. The same people who
+	// may post may vote, never on their own post.
+	VoteLorePost(context.Context, *connect.Request[v1.VoteLorePostRequest]) (*connect.Response[v1.VoteLorePostResponse], error)
+	// Rewrites the caller's own post; the post then shows as edited.
+	EditLorePost(context.Context, *connect.Request[v1.EditLorePostRequest]) (*connect.Response[v1.EditLorePostResponse], error)
+	// Deletes the caller's own post. A top-level post with replies stays as
+	// "[deleted]" above them.
+	DeleteLorePost(context.Context, *connect.Request[v1.DeleteLorePostRequest]) (*connect.Response[v1.DeleteLorePostResponse], error)
 }
 
 // NewLoreServiceClient constructs a client for the perspectiv.v1.LoreService service. By default,
@@ -125,18 +149,46 @@ func NewLoreServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(loreServiceMethods.ByName("NameLore")),
 			connect.WithClientOptions(opts...),
 		),
+		listLorePostReplies: connect.NewClient[v1.ListLorePostRepliesRequest, v1.ListLorePostRepliesResponse](
+			httpClient,
+			baseURL+LoreServiceListLorePostRepliesProcedure,
+			connect.WithSchema(loreServiceMethods.ByName("ListLorePostReplies")),
+			connect.WithClientOptions(opts...),
+		),
+		voteLorePost: connect.NewClient[v1.VoteLorePostRequest, v1.VoteLorePostResponse](
+			httpClient,
+			baseURL+LoreServiceVoteLorePostProcedure,
+			connect.WithSchema(loreServiceMethods.ByName("VoteLorePost")),
+			connect.WithClientOptions(opts...),
+		),
+		editLorePost: connect.NewClient[v1.EditLorePostRequest, v1.EditLorePostResponse](
+			httpClient,
+			baseURL+LoreServiceEditLorePostProcedure,
+			connect.WithSchema(loreServiceMethods.ByName("EditLorePost")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteLorePost: connect.NewClient[v1.DeleteLorePostRequest, v1.DeleteLorePostResponse](
+			httpClient,
+			baseURL+LoreServiceDeleteLorePostProcedure,
+			connect.WithSchema(loreServiceMethods.ByName("DeleteLorePost")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // loreServiceClient implements LoreServiceClient.
 type loreServiceClient struct {
-	claimCharacter *connect.Client[v1.ClaimCharacterRequest, v1.ClaimCharacterResponse]
-	resolveClaim   *connect.Client[v1.ResolveClaimRequest, v1.ResolveClaimResponse]
-	listClaims     *connect.Client[v1.ListClaimsRequest, v1.ListClaimsResponse]
-	getLore        *connect.Client[v1.GetLoreRequest, v1.GetLoreResponse]
-	listLorePosts  *connect.Client[v1.ListLorePostsRequest, v1.ListLorePostsResponse]
-	addLorePost    *connect.Client[v1.AddLorePostRequest, v1.AddLorePostResponse]
-	nameLore       *connect.Client[v1.NameLoreRequest, v1.NameLoreResponse]
+	claimCharacter      *connect.Client[v1.ClaimCharacterRequest, v1.ClaimCharacterResponse]
+	resolveClaim        *connect.Client[v1.ResolveClaimRequest, v1.ResolveClaimResponse]
+	listClaims          *connect.Client[v1.ListClaimsRequest, v1.ListClaimsResponse]
+	getLore             *connect.Client[v1.GetLoreRequest, v1.GetLoreResponse]
+	listLorePosts       *connect.Client[v1.ListLorePostsRequest, v1.ListLorePostsResponse]
+	addLorePost         *connect.Client[v1.AddLorePostRequest, v1.AddLorePostResponse]
+	nameLore            *connect.Client[v1.NameLoreRequest, v1.NameLoreResponse]
+	listLorePostReplies *connect.Client[v1.ListLorePostRepliesRequest, v1.ListLorePostRepliesResponse]
+	voteLorePost        *connect.Client[v1.VoteLorePostRequest, v1.VoteLorePostResponse]
+	editLorePost        *connect.Client[v1.EditLorePostRequest, v1.EditLorePostResponse]
+	deleteLorePost      *connect.Client[v1.DeleteLorePostRequest, v1.DeleteLorePostResponse]
 }
 
 // ClaimCharacter calls perspectiv.v1.LoreService.ClaimCharacter.
@@ -174,6 +226,26 @@ func (c *loreServiceClient) NameLore(ctx context.Context, req *connect.Request[v
 	return c.nameLore.CallUnary(ctx, req)
 }
 
+// ListLorePostReplies calls perspectiv.v1.LoreService.ListLorePostReplies.
+func (c *loreServiceClient) ListLorePostReplies(ctx context.Context, req *connect.Request[v1.ListLorePostRepliesRequest]) (*connect.Response[v1.ListLorePostRepliesResponse], error) {
+	return c.listLorePostReplies.CallUnary(ctx, req)
+}
+
+// VoteLorePost calls perspectiv.v1.LoreService.VoteLorePost.
+func (c *loreServiceClient) VoteLorePost(ctx context.Context, req *connect.Request[v1.VoteLorePostRequest]) (*connect.Response[v1.VoteLorePostResponse], error) {
+	return c.voteLorePost.CallUnary(ctx, req)
+}
+
+// EditLorePost calls perspectiv.v1.LoreService.EditLorePost.
+func (c *loreServiceClient) EditLorePost(ctx context.Context, req *connect.Request[v1.EditLorePostRequest]) (*connect.Response[v1.EditLorePostResponse], error) {
+	return c.editLorePost.CallUnary(ctx, req)
+}
+
+// DeleteLorePost calls perspectiv.v1.LoreService.DeleteLorePost.
+func (c *loreServiceClient) DeleteLorePost(ctx context.Context, req *connect.Request[v1.DeleteLorePostRequest]) (*connect.Response[v1.DeleteLorePostResponse], error) {
+	return c.deleteLorePost.CallUnary(ctx, req)
+}
+
 // LoreServiceHandler is an implementation of the perspectiv.v1.LoreService service.
 type LoreServiceHandler interface {
 	// Claims a character in another perspective in the same arc: "that was me".
@@ -184,14 +256,26 @@ type LoreServiceHandler interface {
 	ListClaims(context.Context, *connect.Request[v1.ListClaimsRequest]) (*connect.Response[v1.ListClaimsResponse], error)
 	// Public. One lore with its members and encounters.
 	GetLore(context.Context, *connect.Request[v1.GetLoreRequest]) (*connect.Response[v1.GetLoreResponse], error)
-	// Public. A lore's thread, oldest first.
+	// Public. A lore's thread: its top-level posts in the requested order,
+	// each with its first replies.
 	ListLorePosts(context.Context, *connect.Request[v1.ListLorePostsRequest]) (*connect.Response[v1.ListLorePostsResponse], error)
-	// Posts to a lore's thread: a lore member, or anyone with a perspective in
-	// the lore's arc. Plain text, 1 to 1,000 characters.
+	// Posts to a lore's thread, or replies to a post in it: a lore member, or
+	// anyone with a perspective in the lore's arc. Plain text, 1 to 1,000
+	// characters.
 	AddLorePost(context.Context, *connect.Request[v1.AddLorePostRequest]) (*connect.Response[v1.AddLorePostResponse], error)
 	// Names a lore: any member of it, 1 to 60 characters after trimming. The
 	// latest name wins.
 	NameLore(context.Context, *connect.Request[v1.NameLoreRequest]) (*connect.Response[v1.NameLoreResponse], error)
+	// Public. The replies under one top-level post, oldest first.
+	ListLorePostReplies(context.Context, *connect.Request[v1.ListLorePostRepliesRequest]) (*connect.Response[v1.ListLorePostRepliesResponse], error)
+	// Sets or clears the caller's upvote on a thread post. The same people who
+	// may post may vote, never on their own post.
+	VoteLorePost(context.Context, *connect.Request[v1.VoteLorePostRequest]) (*connect.Response[v1.VoteLorePostResponse], error)
+	// Rewrites the caller's own post; the post then shows as edited.
+	EditLorePost(context.Context, *connect.Request[v1.EditLorePostRequest]) (*connect.Response[v1.EditLorePostResponse], error)
+	// Deletes the caller's own post. A top-level post with replies stays as
+	// "[deleted]" above them.
+	DeleteLorePost(context.Context, *connect.Request[v1.DeleteLorePostRequest]) (*connect.Response[v1.DeleteLorePostResponse], error)
 }
 
 // NewLoreServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -243,6 +327,30 @@ func NewLoreServiceHandler(svc LoreServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(loreServiceMethods.ByName("NameLore")),
 		connect.WithHandlerOptions(opts...),
 	)
+	loreServiceListLorePostRepliesHandler := connect.NewUnaryHandler(
+		LoreServiceListLorePostRepliesProcedure,
+		svc.ListLorePostReplies,
+		connect.WithSchema(loreServiceMethods.ByName("ListLorePostReplies")),
+		connect.WithHandlerOptions(opts...),
+	)
+	loreServiceVoteLorePostHandler := connect.NewUnaryHandler(
+		LoreServiceVoteLorePostProcedure,
+		svc.VoteLorePost,
+		connect.WithSchema(loreServiceMethods.ByName("VoteLorePost")),
+		connect.WithHandlerOptions(opts...),
+	)
+	loreServiceEditLorePostHandler := connect.NewUnaryHandler(
+		LoreServiceEditLorePostProcedure,
+		svc.EditLorePost,
+		connect.WithSchema(loreServiceMethods.ByName("EditLorePost")),
+		connect.WithHandlerOptions(opts...),
+	)
+	loreServiceDeleteLorePostHandler := connect.NewUnaryHandler(
+		LoreServiceDeleteLorePostProcedure,
+		svc.DeleteLorePost,
+		connect.WithSchema(loreServiceMethods.ByName("DeleteLorePost")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.LoreService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LoreServiceClaimCharacterProcedure:
@@ -259,6 +367,14 @@ func NewLoreServiceHandler(svc LoreServiceHandler, opts ...connect.HandlerOption
 			loreServiceAddLorePostHandler.ServeHTTP(w, r)
 		case LoreServiceNameLoreProcedure:
 			loreServiceNameLoreHandler.ServeHTTP(w, r)
+		case LoreServiceListLorePostRepliesProcedure:
+			loreServiceListLorePostRepliesHandler.ServeHTTP(w, r)
+		case LoreServiceVoteLorePostProcedure:
+			loreServiceVoteLorePostHandler.ServeHTTP(w, r)
+		case LoreServiceEditLorePostProcedure:
+			loreServiceEditLorePostHandler.ServeHTTP(w, r)
+		case LoreServiceDeleteLorePostProcedure:
+			loreServiceDeleteLorePostHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -294,4 +410,20 @@ func (UnimplementedLoreServiceHandler) AddLorePost(context.Context, *connect.Req
 
 func (UnimplementedLoreServiceHandler) NameLore(context.Context, *connect.Request[v1.NameLoreRequest]) (*connect.Response[v1.NameLoreResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.LoreService.NameLore is not implemented"))
+}
+
+func (UnimplementedLoreServiceHandler) ListLorePostReplies(context.Context, *connect.Request[v1.ListLorePostRepliesRequest]) (*connect.Response[v1.ListLorePostRepliesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.LoreService.ListLorePostReplies is not implemented"))
+}
+
+func (UnimplementedLoreServiceHandler) VoteLorePost(context.Context, *connect.Request[v1.VoteLorePostRequest]) (*connect.Response[v1.VoteLorePostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.LoreService.VoteLorePost is not implemented"))
+}
+
+func (UnimplementedLoreServiceHandler) EditLorePost(context.Context, *connect.Request[v1.EditLorePostRequest]) (*connect.Response[v1.EditLorePostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.LoreService.EditLorePost is not implemented"))
+}
+
+func (UnimplementedLoreServiceHandler) DeleteLorePost(context.Context, *connect.Request[v1.DeleteLorePostRequest]) (*connect.Response[v1.DeleteLorePostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.LoreService.DeleteLorePost is not implemented"))
 }

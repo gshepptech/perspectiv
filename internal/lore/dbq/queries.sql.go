@@ -148,12 +148,53 @@ func (q *Queries) DeleteArcMembers(ctx context.Context, arcID uuid.UUID) error {
 	return err
 }
 
+const deleteLorePost = `-- name: DeleteLorePost :exec
+UPDATE lore_posts SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL
+`
+
+func (q *Queries) DeleteLorePost(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteLorePost, id)
+	return err
+}
+
 const deleteMemberOf = `-- name: DeleteMemberOf :exec
 DELETE FROM lore_members WHERE perspective_id = $1
 `
 
 func (q *Queries) DeleteMemberOf(ctx context.Context, perspectiveID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteMemberOf, perspectiveID)
+	return err
+}
+
+const deletePostVote = `-- name: DeletePostVote :exec
+DELETE FROM lore_post_votes
+WHERE post_id = $1::uuid AND user_id = $2::uuid
+`
+
+type DeletePostVoteParams struct {
+	PostID uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeletePostVote(ctx context.Context, arg DeletePostVoteParams) error {
+	_, err := q.db.Exec(ctx, deletePostVote, arg.PostID, arg.UserID)
+	return err
+}
+
+const editLorePost = `-- name: EditLorePost :exec
+UPDATE lore_posts
+SET body = $1::text, edited_at = now()
+WHERE id = $2::uuid AND body <> $1::text
+`
+
+type EditLorePostParams struct {
+	Body string
+	ID   uuid.UUID
+}
+
+// Stamps edited_at only when the text changes.
+func (q *Queries) EditLorePost(ctx context.Context, arg EditLorePostParams) error {
+	_, err := q.db.Exec(ctx, editLorePost, arg.Body, arg.ID)
 	return err
 }
 
@@ -306,38 +347,6 @@ func (q *Queries) GetLore(ctx context.Context, id uuid.UUID) (GetLoreRow, error)
 	return i, err
 }
 
-const getLorePost = `-- name: GetLorePost :one
-SELECT lp.id, lp.author_id, u.username, lp.body, lp.created_at,
-       EXISTS (SELECT 1 FROM lore_members m JOIN perspectives p ON p.id = m.perspective_id
-               WHERE m.lore_id = lp.lore_id AND p.author_id = lp.author_id)::boolean AS by_member
-FROM lore_posts lp
-JOIN users u ON u.id = lp.author_id
-WHERE lp.id = $1
-`
-
-type GetLorePostRow struct {
-	ID        uuid.UUID
-	AuthorID  uuid.UUID
-	Username  string
-	Body      string
-	CreatedAt pgtype.Timestamptz
-	ByMember  bool
-}
-
-func (q *Queries) GetLorePost(ctx context.Context, id uuid.UUID) (GetLorePostRow, error) {
-	row := q.db.QueryRow(ctx, getLorePost, id)
-	var i GetLorePostRow
-	err := row.Scan(
-		&i.ID,
-		&i.AuthorID,
-		&i.Username,
-		&i.Body,
-		&i.CreatedAt,
-		&i.ByMember,
-	)
-	return i, err
-}
-
 const getPerspectiveArc = `-- name: GetPerspectiveArc :one
 SELECT arc_id FROM perspectives WHERE id = $1
 `
@@ -366,6 +375,33 @@ func (q *Queries) GetPerspectiveLore(ctx context.Context, id uuid.UUID) (GetPers
 	row := q.db.QueryRow(ctx, getPerspectiveLore, id)
 	var i GetPerspectiveLoreRow
 	err := row.Scan(&i.LoreStatus, &i.LoreID)
+	return i, err
+}
+
+const getThreadPost = `-- name: GetThreadPost :one
+SELECT v.id, v.lore_id, v.reply_to_id, v.answered_id, v.author_id, v.username, v.body, v.created_at, v.edited_at, v.upvotes, v.hidden_at, v.removed, v.by_member, v.replying_to, v.reply_count FROM lore_thread_posts v WHERE v.id = $1
+`
+
+func (q *Queries) GetThreadPost(ctx context.Context, id uuid.UUID) (LoreThreadPost, error) {
+	row := q.db.QueryRow(ctx, getThreadPost, id)
+	var i LoreThreadPost
+	err := row.Scan(
+		&i.ID,
+		&i.LoreID,
+		&i.ReplyToID,
+		&i.AnsweredID,
+		&i.AuthorID,
+		&i.Username,
+		&i.Body,
+		&i.CreatedAt,
+		&i.EditedAt,
+		&i.Upvotes,
+		&i.HiddenAt,
+		&i.Removed,
+		&i.ByMember,
+		&i.ReplyingTo,
+		&i.ReplyCount,
+	)
 	return i, err
 }
 
@@ -451,27 +487,31 @@ func (q *Queries) InsertLore(ctx context.Context, arcID uuid.UUID) (uuid.UUID, e
 }
 
 const insertLorePost = `-- name: InsertLorePost :one
-INSERT INTO lore_posts (lore_id, author_id, body)
-VALUES ($1::uuid, $2::uuid, $3::text)
-RETURNING id, created_at
+INSERT INTO lore_posts (lore_id, author_id, body, reply_to_id, answered_id)
+VALUES ($1::uuid, $2::uuid, $3::text,
+        $4::uuid, $5::uuid)
+RETURNING id
 `
 
 type InsertLorePostParams struct {
-	LoreID   uuid.UUID
-	AuthorID uuid.UUID
-	Body     string
+	LoreID     uuid.UUID
+	AuthorID   uuid.UUID
+	Body       string
+	ReplyToID  uuid.NullUUID
+	AnsweredID uuid.NullUUID
 }
 
-type InsertLorePostRow struct {
-	ID        uuid.UUID
-	CreatedAt pgtype.Timestamptz
-}
-
-func (q *Queries) InsertLorePost(ctx context.Context, arg InsertLorePostParams) (InsertLorePostRow, error) {
-	row := q.db.QueryRow(ctx, insertLorePost, arg.LoreID, arg.AuthorID, arg.Body)
-	var i InsertLorePostRow
-	err := row.Scan(&i.ID, &i.CreatedAt)
-	return i, err
+func (q *Queries) InsertLorePost(ctx context.Context, arg InsertLorePostParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, insertLorePost,
+		arg.LoreID,
+		arg.AuthorID,
+		arg.Body,
+		arg.ReplyToID,
+		arg.AnsweredID,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const insertMembers = `-- name: InsertMembers :exec
@@ -486,6 +526,23 @@ type InsertMembersParams struct {
 
 func (q *Queries) InsertMembers(ctx context.Context, arg InsertMembersParams) error {
 	_, err := q.db.Exec(ctx, insertMembers, arg.LoreIds, arg.PerspectiveIds)
+	return err
+}
+
+const insertPostVote = `-- name: InsertPostVote :exec
+INSERT INTO lore_post_votes (post_id, user_id)
+VALUES ($1::uuid, $2::uuid)
+ON CONFLICT (post_id, user_id) DO NOTHING
+`
+
+type InsertPostVoteParams struct {
+	PostID uuid.UUID
+	UserID uuid.UUID
+}
+
+// The primary key keeps one upvote per person, so a repeat is a no-op.
+func (q *Queries) InsertPostVote(ctx context.Context, arg InsertPostVoteParams) error {
+	_, err := q.db.Exec(ctx, insertPostVote, arg.PostID, arg.UserID)
 	return err
 }
 
@@ -531,6 +588,62 @@ func (q *Queries) IsLoreMember(ctx context.Context, arg IsLoreMemberParams) (boo
 	var is_member bool
 	err := row.Scan(&is_member)
 	return is_member, err
+}
+
+const listFirstReplies = `-- name: ListFirstReplies :many
+SELECT r.id, r.lore_id, r.reply_to_id, r.answered_id, r.author_id, r.username, r.body, r.created_at, r.edited_at, r.upvotes, r.hidden_at, r.removed, r.by_member, r.replying_to, r.reply_count
+FROM unnest($1::uuid[]) AS t(id)
+CROSS JOIN LATERAL (
+    SELECT v.id, v.lore_id, v.reply_to_id, v.answered_id, v.author_id, v.username, v.body, v.created_at, v.edited_at, v.upvotes, v.hidden_at, v.removed, v.by_member, v.replying_to, v.reply_count
+    FROM lore_thread_posts v
+    WHERE v.reply_to_id = t.id AND v.hidden_at IS NULL AND NOT v.removed
+    ORDER BY v.created_at, v.id
+    LIMIT $2::int
+) r
+ORDER BY r.reply_to_id, r.created_at, r.id
+`
+
+type ListFirstRepliesParams struct {
+	PostIds []uuid.UUID
+	PerPost int32
+}
+
+// The first per_post readable replies under each of the posts, oldest
+// first, one index probe per post on lore_posts_replies_idx.
+func (q *Queries) ListFirstReplies(ctx context.Context, arg ListFirstRepliesParams) ([]LoreThreadPost, error) {
+	rows, err := q.db.Query(ctx, listFirstReplies, arg.PostIds, arg.PerPost)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LoreThreadPost
+	for rows.Next() {
+		var i LoreThreadPost
+		if err := rows.Scan(
+			&i.ID,
+			&i.LoreID,
+			&i.ReplyToID,
+			&i.AnsweredID,
+			&i.AuthorID,
+			&i.Username,
+			&i.Body,
+			&i.CreatedAt,
+			&i.EditedAt,
+			&i.Upvotes,
+			&i.HiddenAt,
+			&i.Removed,
+			&i.ByMember,
+			&i.ReplyingTo,
+			&i.ReplyCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listIncomingClaims = `-- name: ListIncomingClaims :many
@@ -697,73 +810,6 @@ func (q *Queries) ListLoreMembers(ctx context.Context, loreID uuid.UUID) ([]List
 	return items, nil
 }
 
-const listLorePosts = `-- name: ListLorePosts :many
-SELECT lp.id, lp.author_id, u.username, lp.body, lp.created_at,
-       EXISTS (SELECT 1 FROM lore_members m JOIN perspectives p ON p.id = m.perspective_id
-               WHERE m.lore_id = $1::uuid AND p.author_id = lp.author_id)::boolean AS by_member
-FROM lore_posts lp
-JOIN users u ON u.id = lp.author_id
-WHERE lp.lore_id = $1::uuid
-  AND lp.deleted_at IS NULL AND lp.hidden_at IS NULL AND u.deleted_at IS NULL
-  AND ($2::timestamptz IS NULL
-       OR (lp.created_at, lp.id) > ($2::timestamptz, $3::uuid))
-ORDER BY lp.created_at, lp.id
-LIMIT $4::int
-`
-
-type ListLorePostsParams struct {
-	LoreID   uuid.UUID
-	AfterAt  pgtype.Timestamptz
-	AfterID  uuid.NullUUID
-	RowLimit int32
-}
-
-type ListLorePostsRow struct {
-	ID        uuid.UUID
-	AuthorID  uuid.UUID
-	Username  string
-	Body      string
-	CreatedAt pgtype.Timestamptz
-	ByMember  bool
-}
-
-// A lore's readable posts, oldest first, keyset-paginated on (created_at, id)
-// and served by lore_posts_lore_created_idx. by_member says whether the
-// author has a perspective in the lore; it names the lore by the argument,
-// not lp.lore_id, so the planner probes the lore's members instead of
-// hashing every membership.
-func (q *Queries) ListLorePosts(ctx context.Context, arg ListLorePostsParams) ([]ListLorePostsRow, error) {
-	rows, err := q.db.Query(ctx, listLorePosts,
-		arg.LoreID,
-		arg.AfterAt,
-		arg.AfterID,
-		arg.RowLimit,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ListLorePostsRow
-	for rows.Next() {
-		var i ListLorePostsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.AuthorID,
-			&i.Username,
-			&i.Body,
-			&i.CreatedAt,
-			&i.ByMember,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listOutgoingClaims = `-- name: ListOutgoingClaims :many
 SELECT c.id, p.arc_id, c.character_id, ch.label, ch.perspective_id,
        p.author_id, au.username AS author_username,
@@ -849,6 +895,203 @@ func (q *Queries) ListOutgoingClaims(ctx context.Context, arg ListOutgoingClaims
 	return items, nil
 }
 
+const listReplies = `-- name: ListReplies :many
+SELECT v.id, v.lore_id, v.reply_to_id, v.answered_id, v.author_id, v.username, v.body, v.created_at, v.edited_at, v.upvotes, v.hidden_at, v.removed, v.by_member, v.replying_to, v.reply_count
+FROM lore_thread_posts v
+WHERE v.reply_to_id = $1::uuid AND v.hidden_at IS NULL AND NOT v.removed
+  AND (NOT $2::boolean
+       OR (v.created_at, v.id) > ($3::timestamptz, $4::uuid))
+ORDER BY v.created_at, v.id
+LIMIT $5::int
+`
+
+type ListRepliesParams struct {
+	PostID   uuid.UUID
+	HasAfter bool
+	AfterAt  pgtype.Timestamptz
+	AfterID  uuid.UUID
+	RowLimit int32
+}
+
+// Readable replies under one post, oldest first, keyset-paged on
+// (created_at, id).
+func (q *Queries) ListReplies(ctx context.Context, arg ListRepliesParams) ([]LoreThreadPost, error) {
+	rows, err := q.db.Query(ctx, listReplies,
+		arg.PostID,
+		arg.HasAfter,
+		arg.AfterAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LoreThreadPost
+	for rows.Next() {
+		var i LoreThreadPost
+		if err := rows.Scan(
+			&i.ID,
+			&i.LoreID,
+			&i.ReplyToID,
+			&i.AnsweredID,
+			&i.AuthorID,
+			&i.Username,
+			&i.Body,
+			&i.CreatedAt,
+			&i.EditedAt,
+			&i.Upvotes,
+			&i.HiddenAt,
+			&i.Removed,
+			&i.ByMember,
+			&i.ReplyingTo,
+			&i.ReplyCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listThreadNew = `-- name: ListThreadNew :many
+SELECT v.id, v.lore_id, v.reply_to_id, v.answered_id, v.author_id, v.username, v.body, v.created_at, v.edited_at, v.upvotes, v.hidden_at, v.removed, v.by_member, v.replying_to, v.reply_count
+FROM lore_thread_posts v
+WHERE v.lore_id = $1::uuid
+  AND v.reply_to_id IS NULL AND v.hidden_at IS NULL
+  AND (NOT v.removed OR v.reply_count > 0)
+  AND (NOT $2::boolean
+       OR (v.created_at, v.id) < ($3::timestamptz, $4::uuid))
+ORDER BY v.created_at DESC, v.id DESC
+LIMIT $5::int
+`
+
+type ListThreadNewParams struct {
+	LoreID   uuid.UUID
+	HasAfter bool
+	AfterAt  pgtype.Timestamptz
+	AfterID  uuid.UUID
+	RowLimit int32
+}
+
+// The same posts as ListThreadTop, newest first, keyset-paged on
+// (created_at, id) descending and served by lore_posts_new_idx.
+func (q *Queries) ListThreadNew(ctx context.Context, arg ListThreadNewParams) ([]LoreThreadPost, error) {
+	rows, err := q.db.Query(ctx, listThreadNew,
+		arg.LoreID,
+		arg.HasAfter,
+		arg.AfterAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LoreThreadPost
+	for rows.Next() {
+		var i LoreThreadPost
+		if err := rows.Scan(
+			&i.ID,
+			&i.LoreID,
+			&i.ReplyToID,
+			&i.AnsweredID,
+			&i.AuthorID,
+			&i.Username,
+			&i.Body,
+			&i.CreatedAt,
+			&i.EditedAt,
+			&i.Upvotes,
+			&i.HiddenAt,
+			&i.Removed,
+			&i.ByMember,
+			&i.ReplyingTo,
+			&i.ReplyCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listThreadTop = `-- name: ListThreadTop :many
+SELECT v.id, v.lore_id, v.reply_to_id, v.answered_id, v.author_id, v.username, v.body, v.created_at, v.edited_at, v.upvotes, v.hidden_at, v.removed, v.by_member, v.replying_to, v.reply_count
+FROM lore_thread_posts v
+WHERE v.lore_id = $1::uuid
+  AND v.reply_to_id IS NULL AND v.hidden_at IS NULL
+  AND (NOT v.removed OR v.reply_count > 0)
+  AND (NOT $2::boolean
+       OR v.upvotes < $3::int
+       OR (v.upvotes = $3::int
+           AND (v.created_at, v.id) > ($4::timestamptz, $5::uuid)))
+ORDER BY v.upvotes DESC, v.created_at, v.id
+LIMIT $6::int
+`
+
+type ListThreadTopParams struct {
+	LoreID       uuid.UUID
+	HasAfter     bool
+	AfterUpvotes int32
+	AfterAt      pgtype.Timestamptz
+	AfterID      uuid.UUID
+	RowLimit     int32
+}
+
+// A lore's top-level posts, most upvoted first and ties oldest first,
+// keyset-paged on (upvotes DESC, created_at, id) and served by
+// lore_posts_top_idx. A hidden post is left out, and so is a removed one
+// unless it still has readable replies, which it then stands above as
+// "[deleted]".
+func (q *Queries) ListThreadTop(ctx context.Context, arg ListThreadTopParams) ([]LoreThreadPost, error) {
+	rows, err := q.db.Query(ctx, listThreadTop,
+		arg.LoreID,
+		arg.HasAfter,
+		arg.AfterUpvotes,
+		arg.AfterAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []LoreThreadPost
+	for rows.Next() {
+		var i LoreThreadPost
+		if err := rows.Scan(
+			&i.ID,
+			&i.LoreID,
+			&i.ReplyToID,
+			&i.AnsweredID,
+			&i.AuthorID,
+			&i.Username,
+			&i.Body,
+			&i.CreatedAt,
+			&i.EditedAt,
+			&i.Upvotes,
+			&i.HiddenAt,
+			&i.Removed,
+			&i.ByMember,
+			&i.ReplyingTo,
+			&i.ReplyCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockArcLore = `-- name: LockArcLore :exec
 
 SELECT pg_advisory_xact_lock(hashtextextended('lore:' || $1::uuid::text, 0))
@@ -875,6 +1118,46 @@ func (q *Queries) LockClaimStatus(ctx context.Context, id uuid.UUID) (string, er
 	var status string
 	err := row.Scan(&status)
 	return status, err
+}
+
+const lockLorePost = `-- name: LockLorePost :one
+SELECT lp.id, lp.lore_id, lp.author_id, lp.reply_to_id, lp.deleted_at, lp.hidden_at,
+       u.deleted_at AS author_deleted_at,
+       (top.hidden_at IS NOT NULL)::boolean AS branch_hidden
+FROM lore_posts lp
+JOIN users u ON u.id = lp.author_id
+LEFT JOIN lore_posts top ON top.id = lp.reply_to_id
+WHERE lp.id = $1
+FOR UPDATE OF lp
+`
+
+type LockLorePostRow struct {
+	ID              uuid.UUID
+	LoreID          uuid.UUID
+	AuthorID        uuid.UUID
+	ReplyToID       uuid.NullUUID
+	DeletedAt       pgtype.Timestamptz
+	HiddenAt        pgtype.Timestamptz
+	AuthorDeletedAt pgtype.Timestamptz
+	BranchHidden    bool
+}
+
+// One post with what the thread's write rules read, its row locked. A
+// reply's top-level post decides whether a moderator hid the whole branch.
+func (q *Queries) LockLorePost(ctx context.Context, id uuid.UUID) (LockLorePostRow, error) {
+	row := q.db.QueryRow(ctx, lockLorePost, id)
+	var i LockLorePostRow
+	err := row.Scan(
+		&i.ID,
+		&i.LoreID,
+		&i.AuthorID,
+		&i.ReplyToID,
+		&i.DeletedAt,
+		&i.HiddenAt,
+		&i.AuthorDeletedAt,
+		&i.BranchHidden,
+	)
+	return i, err
 }
 
 const lockPerspectives = `-- name: LockPerspectives :many
@@ -963,6 +1246,21 @@ type MarkMembersInLoreParams struct {
 func (q *Queries) MarkMembersInLore(ctx context.Context, arg MarkMembersInLoreParams) error {
 	_, err := q.db.Exec(ctx, markMembersInLore, arg.InLore, arg.ArcID)
 	return err
+}
+
+const recountPostVotes = `-- name: RecountPostVotes :one
+UPDATE lore_posts
+SET upvotes = (SELECT count(*) FROM lore_post_votes WHERE post_id = $1::uuid)
+WHERE id = $1::uuid
+RETURNING upvotes
+`
+
+// Sets the post's upvotes from its vote rows; the caller holds its row lock.
+func (q *Queries) RecountPostVotes(ctx context.Context, id uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, recountPostVotes, id)
+	var upvotes int32
+	err := row.Scan(&upvotes)
+	return upvotes, err
 }
 
 const rejectClaimsOfPerspective = `-- name: RejectClaimsOfPerspective :exec
@@ -1107,4 +1405,35 @@ type SetPerspectiveRemovedParams struct {
 func (q *Queries) SetPerspectiveRemoved(ctx context.Context, arg SetPerspectiveRemovedParams) error {
 	_, err := q.db.Exec(ctx, setPerspectiveRemoved, arg.Removed, arg.ID)
 	return err
+}
+
+const viewerUpvoted = `-- name: ViewerUpvoted :many
+SELECT post_id FROM lore_post_votes
+WHERE user_id = $1::uuid AND post_id = ANY($2::uuid[])
+`
+
+type ViewerUpvotedParams struct {
+	UserID  uuid.UUID
+	PostIds []uuid.UUID
+}
+
+// Which of the posts the user holds an upvote on.
+func (q *Queries) ViewerUpvoted(ctx context.Context, arg ViewerUpvotedParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, viewerUpvoted, arg.UserID, arg.PostIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var post_id uuid.UUID
+		if err := rows.Scan(&post_id); err != nil {
+			return nil, err
+		}
+		items = append(items, post_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -124,13 +124,41 @@ type LoreMember struct {
 }
 
 type LorePost struct {
-	ID        uuid.UUID
-	LoreID    uuid.UUID
-	AuthorID  uuid.UUID
-	Body      string
+	ID         uuid.UUID
+	LoreID     uuid.UUID
+	AuthorID   uuid.UUID
+	Body       string
+	CreatedAt  pgtype.Timestamptz
+	DeletedAt  pgtype.Timestamptz
+	HiddenAt   pgtype.Timestamptz
+	ReplyToID  *uuid.UUID
+	AnsweredID *uuid.UUID
+	EditedAt   pgtype.Timestamptz
+	Upvotes    int32
+}
+
+type LorePostVote struct {
+	PostID    uuid.UUID
+	UserID    uuid.UUID
 	CreatedAt pgtype.Timestamptz
-	DeletedAt pgtype.Timestamptz
-	HiddenAt  pgtype.Timestamptz
+}
+
+type LoreThreadPost struct {
+	ID         uuid.UUID
+	LoreID     uuid.UUID
+	ReplyToID  *uuid.UUID
+	AnsweredID *uuid.UUID
+	AuthorID   uuid.UUID
+	Username   string
+	Body       string
+	CreatedAt  pgtype.Timestamptz
+	EditedAt   pgtype.Timestamptz
+	Upvotes    int32
+	HiddenAt   pgtype.Timestamptz
+	Removed    bool
+	ByMember   bool
+	ReplyingTo string
+	ReplyCount int32
 }
 
 type ModerationAudit struct {

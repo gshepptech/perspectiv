@@ -418,3 +418,17 @@ WHERE a.place_path @> ARRAY[@place_id::uuid]
         WHERE cl.character_id = c.id AND cl.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
 ORDER BY a.local_date DESC, a.hour DESC NULLS LAST, p.published_at, c.position
 LIMIT 30;
+
+-- name: SitemapPlaces :many
+-- Places a signed-out reader can open that have a readable story at them or
+-- below, most recently written first, with when the newest was published:
+-- the places listed in the sitemap.
+SELECT pid::uuid AS id, max(v.published_at)::timestamptz AS last_mod
+FROM arcs a
+JOIN perspectives v ON v.arc_id = a.id
+CROSS JOIN LATERAL unnest(a.place_path) AS pid
+WHERE v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+GROUP BY pid
+ORDER BY last_mod DESC, pid
+LIMIT @lim::integer;

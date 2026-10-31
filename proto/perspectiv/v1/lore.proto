@@ -16,14 +16,26 @@ service LoreService {
   rpc ListClaims(ListClaimsRequest) returns (ListClaimsResponse);
   // Public. One lore with its members and encounters.
   rpc GetLore(GetLoreRequest) returns (GetLoreResponse);
-  // Public. A lore's thread, oldest first.
+  // Public. A lore's thread: its top-level posts in the requested order,
+  // each with its first replies.
   rpc ListLorePosts(ListLorePostsRequest) returns (ListLorePostsResponse);
-  // Posts to a lore's thread: a lore member, or anyone with a perspective in
-  // the lore's arc. Plain text, 1 to 1,000 characters.
+  // Posts to a lore's thread, or replies to a post in it: a lore member, or
+  // anyone with a perspective in the lore's arc. Plain text, 1 to 1,000
+  // characters.
   rpc AddLorePost(AddLorePostRequest) returns (AddLorePostResponse);
   // Names a lore: any member of it, 1 to 60 characters after trimming. The
   // latest name wins.
   rpc NameLore(NameLoreRequest) returns (NameLoreResponse);
+  // Public. The replies under one top-level post, oldest first.
+  rpc ListLorePostReplies(ListLorePostRepliesRequest) returns (ListLorePostRepliesResponse);
+  // Sets or clears the caller's upvote on a thread post. The same people who
+  // may post may vote, never on their own post.
+  rpc VoteLorePost(VoteLorePostRequest) returns (VoteLorePostResponse);
+  // Rewrites the caller's own post; the post then shows as edited.
+  rpc EditLorePost(EditLorePostRequest) returns (EditLorePostResponse);
+  // Deletes the caller's own post. A top-level post with replies stays as
+  // "[deleted]" above them.
+  rpc DeleteLorePost(DeleteLorePostRequest) returns (DeleteLorePostResponse);
 }
 
 // Claim is one author saying a character in another author's perspective was
@@ -116,24 +128,52 @@ message GetLoreResponse {
   Lore lore = 1;
 }
 
-// LorePost is one message in a lore's thread.
+// LorePost is one message in a lore's thread: a top-level post, or a reply
+// under one.
 message LorePost {
   string id = 1;
+  // Unset when deleted.
   UserRef author = 2;
+  // Empty when deleted.
   string body = 3;
   google.protobuf.Timestamp created_at = 4;
   // True when the author is a member of the lore, as opposed to another
   // writer in the arc.
   bool by_member = 5;
+  // The top-level post this reply sits under; empty for a top-level post.
+  string reply_to_id = 6;
+  // On a reply that answered another reply: that reply's author, for
+  // "replying to @name". Unset when it answered the top-level post, or when
+  // the reply it answered is gone.
+  UserRef replying_to = 7;
+  // Set once the author edits the post.
+  google.protobuf.Timestamp edited_at = 8;
+  int32 upvotes = 9;
+  // Whether the signed-in caller holds an upvote on it.
+  bool viewer_upvoted = 10;
+  // A top-level post its author deleted that stays for its replies. It has
+  // no author, body or upvote.
+  bool deleted = 11;
+  // On a top-level post: how many readable replies it has, and the first
+  // three of them, oldest first.
+  int32 reply_count = 12;
+  repeated LorePost replies = 13;
+  // The ListLorePostReplies page token for the replies after `replies`;
+  // empty when they are all here.
+  string more_replies_token = 14;
 }
 
 message ListLorePostsRequest {
   string lore_id = 1;
   string page_token = 2;
   int32 page_size = 3;
+  // UNSPECIFIED reads as TOP. A page token only continues the order it was
+  // made for.
+  LorePostSort sort = 4;
 }
 
 message ListLorePostsResponse {
+  // Top-level posts.
   repeated LorePost posts = 1;
   string next_page_token = 2;
 }
@@ -141,6 +181,10 @@ message ListLorePostsResponse {
 message AddLorePostRequest {
   string lore_id = 1;
   string body = 2;
+  // The post being answered, top-level or a reply in the same thread; empty
+  // for a new top-level post. A reply to a reply sits under the same
+  // top-level post.
+  string reply_to_id = 3;
 }
 
 message AddLorePostResponse {
@@ -156,3 +200,41 @@ message NameLoreResponse {
   // The name as stored, trimmed.
   string name = 1;
 }
+
+message ListLorePostRepliesRequest {
+  // A top-level post.
+  string post_id = 1;
+  string page_token = 2;
+  int32 page_size = 3;
+}
+
+message ListLorePostRepliesResponse {
+  repeated LorePost replies = 1;
+  string next_page_token = 2;
+}
+
+message VoteLorePostRequest {
+  string post_id = 1;
+  // True sets the upvote; false clears it.
+  bool on = 2;
+}
+
+message VoteLorePostResponse {
+  int32 upvotes = 1;
+  bool on = 2;
+}
+
+message EditLorePostRequest {
+  string post_id = 1;
+  string body = 2;
+}
+
+message EditLorePostResponse {
+  LorePost post = 1;
+}
+
+message DeleteLorePostRequest {
+  string post_id = 1;
+}
+
+message DeleteLorePostResponse {}

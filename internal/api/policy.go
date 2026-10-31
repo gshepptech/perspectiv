@@ -119,13 +119,20 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.PerspectiveService/SavePerspective": {Access: User},
 	"/perspectiv.v1.PerspectiveService/ListSaved":       {Access: User},
 
-	"/perspectiv.v1.LoreService/ClaimCharacter": {Access: User, Verified: true, RateLimit: LimitClaim},
-	"/perspectiv.v1.LoreService/ResolveClaim":   {Access: User, Verified: true},
-	"/perspectiv.v1.LoreService/ListClaims":     {Access: User},
-	"/perspectiv.v1.LoreService/GetLore":        {Access: Public},
-	"/perspectiv.v1.LoreService/ListLorePosts":  {Access: Public},
-	"/perspectiv.v1.LoreService/AddLorePost":    {Access: User, Verified: true, RateLimit: LimitPost},
-	"/perspectiv.v1.LoreService/NameLore":       {Access: User, Verified: true, RateLimit: LimitPost},
+	"/perspectiv.v1.LoreService/ClaimCharacter":      {Access: User, Verified: true, RateLimit: LimitClaim},
+	"/perspectiv.v1.LoreService/ResolveClaim":        {Access: User, Verified: true},
+	"/perspectiv.v1.LoreService/ListClaims":          {Access: User},
+	"/perspectiv.v1.LoreService/GetLore":             {Access: Public},
+	"/perspectiv.v1.LoreService/ListLorePosts":       {Access: Public},
+	"/perspectiv.v1.LoreService/AddLorePost":         {Access: User, Verified: true, RateLimit: LimitPost},
+	"/perspectiv.v1.LoreService/NameLore":            {Access: User, Verified: true, RateLimit: LimitPost},
+	"/perspectiv.v1.LoreService/ListLorePostReplies": {Access: Public},
+	// A thread post's upvote shares the story votes' budget.
+	"/perspectiv.v1.LoreService/VoteLorePost": {Access: User, Verified: true, RateLimit: LimitVote},
+	// An edit puts new text in front of readers, so it is verified and
+	// counts as a post. Deleting only takes text away.
+	"/perspectiv.v1.LoreService/EditLorePost":   {Access: User, Verified: true, RateLimit: LimitPost},
+	"/perspectiv.v1.LoreService/DeleteLorePost": {Access: User},
 
 	"/perspectiv.v1.VoteService/Vote":       {Access: User, Verified: true, RateLimit: LimitVote},
 	"/perspectiv.v1.VoteService/VoteRemove": {Access: User, Verified: true, RateLimit: LimitVote},

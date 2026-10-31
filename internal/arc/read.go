@@ -573,3 +573,17 @@ func (s *Service) ListOpenCharacters(ctx context.Context, arcID uuid.UUID) ([]*p
 	}
 	return out, nil
 }
+
+// Sitemap lists up to apiutil.SitemapLimit days and hours with a readable
+// story, not under a hidden place, most recently written first.
+func (s *Service) Sitemap(ctx context.Context) ([]apiutil.SitemapEntry, error) {
+	rows, err := dbq.New(s.pool).SitemapArcs(ctx, apiutil.SitemapLimit)
+	if err != nil {
+		return nil, fmt.Errorf("sitemap arcs: %w", err)
+	}
+	out := make([]apiutil.SitemapEntry, len(rows))
+	for i, r := range rows {
+		out[i] = apiutil.SitemapEntry{ID: r.ID, LastMod: r.LastMod.Time}
+	}
+	return out, nil
+}

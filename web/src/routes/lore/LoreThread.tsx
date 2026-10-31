@@ -1,136 +1,103 @@
-import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useId } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useId, useRef, useState } from "react";
 
-import { actionError } from "@/components/actions/errors";
-import { ReportDialog } from "@/components/actions/ReportDialog";
-import { AuthorLink } from "@/components/reader/AuthorLink";
 import type { ArcSpan } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
-import { Textarea } from "@/components/ui/Textarea";
-import { ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { LorePostSort } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
-import { useShowMore } from "@/lib/showMore";
 import { useSession } from "@/lib/session";
+import { useShowMore } from "@/lib/showMore";
 
-const MAX_POST = 1000;
+import { PostForm } from "./PostForm";
+import { ThreadBranch } from "./ThreadBranch";
+import { threadQuery, useInvalidateThread } from "./threadQueries";
 
-const schema = z.object({
-  body: z
-    .string()
-    .refine((b) => b.trim() !== "", "Write something first.")
-    .refine((b) => [...b.trim()].length <= MAX_POST, `Keep a post to ${MAX_POST} characters.`),
-});
-type Values = z.infer<typeof schema>;
-
-const when = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+const sorts = { top: LorePostSort.TOP, new: LorePostSort.NEW } as const;
+type SortName = keyof typeof sorts;
 
 /**
  * The lore's thread: the people in it talking about the day. Anyone can
- * read it; someone with a perspective in the arc can post. The server
- * enforces who may post; hiding the form is usability only.
+ * read it, best first or newest first; someone with a perspective in the
+ * arc can post, reply and upvote. The server enforces who may; hiding the
+ * controls is usability only.
  */
 export function LoreThread({ loreId, canPost, span = "day" }: { loreId: string; canPost: boolean; span?: ArcSpan }) {
-  const client = useQueryClient();
-  const session = useSession();
   const headingId = useId();
-  const fieldId = useId();
-  const key = ["lore", "listLorePosts", { loreId }] as const;
-  const posts = useInfiniteQuery({
-    queryKey: key,
-    queryFn: ({ pageParam, signal }) => clients.lore.listLorePosts({ loreId, pageToken: pageParam, pageSize: 50 }, { signal }),
-    initialPageParam: "",
-    getNextPageParam: (last) => last.nextPageToken || undefined,
-  });
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { body: "" } });
+  const heading = useRef<HTMLHeadingElement>(null);
+  const [sort, setSort] = useState<SortName>("top");
+  const invalidate = useInvalidateThread();
   const add = useMutation({
-    mutationFn: (v: Values) => clients.lore.addLorePost({ loreId, body: v.body.trim() }),
-    onSuccess: async () => {
-      form.reset();
-      await client.invalidateQueries({ queryKey: key });
-    },
+    mutationFn: (body: string) => clients.lore.addLorePost({ loreId, body }),
+    onSuccess: () => invalidate(),
   });
-  const items = posts.data?.pages.flatMap((p) => p.posts) ?? [];
-  const more = useShowMore<HTMLOListElement>(items.length, posts.fetchNextPage);
-  const error = form.formState.errors.body?.message;
+  // A deleted post can take the focused control with it; the heading keeps
+  // the reader's place.
+  const onGone = () => heading.current?.focus();
 
   return (
     <section aria-labelledby={headingId} className="mt-10 border-t border-rule pt-8">
-      <h2 id={headingId} className="text-xl">
+      <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl">
         Thread
       </h2>
+      <Tabs value={sort} onValueChange={(v) => setSort(v as SortName)} className="mt-3">
+        <TabsList aria-label="Sort posts">
+          <TabsTrigger value="top">Top</TabsTrigger>
+          <TabsTrigger value="new">New</TabsTrigger>
+        </TabsList>
+        {(Object.keys(sorts) as SortName[]).map((name) => (
+          <TabsContent key={name} value={name}>
+            <ThreadList loreId={loreId} sort={sorts[name]} canPost={canPost} onGone={onGone} />
+          </TabsContent>
+        ))}
+      </Tabs>
+      {canPost ? (
+        <div className="mt-6">
+          <PostForm
+            label="Add to the thread"
+            submitLabel="Post"
+            pendingLabel="Posting…"
+            send={(body, done) => add.mutate(body, { onSuccess: done })}
+            pending={add.isPending}
+            error={add.isError ? add.error : null}
+          />
+        </div>
+      ) : (
+        <p className="mt-6 text-sm text-ink-muted">Anyone can read this thread. Only the people who wrote about this {span} can post in it.</p>
+      )}
+    </section>
+  );
+}
+
+function ThreadList({ loreId, sort, canPost, onGone }: { loreId: string; sort: LorePostSort; canPost: boolean; onGone: () => void }) {
+  const session = useSession();
+  const posts = useInfiniteQuery(threadQuery(loreId, sort));
+  const items = posts.data?.pages.flatMap((p) => p.posts) ?? [];
+  const more = useShowMore<HTMLOListElement>(items.length, posts.fetchNextPage);
+  return (
+    <>
       {posts.isError && (
-        <p role="alert" className="mt-3 text-sm text-error">
+        <p role="alert" className="text-sm text-error">
           The thread could not be loaded. Try again in a moment.
         </p>
       )}
       {posts.isSuccess && items.length === 0 && (
-        <p className="mt-3 text-ink-muted">{canPost ? "Nobody has said anything yet. Start the conversation." : "Nobody has posted yet."}</p>
+        <p className="text-ink-muted">{canPost ? "Nobody has said anything yet. Start the conversation." : "Nobody has posted yet."}</p>
       )}
       {items.length > 0 && (
-        <ol ref={more.list} aria-label="Posts" className="mt-4 grid gap-4">
+        <ol ref={more.list} aria-label="Posts" className="grid gap-6">
           {items.map((p) => (
             <li key={p.id} className="min-w-0">
-              {/* Report stays on the header's row: the byline wraps beside it rather than pushing it below. */}
-              <div className="flex items-center gap-2">
-                <p className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 text-sm text-ink-muted">
-                  {p.author && <AuthorLink username={p.author.username} />}
-                  {p.byMember && <span className="rounded-full bg-accent/10 px-2 text-xs font-medium text-accent">In this lore</span>}
-                  {p.createdAt && <time dateTime={timestampDate(p.createdAt).toISOString()}>{when.format(timestampDate(p.createdAt))}</time>}
-                </p>
-                {p.author?.userId !== session?.userId && (
-                  <div className="shrink-0">
-                    <ReportDialog
-                      targetKind={ReportTargetKind.LORE_POST}
-                      targetId={p.id}
-                      targetLabel={`${p.author?.username ?? "this"}'s post`}
-                    />
-                  </div>
-                )}
-              </div>
-              <p className="mt-1 whitespace-pre-line wrap-anywhere text-ink">{p.body}</p>
+              <ThreadBranch top={p} loreId={loreId} canPost={canPost} viewerId={session?.userId} onGone={onGone} />
             </li>
           ))}
         </ol>
       )}
       {posts.hasNextPage && (
-        <Button variant="ghost" size="sm" className="mt-3" pending={posts.isFetchingNextPage} onClick={more.showMore}>
-          Older posts
+        <Button variant="ghost" size="sm" className="mt-3 min-h-11" pending={posts.isFetchingNextPage} onClick={more.showMore}>
+          More posts
         </Button>
       )}
-      {canPost ? (
-        <form noValidate className="mt-6 grid gap-2" onSubmit={form.handleSubmit((v) => add.mutate(v))}>
-          <label htmlFor={fieldId} className="text-sm font-medium text-ink">
-            Add to the thread
-          </label>
-          <Textarea
-            id={fieldId}
-            rows={3}
-            maxLength={MAX_POST}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={error ? `${fieldId}-error` : undefined}
-            {...form.register("body")}
-          />
-          {error && (
-            <p id={`${fieldId}-error`} role="alert" className="text-sm font-medium text-error">
-              {error}
-            </p>
-          )}
-          {add.isError && (
-            <p role="alert" className="text-sm text-error">
-              {actionError(add.error)}
-            </p>
-          )}
-          <Button type="submit" className="justify-self-start" pending={add.isPending}>
-            {add.isPending ? "Posting…" : "Post"}
-          </Button>
-        </form>
-      ) : (
-        <p className="mt-6 text-sm text-ink-muted">Anyone can read this thread. Only the people who wrote about this {span} can post in it.</p>
-      )}
-    </section>
+    </>
   );
 }

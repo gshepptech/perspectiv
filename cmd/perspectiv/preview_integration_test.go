@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -66,6 +67,15 @@ func TestPreview(t *testing.T) {
 		VALUES ($1, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_DRAFT') RETURNING id`, cal)
 	loreID := insert(t, pool, `INSERT INTO lores (arc_id, name, named_by, member_count) VALUES ($1, 'The rainy regulars', $2, 4) RETURNING id`, arcID, ann)
 
+	// The sitemap lists the same readable pages: the store and every place
+	// above it, the day, and the visible story; never the hidden place, the
+	// hidden story or the draft.
+	checkSitemap(t, sitemap{places: p.places.Sitemap, days: arcs.Sitemap, stories: p.perspectives.Sitemap}, map[string][]string{
+		"places":  {"/places/" + store.String(), "/places/" + city.String(), "/places/" + state.String()},
+		"days":    {"/arcs/" + arcID.String()},
+		"stories": {"/perspectives/" + visible.String()},
+	})
+
 	tests := []struct {
 		name      string
 		path      string
@@ -97,5 +107,29 @@ func TestPreview(t *testing.T) {
 				t.Fatalf("preview = %+v, %v; want title %q and a description with %q", got, ok, tc.wantTitle, tc.wantDesc)
 			}
 		})
+	}
+}
+
+// checkSitemap asserts each sitemap kind lists exactly the wanted paths, in
+// any order, each with a lastmod.
+func checkSitemap(t *testing.T, sm sitemap, wantPages map[string][]string) {
+	t.Helper()
+	for kind, want := range wantPages {
+		pages, err := sm.pages(context.Background(), kind)
+		if err != nil {
+			t.Fatalf("sitemap %s: %v", kind, err)
+		}
+		got := make([]string, len(pages))
+		for i, pg := range pages {
+			got[i] = pg.Path
+			if pg.LastMod.IsZero() {
+				t.Errorf("sitemap %s: %s has no lastmod", kind, pg.Path)
+			}
+		}
+		slices.Sort(got)
+		slices.Sort(want)
+		if !slices.Equal(got, want) {
+			t.Errorf("sitemap %s = %v, want %v", kind, got, want)
+		}
 	}
 }

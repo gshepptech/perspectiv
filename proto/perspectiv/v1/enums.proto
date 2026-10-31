@@ -122,6 +122,9 @@ enum NotificationKind {
   // A writer you follow published a new story. Not sent for a story you
   // already hear of as NEW_STORY_AT_FOLLOWED_PLACE or NEW_PERSPECTIVE_IN_ARC.
   NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER = 9;
+  // Someone replied to your post in a lore's thread. Not sent for your own
+  // reply, nor when either of you has blocked the other.
+  NOTIFICATION_KIND_THREAD_REPLY = 10;
 }
 
 // ReportTargetKind is what a report points at.
@@ -255,4 +258,15 @@ enum PlaceCategory {
   PLACE_CATEGORY_LODGING = 11;
   PLACE_CATEGORY_SERVICES = 12;
   PLACE_CATEGORY_HEALTH = 13;
+}
+
+// LorePostSort orders a lore thread's top-level posts. Replies are always
+// oldest first.
+enum LorePostSort {
+  // Read as TOP.
+  LORE_POST_SORT_UNSPECIFIED = 0;
+  // Most upvoted first; ties oldest first.
+  LORE_POST_SORT_TOP = 1;
+  // Newest first.
+  LORE_POST_SORT_NEW = 2;
 }

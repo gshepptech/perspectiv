@@ -52,6 +52,7 @@ export const pages: readonly Page[] = [
   { path: "/terms", module: "legal/TermsPage" },
   { path: "/privacy", module: "legal/PrivacyPage" },
   { path: "/guidelines", module: "legal/GuidelinesPage" },
+  { path: "/appearance", module: "appearance/AppearancePage" },
   { path: "/inbox", module: "inbox/InboxPage", signedIn: true },
 ];
 

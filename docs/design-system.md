@@ -81,8 +81,9 @@ Running prose is left-aligned, never justified, with `hyphens: auto`.
 
 ## Palette
 
-Two themes follow the operating system's `prefers-color-scheme`: **Paper**
-(light) and **Lamplight** (dark). Every text pairing meets WCAG 2.1 AA; the
+Two themes, **Paper** (light) and **Lamplight** (dark), follow the
+operating system's `prefers-color-scheme` unless the reader picks one on the
+Appearance page. Every text pairing meets WCAG 2.1 AA; the
 ratios below are computed against `paper` and `surface`, and the unit test in
 `web/src/app/tokens.test.ts` recomputes them from the shipped stylesheet.
 
@@ -285,6 +286,46 @@ lore page.
 - **Flairs** are words in `text-sm` with an icon where one exists; canon uses
   `accent`, pending uses `warning`, never colour alone.
 
+## Lore page: thread
+
+The thread under a lore's stories reads like a well-kept forum: posts
+ranked by the people who were there, replies grouped under what they
+answer, and nothing deeper than one step of indent.
+
+- **Header row:** the "Thread" heading, then a sort control of two Radix
+  Tabs, "Top" (most upvoted first, ties oldest first; the default) and
+  "New" (newest first). The tabs are 44px tall with the accent underline on
+  the current one; switching keeps the reader's place on the page and
+  moves no focus. Replies are always oldest first, whatever the sort.
+- **A post** is an `<article>` named by its author ("otter's post"). Its
+  byline is one `text-sm` `ink-muted` line: the author link, "In this
+  lore" flair for a member, the time, and "· edited" when the author
+  changed it (the time of the edit in the `<time>` title). The body follows
+  in the interface face, wrapping anywhere, keeping the writer's line breaks.
+- **Action row** under the body, every control at least 44px tall and
+  wrapping at 375px: the upvote toggle (`ArrowBigUp`, the count beside it,
+  `aria-pressed` for the viewer's own vote, named "Upvote otter's post");
+  "Reply"; then "Edit" and "Delete" on the viewer's own post, or "Report"
+  on anyone else's. Someone who may not vote sees the count without the
+  toggle, and never sees the toggle on their own post.
+- **Replies** sit under their post in an `<ol>` indented one step
+  (`pl-4`, a 2px `rule` left border), oldest first. A reply that answered
+  another reply opens with "Replying to @name" in `text-sm` `ink-muted`.
+  The first three show; under them a ghost button "Show 4 more replies"
+  loads the rest a page at a time and moves focus to the first new reply.
+  A reply's own "Reply" answers into the same group.
+- **Writing:** "Reply" opens a labelled textarea under the post ("Reply to
+  otter"), with "Post reply" and "Cancel"; focus moves into it, Escape or
+  Cancel closes it and returns focus to the "Reply" button. "Edit" turns the
+  body into the same form ("Edit your post", "Save" and "Cancel"). The
+  1,000-character limit and the errors read as they do on the main form.
+- **Delete** asks first in a Radix Dialog ("Delete your post?", with a
+  `danger` "Delete" and "Cancel"). A deleted post with replies stays as
+  "[deleted]" in `ink-muted` italic with no byline, actions or count, its
+  replies under it; one without replies leaves the thread.
+- **A post hidden by a moderator** is gone for readers, and so are the
+  replies under it.
+
 ## Place page: admin tools
 
 For admins only, the place page's sidebar ends with a dashed "Admin" box:
@@ -432,6 +473,25 @@ two rows for the same browser are told apart.
   a story to keep it here."
 - **Way in.** The account menu lists "Saved" with a `Bookmark` icon first,
   above Settings.
+
+## Appearance
+
+- `/appearance` is open to everyone, signed in or not, and linked from the
+  footer ("Appearance") and from Settings. Its choices belong to the device,
+  not the account: they are kept in `localStorage` (read and written inside
+  try/catch, so a blocked store only means the defaults) and never sent to
+  the server.
+- **Theme**: a radio group, "Match this device" (the default), "Paper
+  (light)" and "Lamplight (dark)".
+- **Story text size**: a radio group, "Standard" (18px), "Large" (20px) and
+  "Larger" (22px). It sizes story text (`prose-body`) only; the interface
+  keeps its size, and the measure stays 65 characters.
+- A choice applies at once, with no save button, and a `text-sm` line under
+  the groups says "Saved on this device." Every option is a native radio
+  with a visible label, at least 44px tall.
+- The choice is applied before the first paint by `public/appearance.js`,
+  which sets `data-theme` and `data-text` on the root element and the page's
+  `theme-color`, so a page never flashes the other theme.
 
 ## Sign-up during the beta
 

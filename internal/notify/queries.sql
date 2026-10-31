@@ -196,6 +196,24 @@ WHERE f.followee_id = sqlc.arg(author_id)::uuid
         WHERE pf.user_id = f.follower_id AND pf.place_id = ANY(a.place_path))
 ORDER BY f.follower_id;
 
+-- name: ThreadReplyFacts :one
+-- A reply in a lore's thread and the post it answered, whose author is the
+-- one to hear of it. No row when the reply or the answered post was deleted
+-- or hidden, or a moderator hid the branch they sit in. blocked is true
+-- when either author has blocked the other.
+SELECT r.author_id AS replier_id, a.author_id AS answered_author_id, r.lore_id, l.arc_id,
+       EXISTS (SELECT 1 FROM blocks b
+               WHERE (b.blocker_id = r.author_id AND b.blocked_id = a.author_id)
+                  OR (b.blocker_id = a.author_id AND b.blocked_id = r.author_id))::boolean AS blocked
+FROM lore_posts r
+JOIN lore_posts a ON a.id = r.answered_id
+JOIN lore_posts top ON top.id = r.reply_to_id
+JOIN lores l ON l.id = r.lore_id
+WHERE r.id = $1
+  AND r.deleted_at IS NULL AND r.hidden_at IS NULL
+  AND a.deleted_at IS NULL AND a.hidden_at IS NULL
+  AND top.hidden_at IS NULL;
+
 -- name: InsertDigestItem :exec
 INSERT INTO digest_items (user_id, data) VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(data)::jsonb);
 

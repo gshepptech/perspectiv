@@ -265,3 +265,15 @@ SELECT a.id, a.hour, a.title,
 FROM arcs a
 WHERE a.place_id = sqlc.arg(place_id)::uuid AND a.local_date = sqlc.arg(local_date)::date
 ORDER BY a.hour NULLS FIRST;
+
+-- name: SitemapArcs :many
+-- Days and hours with a readable story, not under a hidden place, most
+-- recently written first: the days listed in the sitemap.
+SELECT a.id, max(v.published_at)::timestamptz AS last_mod
+FROM arcs a
+JOIN perspectives v ON v.arc_id = a.id
+WHERE v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+GROUP BY a.id
+ORDER BY last_mod DESC, a.id
+LIMIT @lim::integer;

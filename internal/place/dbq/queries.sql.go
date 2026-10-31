@@ -1268,6 +1268,46 @@ func (q *Queries) SearchPlaces(ctx context.Context, arg SearchPlacesParams) ([]S
 	return items, nil
 }
 
+const sitemapPlaces = `-- name: SitemapPlaces :many
+SELECT pid::uuid AS id, max(v.published_at)::timestamptz AS last_mod
+FROM arcs a
+JOIN perspectives v ON v.arc_id = a.id
+CROSS JOIN LATERAL unnest(a.place_path) AS pid
+WHERE v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+GROUP BY pid
+ORDER BY last_mod DESC, pid
+LIMIT $1::integer
+`
+
+type SitemapPlacesRow struct {
+	ID      uuid.UUID
+	LastMod pgtype.Timestamptz
+}
+
+// Places a signed-out reader can open that have a readable story at them or
+// below, most recently written first, with when the newest was published:
+// the places listed in the sitemap.
+func (q *Queries) SitemapPlaces(ctx context.Context, lim int32) ([]SitemapPlacesRow, error) {
+	rows, err := q.db.Query(ctx, sitemapPlaces, lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SitemapPlacesRow
+	for rows.Next() {
+		var i SitemapPlacesRow
+		if err := rows.Scan(&i.ID, &i.LastMod); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const unfollowPlace = `-- name: UnfollowPlace :exec
 DELETE FROM place_follows WHERE user_id = $1::uuid AND place_id = $2::uuid
 `

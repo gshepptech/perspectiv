@@ -104,7 +104,8 @@ func (h *Handler) GetLore(
 	return connect.NewResponse(&perspectivv1.GetLoreResponse{Lore: l}), nil
 }
 
-// ListLorePosts returns a lore's thread, oldest first. It is public.
+// ListLorePosts returns a page of a lore's thread. It is public; a
+// signed-in caller also sees which posts they upvoted.
 func (h *Handler) ListLorePosts(
 	ctx context.Context, req *connect.Request[perspectivv1.ListLorePostsRequest],
 ) (*connect.Response[perspectivv1.ListLorePostsResponse], error) {
@@ -112,14 +113,14 @@ func (h *Handler) ListLorePosts(
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	posts, next, err := h.svc.LorePosts(ctx, id, req.Msg.GetPageToken(), req.Msg.GetPageSize())
+	posts, next, err := h.svc.LorePosts(ctx, viewer(ctx), id, req.Msg.GetSort(), req.Msg.GetPageToken(), req.Msg.GetPageSize())
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
 	return connect.NewResponse(&perspectivv1.ListLorePostsResponse{Posts: posts, NextPageToken: next}), nil
 }
 
-// AddLorePost posts to a lore's thread.
+// AddLorePost posts to a lore's thread, or replies to a post in it.
 func (h *Handler) AddLorePost(
 	ctx context.Context, req *connect.Request[perspectivv1.AddLorePostRequest],
 ) (*connect.Response[perspectivv1.AddLorePostResponse], error) {
@@ -131,11 +132,97 @@ func (h *Handler) AddLorePost(
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	post, err := h.svc.AddLorePost(ctx, caller.UserID, id, req.Msg.GetBody())
+	replyTo := uuid.Nil
+	if req.Msg.GetReplyToId() != "" {
+		if replyTo, err = parseID("reply_to_id", req.Msg.GetReplyToId()); err != nil {
+			return nil, apiutil.ToConnect(err)
+		}
+	}
+	post, err := h.svc.AddLorePost(ctx, caller.UserID, id, req.Msg.GetBody(), replyTo)
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
 	return connect.NewResponse(&perspectivv1.AddLorePostResponse{Post: post}), nil
+}
+
+// ListLorePostReplies returns a page of the replies under a top-level post.
+// It is public.
+func (h *Handler) ListLorePostReplies(
+	ctx context.Context, req *connect.Request[perspectivv1.ListLorePostRepliesRequest],
+) (*connect.Response[perspectivv1.ListLorePostRepliesResponse], error) {
+	id, err := parseID("post_id", req.Msg.GetPostId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	replies, next, err := h.svc.LorePostReplies(ctx, viewer(ctx), id, req.Msg.GetPageToken(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.ListLorePostRepliesResponse{Replies: replies, NextPageToken: next}), nil
+}
+
+// VoteLorePost sets or clears the caller's upvote on a thread post.
+func (h *Handler) VoteLorePost(
+	ctx context.Context, req *connect.Request[perspectivv1.VoteLorePostRequest],
+) (*connect.Response[perspectivv1.VoteLorePostResponse], error) {
+	caller, ok := apiutil.CallerFrom(ctx)
+	if !ok {
+		return nil, apiutil.ToConnect(apiutil.Unauthenticated("sign in to upvote"))
+	}
+	id, err := parseID("post_id", req.Msg.GetPostId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	n, err := h.svc.VoteLorePost(ctx, caller.UserID, id, req.Msg.GetOn())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.VoteLorePostResponse{Upvotes: n, On: req.Msg.GetOn()}), nil
+}
+
+// EditLorePost rewrites the caller's own thread post.
+func (h *Handler) EditLorePost(
+	ctx context.Context, req *connect.Request[perspectivv1.EditLorePostRequest],
+) (*connect.Response[perspectivv1.EditLorePostResponse], error) {
+	caller, ok := apiutil.CallerFrom(ctx)
+	if !ok {
+		return nil, apiutil.ToConnect(apiutil.Unauthenticated("sign in to edit a post"))
+	}
+	id, err := parseID("post_id", req.Msg.GetPostId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	post, err := h.svc.EditLorePost(ctx, caller.UserID, id, req.Msg.GetBody())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.EditLorePostResponse{Post: post}), nil
+}
+
+// DeleteLorePost deletes the caller's own thread post.
+func (h *Handler) DeleteLorePost(
+	ctx context.Context, req *connect.Request[perspectivv1.DeleteLorePostRequest],
+) (*connect.Response[perspectivv1.DeleteLorePostResponse], error) {
+	caller, ok := apiutil.CallerFrom(ctx)
+	if !ok {
+		return nil, apiutil.ToConnect(apiutil.Unauthenticated("sign in to delete a post"))
+	}
+	id, err := parseID("post_id", req.Msg.GetPostId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	if err := h.svc.DeleteLorePost(ctx, caller.UserID, id); err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	return connect.NewResponse(&perspectivv1.DeleteLorePostResponse{}), nil
+}
+
+// viewer is the signed-in caller on a public read, or uuid.Nil.
+func viewer(ctx context.Context) uuid.UUID {
+	if c, ok := apiutil.CallerFrom(ctx); ok {
+		return c.UserID
+	}
+	return uuid.Nil
 }
 
 // NameLore names a lore; the caller must be one of its members.

@@ -1,42 +1,43 @@
 @import "tailwindcss";
 
 /*
- * Folio tokens (docs/design-system.md). The Paper theme is the default; the
- * Lamplight theme follows prefers-color-scheme. Components use the generated
- * utilities (bg-paper, text-ink, border-control, ...) and never a raw colour.
+ * Folio tokens (docs/design-system.md). Each token is light-dark(Paper,
+ * Lamplight): the device's colour scheme picks one unless data-theme forces
+ * it. Components use the generated utilities (bg-paper, text-ink,
+ * border-control, ...) and never a raw colour.
  */
 :root {
-  --paper: #f7f5f0;
-  --surface: #efece5;
-  --ink: #1f1d1a;
-  --ink-muted: #5c574f;
-  --rule: #d6d1c7;
-  --control: #8a8478;
-  --accent: #2b4c7e;
-  --accent-ink: #ffffff;
-  --success: #2f6b3a;
-  --warning: #8a5a00;
-  --error: #a3322a;
-  --info: #1f5f7a;
+  --paper: light-dark(#f7f5f0, #161514);
+  --surface: light-dark(#efece5, #201e1c);
+  --ink: light-dark(#1f1d1a, #e8e4dc);
+  --ink-muted: light-dark(#5c574f, #aba59a);
+  --rule: light-dark(#d6d1c7, #34312d);
+  --control: light-dark(#8a8478, #7a746a);
+  --accent: light-dark(#2b4c7e, #9db8e6);
+  --accent-ink: light-dark(#ffffff, #12223a);
+  --success: light-dark(#2f6b3a, #7cc48a);
+  --warning: light-dark(#8a5a00, #e0b455);
+  --error: light-dark(#a3322a, #f08a80);
+  --info: light-dark(#1f5f7a, #7fc4dd);
+  color-scheme: light dark;
+}
+
+/* The Appearance page forces a theme; without a choice the device decides. */
+:root[data-theme="light"] {
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #161514;
-    --surface: #201e1c;
-    --ink: #e8e4dc;
-    --ink-muted: #aba59a;
-    --rule: #34312d;
-    --control: #7a746a;
-    --accent: #9db8e6;
-    --accent-ink: #12223a;
-    --success: #7cc48a;
-    --warning: #e0b455;
-    --error: #f08a80;
-    --info: #7fc4dd;
-    color-scheme: dark;
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Story text size from the Appearance page; the interface keeps its size. */
+:root[data-text="large"] {
+  --text-prose: 1.25rem;
+}
+
+:root[data-text="larger"] {
+  --text-prose: 1.375rem;
 }
 
 @theme inline {

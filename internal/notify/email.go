@@ -288,6 +288,9 @@ func (w *emailWorker) notificationContent(data map[string]string) (content, erro
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER:
 		subject = actor + " wrote a new story"
 		body = actor + ", a writer you follow, wrote a new story in " + arc + "."
+	case perspectivv1.NotificationKind_NOTIFICATION_KIND_THREAD_REPLY:
+		subject = actor + " replied to your post"
+		body = actor + " replied to your post in a lore's thread in " + arc + "."
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_REPORT_RESOLVED:
 		subject = "Your report was resolved"
 		body = "A moderator reviewed and resolved a report you made. Thank you for flagging it."

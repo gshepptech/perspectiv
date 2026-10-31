@@ -83,7 +83,7 @@ func TestEnumValues(t *testing.T) {
 				"NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "NOTIFICATION_KIND_VOTE_OUT_OPENED",
 				"NOTIFICATION_KIND_CANON_CHANGE", "NOTIFICATION_KIND_REPORT_RESOLVED",
 				"NOTIFICATION_KIND_INVITE_ANSWERED", "NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE",
-				"NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER",
+				"NOTIFICATION_KIND_NEW_STORY_BY_FOLLOWED_WRITER", "NOTIFICATION_KIND_THREAD_REPLY",
 			},
 		},
 		{
@@ -131,6 +131,11 @@ func TestEnumValues(t *testing.T) {
 			enum: perspectivv1.EpicTab(0).Descriptor(),
 			want: []string{"EPIC_TAB_UNSPECIFIED", "EPIC_TAB_RANKED", "EPIC_TAB_NEWEST", "EPIC_TAB_TALES"},
 		},
+		{
+			name: "lore post sort",
+			enum: perspectivv1.LorePostSort(0).Descriptor(),
+			want: []string{"LORE_POST_SORT_UNSPECIFIED", "LORE_POST_SORT_TOP", "LORE_POST_SORT_NEW"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -152,7 +157,9 @@ func TestEnumValues(t *testing.T) {
 // ListByAuthor serves the profile's perspectives and tales (AC-023), and
 // ListArcSection the arc page's later pages (NFR-008). CreateInvite and
 // GetInvite serve the "I was there too" share link, ListLorePosts and
-// AddLorePost a lore's thread, NameLore a lore's name, FollowPlace and
+// AddLorePost a lore's thread (ListLorePostReplies, VoteLorePost,
+// EditLorePost and DeleteLorePost its replies, upvotes, edits and deletes),
+// NameLore a lore's name, FollowPlace and
 // ListFollowing the places a user follows, FollowUser and
 // ListFollowedWriters the writers a user follows, and SavePerspective and
 // ListSaved the stories a user saved to read later.
@@ -165,11 +172,12 @@ var services = map[string][]string{
 	"PlaceService":       {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters"},
 	"ArcService":         {"GetArc", "FindDayArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},
 	"PerspectiveService": {"SaveDraft", "Publish", "Update", "Delete", "Get", "ListMine", "ListByAuthor", "CreateInvite", "GetInvite", "SavePerspective", "ListSaved"},
-	"LoreService":        {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore"},
-	"VoteService":        {"Vote", "VoteRemove"},
-	"ReactService":       {"React"},
-	"NotifyService":      {"ListInbox", "MarkRead", "GetPreferences", "UpdatePreferences", "Unsubscribe"},
-	"ModerationService":  {"Report", "ListReports", "Resolve", "ListAuditLog", "LookupUser", "LiftSuspension", "Restore", "MakeVenue", "MergePlace"},
+	"LoreService": {"ClaimCharacter", "ResolveClaim", "ListClaims", "GetLore", "ListLorePosts", "AddLorePost", "NameLore",
+		"ListLorePostReplies", "VoteLorePost", "EditLorePost", "DeleteLorePost"},
+	"VoteService":       {"Vote", "VoteRemove"},
+	"ReactService":      {"React"},
+	"NotifyService":     {"ListInbox", "MarkRead", "GetPreferences", "UpdatePreferences", "Unsubscribe"},
+	"ModerationService": {"Report", "ListReports", "Resolve", "ListAuditLog", "LookupUser", "LiftSuspension", "Restore", "MakeVenue", "MergePlace"},
 }
 
 func service(t *testing.T, name string) protoreflect.ServiceDescriptor {

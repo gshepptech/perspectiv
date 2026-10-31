@@ -6,7 +6,7 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { ClaimDirection, ClaimStatus, LoreStanding } from "./enums_pb";
+import type { ClaimDirection, ClaimStatus, LorePostSort, LoreStanding } from "./enums_pb";
 import { file_perspectiv_v1_enums } from "./enums_pb";
 import type { UserRef } from "./user_pb";
 import { file_perspectiv_v1_user } from "./user_pb";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/lore.proto.
  */
 export const file_perspectiv_v1_lore: GenFile = /*@__PURE__*/
-  fileDesc("ChhwZXJzcGVjdGl2L3YxL2xvcmUucHJvdG8SDXBlcnNwZWN0aXYudjEi6gIKBUNsYWltEgoKAmlkGAEgASgJEg4KBmFyY19pZBgCIAEoCRIUCgxjaGFyYWN0ZXJfaWQYAyABKAkSFwoPY2hhcmFjdGVyX2xhYmVsGAQgASgJEhYKDnBlcnNwZWN0aXZlX2lkGAUgASgJEiYKBmF1dGhvchgGIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIoCghjbGFpbWFudBgHIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIfChdjbGFpbWFudF9wZXJzcGVjdGl2ZV9pZBgIIAEoCRIqCgZzdGF0dXMYCSABKA4yGi5wZXJzcGVjdGl2LnYxLkNsYWltU3RhdHVzEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC3Jlc29sdmVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJWCglFbmNvdW50ZXISEAoIY2xhaW1faWQYASABKAkSFgoOcGVyc3BlY3RpdmVfaWQYAiABKAkSHwoXY2xhaW1hbnRfcGVyc3BlY3RpdmVfaWQYAyABKAkiSgoKTG9yZU1lbWJlchIWCg5wZXJzcGVjdGl2ZV9pZBgBIAEoCRIkCgR1c2VyGAIgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmIs8CCgRMb3JlEgoKAmlkGAEgASgJEg4KBmFyY19pZBgCIAEoCRItCghzdGFuZGluZxgDIAEoDjIbLnBlcnNwZWN0aXYudjEuTG9yZVN0YW5kaW5nEhQKDG1lbWJlcl9jb3VudBgEIAEoBRIPCgd1cHZvdGVzGAUgASgFEhIKCnJhbmtfc2NvcmUYBiABKAESLwoLY29tcHV0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEioKB21lbWJlcnMYCCADKAsyGS5wZXJzcGVjdGl2LnYxLkxvcmVNZW1iZXISLAoKZW5jb3VudGVycxgJIAMoCzIYLnBlcnNwZWN0aXYudjEuRW5jb3VudGVyEgwKBG5hbWUYCiABKAkSKAoIbmFtZWRfYnkYCyABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYiLQoVQ2xhaW1DaGFyYWN0ZXJSZXF1ZXN0EhQKDGNoYXJhY3Rlcl9pZBgBIAEoCSJWChZDbGFpbUNoYXJhY3RlclJlc3BvbnNlEhAKCGNsYWltX2lkGAEgASgJEioKBnN0YXR1cxgCIAEoDjIaLnBlcnNwZWN0aXYudjEuQ2xhaW1TdGF0dXMiNwoTUmVzb2x2ZUNsYWltUmVxdWVzdBIQCghjbGFpbV9pZBgBIAEoCRIOCgZhY2NlcHQYAiABKAgiQgoUUmVzb2x2ZUNsYWltUmVzcG9uc2USKgoGc3RhdHVzGAEgASgOMhoucGVyc3BlY3Rpdi52MS5DbGFpbVN0YXR1cyKYAQoRTGlzdENsYWltc1JlcXVlc3QSMAoJZGlyZWN0aW9uGAEgASgOMh0ucGVyc3BlY3Rpdi52MS5DbGFpbURpcmVjdGlvbhIqCgZzdGF0dXMYAiABKA4yGi5wZXJzcGVjdGl2LnYxLkNsYWltU3RhdHVzEhIKCnBhZ2VfdG9rZW4YAyABKAkSEQoJcGFnZV9zaXplGAQgASgFIlMKEkxpc3RDbGFpbXNSZXNwb25zZRIkCgZjbGFpbXMYASADKAsyFC5wZXJzcGVjdGl2LnYxLkNsYWltEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIhCg5HZXRMb3JlUmVxdWVzdBIPCgdsb3JlX2lkGAEgASgJIjQKD0dldExvcmVSZXNwb25zZRIhCgRsb3JlGAEgASgLMhMucGVyc3BlY3Rpdi52MS5Mb3JlIo8BCghMb3JlUG9zdBIKCgJpZBgBIAEoCRImCgZhdXRob3IYAiABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSDAoEYm9keRgDIAEoCRIuCgpjcmVhdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCglieV9tZW1iZXIYBSABKAgiTgoUTGlzdExvcmVQb3N0c1JlcXVlc3QSDwoHbG9yZV9pZBgBIAEoCRISCgpwYWdlX3Rva2VuGAIgASgJEhEKCXBhZ2Vfc2l6ZRgDIAEoBSJYChVMaXN0TG9yZVBvc3RzUmVzcG9uc2USJgoFcG9zdHMYASADKAsyFy5wZXJzcGVjdGl2LnYxLkxvcmVQb3N0EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIzChJBZGRMb3JlUG9zdFJlcXVlc3QSDwoHbG9yZV9pZBgBIAEoCRIMCgRib2R5GAIgASgJIjwKE0FkZExvcmVQb3N0UmVzcG9uc2USJQoEcG9zdBgBIAEoCzIXLnBlcnNwZWN0aXYudjEuTG9yZVBvc3QiMAoPTmFtZUxvcmVSZXF1ZXN0Eg8KB2xvcmVfaWQYASABKAkSDAoEbmFtZRgCIAEoCSIgChBOYW1lTG9yZVJlc3BvbnNlEgwKBG5hbWUYASABKAky4QQKC0xvcmVTZXJ2aWNlEl0KDkNsYWltQ2hhcmFjdGVyEiQucGVyc3BlY3Rpdi52MS5DbGFpbUNoYXJhY3RlclJlcXVlc3QaJS5wZXJzcGVjdGl2LnYxLkNsYWltQ2hhcmFjdGVyUmVzcG9uc2USVwoMUmVzb2x2ZUNsYWltEiIucGVyc3BlY3Rpdi52MS5SZXNvbHZlQ2xhaW1SZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5SZXNvbHZlQ2xhaW1SZXNwb25zZRJRCgpMaXN0Q2xhaW1zEiAucGVyc3BlY3Rpdi52MS5MaXN0Q2xhaW1zUmVxdWVzdBohLnBlcnNwZWN0aXYudjEuTGlzdENsYWltc1Jlc3BvbnNlEkgKB0dldExvcmUSHS5wZXJzcGVjdGl2LnYxLkdldExvcmVSZXF1ZXN0Gh4ucGVyc3BlY3Rpdi52MS5HZXRMb3JlUmVzcG9uc2USWgoNTGlzdExvcmVQb3N0cxIjLnBlcnNwZWN0aXYudjEuTGlzdExvcmVQb3N0c1JlcXVlc3QaJC5wZXJzcGVjdGl2LnYxLkxpc3RMb3JlUG9zdHNSZXNwb25zZRJUCgtBZGRMb3JlUG9zdBIhLnBlcnNwZWN0aXYudjEuQWRkTG9yZVBvc3RSZXF1ZXN0GiIucGVyc3BlY3Rpdi52MS5BZGRMb3JlUG9zdFJlc3BvbnNlEksKCE5hbWVMb3JlEh4ucGVyc3BlY3Rpdi52MS5OYW1lTG9yZVJlcXVlc3QaHy5wZXJzcGVjdGl2LnYxLk5hbWVMb3JlUmVzcG9uc2VCngEKEWNvbS5wZXJzcGVjdGl2LnYxQglMb3JlUHJvdG9QAVopcGVyc3BlY3Rpdi9nZW4vcGVyc3BlY3Rpdi92MTtwZXJzcGVjdGl2djGiAgNQWFiqAg1QZXJzcGVjdGl2LlYxygINUGVyc3BlY3RpdlxWMeICGVBlcnNwZWN0aXZcVjFcR1BCTWV0YWRhdGHqAg5QZXJzcGVjdGl2OjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
+  fileDesc("ChhwZXJzcGVjdGl2L3YxL2xvcmUucHJvdG8SDXBlcnNwZWN0aXYudjEi6gIKBUNsYWltEgoKAmlkGAEgASgJEg4KBmFyY19pZBgCIAEoCRIUCgxjaGFyYWN0ZXJfaWQYAyABKAkSFwoPY2hhcmFjdGVyX2xhYmVsGAQgASgJEhYKDnBlcnNwZWN0aXZlX2lkGAUgASgJEiYKBmF1dGhvchgGIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIoCghjbGFpbWFudBgHIAEoCzIWLnBlcnNwZWN0aXYudjEuVXNlclJlZhIfChdjbGFpbWFudF9wZXJzcGVjdGl2ZV9pZBgIIAEoCRIqCgZzdGF0dXMYCSABKA4yGi5wZXJzcGVjdGl2LnYxLkNsYWltU3RhdHVzEi4KCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KC3Jlc29sdmVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJWCglFbmNvdW50ZXISEAoIY2xhaW1faWQYASABKAkSFgoOcGVyc3BlY3RpdmVfaWQYAiABKAkSHwoXY2xhaW1hbnRfcGVyc3BlY3RpdmVfaWQYAyABKAkiSgoKTG9yZU1lbWJlchIWCg5wZXJzcGVjdGl2ZV9pZBgBIAEoCRIkCgR1c2VyGAIgASgLMhYucGVyc3BlY3Rpdi52MS5Vc2VyUmVmIs8CCgRMb3JlEgoKAmlkGAEgASgJEg4KBmFyY19pZBgCIAEoCRItCghzdGFuZGluZxgDIAEoDjIbLnBlcnNwZWN0aXYudjEuTG9yZVN0YW5kaW5nEhQKDG1lbWJlcl9jb3VudBgEIAEoBRIPCgd1cHZvdGVzGAUgASgFEhIKCnJhbmtfc2NvcmUYBiABKAESLwoLY29tcHV0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEioKB21lbWJlcnMYCCADKAsyGS5wZXJzcGVjdGl2LnYxLkxvcmVNZW1iZXISLAoKZW5jb3VudGVycxgJIAMoCzIYLnBlcnNwZWN0aXYudjEuRW5jb3VudGVyEgwKBG5hbWUYCiABKAkSKAoIbmFtZWRfYnkYCyABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYiLQoVQ2xhaW1DaGFyYWN0ZXJSZXF1ZXN0EhQKDGNoYXJhY3Rlcl9pZBgBIAEoCSJWChZDbGFpbUNoYXJhY3RlclJlc3BvbnNlEhAKCGNsYWltX2lkGAEgASgJEioKBnN0YXR1cxgCIAEoDjIaLnBlcnNwZWN0aXYudjEuQ2xhaW1TdGF0dXMiNwoTUmVzb2x2ZUNsYWltUmVxdWVzdBIQCghjbGFpbV9pZBgBIAEoCRIOCgZhY2NlcHQYAiABKAgiQgoUUmVzb2x2ZUNsYWltUmVzcG9uc2USKgoGc3RhdHVzGAEgASgOMhoucGVyc3BlY3Rpdi52MS5DbGFpbVN0YXR1cyKYAQoRTGlzdENsYWltc1JlcXVlc3QSMAoJZGlyZWN0aW9uGAEgASgOMh0ucGVyc3BlY3Rpdi52MS5DbGFpbURpcmVjdGlvbhIqCgZzdGF0dXMYAiABKA4yGi5wZXJzcGVjdGl2LnYxLkNsYWltU3RhdHVzEhIKCnBhZ2VfdG9rZW4YAyABKAkSEQoJcGFnZV9zaXplGAQgASgFIlMKEkxpc3RDbGFpbXNSZXNwb25zZRIkCgZjbGFpbXMYASADKAsyFC5wZXJzcGVjdGl2LnYxLkNsYWltEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSIhCg5HZXRMb3JlUmVxdWVzdBIPCgdsb3JlX2lkGAEgASgJIjQKD0dldExvcmVSZXNwb25zZRIhCgRsb3JlGAEgASgLMhMucGVyc3BlY3Rpdi52MS5Mb3JlIpUDCghMb3JlUG9zdBIKCgJpZBgBIAEoCRImCgZhdXRob3IYAiABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSDAoEYm9keRgDIAEoCRIuCgpjcmVhdGVkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCglieV9tZW1iZXIYBSABKAgSEwoLcmVwbHlfdG9faWQYBiABKAkSKwoLcmVwbHlpbmdfdG8YByABKAsyFi5wZXJzcGVjdGl2LnYxLlVzZXJSZWYSLQoJZWRpdGVkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIPCgd1cHZvdGVzGAkgASgFEhYKDnZpZXdlcl91cHZvdGVkGAogASgIEg8KB2RlbGV0ZWQYCyABKAgSEwoLcmVwbHlfY291bnQYDCABKAUSKAoHcmVwbGllcxgNIAMoCzIXLnBlcnNwZWN0aXYudjEuTG9yZVBvc3QSGgoSbW9yZV9yZXBsaWVzX3Rva2VuGA4gASgJInkKFExpc3RMb3JlUG9zdHNSZXF1ZXN0Eg8KB2xvcmVfaWQYASABKAkSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUSKQoEc29ydBgEIAEoDjIbLnBlcnNwZWN0aXYudjEuTG9yZVBvc3RTb3J0IlgKFUxpc3RMb3JlUG9zdHNSZXNwb25zZRImCgVwb3N0cxgBIAMoCzIXLnBlcnNwZWN0aXYudjEuTG9yZVBvc3QSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIkgKEkFkZExvcmVQb3N0UmVxdWVzdBIPCgdsb3JlX2lkGAEgASgJEgwKBGJvZHkYAiABKAkSEwoLcmVwbHlfdG9faWQYAyABKAkiPAoTQWRkTG9yZVBvc3RSZXNwb25zZRIlCgRwb3N0GAEgASgLMhcucGVyc3BlY3Rpdi52MS5Mb3JlUG9zdCIwCg9OYW1lTG9yZVJlcXVlc3QSDwoHbG9yZV9pZBgBIAEoCRIMCgRuYW1lGAIgASgJIiAKEE5hbWVMb3JlUmVzcG9uc2USDAoEbmFtZRgBIAEoCSJUChpMaXN0TG9yZVBvc3RSZXBsaWVzUmVxdWVzdBIPCgdwb3N0X2lkGAEgASgJEhIKCnBhZ2VfdG9rZW4YAiABKAkSEQoJcGFnZV9zaXplGAMgASgFImAKG0xpc3RMb3JlUG9zdFJlcGxpZXNSZXNwb25zZRIoCgdyZXBsaWVzGAEgAygLMhcucGVyc3BlY3Rpdi52MS5Mb3JlUG9zdBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiMgoTVm90ZUxvcmVQb3N0UmVxdWVzdBIPCgdwb3N0X2lkGAEgASgJEgoKAm9uGAIgASgIIjMKFFZvdGVMb3JlUG9zdFJlc3BvbnNlEg8KB3Vwdm90ZXMYASABKAUSCgoCb24YAiABKAgiNAoTRWRpdExvcmVQb3N0UmVxdWVzdBIPCgdwb3N0X2lkGAEgASgJEgwKBGJvZHkYAiABKAkiPQoURWRpdExvcmVQb3N0UmVzcG9uc2USJQoEcG9zdBgBIAEoCzIXLnBlcnNwZWN0aXYudjEuTG9yZVBvc3QiKAoVRGVsZXRlTG9yZVBvc3RSZXF1ZXN0Eg8KB3Bvc3RfaWQYASABKAkiGAoWRGVsZXRlTG9yZVBvc3RSZXNwb25zZTLgBwoLTG9yZVNlcnZpY2USXQoOQ2xhaW1DaGFyYWN0ZXISJC5wZXJzcGVjdGl2LnYxLkNsYWltQ2hhcmFjdGVyUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuQ2xhaW1DaGFyYWN0ZXJSZXNwb25zZRJXCgxSZXNvbHZlQ2xhaW0SIi5wZXJzcGVjdGl2LnYxLlJlc29sdmVDbGFpbVJlcXVlc3QaIy5wZXJzcGVjdGl2LnYxLlJlc29sdmVDbGFpbVJlc3BvbnNlElEKCkxpc3RDbGFpbXMSIC5wZXJzcGVjdGl2LnYxLkxpc3RDbGFpbXNSZXF1ZXN0GiEucGVyc3BlY3Rpdi52MS5MaXN0Q2xhaW1zUmVzcG9uc2USSAoHR2V0TG9yZRIdLnBlcnNwZWN0aXYudjEuR2V0TG9yZVJlcXVlc3QaHi5wZXJzcGVjdGl2LnYxLkdldExvcmVSZXNwb25zZRJaCg1MaXN0TG9yZVBvc3RzEiMucGVyc3BlY3Rpdi52MS5MaXN0TG9yZVBvc3RzUmVxdWVzdBokLnBlcnNwZWN0aXYudjEuTGlzdExvcmVQb3N0c1Jlc3BvbnNlElQKC0FkZExvcmVQb3N0EiEucGVyc3BlY3Rpdi52MS5BZGRMb3JlUG9zdFJlcXVlc3QaIi5wZXJzcGVjdGl2LnYxLkFkZExvcmVQb3N0UmVzcG9uc2USSwoITmFtZUxvcmUSHi5wZXJzcGVjdGl2LnYxLk5hbWVMb3JlUmVxdWVzdBofLnBlcnNwZWN0aXYudjEuTmFtZUxvcmVSZXNwb25zZRJsChNMaXN0TG9yZVBvc3RSZXBsaWVzEikucGVyc3BlY3Rpdi52MS5MaXN0TG9yZVBvc3RSZXBsaWVzUmVxdWVzdBoqLnBlcnNwZWN0aXYudjEuTGlzdExvcmVQb3N0UmVwbGllc1Jlc3BvbnNlElcKDFZvdGVMb3JlUG9zdBIiLnBlcnNwZWN0aXYudjEuVm90ZUxvcmVQb3N0UmVxdWVzdBojLnBlcnNwZWN0aXYudjEuVm90ZUxvcmVQb3N0UmVzcG9uc2USVwoMRWRpdExvcmVQb3N0EiIucGVyc3BlY3Rpdi52MS5FZGl0TG9yZVBvc3RSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5FZGl0TG9yZVBvc3RSZXNwb25zZRJdCg5EZWxldGVMb3JlUG9zdBIkLnBlcnNwZWN0aXYudjEuRGVsZXRlTG9yZVBvc3RSZXF1ZXN0GiUucGVyc3BlY3Rpdi52MS5EZWxldGVMb3JlUG9zdFJlc3BvbnNlQp4BChFjb20ucGVyc3BlY3Rpdi52MUIJTG9yZVByb3RvUAFaKXBlcnNwZWN0aXYvZ2VuL3BlcnNwZWN0aXYvdjE7cGVyc3BlY3RpdnYxogIDUFhYqgINUGVyc3BlY3Rpdi5WMcoCDVBlcnNwZWN0aXZcVjHiAhlQZXJzcGVjdGl2XFYxXEdQQk1ldGFkYXRh6gIOUGVyc3BlY3Rpdjo6VjFiBnByb3RvMw", [file_google_protobuf_timestamp, file_perspectiv_v1_enums, file_perspectiv_v1_user]);
 
 /**
  * Claim is one author saying a character in another author's perspective was
@@ -393,7 +393,8 @@ export const GetLoreResponseSchema: GenMessage<GetLoreResponse> = /*@__PURE__*/
   messageDesc(file_perspectiv_v1_lore, 11);
 
 /**
- * LorePost is one message in a lore's thread.
+ * LorePost is one message in a lore's thread: a top-level post, or a reply
+ * under one.
  *
  * @generated from message perspectiv.v1.LorePost
  */
@@ -404,11 +405,15 @@ export type LorePost = Message<"perspectiv.v1.LorePost"> & {
   id: string;
 
   /**
+   * Unset when deleted.
+   *
    * @generated from field: perspectiv.v1.UserRef author = 2;
    */
   author?: UserRef | undefined;
 
   /**
+   * Empty when deleted.
+   *
    * @generated from field: string body = 3;
    */
   body: string;
@@ -425,6 +430,70 @@ export type LorePost = Message<"perspectiv.v1.LorePost"> & {
    * @generated from field: bool by_member = 5;
    */
   byMember: boolean;
+
+  /**
+   * The top-level post this reply sits under; empty for a top-level post.
+   *
+   * @generated from field: string reply_to_id = 6;
+   */
+  replyToId: string;
+
+  /**
+   * On a reply that answered another reply: that reply's author, for
+   * "replying to @name". Unset when it answered the top-level post, or when
+   * the reply it answered is gone.
+   *
+   * @generated from field: perspectiv.v1.UserRef replying_to = 7;
+   */
+  replyingTo?: UserRef | undefined;
+
+  /**
+   * Set once the author edits the post.
+   *
+   * @generated from field: google.protobuf.Timestamp edited_at = 8;
+   */
+  editedAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: int32 upvotes = 9;
+   */
+  upvotes: number;
+
+  /**
+   * Whether the signed-in caller holds an upvote on it.
+   *
+   * @generated from field: bool viewer_upvoted = 10;
+   */
+  viewerUpvoted: boolean;
+
+  /**
+   * A top-level post its author deleted that stays for its replies. It has
+   * no author, body or upvote.
+   *
+   * @generated from field: bool deleted = 11;
+   */
+  deleted: boolean;
+
+  /**
+   * On a top-level post: how many readable replies it has, and the first
+   * three of them, oldest first.
+   *
+   * @generated from field: int32 reply_count = 12;
+   */
+  replyCount: number;
+
+  /**
+   * @generated from field: repeated perspectiv.v1.LorePost replies = 13;
+   */
+  replies: LorePost[];
+
+  /**
+   * The ListLorePostReplies page token for the replies after `replies`;
+   * empty when they are all here.
+   *
+   * @generated from field: string more_replies_token = 14;
+   */
+  moreRepliesToken: string;
 };
 
 /**
@@ -452,6 +521,14 @@ export type ListLorePostsRequest = Message<"perspectiv.v1.ListLorePostsRequest">
    * @generated from field: int32 page_size = 3;
    */
   pageSize: number;
+
+  /**
+   * UNSPECIFIED reads as TOP. A page token only continues the order it was
+   * made for.
+   *
+   * @generated from field: perspectiv.v1.LorePostSort sort = 4;
+   */
+  sort: LorePostSort;
 };
 
 /**
@@ -466,6 +543,8 @@ export const ListLorePostsRequestSchema: GenMessage<ListLorePostsRequest> = /*@_
  */
 export type ListLorePostsResponse = Message<"perspectiv.v1.ListLorePostsResponse"> & {
   /**
+   * Top-level posts.
+   *
    * @generated from field: repeated perspectiv.v1.LorePost posts = 1;
    */
   posts: LorePost[];
@@ -496,6 +575,15 @@ export type AddLorePostRequest = Message<"perspectiv.v1.AddLorePostRequest"> & {
    * @generated from field: string body = 2;
    */
   body: string;
+
+  /**
+   * The post being answered, top-level or a reply in the same thread; empty
+   * for a new top-level post. A reply to a reply sits under the same
+   * top-level post.
+   *
+   * @generated from field: string reply_to_id = 3;
+   */
+  replyToId: string;
 };
 
 /**
@@ -564,6 +652,172 @@ export const NameLoreResponseSchema: GenMessage<NameLoreResponse> = /*@__PURE__*
   messageDesc(file_perspectiv_v1_lore, 18);
 
 /**
+ * @generated from message perspectiv.v1.ListLorePostRepliesRequest
+ */
+export type ListLorePostRepliesRequest = Message<"perspectiv.v1.ListLorePostRepliesRequest"> & {
+  /**
+   * A top-level post.
+   *
+   * @generated from field: string post_id = 1;
+   */
+  postId: string;
+
+  /**
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: int32 page_size = 3;
+   */
+  pageSize: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListLorePostRepliesRequest.
+ * Use `create(ListLorePostRepliesRequestSchema)` to create a new message.
+ */
+export const ListLorePostRepliesRequestSchema: GenMessage<ListLorePostRepliesRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_lore, 19);
+
+/**
+ * @generated from message perspectiv.v1.ListLorePostRepliesResponse
+ */
+export type ListLorePostRepliesResponse = Message<"perspectiv.v1.ListLorePostRepliesResponse"> & {
+  /**
+   * @generated from field: repeated perspectiv.v1.LorePost replies = 1;
+   */
+  replies: LorePost[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ListLorePostRepliesResponse.
+ * Use `create(ListLorePostRepliesResponseSchema)` to create a new message.
+ */
+export const ListLorePostRepliesResponseSchema: GenMessage<ListLorePostRepliesResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_lore, 20);
+
+/**
+ * @generated from message perspectiv.v1.VoteLorePostRequest
+ */
+export type VoteLorePostRequest = Message<"perspectiv.v1.VoteLorePostRequest"> & {
+  /**
+   * @generated from field: string post_id = 1;
+   */
+  postId: string;
+
+  /**
+   * True sets the upvote; false clears it.
+   *
+   * @generated from field: bool on = 2;
+   */
+  on: boolean;
+};
+
+/**
+ * Describes the message perspectiv.v1.VoteLorePostRequest.
+ * Use `create(VoteLorePostRequestSchema)` to create a new message.
+ */
+export const VoteLorePostRequestSchema: GenMessage<VoteLorePostRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_lore, 21);
+
+/**
+ * @generated from message perspectiv.v1.VoteLorePostResponse
+ */
+export type VoteLorePostResponse = Message<"perspectiv.v1.VoteLorePostResponse"> & {
+  /**
+   * @generated from field: int32 upvotes = 1;
+   */
+  upvotes: number;
+
+  /**
+   * @generated from field: bool on = 2;
+   */
+  on: boolean;
+};
+
+/**
+ * Describes the message perspectiv.v1.VoteLorePostResponse.
+ * Use `create(VoteLorePostResponseSchema)` to create a new message.
+ */
+export const VoteLorePostResponseSchema: GenMessage<VoteLorePostResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_lore, 22);
+
+/**
+ * @generated from message perspectiv.v1.EditLorePostRequest
+ */
+export type EditLorePostRequest = Message<"perspectiv.v1.EditLorePostRequest"> & {
+  /**
+   * @generated from field: string post_id = 1;
+   */
+  postId: string;
+
+  /**
+   * @generated from field: string body = 2;
+   */
+  body: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.EditLorePostRequest.
+ * Use `create(EditLorePostRequestSchema)` to create a new message.
+ */
+export const EditLorePostRequestSchema: GenMessage<EditLorePostRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_lore, 23);
+
+/**
+ * @generated from message perspectiv.v1.EditLorePostResponse
+ */
+export type EditLorePostResponse = Message<"perspectiv.v1.EditLorePostResponse"> & {
+  /**
+   * @generated from field: perspectiv.v1.LorePost post = 1;
+   */
+  post?: LorePost | undefined;
+};
+
+/**
+ * Describes the message perspectiv.v1.EditLorePostResponse.
+ * Use `create(EditLorePostResponseSchema)` to create a new message.
+ */
+export const EditLorePostResponseSchema: GenMessage<EditLorePostResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_lore, 24);
+
+/**
+ * @generated from message perspectiv.v1.DeleteLorePostRequest
+ */
+export type DeleteLorePostRequest = Message<"perspectiv.v1.DeleteLorePostRequest"> & {
+  /**
+   * @generated from field: string post_id = 1;
+   */
+  postId: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.DeleteLorePostRequest.
+ * Use `create(DeleteLorePostRequestSchema)` to create a new message.
+ */
+export const DeleteLorePostRequestSchema: GenMessage<DeleteLorePostRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_lore, 25);
+
+/**
+ * @generated from message perspectiv.v1.DeleteLorePostResponse
+ */
+export type DeleteLorePostResponse = Message<"perspectiv.v1.DeleteLorePostResponse"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.DeleteLorePostResponse.
+ * Use `create(DeleteLorePostResponseSchema)` to create a new message.
+ */
+export const DeleteLorePostResponseSchema: GenMessage<DeleteLorePostResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_lore, 26);
+
+/**
  * LoreService handles claims on characters and reads lore membership.
  *
  * @generated from service perspectiv.v1.LoreService
@@ -610,7 +864,8 @@ export const LoreService: GenService<{
     output: typeof GetLoreResponseSchema;
   },
   /**
-   * Public. A lore's thread, oldest first.
+   * Public. A lore's thread: its top-level posts in the requested order,
+   * each with its first replies.
    *
    * @generated from rpc perspectiv.v1.LoreService.ListLorePosts
    */
@@ -620,8 +875,9 @@ export const LoreService: GenService<{
     output: typeof ListLorePostsResponseSchema;
   },
   /**
-   * Posts to a lore's thread: a lore member, or anyone with a perspective in
-   * the lore's arc. Plain text, 1 to 1,000 characters.
+   * Posts to a lore's thread, or replies to a post in it: a lore member, or
+   * anyone with a perspective in the lore's arc. Plain text, 1 to 1,000
+   * characters.
    *
    * @generated from rpc perspectiv.v1.LoreService.AddLorePost
    */
@@ -640,6 +896,48 @@ export const LoreService: GenService<{
     methodKind: "unary";
     input: typeof NameLoreRequestSchema;
     output: typeof NameLoreResponseSchema;
+  },
+  /**
+   * Public. The replies under one top-level post, oldest first.
+   *
+   * @generated from rpc perspectiv.v1.LoreService.ListLorePostReplies
+   */
+  listLorePostReplies: {
+    methodKind: "unary";
+    input: typeof ListLorePostRepliesRequestSchema;
+    output: typeof ListLorePostRepliesResponseSchema;
+  },
+  /**
+   * Sets or clears the caller's upvote on a thread post. The same people who
+   * may post may vote, never on their own post.
+   *
+   * @generated from rpc perspectiv.v1.LoreService.VoteLorePost
+   */
+  voteLorePost: {
+    methodKind: "unary";
+    input: typeof VoteLorePostRequestSchema;
+    output: typeof VoteLorePostResponseSchema;
+  },
+  /**
+   * Rewrites the caller's own post; the post then shows as edited.
+   *
+   * @generated from rpc perspectiv.v1.LoreService.EditLorePost
+   */
+  editLorePost: {
+    methodKind: "unary";
+    input: typeof EditLorePostRequestSchema;
+    output: typeof EditLorePostResponseSchema;
+  },
+  /**
+   * Deletes the caller's own post. A top-level post with replies stays as
+   * "[deleted]" above them.
+   *
+   * @generated from rpc perspectiv.v1.LoreService.DeleteLorePost
+   */
+  deleteLorePost: {
+    methodKind: "unary";
+    input: typeof DeleteLorePostRequestSchema;
+    output: typeof DeleteLorePostResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_lore, 0);

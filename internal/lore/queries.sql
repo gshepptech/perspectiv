@@ -292,24 +292,6 @@ SELECT EXISTS (
       AND c.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED')
 )::boolean AS active;
 
--- name: ListLorePosts :many
--- A lore's readable posts, oldest first, keyset-paginated on (created_at, id)
--- and served by lore_posts_lore_created_idx. by_member says whether the
--- author has a perspective in the lore; it names the lore by the argument,
--- not lp.lore_id, so the planner probes the lore's members instead of
--- hashing every membership.
-SELECT lp.id, lp.author_id, u.username, lp.body, lp.created_at,
-       EXISTS (SELECT 1 FROM lore_members m JOIN perspectives p ON p.id = m.perspective_id
-               WHERE m.lore_id = sqlc.arg(lore_id)::uuid AND p.author_id = lp.author_id)::boolean AS by_member
-FROM lore_posts lp
-JOIN users u ON u.id = lp.author_id
-WHERE lp.lore_id = sqlc.arg(lore_id)::uuid
-  AND lp.deleted_at IS NULL AND lp.hidden_at IS NULL AND u.deleted_at IS NULL
-  AND (sqlc.narg(after_at)::timestamptz IS NULL
-       OR (lp.created_at, lp.id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
-ORDER BY lp.created_at, lp.id
-LIMIT sqlc.arg(row_limit)::int;
-
 -- name: CanPostToLore :one
 -- Whether the user may post to the lore's thread: a readable published
 -- perspective in the lore's arc (members have one by definition).
@@ -322,15 +304,110 @@ SELECT EXISTS (
       AND p.deleted_at IS NULL AND p.hidden_at IS NULL
 )::boolean AS can_post;
 
--- name: InsertLorePost :one
-INSERT INTO lore_posts (lore_id, author_id, body)
-VALUES (sqlc.arg(lore_id)::uuid, sqlc.arg(author_id)::uuid, sqlc.arg(body)::text)
-RETURNING id, created_at;
+-- name: ListThreadTop :many
+-- A lore's top-level posts, most upvoted first and ties oldest first,
+-- keyset-paged on (upvotes DESC, created_at, id) and served by
+-- lore_posts_top_idx. A hidden post is left out, and so is a removed one
+-- unless it still has readable replies, which it then stands above as
+-- "[deleted]".
+SELECT v.*
+FROM lore_thread_posts v
+WHERE v.lore_id = sqlc.arg(lore_id)::uuid
+  AND v.reply_to_id IS NULL AND v.hidden_at IS NULL
+  AND (NOT v.removed OR v.reply_count > 0)
+  AND (NOT sqlc.arg(has_after)::boolean
+       OR v.upvotes < sqlc.arg(after_upvotes)::int
+       OR (v.upvotes = sqlc.arg(after_upvotes)::int
+           AND (v.created_at, v.id) > (sqlc.arg(after_at)::timestamptz, sqlc.arg(after_id)::uuid)))
+ORDER BY v.upvotes DESC, v.created_at, v.id
+LIMIT sqlc.arg(row_limit)::int;
 
--- name: GetLorePost :one
-SELECT lp.id, lp.author_id, u.username, lp.body, lp.created_at,
-       EXISTS (SELECT 1 FROM lore_members m JOIN perspectives p ON p.id = m.perspective_id
-               WHERE m.lore_id = lp.lore_id AND p.author_id = lp.author_id)::boolean AS by_member
+-- name: ListThreadNew :many
+-- The same posts as ListThreadTop, newest first, keyset-paged on
+-- (created_at, id) descending and served by lore_posts_new_idx.
+SELECT v.*
+FROM lore_thread_posts v
+WHERE v.lore_id = sqlc.arg(lore_id)::uuid
+  AND v.reply_to_id IS NULL AND v.hidden_at IS NULL
+  AND (NOT v.removed OR v.reply_count > 0)
+  AND (NOT sqlc.arg(has_after)::boolean
+       OR (v.created_at, v.id) < (sqlc.arg(after_at)::timestamptz, sqlc.arg(after_id)::uuid))
+ORDER BY v.created_at DESC, v.id DESC
+LIMIT sqlc.arg(row_limit)::int;
+
+-- name: ListFirstReplies :many
+-- The first per_post readable replies under each of the posts, oldest
+-- first, one index probe per post on lore_posts_replies_idx.
+SELECT r.*
+FROM unnest(sqlc.arg(post_ids)::uuid[]) AS t(id)
+CROSS JOIN LATERAL (
+    SELECT v.*
+    FROM lore_thread_posts v
+    WHERE v.reply_to_id = t.id AND v.hidden_at IS NULL AND NOT v.removed
+    ORDER BY v.created_at, v.id
+    LIMIT sqlc.arg(per_post)::int
+) r
+ORDER BY r.reply_to_id, r.created_at, r.id;
+
+-- name: ListReplies :many
+-- Readable replies under one post, oldest first, keyset-paged on
+-- (created_at, id).
+SELECT v.*
+FROM lore_thread_posts v
+WHERE v.reply_to_id = sqlc.arg(post_id)::uuid AND v.hidden_at IS NULL AND NOT v.removed
+  AND (NOT sqlc.arg(has_after)::boolean
+       OR (v.created_at, v.id) > (sqlc.arg(after_at)::timestamptz, sqlc.arg(after_id)::uuid))
+ORDER BY v.created_at, v.id
+LIMIT sqlc.arg(row_limit)::int;
+
+-- name: GetThreadPost :one
+SELECT v.* FROM lore_thread_posts v WHERE v.id = $1;
+
+-- name: ViewerUpvoted :many
+-- Which of the posts the user holds an upvote on.
+SELECT post_id FROM lore_post_votes
+WHERE user_id = sqlc.arg(user_id)::uuid AND post_id = ANY(sqlc.arg(post_ids)::uuid[]);
+
+-- name: LockLorePost :one
+-- One post with what the thread's write rules read, its row locked. A
+-- reply's top-level post decides whether a moderator hid the whole branch.
+SELECT lp.id, lp.lore_id, lp.author_id, lp.reply_to_id, lp.deleted_at, lp.hidden_at,
+       u.deleted_at AS author_deleted_at,
+       (top.hidden_at IS NOT NULL)::boolean AS branch_hidden
 FROM lore_posts lp
 JOIN users u ON u.id = lp.author_id
-WHERE lp.id = $1;
+LEFT JOIN lore_posts top ON top.id = lp.reply_to_id
+WHERE lp.id = $1
+FOR UPDATE OF lp;
+
+-- name: InsertLorePost :one
+INSERT INTO lore_posts (lore_id, author_id, body, reply_to_id, answered_id)
+VALUES (sqlc.arg(lore_id)::uuid, sqlc.arg(author_id)::uuid, sqlc.arg(body)::text,
+        sqlc.narg(reply_to_id)::uuid, sqlc.narg(answered_id)::uuid)
+RETURNING id;
+
+-- name: EditLorePost :exec
+-- Stamps edited_at only when the text changes.
+UPDATE lore_posts
+SET body = sqlc.arg(body)::text, edited_at = now()
+WHERE id = sqlc.arg(id)::uuid AND body <> sqlc.arg(body)::text;
+
+-- name: DeleteLorePost :exec
+UPDATE lore_posts SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL;
+
+-- name: InsertPostVote :exec
+-- The primary key keeps one upvote per person, so a repeat is a no-op.
+INSERT INTO lore_post_votes (post_id, user_id)
+VALUES (sqlc.arg(post_id)::uuid, sqlc.arg(user_id)::uuid)
+ON CONFLICT (post_id, user_id) DO NOTHING;
+
+-- name: DeletePostVote :exec
+DELETE FROM lore_post_votes
+WHERE post_id = sqlc.arg(post_id)::uuid AND user_id = sqlc.arg(user_id)::uuid;
+
+-- name: RecountPostVotes :one
+-- Sets the post's upvotes from its vote rows; the caller holds its row lock.
+UPDATE lore_posts
+SET upvotes = (SELECT count(*) FROM lore_post_votes WHERE post_id = sqlc.arg(id)::uuid)
+WHERE id = sqlc.arg(id)::uuid
+RETURNING upvotes;

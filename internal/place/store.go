@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
+	"perspectiv/internal/api/apiutil"
 	"perspectiv/internal/place/dbq"
 )
 
@@ -656,4 +657,18 @@ func clipExcerpt(s string) string {
 		}
 	}
 	return strings.TrimRightFunc(string(r[:cut]), func(c rune) bool { return unicode.IsSpace(c) || c == ',' || c == ';' || c == ':' }) + "…"
+}
+
+// Sitemap lists up to limit places with a readable story at or below them,
+// most recently written first.
+func (s *Store) Sitemap(ctx context.Context, limit int32) ([]apiutil.SitemapEntry, error) {
+	rows, err := s.q.SitemapPlaces(ctx, limit)
+	if err != nil {
+		return nil, fmt.Errorf("sitemap places: %w", err)
+	}
+	out := make([]apiutil.SitemapEntry, len(rows))
+	for i, r := range rows {
+		out[i] = apiutil.SitemapEntry{ID: r.ID, LastMod: r.LastMod.Time}
+	}
+	return out, nil
 }

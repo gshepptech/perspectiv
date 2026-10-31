@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { CircleAlert, CircleCheck } from "lucide-react";
+import { Link } from "react-router";
 
 import type { Account } from "@/gen/perspectiv/v1/user_pb";
 import { useDocumentTitle } from "@/lib/title";
@@ -76,6 +77,14 @@ export function Component() {
           <NotificationsSection />
           <FollowedWritersSection />
           <BlocksSection blocked={me.data.account.blocked} />
+          <Section title="Appearance">
+            <p>
+              Theme and story text size are kept on each device, so they work signed out too.{" "}
+              <Link to="/appearance" className="text-accent underline underline-offset-4">
+                Change appearance
+              </Link>
+            </p>
+          </Section>
           <Section title="Your data">
             <DataSection username={me.data.profile.username} />
           </Section>

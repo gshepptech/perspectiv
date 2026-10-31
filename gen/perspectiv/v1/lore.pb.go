@@ -795,18 +795,42 @@ func (x *GetLoreResponse) GetLore() *Lore {
 	return nil
 }
 
-// LorePost is one message in a lore's thread.
+// LorePost is one message in a lore's thread: a top-level post, or a reply
+// under one.
 type LorePost struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Author    *UserRef               `protobuf:"bytes,2,opt,name=author,proto3" json:"author,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Unset when deleted.
+	Author *UserRef `protobuf:"bytes,2,opt,name=author,proto3" json:"author,omitempty"`
+	// Empty when deleted.
 	Body      string                 `protobuf:"bytes,3,opt,name=body,proto3" json:"body,omitempty"`
 	CreatedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// True when the author is a member of the lore, as opposed to another
 	// writer in the arc.
-	ByMember      bool `protobuf:"varint,5,opt,name=by_member,json=byMember,proto3" json:"by_member,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ByMember bool `protobuf:"varint,5,opt,name=by_member,json=byMember,proto3" json:"by_member,omitempty"`
+	// The top-level post this reply sits under; empty for a top-level post.
+	ReplyToId string `protobuf:"bytes,6,opt,name=reply_to_id,json=replyToId,proto3" json:"reply_to_id,omitempty"`
+	// On a reply that answered another reply: that reply's author, for
+	// "replying to @name". Unset when it answered the top-level post, or when
+	// the reply it answered is gone.
+	ReplyingTo *UserRef `protobuf:"bytes,7,opt,name=replying_to,json=replyingTo,proto3" json:"replying_to,omitempty"`
+	// Set once the author edits the post.
+	EditedAt *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=edited_at,json=editedAt,proto3" json:"edited_at,omitempty"`
+	Upvotes  int32                  `protobuf:"varint,9,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
+	// Whether the signed-in caller holds an upvote on it.
+	ViewerUpvoted bool `protobuf:"varint,10,opt,name=viewer_upvoted,json=viewerUpvoted,proto3" json:"viewer_upvoted,omitempty"`
+	// A top-level post its author deleted that stays for its replies. It has
+	// no author, body or upvote.
+	Deleted bool `protobuf:"varint,11,opt,name=deleted,proto3" json:"deleted,omitempty"`
+	// On a top-level post: how many readable replies it has, and the first
+	// three of them, oldest first.
+	ReplyCount int32       `protobuf:"varint,12,opt,name=reply_count,json=replyCount,proto3" json:"reply_count,omitempty"`
+	Replies    []*LorePost `protobuf:"bytes,13,rep,name=replies,proto3" json:"replies,omitempty"`
+	// The ListLorePostReplies page token for the replies after `replies`;
+	// empty when they are all here.
+	MoreRepliesToken string `protobuf:"bytes,14,opt,name=more_replies_token,json=moreRepliesToken,proto3" json:"more_replies_token,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *LorePost) Reset() {
@@ -874,11 +898,77 @@ func (x *LorePost) GetByMember() bool {
 	return false
 }
 
+func (x *LorePost) GetReplyToId() string {
+	if x != nil {
+		return x.ReplyToId
+	}
+	return ""
+}
+
+func (x *LorePost) GetReplyingTo() *UserRef {
+	if x != nil {
+		return x.ReplyingTo
+	}
+	return nil
+}
+
+func (x *LorePost) GetEditedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EditedAt
+	}
+	return nil
+}
+
+func (x *LorePost) GetUpvotes() int32 {
+	if x != nil {
+		return x.Upvotes
+	}
+	return 0
+}
+
+func (x *LorePost) GetViewerUpvoted() bool {
+	if x != nil {
+		return x.ViewerUpvoted
+	}
+	return false
+}
+
+func (x *LorePost) GetDeleted() bool {
+	if x != nil {
+		return x.Deleted
+	}
+	return false
+}
+
+func (x *LorePost) GetReplyCount() int32 {
+	if x != nil {
+		return x.ReplyCount
+	}
+	return 0
+}
+
+func (x *LorePost) GetReplies() []*LorePost {
+	if x != nil {
+		return x.Replies
+	}
+	return nil
+}
+
+func (x *LorePost) GetMoreRepliesToken() string {
+	if x != nil {
+		return x.MoreRepliesToken
+	}
+	return ""
+}
+
 type ListLorePostsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	LoreId        string                 `protobuf:"bytes,1,opt,name=lore_id,json=loreId,proto3" json:"lore_id,omitempty"`
-	PageToken     string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
-	PageSize      int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	LoreId    string                 `protobuf:"bytes,1,opt,name=lore_id,json=loreId,proto3" json:"lore_id,omitempty"`
+	PageToken string                 `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize  int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// UNSPECIFIED reads as TOP. A page token only continues the order it was
+	// made for.
+	Sort          LorePostSort `protobuf:"varint,4,opt,name=sort,proto3,enum=perspectiv.v1.LorePostSort" json:"sort,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -934,10 +1024,18 @@ func (x *ListLorePostsRequest) GetPageSize() int32 {
 	return 0
 }
 
+func (x *ListLorePostsRequest) GetSort() LorePostSort {
+	if x != nil {
+		return x.Sort
+	}
+	return LorePostSort_LORE_POST_SORT_UNSPECIFIED
+}
+
 type ListLorePostsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Posts         []*LorePost            `protobuf:"bytes,1,rep,name=posts,proto3" json:"posts,omitempty"`
-	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Top-level posts.
+	Posts         []*LorePost `protobuf:"bytes,1,rep,name=posts,proto3" json:"posts,omitempty"`
+	NextPageToken string      `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -987,9 +1085,13 @@ func (x *ListLorePostsResponse) GetNextPageToken() string {
 }
 
 type AddLorePostRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	LoreId        string                 `protobuf:"bytes,1,opt,name=lore_id,json=loreId,proto3" json:"lore_id,omitempty"`
-	Body          string                 `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	LoreId string                 `protobuf:"bytes,1,opt,name=lore_id,json=loreId,proto3" json:"lore_id,omitempty"`
+	Body   string                 `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
+	// The post being answered, top-level or a reply in the same thread; empty
+	// for a new top-level post. A reply to a reply sits under the same
+	// top-level post.
+	ReplyToId     string `protobuf:"bytes,3,opt,name=reply_to_id,json=replyToId,proto3" json:"reply_to_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1034,6 +1136,13 @@ func (x *AddLorePostRequest) GetLoreId() string {
 func (x *AddLorePostRequest) GetBody() string {
 	if x != nil {
 		return x.Body
+	}
+	return ""
+}
+
+func (x *AddLorePostRequest) GetReplyToId() string {
+	if x != nil {
+		return x.ReplyToId
 	}
 	return ""
 }
@@ -1179,6 +1288,400 @@ func (x *NameLoreResponse) GetName() string {
 	return ""
 }
 
+type ListLorePostRepliesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A top-level post.
+	PostId        string `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	PageToken     string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLorePostRepliesRequest) Reset() {
+	*x = ListLorePostRepliesRequest{}
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLorePostRepliesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLorePostRepliesRequest) ProtoMessage() {}
+
+func (x *ListLorePostRepliesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLorePostRepliesRequest.ProtoReflect.Descriptor instead.
+func (*ListLorePostRepliesRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_lore_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ListLorePostRepliesRequest) GetPostId() string {
+	if x != nil {
+		return x.PostId
+	}
+	return ""
+}
+
+func (x *ListLorePostRepliesRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListLorePostRepliesRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type ListLorePostRepliesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Replies       []*LorePost            `protobuf:"bytes,1,rep,name=replies,proto3" json:"replies,omitempty"`
+	NextPageToken string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLorePostRepliesResponse) Reset() {
+	*x = ListLorePostRepliesResponse{}
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLorePostRepliesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLorePostRepliesResponse) ProtoMessage() {}
+
+func (x *ListLorePostRepliesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLorePostRepliesResponse.ProtoReflect.Descriptor instead.
+func (*ListLorePostRepliesResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_lore_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ListLorePostRepliesResponse) GetReplies() []*LorePost {
+	if x != nil {
+		return x.Replies
+	}
+	return nil
+}
+
+func (x *ListLorePostRepliesResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+type VoteLorePostRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	PostId string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	// True sets the upvote; false clears it.
+	On            bool `protobuf:"varint,2,opt,name=on,proto3" json:"on,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VoteLorePostRequest) Reset() {
+	*x = VoteLorePostRequest{}
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VoteLorePostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VoteLorePostRequest) ProtoMessage() {}
+
+func (x *VoteLorePostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VoteLorePostRequest.ProtoReflect.Descriptor instead.
+func (*VoteLorePostRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_lore_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *VoteLorePostRequest) GetPostId() string {
+	if x != nil {
+		return x.PostId
+	}
+	return ""
+}
+
+func (x *VoteLorePostRequest) GetOn() bool {
+	if x != nil {
+		return x.On
+	}
+	return false
+}
+
+type VoteLorePostResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Upvotes       int32                  `protobuf:"varint,1,opt,name=upvotes,proto3" json:"upvotes,omitempty"`
+	On            bool                   `protobuf:"varint,2,opt,name=on,proto3" json:"on,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VoteLorePostResponse) Reset() {
+	*x = VoteLorePostResponse{}
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VoteLorePostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VoteLorePostResponse) ProtoMessage() {}
+
+func (x *VoteLorePostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VoteLorePostResponse.ProtoReflect.Descriptor instead.
+func (*VoteLorePostResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_lore_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *VoteLorePostResponse) GetUpvotes() int32 {
+	if x != nil {
+		return x.Upvotes
+	}
+	return 0
+}
+
+func (x *VoteLorePostResponse) GetOn() bool {
+	if x != nil {
+		return x.On
+	}
+	return false
+}
+
+type EditLorePostRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	Body          string                 `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EditLorePostRequest) Reset() {
+	*x = EditLorePostRequest{}
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EditLorePostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EditLorePostRequest) ProtoMessage() {}
+
+func (x *EditLorePostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EditLorePostRequest.ProtoReflect.Descriptor instead.
+func (*EditLorePostRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_lore_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *EditLorePostRequest) GetPostId() string {
+	if x != nil {
+		return x.PostId
+	}
+	return ""
+}
+
+func (x *EditLorePostRequest) GetBody() string {
+	if x != nil {
+		return x.Body
+	}
+	return ""
+}
+
+type EditLorePostResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Post          *LorePost              `protobuf:"bytes,1,opt,name=post,proto3" json:"post,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EditLorePostResponse) Reset() {
+	*x = EditLorePostResponse{}
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EditLorePostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EditLorePostResponse) ProtoMessage() {}
+
+func (x *EditLorePostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EditLorePostResponse.ProtoReflect.Descriptor instead.
+func (*EditLorePostResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_lore_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *EditLorePostResponse) GetPost() *LorePost {
+	if x != nil {
+		return x.Post
+	}
+	return nil
+}
+
+type DeleteLorePostRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        string                 `protobuf:"bytes,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteLorePostRequest) Reset() {
+	*x = DeleteLorePostRequest{}
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLorePostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLorePostRequest) ProtoMessage() {}
+
+func (x *DeleteLorePostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLorePostRequest.ProtoReflect.Descriptor instead.
+func (*DeleteLorePostRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_lore_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *DeleteLorePostRequest) GetPostId() string {
+	if x != nil {
+		return x.PostId
+	}
+	return ""
+}
+
+type DeleteLorePostResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteLorePostResponse) Reset() {
+	*x = DeleteLorePostResponse{}
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLorePostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLorePostResponse) ProtoMessage() {}
+
+func (x *DeleteLorePostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_lore_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLorePostResponse.ProtoReflect.Descriptor instead.
+func (*DeleteLorePostResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_lore_proto_rawDescGZIP(), []int{26}
+}
+
 var File_perspectiv_v1_lore_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_lore_proto_rawDesc = "" +
@@ -1246,32 +1749,68 @@ const file_perspectiv_v1_lore_proto_rawDesc = "" +
 	"\x0eGetLoreRequest\x12\x17\n" +
 	"\alore_id\x18\x01 \x01(\tR\x06loreId\":\n" +
 	"\x0fGetLoreResponse\x12'\n" +
-	"\x04lore\x18\x01 \x01(\v2\x13.perspectiv.v1.LoreR\x04lore\"\xb6\x01\n" +
+	"\x04lore\x18\x01 \x01(\v2\x13.perspectiv.v1.LoreR\x04lore\"\xa5\x04\n" +
 	"\bLorePost\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
 	"\x06author\x18\x02 \x01(\v2\x16.perspectiv.v1.UserRefR\x06author\x12\x12\n" +
 	"\x04body\x18\x03 \x01(\tR\x04body\x129\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12\x1b\n" +
-	"\tby_member\x18\x05 \x01(\bR\bbyMember\"k\n" +
+	"\tby_member\x18\x05 \x01(\bR\bbyMember\x12\x1e\n" +
+	"\vreply_to_id\x18\x06 \x01(\tR\treplyToId\x127\n" +
+	"\vreplying_to\x18\a \x01(\v2\x16.perspectiv.v1.UserRefR\n" +
+	"replyingTo\x127\n" +
+	"\tedited_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\beditedAt\x12\x18\n" +
+	"\aupvotes\x18\t \x01(\x05R\aupvotes\x12%\n" +
+	"\x0eviewer_upvoted\x18\n" +
+	" \x01(\bR\rviewerUpvoted\x12\x18\n" +
+	"\adeleted\x18\v \x01(\bR\adeleted\x12\x1f\n" +
+	"\vreply_count\x18\f \x01(\x05R\n" +
+	"replyCount\x121\n" +
+	"\areplies\x18\r \x03(\v2\x17.perspectiv.v1.LorePostR\areplies\x12,\n" +
+	"\x12more_replies_token\x18\x0e \x01(\tR\x10moreRepliesToken\"\x9c\x01\n" +
 	"\x14ListLorePostsRequest\x12\x17\n" +
 	"\alore_id\x18\x01 \x01(\tR\x06loreId\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
-	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"n\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12/\n" +
+	"\x04sort\x18\x04 \x01(\x0e2\x1b.perspectiv.v1.LorePostSortR\x04sort\"n\n" +
 	"\x15ListLorePostsResponse\x12-\n" +
 	"\x05posts\x18\x01 \x03(\v2\x17.perspectiv.v1.LorePostR\x05posts\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"A\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"a\n" +
 	"\x12AddLorePostRequest\x12\x17\n" +
 	"\alore_id\x18\x01 \x01(\tR\x06loreId\x12\x12\n" +
-	"\x04body\x18\x02 \x01(\tR\x04body\"B\n" +
+	"\x04body\x18\x02 \x01(\tR\x04body\x12\x1e\n" +
+	"\vreply_to_id\x18\x03 \x01(\tR\treplyToId\"B\n" +
 	"\x13AddLorePostResponse\x12+\n" +
 	"\x04post\x18\x01 \x01(\v2\x17.perspectiv.v1.LorePostR\x04post\">\n" +
 	"\x0fNameLoreRequest\x12\x17\n" +
 	"\alore_id\x18\x01 \x01(\tR\x06loreId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"&\n" +
 	"\x10NameLoreResponse\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name2\xe1\x04\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"q\n" +
+	"\x1aListLorePostRepliesRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"x\n" +
+	"\x1bListLorePostRepliesResponse\x121\n" +
+	"\areplies\x18\x01 \x03(\v2\x17.perspectiv.v1.LorePostR\areplies\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\">\n" +
+	"\x13VoteLorePostRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\x12\x0e\n" +
+	"\x02on\x18\x02 \x01(\bR\x02on\"@\n" +
+	"\x14VoteLorePostResponse\x12\x18\n" +
+	"\aupvotes\x18\x01 \x01(\x05R\aupvotes\x12\x0e\n" +
+	"\x02on\x18\x02 \x01(\bR\x02on\"B\n" +
+	"\x13EditLorePostRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\x12\x12\n" +
+	"\x04body\x18\x02 \x01(\tR\x04body\"C\n" +
+	"\x14EditLorePostResponse\x12+\n" +
+	"\x04post\x18\x01 \x01(\v2\x17.perspectiv.v1.LorePostR\x04post\"0\n" +
+	"\x15DeleteLorePostRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\tR\x06postId\"\x18\n" +
+	"\x16DeleteLorePostResponse2\xe0\a\n" +
 	"\vLoreService\x12]\n" +
 	"\x0eClaimCharacter\x12$.perspectiv.v1.ClaimCharacterRequest\x1a%.perspectiv.v1.ClaimCharacterResponse\x12W\n" +
 	"\fResolveClaim\x12\".perspectiv.v1.ResolveClaimRequest\x1a#.perspectiv.v1.ResolveClaimResponse\x12Q\n" +
@@ -1280,7 +1819,11 @@ const file_perspectiv_v1_lore_proto_rawDesc = "" +
 	"\aGetLore\x12\x1d.perspectiv.v1.GetLoreRequest\x1a\x1e.perspectiv.v1.GetLoreResponse\x12Z\n" +
 	"\rListLorePosts\x12#.perspectiv.v1.ListLorePostsRequest\x1a$.perspectiv.v1.ListLorePostsResponse\x12T\n" +
 	"\vAddLorePost\x12!.perspectiv.v1.AddLorePostRequest\x1a\".perspectiv.v1.AddLorePostResponse\x12K\n" +
-	"\bNameLore\x12\x1e.perspectiv.v1.NameLoreRequest\x1a\x1f.perspectiv.v1.NameLoreResponseB\x9e\x01\n" +
+	"\bNameLore\x12\x1e.perspectiv.v1.NameLoreRequest\x1a\x1f.perspectiv.v1.NameLoreResponse\x12l\n" +
+	"\x13ListLorePostReplies\x12).perspectiv.v1.ListLorePostRepliesRequest\x1a*.perspectiv.v1.ListLorePostRepliesResponse\x12W\n" +
+	"\fVoteLorePost\x12\".perspectiv.v1.VoteLorePostRequest\x1a#.perspectiv.v1.VoteLorePostResponse\x12W\n" +
+	"\fEditLorePost\x12\".perspectiv.v1.EditLorePostRequest\x1a#.perspectiv.v1.EditLorePostResponse\x12]\n" +
+	"\x0eDeleteLorePost\x12$.perspectiv.v1.DeleteLorePostRequest\x1a%.perspectiv.v1.DeleteLorePostResponseB\x9e\x01\n" +
 	"\x11com.perspectiv.v1B\tLoreProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -1295,74 +1838,97 @@ func file_perspectiv_v1_lore_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_lore_proto_rawDescData
 }
 
-var file_perspectiv_v1_lore_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_perspectiv_v1_lore_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_perspectiv_v1_lore_proto_goTypes = []any{
-	(*Claim)(nil),                  // 0: perspectiv.v1.Claim
-	(*Encounter)(nil),              // 1: perspectiv.v1.Encounter
-	(*LoreMember)(nil),             // 2: perspectiv.v1.LoreMember
-	(*Lore)(nil),                   // 3: perspectiv.v1.Lore
-	(*ClaimCharacterRequest)(nil),  // 4: perspectiv.v1.ClaimCharacterRequest
-	(*ClaimCharacterResponse)(nil), // 5: perspectiv.v1.ClaimCharacterResponse
-	(*ResolveClaimRequest)(nil),    // 6: perspectiv.v1.ResolveClaimRequest
-	(*ResolveClaimResponse)(nil),   // 7: perspectiv.v1.ResolveClaimResponse
-	(*ListClaimsRequest)(nil),      // 8: perspectiv.v1.ListClaimsRequest
-	(*ListClaimsResponse)(nil),     // 9: perspectiv.v1.ListClaimsResponse
-	(*GetLoreRequest)(nil),         // 10: perspectiv.v1.GetLoreRequest
-	(*GetLoreResponse)(nil),        // 11: perspectiv.v1.GetLoreResponse
-	(*LorePost)(nil),               // 12: perspectiv.v1.LorePost
-	(*ListLorePostsRequest)(nil),   // 13: perspectiv.v1.ListLorePostsRequest
-	(*ListLorePostsResponse)(nil),  // 14: perspectiv.v1.ListLorePostsResponse
-	(*AddLorePostRequest)(nil),     // 15: perspectiv.v1.AddLorePostRequest
-	(*AddLorePostResponse)(nil),    // 16: perspectiv.v1.AddLorePostResponse
-	(*NameLoreRequest)(nil),        // 17: perspectiv.v1.NameLoreRequest
-	(*NameLoreResponse)(nil),       // 18: perspectiv.v1.NameLoreResponse
-	(*UserRef)(nil),                // 19: perspectiv.v1.UserRef
-	(ClaimStatus)(0),               // 20: perspectiv.v1.ClaimStatus
-	(*timestamppb.Timestamp)(nil),  // 21: google.protobuf.Timestamp
-	(LoreStanding)(0),              // 22: perspectiv.v1.LoreStanding
-	(ClaimDirection)(0),            // 23: perspectiv.v1.ClaimDirection
+	(*Claim)(nil),                       // 0: perspectiv.v1.Claim
+	(*Encounter)(nil),                   // 1: perspectiv.v1.Encounter
+	(*LoreMember)(nil),                  // 2: perspectiv.v1.LoreMember
+	(*Lore)(nil),                        // 3: perspectiv.v1.Lore
+	(*ClaimCharacterRequest)(nil),       // 4: perspectiv.v1.ClaimCharacterRequest
+	(*ClaimCharacterResponse)(nil),      // 5: perspectiv.v1.ClaimCharacterResponse
+	(*ResolveClaimRequest)(nil),         // 6: perspectiv.v1.ResolveClaimRequest
+	(*ResolveClaimResponse)(nil),        // 7: perspectiv.v1.ResolveClaimResponse
+	(*ListClaimsRequest)(nil),           // 8: perspectiv.v1.ListClaimsRequest
+	(*ListClaimsResponse)(nil),          // 9: perspectiv.v1.ListClaimsResponse
+	(*GetLoreRequest)(nil),              // 10: perspectiv.v1.GetLoreRequest
+	(*GetLoreResponse)(nil),             // 11: perspectiv.v1.GetLoreResponse
+	(*LorePost)(nil),                    // 12: perspectiv.v1.LorePost
+	(*ListLorePostsRequest)(nil),        // 13: perspectiv.v1.ListLorePostsRequest
+	(*ListLorePostsResponse)(nil),       // 14: perspectiv.v1.ListLorePostsResponse
+	(*AddLorePostRequest)(nil),          // 15: perspectiv.v1.AddLorePostRequest
+	(*AddLorePostResponse)(nil),         // 16: perspectiv.v1.AddLorePostResponse
+	(*NameLoreRequest)(nil),             // 17: perspectiv.v1.NameLoreRequest
+	(*NameLoreResponse)(nil),            // 18: perspectiv.v1.NameLoreResponse
+	(*ListLorePostRepliesRequest)(nil),  // 19: perspectiv.v1.ListLorePostRepliesRequest
+	(*ListLorePostRepliesResponse)(nil), // 20: perspectiv.v1.ListLorePostRepliesResponse
+	(*VoteLorePostRequest)(nil),         // 21: perspectiv.v1.VoteLorePostRequest
+	(*VoteLorePostResponse)(nil),        // 22: perspectiv.v1.VoteLorePostResponse
+	(*EditLorePostRequest)(nil),         // 23: perspectiv.v1.EditLorePostRequest
+	(*EditLorePostResponse)(nil),        // 24: perspectiv.v1.EditLorePostResponse
+	(*DeleteLorePostRequest)(nil),       // 25: perspectiv.v1.DeleteLorePostRequest
+	(*DeleteLorePostResponse)(nil),      // 26: perspectiv.v1.DeleteLorePostResponse
+	(*UserRef)(nil),                     // 27: perspectiv.v1.UserRef
+	(ClaimStatus)(0),                    // 28: perspectiv.v1.ClaimStatus
+	(*timestamppb.Timestamp)(nil),       // 29: google.protobuf.Timestamp
+	(LoreStanding)(0),                   // 30: perspectiv.v1.LoreStanding
+	(ClaimDirection)(0),                 // 31: perspectiv.v1.ClaimDirection
+	(LorePostSort)(0),                   // 32: perspectiv.v1.LorePostSort
 }
 var file_perspectiv_v1_lore_proto_depIdxs = []int32{
-	19, // 0: perspectiv.v1.Claim.author:type_name -> perspectiv.v1.UserRef
-	19, // 1: perspectiv.v1.Claim.claimant:type_name -> perspectiv.v1.UserRef
-	20, // 2: perspectiv.v1.Claim.status:type_name -> perspectiv.v1.ClaimStatus
-	21, // 3: perspectiv.v1.Claim.created_at:type_name -> google.protobuf.Timestamp
-	21, // 4: perspectiv.v1.Claim.resolved_at:type_name -> google.protobuf.Timestamp
-	19, // 5: perspectiv.v1.LoreMember.user:type_name -> perspectiv.v1.UserRef
-	22, // 6: perspectiv.v1.Lore.standing:type_name -> perspectiv.v1.LoreStanding
-	21, // 7: perspectiv.v1.Lore.computed_at:type_name -> google.protobuf.Timestamp
+	27, // 0: perspectiv.v1.Claim.author:type_name -> perspectiv.v1.UserRef
+	27, // 1: perspectiv.v1.Claim.claimant:type_name -> perspectiv.v1.UserRef
+	28, // 2: perspectiv.v1.Claim.status:type_name -> perspectiv.v1.ClaimStatus
+	29, // 3: perspectiv.v1.Claim.created_at:type_name -> google.protobuf.Timestamp
+	29, // 4: perspectiv.v1.Claim.resolved_at:type_name -> google.protobuf.Timestamp
+	27, // 5: perspectiv.v1.LoreMember.user:type_name -> perspectiv.v1.UserRef
+	30, // 6: perspectiv.v1.Lore.standing:type_name -> perspectiv.v1.LoreStanding
+	29, // 7: perspectiv.v1.Lore.computed_at:type_name -> google.protobuf.Timestamp
 	2,  // 8: perspectiv.v1.Lore.members:type_name -> perspectiv.v1.LoreMember
 	1,  // 9: perspectiv.v1.Lore.encounters:type_name -> perspectiv.v1.Encounter
-	19, // 10: perspectiv.v1.Lore.named_by:type_name -> perspectiv.v1.UserRef
-	20, // 11: perspectiv.v1.ClaimCharacterResponse.status:type_name -> perspectiv.v1.ClaimStatus
-	20, // 12: perspectiv.v1.ResolveClaimResponse.status:type_name -> perspectiv.v1.ClaimStatus
-	23, // 13: perspectiv.v1.ListClaimsRequest.direction:type_name -> perspectiv.v1.ClaimDirection
-	20, // 14: perspectiv.v1.ListClaimsRequest.status:type_name -> perspectiv.v1.ClaimStatus
+	27, // 10: perspectiv.v1.Lore.named_by:type_name -> perspectiv.v1.UserRef
+	28, // 11: perspectiv.v1.ClaimCharacterResponse.status:type_name -> perspectiv.v1.ClaimStatus
+	28, // 12: perspectiv.v1.ResolveClaimResponse.status:type_name -> perspectiv.v1.ClaimStatus
+	31, // 13: perspectiv.v1.ListClaimsRequest.direction:type_name -> perspectiv.v1.ClaimDirection
+	28, // 14: perspectiv.v1.ListClaimsRequest.status:type_name -> perspectiv.v1.ClaimStatus
 	0,  // 15: perspectiv.v1.ListClaimsResponse.claims:type_name -> perspectiv.v1.Claim
 	3,  // 16: perspectiv.v1.GetLoreResponse.lore:type_name -> perspectiv.v1.Lore
-	19, // 17: perspectiv.v1.LorePost.author:type_name -> perspectiv.v1.UserRef
-	21, // 18: perspectiv.v1.LorePost.created_at:type_name -> google.protobuf.Timestamp
-	12, // 19: perspectiv.v1.ListLorePostsResponse.posts:type_name -> perspectiv.v1.LorePost
-	12, // 20: perspectiv.v1.AddLorePostResponse.post:type_name -> perspectiv.v1.LorePost
-	4,  // 21: perspectiv.v1.LoreService.ClaimCharacter:input_type -> perspectiv.v1.ClaimCharacterRequest
-	6,  // 22: perspectiv.v1.LoreService.ResolveClaim:input_type -> perspectiv.v1.ResolveClaimRequest
-	8,  // 23: perspectiv.v1.LoreService.ListClaims:input_type -> perspectiv.v1.ListClaimsRequest
-	10, // 24: perspectiv.v1.LoreService.GetLore:input_type -> perspectiv.v1.GetLoreRequest
-	13, // 25: perspectiv.v1.LoreService.ListLorePosts:input_type -> perspectiv.v1.ListLorePostsRequest
-	15, // 26: perspectiv.v1.LoreService.AddLorePost:input_type -> perspectiv.v1.AddLorePostRequest
-	17, // 27: perspectiv.v1.LoreService.NameLore:input_type -> perspectiv.v1.NameLoreRequest
-	5,  // 28: perspectiv.v1.LoreService.ClaimCharacter:output_type -> perspectiv.v1.ClaimCharacterResponse
-	7,  // 29: perspectiv.v1.LoreService.ResolveClaim:output_type -> perspectiv.v1.ResolveClaimResponse
-	9,  // 30: perspectiv.v1.LoreService.ListClaims:output_type -> perspectiv.v1.ListClaimsResponse
-	11, // 31: perspectiv.v1.LoreService.GetLore:output_type -> perspectiv.v1.GetLoreResponse
-	14, // 32: perspectiv.v1.LoreService.ListLorePosts:output_type -> perspectiv.v1.ListLorePostsResponse
-	16, // 33: perspectiv.v1.LoreService.AddLorePost:output_type -> perspectiv.v1.AddLorePostResponse
-	18, // 34: perspectiv.v1.LoreService.NameLore:output_type -> perspectiv.v1.NameLoreResponse
-	28, // [28:35] is the sub-list for method output_type
-	21, // [21:28] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	27, // 17: perspectiv.v1.LorePost.author:type_name -> perspectiv.v1.UserRef
+	29, // 18: perspectiv.v1.LorePost.created_at:type_name -> google.protobuf.Timestamp
+	27, // 19: perspectiv.v1.LorePost.replying_to:type_name -> perspectiv.v1.UserRef
+	29, // 20: perspectiv.v1.LorePost.edited_at:type_name -> google.protobuf.Timestamp
+	12, // 21: perspectiv.v1.LorePost.replies:type_name -> perspectiv.v1.LorePost
+	32, // 22: perspectiv.v1.ListLorePostsRequest.sort:type_name -> perspectiv.v1.LorePostSort
+	12, // 23: perspectiv.v1.ListLorePostsResponse.posts:type_name -> perspectiv.v1.LorePost
+	12, // 24: perspectiv.v1.AddLorePostResponse.post:type_name -> perspectiv.v1.LorePost
+	12, // 25: perspectiv.v1.ListLorePostRepliesResponse.replies:type_name -> perspectiv.v1.LorePost
+	12, // 26: perspectiv.v1.EditLorePostResponse.post:type_name -> perspectiv.v1.LorePost
+	4,  // 27: perspectiv.v1.LoreService.ClaimCharacter:input_type -> perspectiv.v1.ClaimCharacterRequest
+	6,  // 28: perspectiv.v1.LoreService.ResolveClaim:input_type -> perspectiv.v1.ResolveClaimRequest
+	8,  // 29: perspectiv.v1.LoreService.ListClaims:input_type -> perspectiv.v1.ListClaimsRequest
+	10, // 30: perspectiv.v1.LoreService.GetLore:input_type -> perspectiv.v1.GetLoreRequest
+	13, // 31: perspectiv.v1.LoreService.ListLorePosts:input_type -> perspectiv.v1.ListLorePostsRequest
+	15, // 32: perspectiv.v1.LoreService.AddLorePost:input_type -> perspectiv.v1.AddLorePostRequest
+	17, // 33: perspectiv.v1.LoreService.NameLore:input_type -> perspectiv.v1.NameLoreRequest
+	19, // 34: perspectiv.v1.LoreService.ListLorePostReplies:input_type -> perspectiv.v1.ListLorePostRepliesRequest
+	21, // 35: perspectiv.v1.LoreService.VoteLorePost:input_type -> perspectiv.v1.VoteLorePostRequest
+	23, // 36: perspectiv.v1.LoreService.EditLorePost:input_type -> perspectiv.v1.EditLorePostRequest
+	25, // 37: perspectiv.v1.LoreService.DeleteLorePost:input_type -> perspectiv.v1.DeleteLorePostRequest
+	5,  // 38: perspectiv.v1.LoreService.ClaimCharacter:output_type -> perspectiv.v1.ClaimCharacterResponse
+	7,  // 39: perspectiv.v1.LoreService.ResolveClaim:output_type -> perspectiv.v1.ResolveClaimResponse
+	9,  // 40: perspectiv.v1.LoreService.ListClaims:output_type -> perspectiv.v1.ListClaimsResponse
+	11, // 41: perspectiv.v1.LoreService.GetLore:output_type -> perspectiv.v1.GetLoreResponse
+	14, // 42: perspectiv.v1.LoreService.ListLorePosts:output_type -> perspectiv.v1.ListLorePostsResponse
+	16, // 43: perspectiv.v1.LoreService.AddLorePost:output_type -> perspectiv.v1.AddLorePostResponse
+	18, // 44: perspectiv.v1.LoreService.NameLore:output_type -> perspectiv.v1.NameLoreResponse
+	20, // 45: perspectiv.v1.LoreService.ListLorePostReplies:output_type -> perspectiv.v1.ListLorePostRepliesResponse
+	22, // 46: perspectiv.v1.LoreService.VoteLorePost:output_type -> perspectiv.v1.VoteLorePostResponse
+	24, // 47: perspectiv.v1.LoreService.EditLorePost:output_type -> perspectiv.v1.EditLorePostResponse
+	26, // 48: perspectiv.v1.LoreService.DeleteLorePost:output_type -> perspectiv.v1.DeleteLorePostResponse
+	38, // [38:49] is the sub-list for method output_type
+	27, // [27:38] is the sub-list for method input_type
+	27, // [27:27] is the sub-list for extension type_name
+	27, // [27:27] is the sub-list for extension extendee
+	0,  // [0:27] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_lore_proto_init() }
@@ -1378,7 +1944,7 @@ func file_perspectiv_v1_lore_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_lore_proto_rawDesc), len(file_perspectiv_v1_lore_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

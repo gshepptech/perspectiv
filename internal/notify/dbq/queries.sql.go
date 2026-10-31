@@ -671,6 +671,46 @@ func (q *Queries) TakeDigestItems(ctx context.Context, userID uuid.UUID) ([]Take
 	return items, nil
 }
 
+const threadReplyFacts = `-- name: ThreadReplyFacts :one
+SELECT r.author_id AS replier_id, a.author_id AS answered_author_id, r.lore_id, l.arc_id,
+       EXISTS (SELECT 1 FROM blocks b
+               WHERE (b.blocker_id = r.author_id AND b.blocked_id = a.author_id)
+                  OR (b.blocker_id = a.author_id AND b.blocked_id = r.author_id))::boolean AS blocked
+FROM lore_posts r
+JOIN lore_posts a ON a.id = r.answered_id
+JOIN lore_posts top ON top.id = r.reply_to_id
+JOIN lores l ON l.id = r.lore_id
+WHERE r.id = $1
+  AND r.deleted_at IS NULL AND r.hidden_at IS NULL
+  AND a.deleted_at IS NULL AND a.hidden_at IS NULL
+  AND top.hidden_at IS NULL
+`
+
+type ThreadReplyFactsRow struct {
+	ReplierID        uuid.UUID
+	AnsweredAuthorID uuid.UUID
+	LoreID           uuid.UUID
+	ArcID            uuid.UUID
+	Blocked          bool
+}
+
+// A reply in a lore's thread and the post it answered, whose author is the
+// one to hear of it. No row when the reply or the answered post was deleted
+// or hidden, or a moderator hid the branch they sit in. blocked is true
+// when either author has blocked the other.
+func (q *Queries) ThreadReplyFacts(ctx context.Context, id uuid.UUID) (ThreadReplyFactsRow, error) {
+	row := q.db.QueryRow(ctx, threadReplyFacts, id)
+	var i ThreadReplyFactsRow
+	err := row.Scan(
+		&i.ReplierID,
+		&i.AnsweredAuthorID,
+		&i.LoreID,
+		&i.ArcID,
+		&i.Blocked,
+	)
+	return i, err
+}
+
 const upsertPreference = `-- name: UpsertPreference :exec
 INSERT INTO notification_preferences (user_id, kind, in_app, email)
 VALUES ($1::uuid, $2::text, $3::boolean, $4::boolean)

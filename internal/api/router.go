@@ -48,6 +48,12 @@ type RouterConfig struct {
 	// Preview names the page a shared link points at, so link previews in
 	// chat apps show its title and opening. Nil serves index.html as built.
 	Preview Previewer
+	// PublicBaseURL is the site's origin, such as https://perspectiv.app,
+	// used for the absolute URLs a sitemap needs.
+	PublicBaseURL string
+	// Sitemap lists the public pages for /sitemap.xml. Nil serves no
+	// sitemap; robots.txt is served either way.
+	Sitemap SitemapSource
 }
 
 // Preview is what a link preview shows for one page.
@@ -76,6 +82,8 @@ const healthTimeout = 2 * time.Second
 //	GET  /healthz   component health, 200 or 503
 //	GET  /metrics   Prometheus text from cfg.Registry
 //	GET  /about     build info as JSON
+//	GET  /robots.txt  what crawlers may read, and where the sitemap is
+//	GET  /sitemap.xml and /sitemaps/{kind}.xml  the public reading pages
 //	POST /api/...   the Connect services in cfg.Handlers
 //	GET  /*         the SPA: a file from cfg.Static, else index.html
 func NewRouter(cfg RouterConfig) http.Handler {
@@ -90,6 +98,13 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	}
 	r.Method(http.MethodGet, "/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
 	r.Get("/about", aboutHandler)
+	base := strings.TrimRight(cfg.PublicBaseURL, "/")
+	withSitemap := cfg.Sitemap != nil && base != ""
+	r.Get("/robots.txt", robotsHandler(base, withSitemap))
+	if withSitemap {
+		r.Get("/sitemap.xml", sitemapIndexHandler(base))
+		r.Get("/sitemaps/{file}", sitemapHandler(log, base, cfg.Sitemap))
+	}
 
 	api := http.NewServeMux()
 	for _, m := range cfg.Handlers {

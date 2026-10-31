@@ -864,6 +864,44 @@ func (q *Queries) PlaceChain(ctx context.Context, id uuid.UUID) ([]PlaceChainRow
 	return items, nil
 }
 
+const sitemapArcs = `-- name: SitemapArcs :many
+SELECT a.id, max(v.published_at)::timestamptz AS last_mod
+FROM arcs a
+JOIN perspectives v ON v.arc_id = a.id
+WHERE v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+GROUP BY a.id
+ORDER BY last_mod DESC, a.id
+LIMIT $1::integer
+`
+
+type SitemapArcsRow struct {
+	ID      uuid.UUID
+	LastMod pgtype.Timestamptz
+}
+
+// Days and hours with a readable story, not under a hidden place, most
+// recently written first: the days listed in the sitemap.
+func (q *Queries) SitemapArcs(ctx context.Context, lim int32) ([]SitemapArcsRow, error) {
+	rows, err := q.db.Query(ctx, sitemapArcs, lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SitemapArcsRow
+	for rows.Next() {
+		var i SitemapArcsRow
+		if err := rows.Scan(&i.ID, &i.LastMod); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateArcTitle = `-- name: UpdateArcTitle :exec
 UPDATE arcs SET title = $2 WHERE id = $1
 `

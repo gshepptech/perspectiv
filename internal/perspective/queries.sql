@@ -356,3 +356,14 @@ FROM mine m
 WHERE NOT EXISTS (SELECT 1 FROM up WHERE up.perspective_id = m.id AND up.hidden_at IS NOT NULL)
 ORDER BY m.saved_at DESC, m.id DESC
 LIMIT sqlc.arg(row_limit)::int;
+
+-- name: SitemapStories :many
+-- Readable stories, most recently changed first: the stories listed in the
+-- sitemap.
+SELECT v.id, v.updated_at AS last_mod
+FROM perspectives v
+JOIN arcs a ON a.id = v.arc_id
+WHERE v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+ORDER BY v.updated_at DESC, v.id
+LIMIT @lim::integer;

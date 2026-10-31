@@ -69,6 +69,9 @@ type NotifyArgs struct {
 	ClaimID       uuid.UUID
 	LoreID        uuid.UUID
 	ReportID      uuid.UUID
+	// LorePostID is the thread post the event is about: the reply, for a
+	// THREAD_REPLY.
+	LorePostID uuid.UUID
 }
 
 // notifyKind is the River job kind of a notify job.

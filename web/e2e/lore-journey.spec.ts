@@ -1,7 +1,9 @@
 /**
  * NFR-004: the lore journey. Four strangers write about the same store on the
  * same day, link up by claiming each other's characters, become canon when
- * the rank job runs, and then vote one of themselves out of the lore.
+ * the rank job runs, and then vote one of themselves out of the lore. The
+ * three left then talk it over in the lore's thread: a post, a reply that
+ * reaches its author's inbox, an upvote and both sort orders.
  */
 import { expect, test } from "@playwright/test";
 
@@ -50,7 +52,7 @@ async function voteToRemove(w: Writer, arc: string, target: string) {
 }
 
 test("NFR-004 four accounts publish, claim, accept, reach canon within 60 seconds and vote one out", async ({ browser }) => {
-  test.setTimeout(360_000);
+  test.setTimeout(480_000);
   const { ana: anaAcct, ben: benAcct, cal: calAcct, dee: deeAcct } = loreAccounts();
   const ana = await signedIn(browser, anaAcct);
   const ben = await signedIn(browser, benAcct);
@@ -165,4 +167,55 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
   for (const u of [anaAcct, benAcct, calAcct]) {
     await expect(contenders.getByRole("link", { name: u.username, exact: true })).toBeVisible();
   }
+
+  await talkInTheThread(arc, ana, ben, cal);
 });
+
+/** Ben posts in the lore's thread, Cal replies, Ana upvotes, and the thread is read Top and New. */
+async function talkInTheThread(arc: string, ana: Writer, ben: Writer, cal: Writer) {
+  await visit(ben.page, ben.account, arc);
+  await ben.page
+    .getByRole("region", { name: "Contenders" })
+    .getByRole("link", { name: /^Open this lore/ })
+    .click();
+  const thread = ben.page.getByRole("region", { name: "Thread" });
+  await thread.getByRole("textbox", { name: "Add to the thread" }).fill("Whose yellow umbrella was it in the end?");
+  await thread.getByRole("button", { name: "Post", exact: true }).click();
+  const bens = (w: Writer) => w.page.getByRole("article", { name: `${ben.account.username}'s post` });
+  await expect(bens(ben)).toContainText("Whose yellow umbrella was it in the end?");
+  const lorePath = new URL(ben.page.url()).pathname;
+
+  // Cal replies under Ben's post.
+  await visit(cal.page, cal.account, lorePath);
+  await bens(cal).getByRole("button", { name: "Reply" }).click();
+  await cal.page.getByRole("textbox", { name: `Reply to ${ben.account.username}` }).fill("Not mine. I was by the window.");
+  await cal.page.getByRole("button", { name: "Post reply" }).click();
+  const replies = cal.page.getByRole("list", { name: `Replies to ${ben.account.username}` });
+  await expect(replies.getByRole("article", { name: `${cal.account.username}'s post` })).toContainText("Not mine. I was by the window.");
+
+  // Ana upvotes Cal's reply and Ben's post, then posts something newer.
+  await visit(ana.page, ana.account, lorePath);
+  for (const who of [cal.account.username, ben.account.username]) {
+    const post = ana.page.getByRole("article", { name: `${who}'s post` });
+    await post.getByRole("button", { name: `Upvote ${who}'s post`, pressed: false }).click();
+    await expect(post.getByRole("button", { name: `Upvote ${who}'s post`, pressed: true })).toBeVisible();
+    await expect(post).toContainText("1 upvote");
+  }
+  const anaThread = ana.page.getByRole("region", { name: "Thread" });
+  await anaThread.getByRole("textbox", { name: "Add to the thread" }).fill("The rain stopped at six.");
+  await anaThread.getByRole("button", { name: "Post", exact: true }).click();
+
+  // Top puts Ben's upvoted post first; New puts Ana's newer one first.
+  const firstPost = () => anaThread.getByRole("tabpanel").getByRole("list", { name: "Posts" }).locator(":scope > li").first();
+  await expect(anaThread.getByRole("tab", { name: "Top", selected: true })).toBeVisible();
+  await expect(firstPost()).toContainText("Whose yellow umbrella was it in the end?");
+  await anaThread.getByRole("tab", { name: "New" }).click();
+  await expect(firstPost()).toContainText("The rain stopped at six.");
+
+  // Ben hears of Cal's reply in his inbox once the notify job has run. A
+  // signed-in page reloads through visit, which waits for each refresh.
+  await expect(async () => {
+    await visit(ben.page, ben.account, "/inbox");
+    await expect(ben.page.getByText(`${cal.account.username} replied to your post`)).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 30_000, intervals: [1_000] });
+}

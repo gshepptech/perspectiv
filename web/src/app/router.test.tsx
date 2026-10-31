@@ -71,6 +71,7 @@ const contract: [string, string][] = [
   ["/terms", "legal/TermsPage"],
   ["/privacy", "legal/PrivacyPage"],
   ["/guidelines", "legal/GuidelinesPage"],
+  ["/appearance", "appearance/AppearancePage"],
   ["/login", "auth/LoginPage"],
   ["/signup", "auth/SignUpPage"],
   ["/verify-email?token=t", "auth/VerifyEmailPage"],

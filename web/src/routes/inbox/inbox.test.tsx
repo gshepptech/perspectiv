@@ -227,6 +227,20 @@ describe("a new story by a followed writer", () => {
       perspectiveId: "p-1",
     });
     expect(describeNotification(n)).toEqual({ text: "otter wrote a new story in Fourth quarter.", to: "/perspectives/p-1" });
-    expect(notificationKinds.at(-1)).toEqual({ kind: NotificationKind.NEW_STORY_BY_FOLLOWED_WRITER, label: "A new story by a writer you follow" });
+    expect(notificationKinds).toContainEqual({ kind: NotificationKind.NEW_STORY_BY_FOLLOWED_WRITER, label: "A new story by a writer you follow" });
+  });
+});
+
+describe("a reply to your thread post", () => {
+  it("names who replied and the arc, opens the lore's page, and has its own settings label", () => {
+    const n = create(NotificationSchema, {
+      kind: NotificationKind.THREAD_REPLY,
+      actor: { userId: "u-1", username: "otter" },
+      arcTitle: "Fourth quarter",
+      arcId: "arc-1",
+      loreId: "lore-1",
+    });
+    expect(describeNotification(n)).toEqual({ text: "otter replied to your post in the thread of Fourth quarter.", to: "/lores/lore-1" });
+    expect(notificationKinds.at(-1)).toEqual({ kind: NotificationKind.THREAD_REPLY, label: "Someone replies to your post in a lore's thread" });
   });
 });

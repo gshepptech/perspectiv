@@ -228,10 +228,29 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
       return { perspectives: [perspective("pub-3"), { ...perspective("pub-4"), loreStatus: "LORE_STATUS_SOLO" }] };
     case "LoreService/GetLore":
       return { lore: loreOf("lore-canon", "CANON", 6).lore };
-    case "LoreService/ListLorePosts":
+    case "LoreService/ListLorePosts": {
+      // Replies one step in, one answering another by a long name, an
+      // edited post with a four-digit score, and a deleted post kept for
+      // its replies.
+      const post = (id: string, more: Record<string, unknown> = {}) => ({
+        id,
+        author: user(`u-${id}`),
+        body: prose,
+        createdAt: ts,
+        editedAt: ts,
+        upvotes: 1234,
+        byMember: true,
+        ...more,
+      });
+      const replies = [0, 1, 2].map((i) => post(`lr${i}`, { replyToId: "lp0", replyingTo: i > 0 ? user("u-lr0") : undefined }));
       return {
-        posts: [0, 1, 2].map((i) => ({ id: `lp${i}`, author: user(`u-lp${i}`), body: prose, createdAt: ts, byMember: i !== 1 })),
+        posts: [
+          post("lp0", { replyCount: 7, replies, moreRepliesToken: "more" }),
+          post("lp1", { byMember: false }),
+          { id: "lp2", deleted: true, createdAt: ts, replyCount: 1, replies: [post("lr3", { replyToId: "lp2" })] },
+        ],
       };
+    }
     case "LoreService/ListClaims":
       return {
         claims: [0, 1, 2].map((i) => ({
@@ -292,6 +311,7 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
           "INVITE_ANSWERED",
           "NEW_STORY_AT_FOLLOWED_PLACE",
           "NEW_STORY_BY_FOLLOWED_WRITER",
+          "THREAD_REPLY",
         ].map((k, i) => ({ kind: `NOTIFICATION_KIND_${k}`, inApp: true, email: i % 2 === 0 })),
         emailDigest: true,
       };
@@ -308,6 +328,7 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
           "INVITE_ANSWERED",
           "NEW_STORY_AT_FOLLOWED_PLACE",
           "NEW_STORY_BY_FOLLOWED_WRITER",
+          "THREAD_REPLY",
         ].map((k, i) => ({
           id: `n${i}`,
           kind: `NOTIFICATION_KIND_${k}`,
