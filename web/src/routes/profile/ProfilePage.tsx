@@ -3,10 +3,11 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Crown } from "lucide-react";
 import type { RefObject } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 
 import { StoryLinkRow } from "@/components/reader/StoryLinkRow";
 import { Button } from "@/components/ui/Button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import type { Profile } from "@/gen/perspectiv/v1/user_pb";
 import { clients } from "@/lib/connect";
@@ -14,6 +15,8 @@ import { useShowMore } from "@/lib/showMore";
 import { useDocumentTitle } from "@/lib/title";
 
 import { FollowWriter } from "./FollowWriter";
+import { ThreadPosts } from "./ThreadPosts";
+import { TrackRecord } from "./TrackRecord";
 
 const joinedFormat = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -73,7 +76,7 @@ const PAGE_SIZE = 20;
  * The user's published perspectives, newest first, tales included. The
  * server leaves out drafts and anything deleted or hidden.
  */
-function Writing({ userId, username }: { userId: string; username: string }) {
+function Stories({ userId, username }: { userId: string; username: string }) {
   const list = useInfiniteQuery({
     queryKey: ["perspective", "listByAuthor", { userId }],
     queryFn: ({ pageParam, signal }) => clients.perspective.listByAuthor({ userId, pageToken: pageParam, pageSize: PAGE_SIZE }, { signal }),
@@ -83,17 +86,14 @@ function Writing({ userId, username }: { userId: string; username: string }) {
   const count = list.data?.pages.reduce((n, page) => n + page.perspectives.length, 0) ?? 0;
   const more = useShowMore(count, list.fetchNextPage);
   return (
-    <section aria-labelledby="profile-writing" className="mt-10">
-      <h2 id="profile-writing" className="text-xl">
-        Perspectives
-      </h2>
+    <>
       {list.isPending && (
-        <p role="status" className="mt-3 text-ink-muted">
+        <p role="status" className="text-ink-muted">
           Loading…
         </p>
       )}
       {list.isError && (
-        <p role="alert" className="mt-3 text-sm text-error">
+        <p role="alert" className="text-sm text-error">
           {username}&apos;s perspectives could not be loaded. Try again in a moment.
         </p>
       )}
@@ -103,6 +103,50 @@ function Writing({ userId, username }: { userId: string; username: string }) {
           Show more
         </Button>
       )}
+    </>
+  );
+}
+
+/** The profile's tabs, by their value in the URL's `tab`; Stories has none. */
+const STORIES = "stories";
+const POSTS = "posts";
+
+/**
+ * The writer's work in two tabs, Stories and Thread posts. The current tab
+ * lives in the URL (`?tab=posts`), replaced rather than pushed, and a panel
+ * loads its list only once it is shown.
+ */
+function Writing({ userId, username }: { userId: string; username: string }) {
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === POSTS ? POSTS : STORIES;
+  function select(value: string) {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value === POSTS) next.set("tab", POSTS);
+        else next.delete("tab");
+        return next;
+      },
+      { replace: true },
+    );
+  }
+  return (
+    <section aria-labelledby="profile-writing" className="mt-8">
+      <h2 id="profile-writing" className="sr-only">
+        {username}&apos;s writing
+      </h2>
+      <Tabs value={tab} onValueChange={select}>
+        <TabsList aria-labelledby="profile-writing">
+          <TabsTrigger value={STORIES}>Stories</TabsTrigger>
+          <TabsTrigger value={POSTS}>Thread posts</TabsTrigger>
+        </TabsList>
+        <TabsContent value={STORIES}>
+          <Stories userId={userId} username={username} />
+        </TabsContent>
+        <TabsContent value={POSTS}>
+          <ThreadPosts userId={userId} username={username} />
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }
@@ -117,9 +161,9 @@ function WritingList({
   listRef: RefObject<HTMLUListElement | null>;
 }) {
   const items = pages.flatMap((page) => page.perspectives);
-  if (items.length === 0) return <p className="mt-3 text-ink-muted">{username} has not published a perspective yet.</p>;
+  if (items.length === 0) return <p className="text-ink-muted">{username} has not published a perspective yet.</p>;
   return (
-    <ul ref={listRef} className="mt-3 divide-y divide-rule border-y border-rule">
+    <ul ref={listRef} aria-label="Stories" className="divide-y divide-rule border-y border-rule">
       {items.map((p) => (
         <StoryLinkRow key={p.id} p={p} />
       ))}
@@ -178,6 +222,7 @@ export function Component() {
         followers={query.data.followers}
       />
       {profile.bio && <p className="mt-6 whitespace-pre-line wrap-anywhere">{profile.bio}</p>}
+      <TrackRecord profile={profile} />
       <Writing userId={profile.userId} username={profile.username} />
     </article>
   );

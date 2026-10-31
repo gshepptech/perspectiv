@@ -373,89 +373,159 @@ RETURNING id, kind, name, parent_id, timezone, source, user_added;
 --
 -- The optional filters are "argument IS NULL OR ...": the pool plans every
 -- call with its arguments (plan_cache_mode), so an unused filter folds away.
-SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
-       a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
-       (SELECT count(*) FROM perspectives v
-        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
-       -- The city the arc is in, for a listing that spans cities.
-       coalesce((SELECT c.name FROM places c
-                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
-       -- The opening of the canon's first story, or of the first story when
-       -- there is no canon: the line a listing quotes.
-       coalesce((SELECT left(pp.body, 240) FROM perspectives v
-                 JOIN perspective_parts pp ON pp.perspective_id = v.id
-                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
-                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt,
-       -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
-       -- When the day's newest readable story was published, so a listing
-       -- can mark the days with something new.
-       (SELECT max(v.published_at) FROM perspectives v
-        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
-FROM arcs a
-JOIN places pl ON pl.id = a.place_id
-WHERE a.place_path @> ARRAY[@place_id::uuid]
-  -- Hiding a place hides every arc below it.
-  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
-  AND EXISTS (
-        SELECT 1 FROM perspectives v
-        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL
-          AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
-  -- Only days whose own place has the category, through arcs_category_*_idx.
-  AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
-  AND (sqlc.narg(after_id)::uuid IS NULL
-       OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
-          < (sqlc.narg(after_has_canon)::boolean, sqlc.narg(after_score)::double precision,
-             sqlc.narg(after_members)::integer, sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
-ORDER BY (a.canon_lore_id IS NOT NULL) DESC, a.canon_score DESC, a.member_count DESC, a.created_at DESC, a.id DESC
-LIMIT @lim::integer;
+-- The place itself comes first in every row, read as GetVisiblePlace reads
+-- it, so a place tab needs no place read of its own: no row at all when the
+-- place is missing or hidden, and one row with every listing column NULL
+-- when it is visible and lists nothing.
+WITH RECURSIVE chain AS (
+    SELECT p.id, p.parent_id, p.kind, p.name, p.hidden_at, 1 AS depth
+    FROM places p
+    WHERE p.id = @place_id::uuid
+    UNION ALL
+    SELECT a.id, a.parent_id, a.kind, a.name, a.hidden_at, c.depth + 1
+    FROM places a
+    JOIN chain c ON a.id = c.parent_id
+    WHERE c.depth < 9
+), here AS (
+    SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+           coalesce(p.category, '')::text AS category,
+           coalesce((SELECT array_agg(c.id ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::uuid[] AS ancestor_ids,
+           coalesce((SELECT array_agg(c.kind ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_kinds,
+           coalesce((SELECT array_agg(c.name ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_names
+    FROM places p
+    WHERE p.id = @place_id::uuid
+      AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.depth <= 8 AND chain.hidden_at IS NOT NULL)
+), listing AS (
+    SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+           a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
+           (SELECT count(*) FROM perspectives v
+            WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+              AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+           -- The city the arc is in, for a listing that spans cities.
+           coalesce((SELECT c.name FROM places c
+                     WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+           -- The opening of the canon's first story, or of the first story when
+           -- there is no canon: the line a listing quotes.
+           coalesce((SELECT left(pp.body, 240) FROM perspectives v
+                     JOIN perspective_parts pp ON pp.perspective_id = v.id
+                     WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                       AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                     ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                     LIMIT 1), '')::text AS excerpt,
+           -- The canon lore's name, so a listing can say which lore is canon.
+           coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+           -- When the day's newest readable story was published, so a listing
+           -- can mark the days with something new.
+           (SELECT max(v.published_at) FROM perspectives v
+            WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+              AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
+    FROM arcs a
+    JOIN places pl ON pl.id = a.place_id
+    WHERE a.place_path @> ARRAY[@place_id::uuid]
+      -- Hiding a place hides every arc below it.
+      AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+      AND EXISTS (
+            SELECT 1 FROM perspectives v
+            WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+              AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+              AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+      -- Only days whose own place has the category, through arcs_category_*_idx.
+      AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
+      AND (sqlc.narg(after_id)::uuid IS NULL
+           OR (a.canon_lore_id IS NOT NULL, a.canon_score, a.member_count, a.created_at, a.id)
+              < (sqlc.narg(after_has_canon)::boolean, sqlc.narg(after_score)::double precision,
+                 sqlc.narg(after_members)::integer, sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
+    ORDER BY (a.canon_lore_id IS NOT NULL) DESC, a.canon_score DESC, a.member_count DESC, a.created_at DESC, a.id DESC
+    LIMIT @lim::integer
+)
+SELECT here.id AS here_id, here.kind AS here_kind, here.name AS here_name, here.parent_id AS here_parent_id,
+       here.timezone AS here_timezone, here.source AS here_source, here.user_added AS here_user_added,
+       here.category AS here_category, here.ancestor_ids AS here_ancestor_ids,
+       here.ancestor_kinds AS here_ancestor_kinds, here.ancestor_names AS here_ancestor_names,
+       listing.id, listing.title, listing.place_id, listing.place_kind, listing.place_name,
+       listing.local_date, listing.hour, listing.canon_lore_id, listing.canon_score,
+       listing.member_count, listing.created_at, listing.perspective_count, listing.city_name,
+       listing.excerpt, listing.canon_lore_name, listing.latest_published_at
+FROM here
+LEFT JOIN listing ON true
+ORDER BY (listing.canon_lore_id IS NOT NULL) DESC, listing.canon_score DESC, listing.member_count DESC, listing.created_at DESC, listing.id DESC;
 
 -- name: EpicArcsNewest :many
 -- The same arcs as EpicArcsRanked, newest first.
-SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
-       a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
-       (SELECT count(*) FROM perspectives v
-        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
-       -- The city the arc is in, for a listing that spans cities.
-       coalesce((SELECT c.name FROM places c
-                 WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
-       -- The opening of the canon's first story, or of the first story when
-       -- there is no canon: the line a listing quotes.
-       coalesce((SELECT left(pp.body, 240) FROM perspectives v
-                 JOIN perspective_parts pp ON pp.perspective_id = v.id
-                 WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-                   AND v.deleted_at IS NULL AND v.hidden_at IS NULL
-                 ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
-                 LIMIT 1), '')::text AS excerpt,
-       -- The canon lore's name, so a listing can say which lore is canon.
-       coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
-       -- When the day's newest readable story was published, so a listing
-       -- can mark the days with something new.
-       (SELECT max(v.published_at) FROM perspectives v
-        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
-FROM arcs a
-JOIN places pl ON pl.id = a.place_id
-WHERE a.place_path @> ARRAY[@place_id::uuid]
-  -- Hiding a place hides every arc below it.
-  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
-  AND EXISTS (
-        SELECT 1 FROM perspectives v
-        WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-          AND v.deleted_at IS NULL AND v.hidden_at IS NULL
-          AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
-  -- Only days whose own place has the category, through arcs_category_*_idx.
-  AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
-  AND (sqlc.narg(after_id)::uuid IS NULL
-       OR (a.created_at, a.id) < (sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
-ORDER BY a.created_at DESC, a.id DESC
-LIMIT @lim::integer;
+-- The place itself comes first in every row, read as GetVisiblePlace reads
+-- it, so a place tab needs no place read of its own: no row at all when the
+-- place is missing or hidden, and one row with every listing column NULL
+-- when it is visible and lists nothing.
+WITH RECURSIVE chain AS (
+    SELECT p.id, p.parent_id, p.kind, p.name, p.hidden_at, 1 AS depth
+    FROM places p
+    WHERE p.id = @place_id::uuid
+    UNION ALL
+    SELECT a.id, a.parent_id, a.kind, a.name, a.hidden_at, c.depth + 1
+    FROM places a
+    JOIN chain c ON a.id = c.parent_id
+    WHERE c.depth < 9
+), here AS (
+    SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+           coalesce(p.category, '')::text AS category,
+           coalesce((SELECT array_agg(c.id ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::uuid[] AS ancestor_ids,
+           coalesce((SELECT array_agg(c.kind ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_kinds,
+           coalesce((SELECT array_agg(c.name ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_names
+    FROM places p
+    WHERE p.id = @place_id::uuid
+      AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.depth <= 8 AND chain.hidden_at IS NOT NULL)
+), listing AS (
+    SELECT a.id, a.title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+           a.local_date, a.hour, a.canon_lore_id, a.canon_score, a.member_count, a.created_at,
+           (SELECT count(*) FROM perspectives v
+            WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+              AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::integer AS perspective_count,
+           -- The city the arc is in, for a listing that spans cities.
+           coalesce((SELECT c.name FROM places c
+                     WHERE c.id = ANY(a.place_path) AND c.kind = 'PLACE_KIND_CITY' LIMIT 1), '')::text AS city_name,
+           -- The opening of the canon's first story, or of the first story when
+           -- there is no canon: the line a listing quotes.
+           coalesce((SELECT left(pp.body, 240) FROM perspectives v
+                     JOIN perspective_parts pp ON pp.perspective_id = v.id
+                     WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+                       AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+                     ORDER BY (v.lore_id IS NOT DISTINCT FROM a.canon_lore_id) DESC, v.published_at, pp.position
+                     LIMIT 1), '')::text AS excerpt,
+           -- The canon lore's name, so a listing can say which lore is canon.
+           coalesce((SELECT l.name FROM lores l WHERE l.id = a.canon_lore_id), '')::text AS canon_lore_name,
+           -- When the day's newest readable story was published, so a listing
+           -- can mark the days with something new.
+           (SELECT max(v.published_at) FROM perspectives v
+            WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+              AND v.deleted_at IS NULL AND v.hidden_at IS NULL)::timestamptz AS latest_published_at
+    FROM arcs a
+    JOIN places pl ON pl.id = a.place_id
+    WHERE a.place_path @> ARRAY[@place_id::uuid]
+      -- Hiding a place hides every arc below it.
+      AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+      AND EXISTS (
+            SELECT 1 FROM perspectives v
+            WHERE v.arc_id = a.id AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+              AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+              AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text))
+      -- Only days whose own place has the category, through arcs_category_*_idx.
+      AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
+      AND (sqlc.narg(after_id)::uuid IS NULL
+           OR (a.created_at, a.id) < (sqlc.narg(after_created)::timestamptz, sqlc.narg(after_id)::uuid))
+    ORDER BY a.created_at DESC, a.id DESC
+    LIMIT @lim::integer
+)
+SELECT here.id AS here_id, here.kind AS here_kind, here.name AS here_name, here.parent_id AS here_parent_id,
+       here.timezone AS here_timezone, here.source AS here_source, here.user_added AS here_user_added,
+       here.category AS here_category, here.ancestor_ids AS here_ancestor_ids,
+       here.ancestor_kinds AS here_ancestor_kinds, here.ancestor_names AS here_ancestor_names,
+       listing.id, listing.title, listing.place_id, listing.place_kind, listing.place_name,
+       listing.local_date, listing.hour, listing.canon_lore_id, listing.canon_score,
+       listing.member_count, listing.created_at, listing.perspective_count, listing.city_name,
+       listing.excerpt, listing.canon_lore_name, listing.latest_published_at
+FROM here
+LEFT JOIN listing ON true
+ORDER BY listing.created_at DESC, listing.id DESC;
 
 -- name: EverywhereArcsRanked :many
 -- EpicArcsRanked across every visible place: the front page. A separate
@@ -545,26 +615,60 @@ LIMIT @lim::integer;
 -- SOLO and REMOVED perspectives in arcs at the place and every visible
 -- descendant, newest published first. Deleted and hidden perspectives are
 -- left out. The excerpt is the first 200 characters of the first part.
-SELECT v.id, v.arc_id, a.title AS arc_title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
-       a.local_date, a.hour, v.author_id, u.username, v.genre, v.lore_status, v.published_at,
-       coalesce((SELECT left(pp.body, 240) FROM perspective_parts pp
-                 WHERE pp.perspective_id = v.id ORDER BY pp.position LIMIT 1), '')::text AS excerpt
-FROM perspectives v
-JOIN arcs a ON a.id = v.arc_id
-JOIN places pl ON pl.id = a.place_id
-JOIN users u ON u.id = v.author_id
-WHERE a.place_path @> ARRAY[@place_id::uuid]
-  -- Hiding a place hides every arc below it.
-  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
-  AND v.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
-  AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-  AND v.deleted_at IS NULL AND v.hidden_at IS NULL
-  AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text)
-  AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
-  AND (sqlc.narg(after_id)::uuid IS NULL
-       OR (v.published_at, v.id) < (sqlc.narg(after_published)::timestamptz, sqlc.narg(after_id)::uuid))
-ORDER BY v.published_at DESC, v.id DESC
-LIMIT @lim::integer;
+-- The place itself comes first in every row, read as GetVisiblePlace reads
+-- it, so a place tab needs no place read of its own: no row at all when the
+-- place is missing or hidden, and one row with every listing column NULL
+-- when it is visible and lists nothing.
+WITH RECURSIVE chain AS (
+    SELECT p.id, p.parent_id, p.kind, p.name, p.hidden_at, 1 AS depth
+    FROM places p
+    WHERE p.id = @place_id::uuid
+    UNION ALL
+    SELECT a.id, a.parent_id, a.kind, a.name, a.hidden_at, c.depth + 1
+    FROM places a
+    JOIN chain c ON a.id = c.parent_id
+    WHERE c.depth < 9
+), here AS (
+    SELECT p.id, p.kind, p.name, p.parent_id, p.timezone, p.source, p.user_added,
+           coalesce(p.category, '')::text AS category,
+           coalesce((SELECT array_agg(c.id ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::uuid[] AS ancestor_ids,
+           coalesce((SELECT array_agg(c.kind ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_kinds,
+           coalesce((SELECT array_agg(c.name ORDER BY c.depth DESC) FROM chain c WHERE c.depth > 1), '{}')::text[] AS ancestor_names
+    FROM places p
+    WHERE p.id = @place_id::uuid
+      AND NOT EXISTS (SELECT 1 FROM chain WHERE chain.depth <= 8 AND chain.hidden_at IS NOT NULL)
+), listing AS (
+    SELECT v.id, v.arc_id, a.title AS arc_title, a.place_id, pl.kind AS place_kind, pl.name AS place_name,
+           a.local_date, a.hour, v.author_id, u.username, v.genre, v.lore_status, v.published_at,
+           coalesce((SELECT left(pp.body, 240) FROM perspective_parts pp
+                     WHERE pp.perspective_id = v.id ORDER BY pp.position LIMIT 1), '')::text AS excerpt
+    FROM perspectives v
+    JOIN arcs a ON a.id = v.arc_id
+    JOIN places pl ON pl.id = a.place_id
+    JOIN users u ON u.id = v.author_id
+    WHERE a.place_path @> ARRAY[@place_id::uuid]
+      -- Hiding a place hides every arc below it.
+      AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+      AND v.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
+      AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+      AND (sqlc.narg(genre)::text IS NULL OR v.genre = sqlc.narg(genre)::text)
+      AND (sqlc.narg(category)::text IS NULL OR a.place_category = sqlc.narg(category)::text)
+      AND (sqlc.narg(after_id)::uuid IS NULL
+           OR (v.published_at, v.id) < (sqlc.narg(after_published)::timestamptz, sqlc.narg(after_id)::uuid))
+    ORDER BY v.published_at DESC, v.id DESC
+    LIMIT @lim::integer
+)
+SELECT here.id AS here_id, here.kind AS here_kind, here.name AS here_name, here.parent_id AS here_parent_id,
+       here.timezone AS here_timezone, here.source AS here_source, here.user_added AS here_user_added,
+       here.category AS here_category, here.ancestor_ids AS here_ancestor_ids,
+       here.ancestor_kinds AS here_ancestor_kinds, here.ancestor_names AS here_ancestor_names,
+       listing.id, listing.arc_id, listing.arc_title, listing.place_id, listing.place_kind,
+       listing.place_name, listing.local_date, listing.hour, listing.author_id, listing.username,
+       listing.genre, listing.lore_status, listing.published_at, listing.excerpt
+FROM here
+LEFT JOIN listing ON true
+ORDER BY listing.published_at DESC, listing.id DESC;
 
 -- name: StoriedCategories :many
 -- Of the given categories, in the order given, those with a readable day at

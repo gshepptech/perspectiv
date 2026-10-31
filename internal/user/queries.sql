@@ -168,17 +168,85 @@ SET revoked_at = now()
 FROM sessions s
 WHERE rt.session_id = s.id AND s.user_id = $1 AND rt.revoked_at IS NULL;
 
--- name: LoreCounts :one
--- The lores a user's readable perspectives are members of, and how many of
--- them are canon: the profile's badges.
-SELECT count(*) FILTER (WHERE l.status = 'LORE_STANDING_CANON')::int AS canon_count,
-       count(*)::int AS lore_count
-FROM lore_members m
-JOIN perspectives p ON p.id = m.perspective_id
-JOIN lores l ON l.id = m.lore_id
-WHERE p.author_id = $1
-  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-  AND p.deleted_at IS NULL AND p.hidden_at IS NULL;
+-- name: ProfileStats :one
+-- A profile's badges and track record in one statement. mine is the
+-- user's published perspectives that are neither deleted nor hidden, read
+-- through perspectives_author_published_idx. readable drops any filed at or
+-- below a hidden place. The badges count the lores readable stories are
+-- members of (canon_count the canons among them), and the track record
+-- counts only readable stories: how many, their upvotes (every vote, as a
+-- story page counts them, so the total is the sum a reader sees), the places
+-- they sit at, and the distinct live people an accepted claim links them
+-- to, whichever side made the claim, when that person's story is readable
+-- too.
+WITH mine AS (
+    SELECT p.id, a.place_id, a.place_path
+    FROM perspectives p
+    JOIN arcs a ON a.id = p.arc_id
+    WHERE p.author_id = sqlc.arg(user_id)::uuid
+      AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+), readable AS (
+    SELECT m.id, m.place_id
+    FROM mine m
+    WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(m.place_path) AND h.hidden_at IS NOT NULL)
+), found AS (
+    SELECT c.claimant_user_id AS person_id, c.claimant_perspective_id AS their_story
+    FROM readable r
+    JOIN characters ch ON ch.perspective_id = r.id
+    JOIN claims c ON c.character_id = ch.id
+    WHERE c.status = 'CLAIM_STATUS_ACCEPTED'
+    UNION
+    SELECT op.author_id, op.id
+    FROM readable r
+    JOIN claims c ON c.claimant_perspective_id = r.id
+    JOIN characters ch ON ch.id = c.character_id
+    JOIN perspectives op ON op.id = ch.perspective_id
+    WHERE c.status = 'CLAIM_STATUS_ACCEPTED'
+)
+SELECT (SELECT count(*) FILTER (WHERE l.status = 'LORE_STANDING_CANON')
+        FROM readable r JOIN lore_members lm ON lm.perspective_id = r.id JOIN lores l ON l.id = lm.lore_id)::int AS canon_count,
+       (SELECT count(*) FROM readable r JOIN lore_members lm ON lm.perspective_id = r.id)::int AS lore_count,
+       (SELECT count(*) FROM readable)::int AS story_count,
+       (SELECT count(*) FROM readable r JOIN votes v ON v.perspective_id = r.id)::int AS upvotes_received,
+       (SELECT count(DISTINCT f.person_id) FROM found f
+        JOIN users fu ON fu.id = f.person_id
+        JOIN perspectives fp ON fp.id = f.their_story
+        JOIN arcs fa ON fa.id = fp.arc_id
+        WHERE f.person_id <> sqlc.arg(user_id)::uuid
+          AND fu.deleted_at IS NULL
+          AND fp.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND fp.deleted_at IS NULL AND fp.hidden_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(fa.place_path) AND h.hidden_at IS NOT NULL))::int AS people_found,
+       (SELECT count(DISTINCT place_id) FROM readable)::int AS places_written;
+
+-- name: ListUserPosts :many
+-- One writer's lore thread posts that a reader of the lore page sees,
+-- newest first, keyset-paged on (created_at, id) and served by
+-- lore_posts_author_created_idx. Left out: a deleted or hidden post, every
+-- post of a deleted account, a reply under a hidden top-level post, and a
+-- post in a lore whose arc is at or below a hidden place. opening is the
+-- first 241 characters with whitespace folded; postExcerpt cuts it at a
+-- word.
+SELECT lp.id, lp.lore_id, coalesce(l.name, '')::text AS lore_name,
+       a.id AS arc_id, a.title AS arc_title, a.local_date, a.hour, pl.name AS place_name,
+       left(regexp_replace(btrim(lp.body), '\s+', ' ', 'g'), 241)::text AS opening,
+       (lp.reply_to_id IS NOT NULL)::boolean AS reply, lp.created_at
+FROM lore_posts lp
+JOIN users u ON u.id = lp.author_id
+JOIN lores l ON l.id = lp.lore_id
+JOIN arcs a ON a.id = l.arc_id
+JOIN places pl ON pl.id = a.place_id
+LEFT JOIN lore_posts top ON top.id = lp.reply_to_id
+WHERE lp.author_id = sqlc.arg(author_id)::uuid
+  AND u.deleted_at IS NULL
+  AND lp.deleted_at IS NULL AND lp.hidden_at IS NULL
+  AND top.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND (NOT sqlc.arg(has_after)::boolean
+       OR (lp.created_at, lp.id) < (sqlc.arg(after_at)::timestamptz, sqlc.arg(after_id)::uuid))
+ORDER BY lp.created_at DESC, lp.id DESC
+LIMIT sqlc.arg(row_limit)::int;
 
 -- name: ExportAccount :one
 -- Everything the database holds about one account, as one JSON document,

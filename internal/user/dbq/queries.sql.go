@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const anonymizeUser = `-- name: AnonymizeUser :exec
@@ -473,6 +474,95 @@ func (q *Queries) ListFollowedWriters(ctx context.Context, arg ListFollowedWrite
 	return items, nil
 }
 
+const listUserPosts = `-- name: ListUserPosts :many
+SELECT lp.id, lp.lore_id, coalesce(l.name, '')::text AS lore_name,
+       a.id AS arc_id, a.title AS arc_title, a.local_date, a.hour, pl.name AS place_name,
+       left(regexp_replace(btrim(lp.body), '\s+', ' ', 'g'), 241)::text AS opening,
+       (lp.reply_to_id IS NOT NULL)::boolean AS reply, lp.created_at
+FROM lore_posts lp
+JOIN users u ON u.id = lp.author_id
+JOIN lores l ON l.id = lp.lore_id
+JOIN arcs a ON a.id = l.arc_id
+JOIN places pl ON pl.id = a.place_id
+LEFT JOIN lore_posts top ON top.id = lp.reply_to_id
+WHERE lp.author_id = $1::uuid
+  AND u.deleted_at IS NULL
+  AND lp.deleted_at IS NULL AND lp.hidden_at IS NULL
+  AND top.hidden_at IS NULL
+  AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+  AND (NOT $2::boolean
+       OR (lp.created_at, lp.id) < ($3::timestamptz, $4::uuid))
+ORDER BY lp.created_at DESC, lp.id DESC
+LIMIT $5::int
+`
+
+type ListUserPostsParams struct {
+	AuthorID uuid.UUID
+	HasAfter bool
+	AfterAt  time.Time
+	AfterID  uuid.UUID
+	RowLimit int32
+}
+
+type ListUserPostsRow struct {
+	ID        uuid.UUID
+	LoreID    uuid.UUID
+	LoreName  string
+	ArcID     uuid.UUID
+	ArcTitle  string
+	LocalDate pgtype.Date
+	Hour      *int16
+	PlaceName string
+	Opening   string
+	Reply     bool
+	CreatedAt time.Time
+}
+
+// One writer's lore thread posts that a reader of the lore page sees,
+// newest first, keyset-paged on (created_at, id) and served by
+// lore_posts_author_created_idx. Left out: a deleted or hidden post, every
+// post of a deleted account, a reply under a hidden top-level post, and a
+// post in a lore whose arc is at or below a hidden place. opening is the
+// first 241 characters with whitespace folded; postExcerpt cuts it at a
+// word.
+func (q *Queries) ListUserPosts(ctx context.Context, arg ListUserPostsParams) ([]ListUserPostsRow, error) {
+	rows, err := q.db.Query(ctx, listUserPosts,
+		arg.AuthorID,
+		arg.HasAfter,
+		arg.AfterAt,
+		arg.AfterID,
+		arg.RowLimit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserPostsRow
+	for rows.Next() {
+		var i ListUserPostsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.LoreID,
+			&i.LoreName,
+			&i.ArcID,
+			&i.ArcTitle,
+			&i.LocalDate,
+			&i.Hour,
+			&i.PlaceName,
+			&i.Opening,
+			&i.Reply,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockPair = `-- name: LockPair :exec
 SELECT pg_advisory_xact_lock(hashtextextended(
     least($1::uuid, $2::uuid)::text || greatest($1::uuid, $2::uuid)::text, 0))
@@ -512,31 +602,6 @@ func (q *Queries) LockUser(ctx context.Context, id uuid.UUID) (LockUserRow, erro
 	return i, err
 }
 
-const loreCounts = `-- name: LoreCounts :one
-SELECT count(*) FILTER (WHERE l.status = 'LORE_STANDING_CANON')::int AS canon_count,
-       count(*)::int AS lore_count
-FROM lore_members m
-JOIN perspectives p ON p.id = m.perspective_id
-JOIN lores l ON l.id = m.lore_id
-WHERE p.author_id = $1
-  AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
-  AND p.deleted_at IS NULL AND p.hidden_at IS NULL
-`
-
-type LoreCountsRow struct {
-	CanonCount int32
-	LoreCount  int32
-}
-
-// The lores a user's readable perspectives are members of, and how many of
-// them are canon: the profile's badges.
-func (q *Queries) LoreCounts(ctx context.Context, authorID uuid.UUID) (LoreCountsRow, error) {
-	row := q.db.QueryRow(ctx, loreCounts, authorID)
-	var i LoreCountsRow
-	err := row.Scan(&i.CanonCount, &i.LoreCount)
-	return i, err
-}
-
 const markArcsLoreDirty = `-- name: MarkArcsLoreDirty :exec
 UPDATE arcs SET lore_dirty_at = now() WHERE id = ANY($1::uuid[])
 `
@@ -544,6 +609,82 @@ UPDATE arcs SET lore_dirty_at = now() WHERE id = ANY($1::uuid[])
 func (q *Queries) MarkArcsLoreDirty(ctx context.Context, arcIds []uuid.UUID) error {
 	_, err := q.db.Exec(ctx, markArcsLoreDirty, arcIds)
 	return err
+}
+
+const profileStats = `-- name: ProfileStats :one
+WITH mine AS (
+    SELECT p.id, a.place_id, a.place_path
+    FROM perspectives p
+    JOIN arcs a ON a.id = p.arc_id
+    WHERE p.author_id = $1::uuid
+      AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND p.deleted_at IS NULL AND p.hidden_at IS NULL
+), readable AS (
+    SELECT m.id, m.place_id
+    FROM mine m
+    WHERE NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(m.place_path) AND h.hidden_at IS NOT NULL)
+), found AS (
+    SELECT c.claimant_user_id AS person_id, c.claimant_perspective_id AS their_story
+    FROM readable r
+    JOIN characters ch ON ch.perspective_id = r.id
+    JOIN claims c ON c.character_id = ch.id
+    WHERE c.status = 'CLAIM_STATUS_ACCEPTED'
+    UNION
+    SELECT op.author_id, op.id
+    FROM readable r
+    JOIN claims c ON c.claimant_perspective_id = r.id
+    JOIN characters ch ON ch.id = c.character_id
+    JOIN perspectives op ON op.id = ch.perspective_id
+    WHERE c.status = 'CLAIM_STATUS_ACCEPTED'
+)
+SELECT (SELECT count(*) FILTER (WHERE l.status = 'LORE_STANDING_CANON')
+        FROM readable r JOIN lore_members lm ON lm.perspective_id = r.id JOIN lores l ON l.id = lm.lore_id)::int AS canon_count,
+       (SELECT count(*) FROM readable r JOIN lore_members lm ON lm.perspective_id = r.id)::int AS lore_count,
+       (SELECT count(*) FROM readable)::int AS story_count,
+       (SELECT count(*) FROM readable r JOIN votes v ON v.perspective_id = r.id)::int AS upvotes_received,
+       (SELECT count(DISTINCT f.person_id) FROM found f
+        JOIN users fu ON fu.id = f.person_id
+        JOIN perspectives fp ON fp.id = f.their_story
+        JOIN arcs fa ON fa.id = fp.arc_id
+        WHERE f.person_id <> $1::uuid
+          AND fu.deleted_at IS NULL
+          AND fp.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+          AND fp.deleted_at IS NULL AND fp.hidden_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(fa.place_path) AND h.hidden_at IS NOT NULL))::int AS people_found,
+       (SELECT count(DISTINCT place_id) FROM readable)::int AS places_written
+`
+
+type ProfileStatsRow struct {
+	CanonCount      int32
+	LoreCount       int32
+	StoryCount      int32
+	UpvotesReceived int32
+	PeopleFound     int32
+	PlacesWritten   int32
+}
+
+// A profile's badges and track record in one statement. mine is the
+// user's published perspectives that are neither deleted nor hidden, read
+// through perspectives_author_published_idx. readable drops any filed at or
+// below a hidden place. The badges count the lores readable stories are
+// members of (canon_count the canons among them), and the track record
+// counts only readable stories: how many, their upvotes (every vote, as a
+// story page counts them, so the total is the sum a reader sees), the places
+// they sit at, and the distinct live people an accepted claim links them
+// to, whichever side made the claim, when that person's story is readable
+// too.
+func (q *Queries) ProfileStats(ctx context.Context, userID uuid.UUID) (ProfileStatsRow, error) {
+	row := q.db.QueryRow(ctx, profileStats, userID)
+	var i ProfileStatsRow
+	err := row.Scan(
+		&i.CanonCount,
+		&i.LoreCount,
+		&i.StoryCount,
+		&i.UpvotesReceived,
+		&i.PeopleFound,
+		&i.PlacesWritten,
+	)
+	return i, err
 }
 
 const revokeRefreshTokens = `-- name: RevokeRefreshTokens :exec

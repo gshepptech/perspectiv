@@ -56,6 +56,9 @@ const (
 	// UserServiceListFollowedWritersProcedure is the fully-qualified name of the UserService's
 	// ListFollowedWriters RPC.
 	UserServiceListFollowedWritersProcedure = "/perspectiv.v1.UserService/ListFollowedWriters"
+	// UserServiceListUserPostsProcedure is the fully-qualified name of the UserService's ListUserPosts
+	// RPC.
+	UserServiceListUserPostsProcedure = "/perspectiv.v1.UserService/ListUserPosts"
 )
 
 // UserServiceClient is a client for the perspectiv.v1.UserService service.
@@ -78,6 +81,9 @@ type UserServiceClient interface {
 	FollowUser(context.Context, *connect.Request[v1.FollowUserRequest]) (*connect.Response[v1.FollowUserResponse], error)
 	// The writers the caller follows.
 	ListFollowedWriters(context.Context, *connect.Request[v1.ListFollowedWritersRequest]) (*connect.Response[v1.ListFollowedWritersResponse], error)
+	// Public. A writer's lore thread posts that readers can see, newest first,
+	// for the Thread posts tab of their profile.
+	ListUserPosts(context.Context, *connect.Request[v1.ListUserPostsRequest]) (*connect.Response[v1.ListUserPostsResponse], error)
 }
 
 // NewUserServiceClient constructs a client for the perspectiv.v1.UserService service. By default,
@@ -145,6 +151,12 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(userServiceMethods.ByName("ListFollowedWriters")),
 			connect.WithClientOptions(opts...),
 		),
+		listUserPosts: connect.NewClient[v1.ListUserPostsRequest, v1.ListUserPostsResponse](
+			httpClient,
+			baseURL+UserServiceListUserPostsProcedure,
+			connect.WithSchema(userServiceMethods.ByName("ListUserPosts")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -159,6 +171,7 @@ type userServiceClient struct {
 	exportMyData        *connect.Client[v1.ExportMyDataRequest, v1.ExportMyDataResponse]
 	followUser          *connect.Client[v1.FollowUserRequest, v1.FollowUserResponse]
 	listFollowedWriters *connect.Client[v1.ListFollowedWritersRequest, v1.ListFollowedWritersResponse]
+	listUserPosts       *connect.Client[v1.ListUserPostsRequest, v1.ListUserPostsResponse]
 }
 
 // GetProfile calls perspectiv.v1.UserService.GetProfile.
@@ -206,6 +219,11 @@ func (c *userServiceClient) ListFollowedWriters(ctx context.Context, req *connec
 	return c.listFollowedWriters.CallUnary(ctx, req)
 }
 
+// ListUserPosts calls perspectiv.v1.UserService.ListUserPosts.
+func (c *userServiceClient) ListUserPosts(ctx context.Context, req *connect.Request[v1.ListUserPostsRequest]) (*connect.Response[v1.ListUserPostsResponse], error) {
+	return c.listUserPosts.CallUnary(ctx, req)
+}
+
 // UserServiceHandler is an implementation of the perspectiv.v1.UserService service.
 type UserServiceHandler interface {
 	// Public. Any user's public profile; the caller's own profile also carries
@@ -226,6 +244,9 @@ type UserServiceHandler interface {
 	FollowUser(context.Context, *connect.Request[v1.FollowUserRequest]) (*connect.Response[v1.FollowUserResponse], error)
 	// The writers the caller follows.
 	ListFollowedWriters(context.Context, *connect.Request[v1.ListFollowedWritersRequest]) (*connect.Response[v1.ListFollowedWritersResponse], error)
+	// Public. A writer's lore thread posts that readers can see, newest first,
+	// for the Thread posts tab of their profile.
+	ListUserPosts(context.Context, *connect.Request[v1.ListUserPostsRequest]) (*connect.Response[v1.ListUserPostsResponse], error)
 }
 
 // NewUserServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -289,6 +310,12 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(userServiceMethods.ByName("ListFollowedWriters")),
 		connect.WithHandlerOptions(opts...),
 	)
+	userServiceListUserPostsHandler := connect.NewUnaryHandler(
+		UserServiceListUserPostsProcedure,
+		svc.ListUserPosts,
+		connect.WithSchema(userServiceMethods.ByName("ListUserPosts")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.UserService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case UserServiceGetProfileProcedure:
@@ -309,6 +336,8 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceFollowUserHandler.ServeHTTP(w, r)
 		case UserServiceListFollowedWritersProcedure:
 			userServiceListFollowedWritersHandler.ServeHTTP(w, r)
+		case UserServiceListUserPostsProcedure:
+			userServiceListUserPostsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -352,4 +381,8 @@ func (UnimplementedUserServiceHandler) FollowUser(context.Context, *connect.Requ
 
 func (UnimplementedUserServiceHandler) ListFollowedWriters(context.Context, *connect.Request[v1.ListFollowedWritersRequest]) (*connect.Response[v1.ListFollowedWritersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.UserService.ListFollowedWriters is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) ListUserPosts(context.Context, *connect.Request[v1.ListUserPostsRequest]) (*connect.Response[v1.ListUserPostsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.UserService.ListUserPosts is not implemented"))
 }

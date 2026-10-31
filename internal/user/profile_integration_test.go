@@ -420,6 +420,9 @@ func TestGetProfileLoreBadges(t *testing.T) {
 	member(arc2, "LORE_STANDING_SUBLORE")
 	hidden := member(arc3, "LORE_STANDING_CANON")
 	e.exec(`UPDATE perspectives SET hidden_at = now() WHERE id = $1`, hidden)
+	// A canon at a hidden place is not readable, so it is not a badge.
+	gone := e.hiddenStore()
+	member(e.dayArc(gone, writer), "LORE_STANDING_CANON")
 
 	res, err := e.client(uuid.Nil).GetProfile(ctx, connect.NewRequest(&perspectivv1.GetProfileRequest{Username: "badged"}))
 	if err != nil {

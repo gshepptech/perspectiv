@@ -30,14 +30,11 @@ const repliesShown = 3
 // or its arc is at or below a hidden place.
 func readableLore(ctx context.Context, q *dbq.Queries, loreID uuid.UUID) (uuid.UUID, error) {
 	row, err := q.GetLore(ctx, loreID)
-	if errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && row.PlaceHidden) {
 		return uuid.Nil, apiutil.NotFound("lore not found")
 	}
 	if err != nil {
 		return uuid.Nil, apiutil.Internal(fmt.Errorf("read lore: %w", err))
-	}
-	if err := refuseHiddenArc(ctx, q, row.ArcID, apiutil.NotFound("lore not found")); err != nil {
-		return uuid.Nil, err
 	}
 	return row.ArcID, nil
 }

@@ -480,11 +480,54 @@ like one.
 
 ## Profile
 
-Each perspective row is one link at least 44px tall. It leads with where and
-when (place and day, `ink`, medium weight), then the day's title in the serif
-face, then the story's own opening (its first part, clamped to two lines),
-then its standing in `text-sm`, so a writer's stories are told apart even when
-their days share a title.
+A profile reads top to bottom: the header (avatar, username, joined date,
+canon and lore badges), the Follow row, the bio, the track record, then the
+writer's work in two tabs.
+
+- **Track record.** One row of four counts under the bio (under the Follow
+  row when there is no bio), in this order: stories, upvotes, people found,
+  places. Each count is the number in bold `ink` (bold being for counts
+  that need to be scanned) followed by its word in `ink-muted`, at
+  `text-sm`, as one list item, so a screen reader reads "12 stories", "340
+  upvotes", "5 people found", "3 places" ("1 story", "1 upvote", "1 person
+  found", "1 place" for one). The list is named "Track record". A zero
+  shows as "0 stories" and so on. The row wraps (`flex-wrap`, 24px between
+  counts, 8px between lines) and never scrolls sideways at 375px. It is
+  plain text: nothing in it is a link or a button. It counts only what a
+  reader can open: published stories that are not deleted, hidden or filed
+  at or below a hidden place; every upvote on those stories, so the total
+  is the sum their story pages show;
+  the distinct live people linked to those stories by an accepted claim
+  either way, their story readable too; and the distinct places those
+  stories sit at. The badges stay in the header.
+- **Tabs.** Under the track record, Radix Tabs named "wren's writing" with
+  two tabs, "Stories" (the default) and "Thread posts", 44px tall with the
+  accent underline on the current one. The current tab lives in the URL:
+  Thread posts is `?tab=posts`, Stories has no parameter, and any other
+  value reads as Stories. Switching replaces the URL rather than adding a
+  history entry, moves no focus, and keeps the reader's place on the page.
+  Each panel loads its list the first time it is shown.
+- **Stories tab.** Each perspective row is one link at least 44px tall. It
+  leads with where and when (place and day, `ink`, medium weight), then the
+  day's title in the serif face, then the story's own opening (its first
+  part, clamped to two lines), then its standing in `text-sm`, so a
+  writer's stories are told apart even when their days share a title.
+  "Show more" brings 20 more and moves focus to the first new row. With
+  none, it says "wren has not published a perspective yet."
+- **Thread posts tab.** The writer's posts in lore threads, newest first,
+  replies included, as a list named "Thread posts". Each row is one link
+  at least 44px tall to the lore's page: first the lore's name ("Unnamed
+  lore" in italics while its members have not named it), medium weight in
+  `accent`, underlined on hover, as a story row's title is; then the day's title, the place and the day in `text-sm`
+  `ink-muted` ("Saturday night · Prairie Books · January 14, 2026"); then
+  the post's text in the interface face, its line breaks folded, cut at a
+  word near 240 characters with "…" and clamped to three lines; then a
+  `text-sm` `ink-muted` line with "Reply" for a reply and the time it was
+  posted. Only posts a reader of the lore page would see are listed: never
+  a deleted or hidden post, a reply under a hidden post, or a post in a
+  lore whose day sits at or below a hidden place. "Show more" brings 20
+  more and moves focus to the first new row. With none, it says "wren has
+  not posted in a lore thread yet."
 
 ## Place page sidebar
 

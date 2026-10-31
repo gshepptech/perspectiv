@@ -18,6 +18,9 @@ Nothing in progress.
   DB_MAX_CONNS past 25 bought nothing: Postgres ran queries on 5 to 8
   connections, and the rest was round trips. Revisit with production
   traffic.
+- From the third load test: batching GetArc's and perspective Get's
+  independent reads with BEGIN/ROLLBACK as one pgx batch: the biggest
+  remaining lever, a larger change; revisit with production traffic.
 
 ## Out of scope for v1
 
@@ -48,6 +51,62 @@ Nothing in progress.
 
 ## Done
 
+- A profile shows a track record and a Thread posts tab. GetProfile
+  carries four counts of what a reader can open, read in one statement
+  with the badges (ProfileStats): readable stories, every upvote on them
+  (the sum their pages show), the distinct live people an accepted claim links them to
+  either way (their story readable too), and the distinct places. The
+  canon and lore badges now count readable stories only, too. The
+  profile shows them as a "Track record" list under the bio ("12 stories")
+  and its work in Radix tabs, Stories and Thread posts, the tab in the URL
+  as `?tab=posts`. ListUserPosts (public, keyset-paged) lists a writer's
+  thread posts newest first with the lore, day, place and a 240-character
+  excerpt cut at a word, leaving out what the lore page hides: deleted or
+  hidden posts, replies under a hidden post, posts of deleted accounts and
+  lores under a hidden place. Migration 37 indexes lore_posts by (author,
+  created_at, id): with 200k posts by 20k writers loaded into the dev
+  database in a rolled-back transaction, a first page went from 54 ms (a
+  parallel sequential scan) to 1.1 ms; ProfileStats was index-served
+  throughout at 5.5 ms cold. Verified by TestGetProfileTrackRecord (13
+  readable-only cases), TestListUserPostsVisibility, Fields, Paging and
+  Rejects, the profile's vitest cases (stat row, tabs, URL tab), the
+  375-pixel overflow and target checks on `?tab=posts`, and the axe scan
+  of the Thread posts tab in both themes.
+- Fewer round trips on lore, place-tab and arc reads, from the third load
+  test (45.7 statements a reader journey, throughput bound by statements
+  per request). GetLore carries its arc's hidden-place flag (ArcPlaceHidden's
+  rule), so the lore page and every thread read or write that checks the
+  lore drop ArcPlaceHidden. A place tab of GetEpic reads the place (as
+  GetVisiblePlace does) in the same statement as its listing, a LEFT JOIN
+  that returns the place even when nothing is listed. ListArcTales,
+  ListArcUnlinked and ListOpenCharacters read the arc's visibility
+  (GetArcRow's rule) themselves, and the arc row is read only when the
+  list comes back empty or the token is bad, to answer NotFound as before.
+  GetArc reads its first tales and unlinked pages in one statement
+  (ListArcFirstPerspectives, a UNION ALL with a limit per side), and its
+  sublores' members and encounters join the canon batch. Statements per
+  call, BEGIN and ROLLBACK included, pinned by the querycount tests in
+  internal/arc, internal/place and (new) internal/lore: GetLore 4 to 3;
+  ListLorePosts 4 to 3 signed out, 5 to 4 signed in; ListLorePostReplies
+  4 to 3; GetEpic for a place 2 to 1 on each tab, listing or not; GetArc
+  on a day with a canon, a sublore and an hour canon 12 to 9 signed out
+  and 14 to 11 signed in, on a day of one or five canon hours 10 to 9, on
+  an hour 9 to 8; ListArcSection tales or unlinked signed out 2 to 1 (2
+  when the page is empty), tales signed in 5 to 4, sublores 6 and hours 7
+  unchanged; ListOpenCharacters 2 to 1 (2 when none is open). Responses
+  are unchanged: temporary harnesses ran HEAD's code beside the new code
+  on one database and compared deterministic proto bytes and errors on
+  2,152 arc calls (GetArc, every ListArcSection section with page walks
+  and bad tokens, ListOpenCharacters; days, hours, hidden, under-hidden and
+  unknown arcs; three viewers; page sizes 0 to 10), 870 lore calls
+  (GetLore, ListLorePosts in every sort, replies; hidden and under-hidden
+  lores) and 4,972 GetEpic calls (every tab, genre and category filters,
+  hidden, under-hidden, missing and front-page targets, page walks); all
+  matched, and a mutation of the old code failed each harness. The
+  harnesses were deleted. internal/arc/read.go (714 lines) is split by
+  moving code into read.go, hours.go, lores.go, sections.go and
+  characters.go, and the epic listings moved from internal/place/store.go
+  (770 lines) to epic.go. Not yet re-measured under load.
 - Release check on k3s at dc37f9e: deploy/k3s/e2e.sh passes from a clean
   checkout in 325 s, image build included. The migration Job applied 1 to
   36; api and worker came Ready; /healthz answered through the ingress over

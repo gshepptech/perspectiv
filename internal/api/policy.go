@@ -89,6 +89,7 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.UserService/ExportMyData":        {Access: User, RateLimit: LimitExport},
 	"/perspectiv.v1.UserService/FollowUser":          {Access: User},
 	"/perspectiv.v1.UserService/ListFollowedWriters": {Access: User},
+	"/perspectiv.v1.UserService/ListUserPosts":       {Access: Public},
 
 	"/perspectiv.v1.PlaceService/SearchPlaces": {Access: Public},
 	"/perspectiv.v1.PlaceService/GetPlace":     {Access: Public},

@@ -26,6 +26,9 @@ service UserService {
   rpc FollowUser(FollowUserRequest) returns (FollowUserResponse);
   // The writers the caller follows.
   rpc ListFollowedWriters(ListFollowedWritersRequest) returns (ListFollowedWritersResponse);
+  // Public. A writer's lore thread posts that readers can see, newest first,
+  // for the Thread posts tab of their profile.
+  rpc ListUserPosts(ListUserPostsRequest) returns (ListUserPostsResponse);
 }
 
 // UserRef is how one user appears to another: an id and a chosen username,
@@ -51,6 +54,19 @@ message Profile {
   // perspectives are members of: their badges.
   int32 canon_count = 8;
   int32 lore_count = 9;
+  // The track record counts only what a reader can open. A readable story
+  // is published and neither deleted, hidden nor filed at or below a hidden
+  // place. story_count is how many readable stories the user has.
+  int32 story_count = 10;
+  // Upvotes on the user's readable stories from accounts that are not
+  // deleted.
+  int32 upvotes_received = 11;
+  // The distinct other people, accounts not deleted, linked to the user by
+  // an accepted claim between two readable stories, whichever of the two
+  // made the claim.
+  int32 people_found = 12;
+  // The distinct places the user's readable stories sit at.
+  int32 places_written = 13;
 }
 
 // Account is the caller's own private account state. It is the only message
@@ -165,4 +181,40 @@ message ListFollowedWritersResponse {
   // At most 100 writers, most recently followed first. Deleted accounts are
   // left out.
   repeated FollowedWriter writers = 1;
+}
+
+message ListUserPostsRequest {
+  // The writer, as GetProfile returns them.
+  string user_id = 1;
+  string page_token = 2;
+  int32 page_size = 3;
+}
+
+// UserPost is one of a writer's lore thread posts as their profile lists it.
+message UserPost {
+  string id = 1;
+  string lore_id = 2;
+  // The lore's name; empty while its members have not named it.
+  string lore_name = 3;
+  // The day (or hour) the lore belongs to: its id, title, place-local date
+  // (YYYY-MM-DD), hour (unset for a day) and place.
+  string arc_id = 4;
+  string arc_title = 5;
+  string local_date = 6;
+  optional int32 hour = 7;
+  string place_name = 8;
+  // The post's text with its whitespace folded, cut at a word near 240
+  // characters and ended with "…" when cut.
+  string excerpt = 9;
+  // True for a reply under another post.
+  bool reply = 10;
+  google.protobuf.Timestamp created_at = 11;
+}
+
+message ListUserPostsResponse {
+  // Newest first. Only posts a reader of the lore page sees: never a deleted
+  // or hidden post, a reply under a hidden post, a post by a deleted
+  // account, or a post in a lore whose arc is at or below a hidden place.
+  repeated UserPost posts = 1;
+  string next_page_token = 2;
 }

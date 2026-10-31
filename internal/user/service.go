@@ -80,11 +80,22 @@ type Profile struct {
 	// (canon included) their readable perspectives belong to.
 	CanonCount int32
 	LoreCount  int32
+	// Stats is the track record; GetProfile alone sets it.
+	Stats Stats
 	// Followers counts the live accounts following the user. Following is
 	// whether the signed-in caller follows them; it is false for the
 	// caller's own profile. GetProfile alone sets both.
 	Followers int32
 	Following bool
+}
+
+// Stats is a profile's track record. Each counts only what a reader can
+// open: see ProfileStats in queries.sql for the rules.
+type Stats struct {
+	Stories         int32
+	UpvotesReceived int32
+	PeopleFound     int32
+	PlacesWritten   int32
 }
 
 // Account is the owner's private account state.
@@ -155,14 +166,20 @@ func (s *Service) GetProfile(ctx context.Context, caller *uuid.UUID, q ProfileQu
 	return p, acct, nil
 }
 
-// liveCounts sets a live profile's badges, its follower count and whether
-// the caller follows it.
+// liveCounts sets a live profile's badges, its track record, its follower
+// count and whether the caller follows it.
 func (s *Service) liveCounts(ctx context.Context, caller *uuid.UUID, p *Profile) error {
-	counts, err := s.q.LoreCounts(ctx, p.UserID)
+	st, err := s.q.ProfileStats(ctx, p.UserID)
 	if err != nil {
-		return apiutil.Internal(fmt.Errorf("count lores: %w", err))
+		return apiutil.Internal(fmt.Errorf("profile stats: %w", err))
 	}
-	p.CanonCount, p.LoreCount = counts.CanonCount, counts.LoreCount
+	p.CanonCount, p.LoreCount = st.CanonCount, st.LoreCount
+	p.Stats = Stats{
+		Stories:         st.StoryCount,
+		UpvotesReceived: st.UpvotesReceived,
+		PeopleFound:     st.PeopleFound,
+		PlacesWritten:   st.PlacesWritten,
+	}
 	return s.followInfo(ctx, caller, p)
 }
 

@@ -105,7 +105,20 @@ LIMIT sqlc.arg(row_limit)::int;
 -- name: ListArcTales :many
 -- SOLO and REMOVED perspectives in the arc that are in no lore, oldest
 -- first, keyset-paginated on (published_at, id); served by
--- perspectives_tales_idx scanned backwards.
+-- perspectives_tales_idx scanned backwards. The arc's own visibility is read
+-- here too (GetArcRow's rule), so a page of an arc at or under a hidden
+-- place is empty and needs no arc read before it.
+WITH RECURSIVE up AS (
+    SELECT pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM arcs a0
+    JOIN places pl ON pl.id = a0.place_id
+    WHERE a0.id = sqlc.arg(arc_id)::uuid
+    UNION ALL
+    SELECT parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
 SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
        lm.lore_id AS member_of,
        pe.published_at, pe.deleted_at, pe.hidden_at,
@@ -120,16 +133,74 @@ WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
   AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND pe.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
   AND lm.perspective_id IS NULL  -- on the join column, so it plans as an anti-join
+  -- None at all when the arc's place or any of the seven above it is hidden.
+  AND NOT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)
   AND (sqlc.narg(after_at)::timestamptz IS NULL
        OR (pe.published_at, pe.id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
 ORDER BY pe.published_at, pe.id
 LIMIT sqlc.arg(row_limit)::int;
 
+-- name: ListArcFirstPerspectives :many
+-- The first page of the arc's tales and the first page of its unlinked
+-- perspectives, in one statement for the arc page's first screen: each side
+-- is ListArcTales or ListArcUnlinked with no cursor and its own limit, tales
+-- first. The caller has already read the arc in the same snapshot.
+SELECT s.id, s.author_id, s.author_username, s.genre, s.lore_status, s.member_of,
+       s.published_at, s.deleted_at, s.hidden_at, s.opening, s.part_count, s.upvotes, s.tale
+FROM (
+    (SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
+           lm.lore_id AS member_of, true AS tale,
+           pe.published_at, pe.deleted_at, pe.hidden_at,
+           COALESCE((SELECT left(pp.body, 241) FROM perspective_parts pp
+                     WHERE pp.perspective_id = pe.id ORDER BY pp.position LIMIT 1), '')::text AS opening,
+           (SELECT count(*) FROM perspective_parts pp WHERE pp.perspective_id = pe.id)::int AS part_count,
+           (SELECT count(*) FROM votes v WHERE v.perspective_id = pe.id)::int AS upvotes
+    FROM perspectives pe
+    JOIN users u ON u.id = pe.author_id
+    LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
+    WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
+      AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND pe.lore_status IN ('LORE_STATUS_SOLO', 'LORE_STATUS_REMOVED')
+      AND lm.perspective_id IS NULL  -- on the join column, so it plans as an anti-join
+    ORDER BY pe.published_at, pe.id
+    LIMIT sqlc.arg(row_limit)::int)
+    UNION ALL
+    (SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
+           lm.lore_id AS member_of, false AS tale,
+           pe.published_at, pe.deleted_at, pe.hidden_at,
+           COALESCE((SELECT left(pp.body, 241) FROM perspective_parts pp
+                     WHERE pp.perspective_id = pe.id ORDER BY pp.position LIMIT 1), '')::text AS opening,
+           (SELECT count(*) FROM perspective_parts pp WHERE pp.perspective_id = pe.id)::int AS part_count,
+           (SELECT count(*) FROM votes v WHERE v.perspective_id = pe.id)::int AS upvotes
+    FROM perspectives pe
+    JOIN users u ON u.id = pe.author_id
+    LEFT JOIN lore_members lm ON lm.perspective_id = pe.id
+    WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
+      AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
+      AND pe.lore_status IN ('LORE_STATUS_PENDING', 'LORE_STATUS_IN_LORE')
+      AND lm.perspective_id IS NULL  -- on the join column, so it plans as an anti-join
+    ORDER BY pe.published_at, pe.id
+    LIMIT sqlc.arg(row_limit)::int)
+) s
+ORDER BY s.tale DESC, s.published_at, s.id;
+
 -- name: ListArcUnlinked :many
 -- Published perspectives in the arc that are in no lore and are not tales:
 -- PENDING, or IN_LORE before membership is recomputed. Oldest first,
 -- keyset-paginated on (published_at, id); served by
--- perspectives_arc_unlinked_idx.
+-- perspectives_arc_unlinked_idx. Empty for an arc at or under a hidden
+-- place, as ListArcTales.
+WITH RECURSIVE up AS (
+    SELECT pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM arcs a0
+    JOIN places pl ON pl.id = a0.place_id
+    WHERE a0.id = sqlc.arg(arc_id)::uuid
+    UNION ALL
+    SELECT parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
 SELECT pe.id, pe.author_id, u.username AS author_username, pe.genre, pe.lore_status,
        lm.lore_id AS member_of,
        pe.published_at, pe.deleted_at, pe.hidden_at,
@@ -144,6 +215,8 @@ WHERE pe.arc_id = sqlc.arg(arc_id)::uuid
   AND pe.status = 'PERSPECTIVE_STATUS_PUBLISHED'
   AND pe.lore_status IN ('LORE_STATUS_PENDING', 'LORE_STATUS_IN_LORE')
   AND lm.perspective_id IS NULL  -- on the join column, so it plans as an anti-join
+  -- None at all when the arc's place or any of the seven above it is hidden.
+  AND NOT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)
   AND (sqlc.narg(after_at)::timestamptz IS NULL
        OR (pe.published_at, pe.id) > (sqlc.narg(after_at)::timestamptz, sqlc.narg(after_id)::uuid))
 ORDER BY pe.published_at, pe.id
@@ -222,6 +295,19 @@ WHERE user_id = sqlc.arg(user_id)::uuid AND perspective_id = ANY(sqlc.arg(ids)::
 -- Characters in the arc's readable stories with no pending or accepted
 -- claim. A story voted out of its lore cannot be claimed from, and a deleted
 -- author's stories are not shown.
+-- None at all when the arc's place or any of the seven above it is hidden
+-- (GetArcRow's rule), so the list needs no arc read before it.
+WITH RECURSIVE up AS (
+    SELECT pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM arcs a0
+    JOIN places pl ON pl.id = a0.place_id
+    WHERE a0.id = sqlc.arg(arc_id)::uuid
+    UNION ALL
+    SELECT parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
 SELECT c.id, c.label, c.perspective_id, p.author_id, u.username
 FROM characters c
 JOIN perspectives p ON p.id = c.perspective_id
@@ -235,6 +321,7 @@ WHERE p.arc_id = sqlc.arg(arc_id)::uuid
         SELECT 1 FROM claims cl
         WHERE cl.character_id = c.id
           AND cl.status IN ('CLAIM_STATUS_PENDING', 'CLAIM_STATUS_ACCEPTED'))
+  AND NOT EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)
 ORDER BY p.published_at, p.id, c.position
 LIMIT 200;
 

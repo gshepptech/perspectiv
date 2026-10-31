@@ -290,6 +290,10 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
           joinedAt: ts,
           canonCount: 4321,
           loreCount: 8765,
+          storyCount: 123456,
+          upvotesReceived: 9876543,
+          peopleFound: 54321,
+          placesWritten: 12345,
         },
         account: {
           email: `${longWord.toLowerCase()}.${longWord.toLowerCase()}@example.com`,
@@ -299,6 +303,25 @@ function reply(procedure: string, body: Record<string, unknown>): unknown {
           nextUsernameChangeAt: "2030-01-01T00:00:00Z",
           blocked: [user("u-bl1"), user("u-bl2")],
         },
+      };
+    case "UserService/ListUserPosts":
+      // A long lore name, an hour arc's long title at the long store, a
+      // full-length excerpt with an unbreakable word, and a reply.
+      return {
+        posts: [0, 1].map((i) => ({
+          id: `up-${i}`,
+          loreId: "lore-canon",
+          loreName: i === 0 ? longTitle : "",
+          arcId: "a-day",
+          arcTitle: `${title.slice(0, 72)} · 23:00`,
+          localDate: "2026-10-15",
+          hour: 23,
+          placeName: storeName,
+          excerpt: `${prose.slice(0, 239)}…`,
+          reply: i === 1,
+          createdAt: ts,
+        })),
+        nextPageToken: "more",
       };
     case "UserService/ListFollowedWriters":
       return { writers: [user("u-fw1"), user("u-fw2")].map((w) => ({ ...w, avatarUrl: "/avatars/fw.png", followedAt: ts })) };
@@ -525,6 +548,7 @@ const cases: Case[] = [
   { path: "/saved", text: longTitle },
   { path: "/appearance", label: "Larger" },
   { path: "/users/other", text: "12345 followers" },
+  { path: "/users/other?tab=posts", text: "Unnamed lore" },
   { path: "/inbox", text: longTitle },
   { path: "/admin/audit", text: "hid a place" },
   { path: `/admin/users?q=${username}`, text: "23456, 3456 hidden" },
@@ -553,9 +577,9 @@ describe("every route at 375 pixels (OT-037, AC-034)", () => {
  * Every control on the newest screens is a 44-pixel target (Folio,
  * Interaction), measured in the browser at 375 pixels with Larger story
  * text: the thread, Writers you follow, Saved, Appearance, a profile's
- * Follow, the best days at a kind of place and the report queue with its
- * disclosure open. A link set inline in a sentence is exempt, as WCAG's
- * target size is.
+ * Follow, tabs and Thread posts, the best days at a kind of place and the
+ * report queue with its disclosure open. A link set inline in a sentence is
+ * exempt, as WCAG's target size is.
  */
 describe("the newest screens' targets at 375 pixels", () => {
   const screens: (Case & { scope: string; open?: string })[] = [
@@ -564,6 +588,7 @@ describe("the newest screens' targets at 375 pixels", () => {
     { path: "/saved", text: longTitle, scope: "main" },
     { path: "/appearance", label: "Larger", scope: "main" },
     { path: "/users/other", text: "12345 followers", scope: "main" },
+    { path: "/users/other?tab=posts", text: "Unnamed lore", scope: "main" },
     { path: "/best/arts-and-entertainment", signedIn: false, text: longTitle, scope: "main" },
     { path: "/best/bowling", signedIn: false, text: "Kind of place not found", scope: "main" },
     { path: "/admin/reports", text: storeName, scope: "main", open: "What it said when reported" },

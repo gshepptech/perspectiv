@@ -91,8 +91,21 @@ type Profile struct {
 	Deleted bool `protobuf:"varint,7,opt,name=deleted,proto3" json:"deleted,omitempty"`
 	// How many canons and how many lores (canon included) the user's readable
 	// perspectives are members of: their badges.
-	CanonCount    int32 `protobuf:"varint,8,opt,name=canon_count,json=canonCount,proto3" json:"canon_count,omitempty"`
-	LoreCount     int32 `protobuf:"varint,9,opt,name=lore_count,json=loreCount,proto3" json:"lore_count,omitempty"`
+	CanonCount int32 `protobuf:"varint,8,opt,name=canon_count,json=canonCount,proto3" json:"canon_count,omitempty"`
+	LoreCount  int32 `protobuf:"varint,9,opt,name=lore_count,json=loreCount,proto3" json:"lore_count,omitempty"`
+	// The track record counts only what a reader can open. A readable story
+	// is published and neither deleted, hidden nor filed at or below a hidden
+	// place. story_count is how many readable stories the user has.
+	StoryCount int32 `protobuf:"varint,10,opt,name=story_count,json=storyCount,proto3" json:"story_count,omitempty"`
+	// Upvotes on the user's readable stories from accounts that are not
+	// deleted.
+	UpvotesReceived int32 `protobuf:"varint,11,opt,name=upvotes_received,json=upvotesReceived,proto3" json:"upvotes_received,omitempty"`
+	// The distinct other people, accounts not deleted, linked to the user by
+	// an accepted claim between two readable stories, whichever of the two
+	// made the claim.
+	PeopleFound int32 `protobuf:"varint,12,opt,name=people_found,json=peopleFound,proto3" json:"people_found,omitempty"`
+	// The distinct places the user's readable stories sit at.
+	PlacesWritten int32 `protobuf:"varint,13,opt,name=places_written,json=placesWritten,proto3" json:"places_written,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -186,6 +199,34 @@ func (x *Profile) GetCanonCount() int32 {
 func (x *Profile) GetLoreCount() int32 {
 	if x != nil {
 		return x.LoreCount
+	}
+	return 0
+}
+
+func (x *Profile) GetStoryCount() int32 {
+	if x != nil {
+		return x.StoryCount
+	}
+	return 0
+}
+
+func (x *Profile) GetUpvotesReceived() int32 {
+	if x != nil {
+		return x.UpvotesReceived
+	}
+	return 0
+}
+
+func (x *Profile) GetPeopleFound() int32 {
+	if x != nil {
+		return x.PeopleFound
+	}
+	return 0
+}
+
+func (x *Profile) GetPlacesWritten() int32 {
+	if x != nil {
+		return x.PlacesWritten
 	}
 	return 0
 }
@@ -1193,6 +1234,253 @@ func (x *ListFollowedWritersResponse) GetWriters() []*FollowedWriter {
 	return nil
 }
 
+type ListUserPostsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The writer, as GetProfile returns them.
+	UserId        string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	PageToken     string `protobuf:"bytes,2,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	PageSize      int32  `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUserPostsRequest) Reset() {
+	*x = ListUserPostsRequest{}
+	mi := &file_perspectiv_v1_user_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUserPostsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUserPostsRequest) ProtoMessage() {}
+
+func (x *ListUserPostsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_user_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUserPostsRequest.ProtoReflect.Descriptor instead.
+func (*ListUserPostsRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_user_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListUserPostsRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ListUserPostsRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+func (x *ListUserPostsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+// UserPost is one of a writer's lore thread posts as their profile lists it.
+type UserPost struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Id     string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	LoreId string                 `protobuf:"bytes,2,opt,name=lore_id,json=loreId,proto3" json:"lore_id,omitempty"`
+	// The lore's name; empty while its members have not named it.
+	LoreName string `protobuf:"bytes,3,opt,name=lore_name,json=loreName,proto3" json:"lore_name,omitempty"`
+	// The day (or hour) the lore belongs to: its id, title, place-local date
+	// (YYYY-MM-DD), hour (unset for a day) and place.
+	ArcId     string `protobuf:"bytes,4,opt,name=arc_id,json=arcId,proto3" json:"arc_id,omitempty"`
+	ArcTitle  string `protobuf:"bytes,5,opt,name=arc_title,json=arcTitle,proto3" json:"arc_title,omitempty"`
+	LocalDate string `protobuf:"bytes,6,opt,name=local_date,json=localDate,proto3" json:"local_date,omitempty"`
+	Hour      *int32 `protobuf:"varint,7,opt,name=hour,proto3,oneof" json:"hour,omitempty"`
+	PlaceName string `protobuf:"bytes,8,opt,name=place_name,json=placeName,proto3" json:"place_name,omitempty"`
+	// The post's text with its whitespace folded, cut at a word near 240
+	// characters and ended with "…" when cut.
+	Excerpt string `protobuf:"bytes,9,opt,name=excerpt,proto3" json:"excerpt,omitempty"`
+	// True for a reply under another post.
+	Reply         bool                   `protobuf:"varint,10,opt,name=reply,proto3" json:"reply,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserPost) Reset() {
+	*x = UserPost{}
+	mi := &file_perspectiv_v1_user_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserPost) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserPost) ProtoMessage() {}
+
+func (x *UserPost) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_user_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserPost.ProtoReflect.Descriptor instead.
+func (*UserPost) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_user_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UserPost) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UserPost) GetLoreId() string {
+	if x != nil {
+		return x.LoreId
+	}
+	return ""
+}
+
+func (x *UserPost) GetLoreName() string {
+	if x != nil {
+		return x.LoreName
+	}
+	return ""
+}
+
+func (x *UserPost) GetArcId() string {
+	if x != nil {
+		return x.ArcId
+	}
+	return ""
+}
+
+func (x *UserPost) GetArcTitle() string {
+	if x != nil {
+		return x.ArcTitle
+	}
+	return ""
+}
+
+func (x *UserPost) GetLocalDate() string {
+	if x != nil {
+		return x.LocalDate
+	}
+	return ""
+}
+
+func (x *UserPost) GetHour() int32 {
+	if x != nil && x.Hour != nil {
+		return *x.Hour
+	}
+	return 0
+}
+
+func (x *UserPost) GetPlaceName() string {
+	if x != nil {
+		return x.PlaceName
+	}
+	return ""
+}
+
+func (x *UserPost) GetExcerpt() string {
+	if x != nil {
+		return x.Excerpt
+	}
+	return ""
+}
+
+func (x *UserPost) GetReply() bool {
+	if x != nil {
+		return x.Reply
+	}
+	return false
+}
+
+func (x *UserPost) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+type ListUserPostsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Newest first. Only posts a reader of the lore page sees: never a deleted
+	// or hidden post, a reply under a hidden post, a post by a deleted
+	// account, or a post in a lore whose arc is at or below a hidden place.
+	Posts         []*UserPost `protobuf:"bytes,1,rep,name=posts,proto3" json:"posts,omitempty"`
+	NextPageToken string      `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUserPostsResponse) Reset() {
+	*x = ListUserPostsResponse{}
+	mi := &file_perspectiv_v1_user_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUserPostsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUserPostsResponse) ProtoMessage() {}
+
+func (x *ListUserPostsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_user_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUserPostsResponse.ProtoReflect.Descriptor instead.
+func (*ListUserPostsResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_user_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ListUserPostsResponse) GetPosts() []*UserPost {
+	if x != nil {
+		return x.Posts
+	}
+	return nil
+}
+
+func (x *ListUserPostsResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
 var File_perspectiv_v1_user_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_user_proto_rawDesc = "" +
@@ -1200,7 +1488,7 @@ const file_perspectiv_v1_user_proto_rawDesc = "" +
 	"\x18perspectiv/v1/user.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\">\n" +
 	"\aUserRef\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
-	"\busername\x18\x02 \x01(\tR\busername\"\xa0\x02\n" +
+	"\busername\x18\x02 \x01(\tR\busername\"\xb6\x03\n" +
 	"\aProfile\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x10\n" +
@@ -1213,7 +1501,13 @@ const file_perspectiv_v1_user_proto_rawDesc = "" +
 	"\vcanon_count\x18\b \x01(\x05R\n" +
 	"canonCount\x12\x1d\n" +
 	"\n" +
-	"lore_count\x18\t \x01(\x05R\tloreCount\"\xc0\x02\n" +
+	"lore_count\x18\t \x01(\x05R\tloreCount\x12\x1f\n" +
+	"\vstory_count\x18\n" +
+	" \x01(\x05R\n" +
+	"storyCount\x12)\n" +
+	"\x10upvotes_received\x18\v \x01(\x05R\x0fupvotesReceived\x12!\n" +
+	"\fpeople_found\x18\f \x01(\x05R\vpeopleFound\x12%\n" +
+	"\x0eplaces_written\x18\r \x01(\x05R\rplacesWritten\"\xc0\x02\n" +
 	"\aAccount\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12%\n" +
 	"\x0eemail_verified\x18\x02 \x01(\bR\remailVerified\x12'\n" +
@@ -1267,7 +1561,32 @@ const file_perspectiv_v1_user_proto_rawDesc = "" +
 	"\vfollowed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"followedAt\"V\n" +
 	"\x1bListFollowedWritersResponse\x127\n" +
-	"\awriters\x18\x01 \x03(\v2\x1d.perspectiv.v1.FollowedWriterR\awriters2\xb7\x06\n" +
+	"\awriters\x18\x01 \x03(\v2\x1d.perspectiv.v1.FollowedWriterR\awriters\"k\n" +
+	"\x14ListUserPostsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\"\xcf\x02\n" +
+	"\bUserPost\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\alore_id\x18\x02 \x01(\tR\x06loreId\x12\x1b\n" +
+	"\tlore_name\x18\x03 \x01(\tR\bloreName\x12\x15\n" +
+	"\x06arc_id\x18\x04 \x01(\tR\x05arcId\x12\x1b\n" +
+	"\tarc_title\x18\x05 \x01(\tR\barcTitle\x12\x1d\n" +
+	"\n" +
+	"local_date\x18\x06 \x01(\tR\tlocalDate\x12\x17\n" +
+	"\x04hour\x18\a \x01(\x05H\x00R\x04hour\x88\x01\x01\x12\x1d\n" +
+	"\n" +
+	"place_name\x18\b \x01(\tR\tplaceName\x12\x18\n" +
+	"\aexcerpt\x18\t \x01(\tR\aexcerpt\x12\x14\n" +
+	"\x05reply\x18\n" +
+	" \x01(\bR\x05reply\x129\n" +
+	"\n" +
+	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAtB\a\n" +
+	"\x05_hour\"n\n" +
+	"\x15ListUserPostsResponse\x12-\n" +
+	"\x05posts\x18\x01 \x03(\v2\x17.perspectiv.v1.UserPostR\x05posts\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken2\x93\a\n" +
 	"\vUserService\x12Q\n" +
 	"\n" +
 	"GetProfile\x12 .perspectiv.v1.GetProfileRequest\x1a!.perspectiv.v1.GetProfileResponse\x12Z\n" +
@@ -1279,7 +1598,8 @@ const file_perspectiv_v1_user_proto_rawDesc = "" +
 	"\fExportMyData\x12\".perspectiv.v1.ExportMyDataRequest\x1a#.perspectiv.v1.ExportMyDataResponse\x12Q\n" +
 	"\n" +
 	"FollowUser\x12 .perspectiv.v1.FollowUserRequest\x1a!.perspectiv.v1.FollowUserResponse\x12l\n" +
-	"\x13ListFollowedWriters\x12).perspectiv.v1.ListFollowedWritersRequest\x1a*.perspectiv.v1.ListFollowedWritersResponseB\x9e\x01\n" +
+	"\x13ListFollowedWriters\x12).perspectiv.v1.ListFollowedWritersRequest\x1a*.perspectiv.v1.ListFollowedWritersResponse\x12Z\n" +
+	"\rListUserPosts\x12#.perspectiv.v1.ListUserPostsRequest\x1a$.perspectiv.v1.ListUserPostsResponseB\x9e\x01\n" +
 	"\x11com.perspectiv.v1B\tUserProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -1294,7 +1614,7 @@ func file_perspectiv_v1_user_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_user_proto_rawDescData
 }
 
-var file_perspectiv_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_perspectiv_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_perspectiv_v1_user_proto_goTypes = []any{
 	(*UserRef)(nil),                     // 0: perspectiv.v1.UserRef
 	(*Profile)(nil),                     // 1: perspectiv.v1.Profile
@@ -1318,45 +1638,52 @@ var file_perspectiv_v1_user_proto_goTypes = []any{
 	(*ListFollowedWritersRequest)(nil),  // 19: perspectiv.v1.ListFollowedWritersRequest
 	(*FollowedWriter)(nil),              // 20: perspectiv.v1.FollowedWriter
 	(*ListFollowedWritersResponse)(nil), // 21: perspectiv.v1.ListFollowedWritersResponse
-	(*timestamppb.Timestamp)(nil),       // 22: google.protobuf.Timestamp
-	(Role)(0),                           // 23: perspectiv.v1.Role
+	(*ListUserPostsRequest)(nil),        // 22: perspectiv.v1.ListUserPostsRequest
+	(*UserPost)(nil),                    // 23: perspectiv.v1.UserPost
+	(*ListUserPostsResponse)(nil),       // 24: perspectiv.v1.ListUserPostsResponse
+	(*timestamppb.Timestamp)(nil),       // 25: google.protobuf.Timestamp
+	(Role)(0),                           // 26: perspectiv.v1.Role
 }
 var file_perspectiv_v1_user_proto_depIdxs = []int32{
-	22, // 0: perspectiv.v1.Profile.joined_at:type_name -> google.protobuf.Timestamp
-	23, // 1: perspectiv.v1.Account.role:type_name -> perspectiv.v1.Role
-	22, // 2: perspectiv.v1.Account.username_changed_at:type_name -> google.protobuf.Timestamp
-	22, // 3: perspectiv.v1.Account.next_username_change_at:type_name -> google.protobuf.Timestamp
+	25, // 0: perspectiv.v1.Profile.joined_at:type_name -> google.protobuf.Timestamp
+	26, // 1: perspectiv.v1.Account.role:type_name -> perspectiv.v1.Role
+	25, // 2: perspectiv.v1.Account.username_changed_at:type_name -> google.protobuf.Timestamp
+	25, // 3: perspectiv.v1.Account.next_username_change_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: perspectiv.v1.Account.blocked:type_name -> perspectiv.v1.UserRef
 	1,  // 5: perspectiv.v1.GetProfileResponse.profile:type_name -> perspectiv.v1.Profile
 	2,  // 6: perspectiv.v1.GetProfileResponse.account:type_name -> perspectiv.v1.Account
 	1,  // 7: perspectiv.v1.UpdateProfileResponse.profile:type_name -> perspectiv.v1.Profile
 	1,  // 8: perspectiv.v1.ChangeUsernameResponse.profile:type_name -> perspectiv.v1.Profile
-	22, // 9: perspectiv.v1.ChangeUsernameResponse.next_username_change_at:type_name -> google.protobuf.Timestamp
-	22, // 10: perspectiv.v1.FollowedWriter.followed_at:type_name -> google.protobuf.Timestamp
+	25, // 9: perspectiv.v1.ChangeUsernameResponse.next_username_change_at:type_name -> google.protobuf.Timestamp
+	25, // 10: perspectiv.v1.FollowedWriter.followed_at:type_name -> google.protobuf.Timestamp
 	20, // 11: perspectiv.v1.ListFollowedWritersResponse.writers:type_name -> perspectiv.v1.FollowedWriter
-	3,  // 12: perspectiv.v1.UserService.GetProfile:input_type -> perspectiv.v1.GetProfileRequest
-	5,  // 13: perspectiv.v1.UserService.UpdateProfile:input_type -> perspectiv.v1.UpdateProfileRequest
-	7,  // 14: perspectiv.v1.UserService.ChangeUsername:input_type -> perspectiv.v1.ChangeUsernameRequest
-	9,  // 15: perspectiv.v1.UserService.BlockUser:input_type -> perspectiv.v1.BlockUserRequest
-	11, // 16: perspectiv.v1.UserService.UnblockUser:input_type -> perspectiv.v1.UnblockUserRequest
-	13, // 17: perspectiv.v1.UserService.DeleteAccount:input_type -> perspectiv.v1.DeleteAccountRequest
-	15, // 18: perspectiv.v1.UserService.ExportMyData:input_type -> perspectiv.v1.ExportMyDataRequest
-	17, // 19: perspectiv.v1.UserService.FollowUser:input_type -> perspectiv.v1.FollowUserRequest
-	19, // 20: perspectiv.v1.UserService.ListFollowedWriters:input_type -> perspectiv.v1.ListFollowedWritersRequest
-	4,  // 21: perspectiv.v1.UserService.GetProfile:output_type -> perspectiv.v1.GetProfileResponse
-	6,  // 22: perspectiv.v1.UserService.UpdateProfile:output_type -> perspectiv.v1.UpdateProfileResponse
-	8,  // 23: perspectiv.v1.UserService.ChangeUsername:output_type -> perspectiv.v1.ChangeUsernameResponse
-	10, // 24: perspectiv.v1.UserService.BlockUser:output_type -> perspectiv.v1.BlockUserResponse
-	12, // 25: perspectiv.v1.UserService.UnblockUser:output_type -> perspectiv.v1.UnblockUserResponse
-	14, // 26: perspectiv.v1.UserService.DeleteAccount:output_type -> perspectiv.v1.DeleteAccountResponse
-	16, // 27: perspectiv.v1.UserService.ExportMyData:output_type -> perspectiv.v1.ExportMyDataResponse
-	18, // 28: perspectiv.v1.UserService.FollowUser:output_type -> perspectiv.v1.FollowUserResponse
-	21, // 29: perspectiv.v1.UserService.ListFollowedWriters:output_type -> perspectiv.v1.ListFollowedWritersResponse
-	21, // [21:30] is the sub-list for method output_type
-	12, // [12:21] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	25, // 12: perspectiv.v1.UserPost.created_at:type_name -> google.protobuf.Timestamp
+	23, // 13: perspectiv.v1.ListUserPostsResponse.posts:type_name -> perspectiv.v1.UserPost
+	3,  // 14: perspectiv.v1.UserService.GetProfile:input_type -> perspectiv.v1.GetProfileRequest
+	5,  // 15: perspectiv.v1.UserService.UpdateProfile:input_type -> perspectiv.v1.UpdateProfileRequest
+	7,  // 16: perspectiv.v1.UserService.ChangeUsername:input_type -> perspectiv.v1.ChangeUsernameRequest
+	9,  // 17: perspectiv.v1.UserService.BlockUser:input_type -> perspectiv.v1.BlockUserRequest
+	11, // 18: perspectiv.v1.UserService.UnblockUser:input_type -> perspectiv.v1.UnblockUserRequest
+	13, // 19: perspectiv.v1.UserService.DeleteAccount:input_type -> perspectiv.v1.DeleteAccountRequest
+	15, // 20: perspectiv.v1.UserService.ExportMyData:input_type -> perspectiv.v1.ExportMyDataRequest
+	17, // 21: perspectiv.v1.UserService.FollowUser:input_type -> perspectiv.v1.FollowUserRequest
+	19, // 22: perspectiv.v1.UserService.ListFollowedWriters:input_type -> perspectiv.v1.ListFollowedWritersRequest
+	22, // 23: perspectiv.v1.UserService.ListUserPosts:input_type -> perspectiv.v1.ListUserPostsRequest
+	4,  // 24: perspectiv.v1.UserService.GetProfile:output_type -> perspectiv.v1.GetProfileResponse
+	6,  // 25: perspectiv.v1.UserService.UpdateProfile:output_type -> perspectiv.v1.UpdateProfileResponse
+	8,  // 26: perspectiv.v1.UserService.ChangeUsername:output_type -> perspectiv.v1.ChangeUsernameResponse
+	10, // 27: perspectiv.v1.UserService.BlockUser:output_type -> perspectiv.v1.BlockUserResponse
+	12, // 28: perspectiv.v1.UserService.UnblockUser:output_type -> perspectiv.v1.UnblockUserResponse
+	14, // 29: perspectiv.v1.UserService.DeleteAccount:output_type -> perspectiv.v1.DeleteAccountResponse
+	16, // 30: perspectiv.v1.UserService.ExportMyData:output_type -> perspectiv.v1.ExportMyDataResponse
+	18, // 31: perspectiv.v1.UserService.FollowUser:output_type -> perspectiv.v1.FollowUserResponse
+	21, // 32: perspectiv.v1.UserService.ListFollowedWriters:output_type -> perspectiv.v1.ListFollowedWritersResponse
+	24, // 33: perspectiv.v1.UserService.ListUserPosts:output_type -> perspectiv.v1.ListUserPostsResponse
+	24, // [24:34] is the sub-list for method output_type
+	14, // [14:24] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_user_proto_init() }
@@ -1365,13 +1692,14 @@ func file_perspectiv_v1_user_proto_init() {
 		return
 	}
 	file_perspectiv_v1_enums_proto_init()
+	file_perspectiv_v1_user_proto_msgTypes[23].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_user_proto_rawDesc), len(file_perspectiv_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

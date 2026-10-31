@@ -245,11 +245,26 @@ ORDER BY c.created_at DESC, c.id DESC
 LIMIT sqlc.arg(row_limit)::int;
 
 -- name: GetLore :one
+-- The lore, and whether its arc's place or any of the seven places above it
+-- is hidden (ArcPlaceHidden's rule), read in the same statement.
+WITH RECURSIVE up AS (
+    SELECT pl.parent_id, pl.hidden_at, 1 AS depth
+    FROM lores l0
+    JOIN arcs a ON a.id = l0.arc_id
+    JOIN places pl ON pl.id = a.place_id
+    WHERE l0.id = @id::uuid
+    UNION ALL
+    SELECT parent.parent_id, parent.hidden_at, up.depth + 1
+    FROM places parent
+    JOIN up ON parent.id = up.parent_id
+    WHERE up.depth < 8
+)
 SELECT l.id, l.arc_id, l.status, l.member_count, l.upvotes, l.rank_score, l.computed_at,
-       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username
+       coalesce(l.name, '')::text AS name, l.named_by, coalesce(nb.username, '')::text AS named_by_username,
+       EXISTS (SELECT 1 FROM up WHERE up.hidden_at IS NOT NULL)::boolean AS place_hidden
 FROM lores l
 LEFT JOIN users nb ON nb.id = l.named_by AND nb.deleted_at IS NULL
-WHERE l.id = $1;
+WHERE l.id = @id::uuid;
 
 -- name: IsLoreMember :one
 -- Whether the user wrote a readable perspective that is a member of the lore.

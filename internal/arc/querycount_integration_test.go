@@ -65,7 +65,10 @@ func countingService(t *testing.T, pool *pgxpool.Pool) (*arc.Service, *queryLog)
 // sublore, a tale, an unlinked perspective, an open character and two hour
 // arcs, one of them with a canon of its own. Two more days, one with one hour
 // and one with five, each hour with a canon, members and an encounter, show
-// that a day page's statements do not grow with its hours.
+// that a day page's statements do not grow with its hours. A tales or
+// unlinked page, and the open characters, read the arc's visibility in the
+// list itself and read the arc row only when the list comes back empty, to
+// tell NotFound from an empty list: the hour at 9 has neither.
 func TestArcReads_QueryCount(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t, testdb.New(t))
@@ -107,33 +110,41 @@ func TestArcReads_QueryCount(t *testing.T) {
 		call func() error
 		want int
 	}{
-		{name: "GetArc day signed out", want: 12, call: func() error {
+		{name: "GetArc day signed out", want: 9, call: func() error {
 			_, err := svc.GetArc(ctx, uuid.Nil, dayID, 10)
 			return err
 		}},
-		{name: "GetArc day signed in", want: 14, call: func() error {
+		{name: "GetArc day signed in", want: 11, call: func() error {
 			_, err := svc.GetArc(ctx, viewer, dayID, 10)
 			return err
 		}},
-		{name: "GetArc hour signed out", want: 9, call: func() error {
+		{name: "GetArc hour signed out", want: 8, call: func() error {
 			_, err := svc.GetArc(ctx, uuid.Nil, h20, 10)
 			return err
 		}},
 		{name: "ListArcSection sublores signed out", want: 6, call: section(uuid.Nil, perspectivv1.ArcSection_ARC_SECTION_SUBLORES)},
-		{name: "ListArcSection tales signed out", want: 2, call: section(uuid.Nil, perspectivv1.ArcSection_ARC_SECTION_TALES)},
-		{name: "ListArcSection unlinked signed out", want: 2, call: section(uuid.Nil, perspectivv1.ArcSection_ARC_SECTION_UNLINKED)},
-		{name: "ListArcSection tales signed in", want: 5, call: section(viewer, perspectivv1.ArcSection_ARC_SECTION_TALES)},
+		{name: "ListArcSection tales signed out", want: 1, call: section(uuid.Nil, perspectivv1.ArcSection_ARC_SECTION_TALES)},
+		{name: "ListArcSection unlinked signed out", want: 1, call: section(uuid.Nil, perspectivv1.ArcSection_ARC_SECTION_UNLINKED)},
+		{name: "ListArcSection tales signed in", want: 4, call: section(viewer, perspectivv1.ArcSection_ARC_SECTION_TALES)},
 		{name: "ListArcSection hours signed out", want: 7, call: section(uuid.Nil, perspectivv1.ArcSection_ARC_SECTION_HOURS)},
-		{name: "GetArc day of one hour", want: 10, call: func() error {
+		{name: "GetArc day of one hour", want: 9, call: func() error {
 			_, err := svc.GetArc(ctx, uuid.Nil, oneHour, 10)
 			return err
 		}},
-		{name: "GetArc day of five hours", want: 10, call: func() error {
+		{name: "GetArc day of five hours", want: 9, call: func() error {
 			_, err := svc.GetArc(ctx, uuid.Nil, fiveHours, 10)
 			return err
 		}},
-		{name: "ListOpenCharacters", want: 2, call: func() error {
+		{name: "ListOpenCharacters", want: 1, call: func() error {
 			_, err := svc.ListOpenCharacters(ctx, dayID)
+			return err
+		}},
+		{name: "ListArcSection tales of an hour with none", want: 2, call: func() error {
+			_, err := svc.ListArcSection(ctx, uuid.Nil, h9, perspectivv1.ArcSection_ARC_SECTION_TALES, "", 10)
+			return err
+		}},
+		{name: "ListOpenCharacters of an hour with none", want: 2, call: func() error {
+			_, err := svc.ListOpenCharacters(ctx, h9)
 			return err
 		}},
 	}

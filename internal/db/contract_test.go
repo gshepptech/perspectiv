@@ -161,7 +161,8 @@ func TestEnumValues(t *testing.T) {
 // EditLorePost and DeleteLorePost its replies, upvotes, edits and deletes),
 // NameLore a lore's name, FollowPlace and
 // ListFollowing the places a user follows, FollowUser and
-// ListFollowedWriters the writers a user follows, SavePerspective and
+// ListFollowedWriters the writers a user follows, ListUserPosts a
+// profile's Thread posts tab, SavePerspective and
 // ListSaved the stories a user saved to read later, and
 // ListStoriedCategories the "Browse by kind of place" links.
 var services = map[string][]string{
@@ -169,7 +170,7 @@ var services = map[string][]string{
 		"ChangePassword", "RequestEmailChange", "ConfirmEmailChange", "SignOutEverywhere", "ListSessions", "RevokeSession",
 		"GetSignUpInfo", "JoinWaitlist", "CreateAccessCode", "ListAccessCodes", "RevokeAccessCode", "ListWaitlist", "InviteFromWaitlist"},
 	"UserService": {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount", "ExportMyData",
-		"FollowUser", "ListFollowedWriters"},
+		"FollowUser", "ListFollowedWriters", "ListUserPosts"},
 	"PlaceService": {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters",
 		"ListStoriedCategories"},
 	"ArcService":         {"GetArc", "FindDayArc", "ListArcSection", "RetitleHourArc", "ListOpenCharacters"},

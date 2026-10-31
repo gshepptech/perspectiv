@@ -6,8 +6,8 @@
  * The second writer is the find-yourself spec's Gil, signed in with his
  * password in a session of his own (see a11yAccounts for why).
  * The lore's thread (a post, an upvote and a reply), Saved, Appearance, a
- * profile's Follow toggle and the report queue with its disclosure open are
- * scanned in both themes, forced through the root's data-theme as the
+ * profile's Follow toggle and its Thread posts tab, and the report queue
+ * with its disclosure open are scanned in both themes, forced through the root's data-theme as the
  * Appearance page forces them.
  * The scan fails on any serious or critical WCAG 2.1 A or AA violation and
  * lists every one, route by route.
@@ -151,6 +151,12 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
   const following = ivy.page.getByRole("button", { name: `Following ${gilAcct.username}` });
   await expect(following).toHaveAttribute("aria-pressed", "true");
   findings.push(...(await scanBothThemes(ivy.page, `/users/${gilAcct.username}`, following)));
+  // Ivy's profile on its Thread posts tab, which lists her post above.
+  await visit(ivy.page, ivyAcct, `/users/${ivyAcct.username}?tab=posts`);
+  const posts = ivy.page.getByRole("list", { name: "Thread posts" });
+  await expect(posts.getByRole("link").first()).toHaveAttribute("href", lore as string);
+  await expect(ivy.page.getByRole("tab", { name: "Thread posts" })).toHaveAttribute("aria-selected", "true");
+  findings.push(...(await scanBothThemes(ivy.page, `/users/${ivyAcct.username}?tab=posts`, posts)));
   await visit(ivy.page, ivyAcct, "/appearance");
   findings.push(...(await scanBothThemes(ivy.page, "/appearance", ivy.page.getByRole("radio", { name: "Larger" }))));
 

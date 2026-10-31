@@ -164,6 +164,11 @@ func profileToProto(p Profile) *perspectivv1.Profile {
 		CanonCount: p.CanonCount,
 		LoreCount:  p.LoreCount,
 		Deleted:    p.Deleted,
+
+		StoryCount:      p.Stats.Stories,
+		UpvotesReceived: p.Stats.UpvotesReceived,
+		PeopleFound:     p.Stats.PeopleFound,
+		PlacesWritten:   p.Stats.PlacesWritten,
 	}
 	if !p.JoinedAt.IsZero() {
 		out.JoinedAt = timestamppb.New(p.JoinedAt)
@@ -240,4 +245,33 @@ func (h *Handler) ListFollowedWriters(ctx context.Context, _ *connect.Request[pe
 		})
 	}
 	return connect.NewResponse(&perspectivv1.ListFollowedWritersResponse{Writers: out}), nil
+}
+
+// ListUserPosts is public: it pages a writer's readable lore thread posts.
+func (h *Handler) ListUserPosts(ctx context.Context, req *connect.Request[perspectivv1.ListUserPostsRequest]) (*connect.Response[perspectivv1.ListUserPostsResponse], error) {
+	author, err := parseUserID("user_id", req.Msg.GetUserId())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	posts, next, err := h.svc.ListUserPosts(ctx, author, req.Msg.GetPageToken(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, apiutil.ToConnect(err)
+	}
+	out := make([]*perspectivv1.UserPost, 0, len(posts))
+	for _, p := range posts {
+		out = append(out, &perspectivv1.UserPost{
+			Id:        p.ID.String(),
+			LoreId:    p.LoreID.String(),
+			LoreName:  p.LoreName,
+			ArcId:     p.ArcID.String(),
+			ArcTitle:  p.ArcTitle,
+			LocalDate: p.LocalDate,
+			Hour:      p.Hour,
+			PlaceName: p.PlaceName,
+			Excerpt:   p.Excerpt,
+			Reply:     p.Reply,
+			CreatedAt: timestamppb.New(p.CreatedAt),
+		})
+	}
+	return connect.NewResponse(&perspectivv1.ListUserPostsResponse{Posts: out, NextPageToken: next}), nil
 }

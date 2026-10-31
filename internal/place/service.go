@@ -267,26 +267,21 @@ func (s *Service) Epic(ctx context.Context, req EpicRequest) (Epic, error) {
 	if err != nil {
 		return Epic{}, err
 	}
-	// No place lists the arcs of every visible place: the front page.
-	var p Place
-	if req.PlaceID != uuid.Nil {
-		if p, err = s.store.Get(ctx, req.PlaceID); err != nil {
-			return Epic{}, notFound(err)
-		}
-	}
 	if req.Tab == perspectivv1.EpicTab_EPIC_TAB_TALES {
 		if req.PlaceID == uuid.Nil {
 			return Epic{}, apiutil.InvalidArg("tales need a place")
 		}
-		return s.tales(ctx, p, req, cur)
+		return s.tales(ctx, req, cur)
 	}
+	// No place lists the arcs of every visible place: the front page. A
+	// place is read in the same statement as its arcs.
 	q := EpicArcsQuery{PlaceID: req.PlaceID, Order: order, Genre: req.Genre, Category: req.Category, Limit: req.Page.Limit + 1}
 	if cur != nil {
 		q.After = &ArcCursor{HasCanon: cur.HasCanon, Score: cur.Score, Members: cur.Members, CreatedAt: cur.At, ID: cur.ID}
 	}
-	arcs, err := s.store.EpicArcs(ctx, q)
+	p, arcs, err := s.store.EpicArcsAt(ctx, q)
 	if err != nil {
-		return Epic{}, apiutil.Internal(err)
+		return Epic{}, notFound(err)
 	}
 	// The same window a followed place counts its new stories in.
 	since := time.Now().Add(-newStoryWindow)
@@ -304,14 +299,16 @@ func (s *Service) Epic(ctx context.Context, req EpicRequest) (Epic, error) {
 	return out, nil
 }
 
-func (s *Service) tales(ctx context.Context, p Place, req EpicRequest, cur *epicCursor) (Epic, error) {
-	q := TalesQuery{PlaceID: p.ID, Genre: req.Genre, Category: req.Category, Limit: req.Page.Limit + 1}
+// tales lists one page of a place's tales; the place is read in the same
+// statement.
+func (s *Service) tales(ctx context.Context, req EpicRequest, cur *epicCursor) (Epic, error) {
+	q := TalesQuery{PlaceID: req.PlaceID, Genre: req.Genre, Category: req.Category, Limit: req.Page.Limit + 1}
 	if cur != nil {
 		q.After = &TaleCursor{PublishedAt: cur.At, ID: cur.ID}
 	}
-	tales, err := s.store.EpicTales(ctx, q)
+	p, tales, err := s.store.EpicTales(ctx, q)
 	if err != nil {
-		return Epic{}, apiutil.Internal(err)
+		return Epic{}, notFound(err)
 	}
 	out := Epic{Place: p, Tales: tales}
 	if len(tales) > int(req.Page.Limit) {
