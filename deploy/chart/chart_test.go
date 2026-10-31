@@ -326,6 +326,26 @@ func checkWaiterRBAC(t *testing.T, objs map[string]object, sa string) {
 	}
 }
 
+// A rollout of the api answered 502 at the edge for a moment: the server
+// stops listening on SIGTERM while ingress-nginx still routes to the old
+// pod. The api must keep serving through a preStop sleep, and its grace
+// period must cover that sleep plus the server's 20 s drain
+// (shutdownTimeout in cmd/perspectiv/serve.go).
+func TestAPIServesUntilTheIngressDropsIt(t *testing.T) {
+	t.Parallel()
+	const drain = 20
+	spec := podSpec(must(t, manifests(t), "Deployment/perspectiv-api"))
+	main := container(t, spec, "containers", "perspectiv")
+	sleep, _ := strconv.Atoi(fmt.Sprint(get(main, "lifecycle", "preStop", "sleep", "seconds")))
+	if sleep < 3 {
+		t.Fatalf("api preStop sleep = %v, want at least 3 s so ingress-nginx drops the endpoint first", get(main, "lifecycle", "preStop"))
+	}
+	grace, _ := strconv.Atoi(fmt.Sprint(get(spec, "terminationGracePeriodSeconds")))
+	if grace < sleep+drain {
+		t.Errorf("api terminationGracePeriodSeconds = %d, want at least %d (preStop %d s + drain %d s)", grace, sleep+drain, sleep, drain)
+	}
+}
+
 // Every pod's pool together stays under the connections Postgres allows,
 // leaving room for the migration job, a backup and an operator's psql.
 func TestPoolsFitPostgresConnections(t *testing.T) {

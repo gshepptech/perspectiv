@@ -107,11 +107,11 @@ func TestArcReads_QueryCount(t *testing.T) {
 		call func() error
 		want int
 	}{
-		{name: "GetArc day signed out", want: 15, call: func() error {
+		{name: "GetArc day signed out", want: 12, call: func() error {
 			_, err := svc.GetArc(ctx, uuid.Nil, dayID, 10)
 			return err
 		}},
-		{name: "GetArc day signed in", want: 17, call: func() error {
+		{name: "GetArc day signed in", want: 14, call: func() error {
 			_, err := svc.GetArc(ctx, viewer, dayID, 10)
 			return err
 		}},

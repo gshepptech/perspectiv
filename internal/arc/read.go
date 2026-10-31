@@ -51,9 +51,6 @@ func (s *Service) GetArc(ctx context.Context, viewer, arcID uuid.UUID, pageSize 
 		}
 		canonID := parseID(arc.GetCanonLoreId())
 		resp = &perspectivv1.GetArcResponse{Arc: arc}
-		if resp.Canon, err = loadCanon(ctx, q, arcID, canonID); err != nil {
-			return err
-		}
 		if resp.Sublores, resp.SubloresNextPageToken, err = listSublores(ctx, q, arcID, canonID, first); err != nil {
 			return err
 		}
@@ -64,9 +61,12 @@ func (s *Service) GetArc(ctx context.Context, viewer, arcID uuid.UUID, pageSize 
 			return err
 		}
 		if arc.Hour == nil {
-			if resp.Hours, resp.HoursNextPageToken, err = listHours(ctx, q, arcID, arc.GetPlaceChain(), first); err != nil {
-				return err
-			}
+			err = dayCanonAndHours(ctx, q, resp, canonID, first)
+		} else {
+			resp.Canon, err = loadCanon(ctx, q, arcID, canonID)
+		}
+		if err != nil {
+			return err
 		}
 		return forViewer(ctx, q, resp, viewer)
 	})
@@ -275,10 +275,44 @@ func arcProto(r dbq.ListHourArcsRow, chain []*perspectivv1.PlaceRef) *perspectiv
 
 // listHours pages a day arc's hour children in hour order, each with its
 // canon and the number of its perspectives that are neither deleted nor
-// hidden. The cursor is the last hour listed. A page of hours is at most
-// four statements however many hours it holds: the hours with their counts,
-// then their canons, the canons' members and the canons' encounters.
+// hidden. A page of hours is at most four statements however many hours it
+// holds: the hours with their counts, then their canons, the canons'
+// members and the canons' encounters.
 func listHours(ctx context.Context, q *dbq.Queries, dayID uuid.UUID, chain []*perspectivv1.PlaceRef, page apiutil.PageToken) ([]*perspectivv1.HourArc, string, error) {
+	rows, next, err := pageHours(ctx, q, dayID, page)
+	if err != nil {
+		return nil, "", err
+	}
+	canons, err := loadCanons(ctx, q, hourOwners(nil, rows))
+	if err != nil {
+		return nil, "", err
+	}
+	return hourArcs(rows, chain, canons), next, nil
+}
+
+// dayCanonAndHours fills a day arc page's canon and its first page of hours.
+// The day's canon is read in the same batch as its hours' canons, so the day
+// costs no statements beyond listHours'.
+func dayCanonAndHours(ctx context.Context, q *dbq.Queries, resp *perspectivv1.GetArcResponse, canonID uuid.UUID, page apiutil.PageToken) error {
+	day := resp.GetArc()
+	dayID := parseID(day.GetId())
+	rows, next, err := pageHours(ctx, q, dayID, page)
+	if err != nil {
+		return err
+	}
+	canons, err := loadCanons(ctx, q, hourOwners([]canonOwner{{arcID: dayID, canonID: canonID}}, rows))
+	if err != nil {
+		return err
+	}
+	resp.Canon = canons[0]
+	resp.Hours = hourArcs(rows, day.GetPlaceChain(), canons[1:])
+	resp.HoursNextPageToken = next
+	return nil
+}
+
+// pageHours reads one page of a day arc's hour children with their story
+// counts. The cursor is the last hour listed.
+func pageHours(ctx context.Context, q *dbq.Queries, dayID uuid.UUID, page apiutil.PageToken) ([]dbq.ListHourArcsRow, string, error) {
 	params := dbq.ListHourArcsParams{ParentArcID: dayID, RowLimit: page.Limit + 1}
 	if page.After != "" {
 		h, err := strconv.ParseInt(page.After, 10, 16)
@@ -296,19 +330,24 @@ func listHours(ctx context.Context, q *dbq.Queries, dayID uuid.UUID, chain []*pe
 		rows = rows[:page.Limit]
 		next = apiutil.NextPageToken(strconv.Itoa(int(rows[len(rows)-1].Hour.Int16)))
 	}
-	owners := make([]canonOwner, len(rows))
-	for i, r := range rows {
-		owners[i] = canonOwner{arcID: r.ID, canonID: r.CanonLoreID.UUID}
+	return rows, next, nil
+}
+
+// hourOwners appends each hour's canon owner to owners, in hour order.
+func hourOwners(owners []canonOwner, rows []dbq.ListHourArcsRow) []canonOwner {
+	for _, r := range rows {
+		owners = append(owners, canonOwner{arcID: r.ID, canonID: r.CanonLoreID.UUID})
 	}
-	canons, err := loadCanons(ctx, q, owners)
-	if err != nil {
-		return nil, "", err
-	}
+	return owners
+}
+
+// hourArcs builds the wire hours; canons[i] is the canon of rows[i].
+func hourArcs(rows []dbq.ListHourArcsRow, chain []*perspectivv1.PlaceRef, canons []*perspectivv1.ArcLore) []*perspectivv1.HourArc {
 	hours := make([]*perspectivv1.HourArc, 0, len(rows))
 	for i, r := range rows {
 		hours = append(hours, &perspectivv1.HourArc{Arc: arcProto(r, chain), Canon: canons[i], PerspectiveCount: r.PerspectiveCount})
 	}
-	return hours, next, nil
+	return hours
 }
 
 // errBadToken answers a page token this package did not write.
@@ -322,7 +361,8 @@ type perspectiveRow = dbq.ListArcTalesRow
 type loreRow = dbq.ListArcSubloresRow
 
 // loadCanon reads the lore the rank job made the arc's canon, with its
-// members and encounters; nil when canonID is uuid.Nil or names no lore.
+// members and encounters; nil when canonID is uuid.Nil or names no lore. A
+// day arc's canon is read with its hours' instead (dayCanonAndHours).
 func loadCanon(ctx context.Context, q *dbq.Queries, arcID, canonID uuid.UUID) (*perspectivv1.ArcLore, error) {
 	canons, err := loadCanons(ctx, q, []canonOwner{{arcID: arcID, canonID: canonID}})
 	if err != nil {

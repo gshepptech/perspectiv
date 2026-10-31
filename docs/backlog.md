@@ -48,6 +48,36 @@ Nothing in progress.
 
 ## Done
 
+- Release check on k3s at dc37f9e: deploy/k3s/e2e.sh passes from a clean
+  checkout in 325 s, image build included. The migration Job applied 1 to
+  36; api and worker came Ready; /healthz answered through the ingress over
+  TLS; Postgres ran with shared_buffers 512MB, effective_cache_size 1536MB
+  and max_connections 100 from the chart's -c args; auto_explain showed
+  jit = 'off' on every app statement; /robots.txt and /sitemap.xml named
+  https://<host>. With the dev data restored by the runbook's command (638k
+  places) and goose taken down to 27, an upgrade's Job ran 28 to 36 in 11 s
+  (arcs held 26 rows, so 31 and 33 were not timed at beta scale). The
+  backup CronJob wrote a 49 MB archive; after truncating places, the
+  runbook restore brought back the same row counts in all 38 tables in
+  28 s. An api rollout answered 2 of 327 edge requests with 502: the old
+  pod stopped listening on SIGTERM while ingress-nginx still routed to it.
+  The api now sleeps 5 s in preStop with a 30 s grace period; two rollouts
+  then answered 713 of 713. Verified by TestAPIServesUntilTheIngressDropsIt
+  and the k3s run.
+- A day page reads its own canon in the same batch as its hours' canons.
+  GetArc on a day read the day's canon, members and encounters (three
+  statements) before the hours, then the hours' canons, members and
+  encounters (three more); the day's canon now joins the hours' batch
+  (ListLoresByID, ListLorePerspectives, ListLoreEncounters once each). An
+  hour page still reads its canon on its own. Statements per call, BEGIN
+  and ROLLBACK included (querycount_integration_test.go): GetArc on a day
+  with a canon and an hour canon 15 to 12 signed out and 17 to 14 signed
+  in; a day with no canon, or with a canon and no hour canons, sends what
+  it did. The response is unchanged: a temporary harness compared the old
+  and new GetArc on 374 calls (17 days and hours in five shapes, signed out
+  and in, page sizes 0 to 10, deleted and hidden members, named lores,
+  votes on day and hour canons) and the deterministic proto bytes matched;
+  shifting the hours' canons by one failed it.
 - The app's pool runs with JIT off: once row estimates grew (beta-scale
   arcs loaded), Postgres JIT-compiled each short search for 20 to 30 ms,
   longer than it ran. Verified by TestOpenPoolSessionSettings.

@@ -27,6 +27,10 @@ spec:
         checksum/env: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
     spec:
       serviceAccountName: {{ include "perspectiv.waiterSA" $ }}
+      {{- if eq $role "api" }}
+      # The preStop sleep below plus the server's 20 s drain after SIGTERM.
+      terminationGracePeriodSeconds: 30
+      {{- end }}
       securityContext:
         {{- include "perspectiv.podSecurity" $ | nindent 8 }}
       initContainers:
@@ -45,6 +49,16 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          {{- if eq $role "api" }}
+          # The server stops listening on SIGTERM, which the kubelet sends as
+          # the pod is marked for deletion, while ingress-nginx still routes
+          # to it until it sees the endpoint go: every rollout answered a
+          # moment of 502s. The sleep keeps the old pod serving until then.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
+          {{- end }}
           # /healthz reports dependencies, so it gates readiness only; a
           # database outage must not restart every pod.
           readinessProbe:
