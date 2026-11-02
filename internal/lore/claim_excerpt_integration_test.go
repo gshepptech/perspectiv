@@ -129,3 +129,31 @@ func TestListClaimsNameTheStory(t *testing.T) {
 		})
 	}
 }
+
+// A place hidden by moderation is named nowhere, so a claim on a story
+// there names neither the place nor the day, on either side of the claim.
+func TestListClaimsDoNotNameAHiddenPlace(t *testing.T) {
+	t.Parallel()
+	w := newWorld(t)
+	alice, bob := w.author("alice"), w.author("bob")
+	w.mustClaim(bob.user, alice.character)
+	w.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, w.place)
+	for _, tc := range []struct {
+		caller uuid.UUID
+		dir    perspectivv1.ClaimDirection
+	}{
+		{alice.user, perspectivv1.ClaimDirection_CLAIM_DIRECTION_INCOMING},
+		{bob.user, perspectivv1.ClaimDirection_CLAIM_DIRECTION_OUTGOING},
+	} {
+		resp, err := w.listClaims(tc.caller, tc.dir, perspectivv1.ClaimStatus_CLAIM_STATUS_UNSPECIFIED, "", 0)
+		if err != nil {
+			t.Fatalf("ListClaims %v: %v", tc.dir, err)
+		}
+		if len(resp.GetClaims()) != 1 {
+			t.Fatalf("ListClaims %v = %d claims, want 1", tc.dir, len(resp.GetClaims()))
+		}
+		if c := resp.GetClaims()[0]; c.GetPlaceName() != "" || c.GetLocalDate() != "" || c.Hour != nil {
+			t.Fatalf("%v: claim names %q on %q hour %v under a hidden place", tc.dir, c.GetPlaceName(), c.GetLocalDate(), c.Hour)
+		}
+	}
+}

@@ -213,7 +213,10 @@ JOIN characters ch ON ch.id = c.character_id
 JOIN perspectives p ON p.id = ch.perspective_id
 JOIN users au ON au.id = p.author_id
 JOIN users cu ON cu.id = c.claimant_user_id
+-- A place hidden by moderation, or one under it, is named nowhere: its arc
+-- is not joined, so the place name, day and hour come back blank.
 LEFT JOIN arcs ar ON ar.id = p.arc_id
+    AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(ar.place_path) AND h.hidden_at IS NOT NULL)
 LEFT JOIN places pl ON pl.id = ar.place_id
 WHERE p.author_id = sqlc.arg(user_id)::uuid
   AND (sqlc.narg(status)::text IS NULL OR c.status = sqlc.narg(status)::text)
@@ -243,7 +246,10 @@ JOIN characters ch ON ch.id = c.character_id
 JOIN perspectives p ON p.id = ch.perspective_id
 JOIN users au ON au.id = p.author_id
 JOIN users cu ON cu.id = c.claimant_user_id
+-- A place hidden by moderation, or one under it, is named nowhere: its arc
+-- is not joined, so the place name, day and hour come back blank.
 LEFT JOIN arcs ar ON ar.id = p.arc_id
+    AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(ar.place_path) AND h.hidden_at IS NOT NULL)
 LEFT JOIN places pl ON pl.id = ar.place_id
 WHERE c.claimant_user_id = sqlc.arg(user_id)::uuid
   AND (sqlc.narg(status)::text IS NULL OR c.status = sqlc.narg(status)::text)

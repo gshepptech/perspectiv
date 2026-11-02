@@ -708,6 +708,7 @@ JOIN perspectives p ON p.id = ch.perspective_id
 JOIN users au ON au.id = p.author_id
 JOIN users cu ON cu.id = c.claimant_user_id
 LEFT JOIN arcs ar ON ar.id = p.arc_id
+    AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(ar.place_path) AND h.hidden_at IS NOT NULL)
 LEFT JOIN places pl ON pl.id = ar.place_id
 WHERE p.author_id = $1::uuid
   AND ($2::text IS NULL OR c.status = $2::text)
@@ -753,6 +754,8 @@ type ListIncomingClaimsRow struct {
 // cuts it at a word. place_name, local_date and hour say where and when the
 // story declaring the character is set. ListOutgoingClaims returns the same
 // columns.
+// A place hidden by moderation, or one under it, is named nowhere: its arc
+// is not joined, so the place name, day and hour come back blank.
 func (q *Queries) ListIncomingClaims(ctx context.Context, arg ListIncomingClaimsParams) ([]ListIncomingClaimsRow, error) {
 	rows, err := q.db.Query(ctx, listIncomingClaims,
 		arg.UserID,
@@ -897,6 +900,7 @@ JOIN perspectives p ON p.id = ch.perspective_id
 JOIN users au ON au.id = p.author_id
 JOIN users cu ON cu.id = c.claimant_user_id
 LEFT JOIN arcs ar ON ar.id = p.arc_id
+    AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(ar.place_path) AND h.hidden_at IS NOT NULL)
 LEFT JOIN places pl ON pl.id = ar.place_id
 WHERE c.claimant_user_id = $1::uuid
   AND ($2::text IS NULL OR c.status = $2::text)
@@ -936,6 +940,8 @@ type ListOutgoingClaimsRow struct {
 }
 
 // Claims the caller made, newest first, keyset paged on (created_at, id).
+// A place hidden by moderation, or one under it, is named nowhere: its arc
+// is not joined, so the place name, day and hour come back blank.
 func (q *Queries) ListOutgoingClaims(ctx context.Context, arg ListOutgoingClaimsParams) ([]ListOutgoingClaimsRow, error) {
 	rows, err := q.db.Query(ctx, listOutgoingClaims,
 		arg.UserID,

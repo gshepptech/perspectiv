@@ -51,6 +51,14 @@ Nothing in progress.
 
 ## Done
 
+- Security review of 062fb80, df98dae and 66be334 (no leaks in post links,
+  open characters, drafts, the search split, thread counts, followed
+  writers or the thread target): the Requests page no longer names a place
+  hidden by moderation, or its day, on either side of a claim (the arc is
+  joined only while its place path is visible); and the public place
+  typeahead has its own rate limit (place_search: 3,000 an hour per user,
+  6,000 per address). Verified by TestListClaimsDoNotNameAHiddenPlace and
+  the policy rate-limit table test.
 - Readers and writers see "story", never "perspective": the composer
   ("Write a story", "Edit your story"), "Your stories" on the front page,
   "otter's story" headings and accessible names, "Story not found", the

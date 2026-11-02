@@ -44,20 +44,22 @@ type rateRule struct {
 //	report          10 per hour      per user, 30 per IP
 //	post            30 per hour      per user, 90 per IP (thread posts, lore names)
 //	search         600 per hour      per user, 600 per IP (description search, typed live)
+//	place_search  3000 per hour      per user, 6000 per IP (the place typeahead, a request most keystrokes)
 //	export           5 per hour      per user, 15 per IP (download my data)
 //	password_reset   3 reset emails per hour per account
 var rateRules = map[string]rateRule{
-	api.LimitSignup:    {perUser: 10, perIP: 10, windowSecs: hour},
-	api.LimitLogin:     {perUser: 30, perIP: 30, windowSecs: 15 * minute},
-	api.LimitPublish:   {perUser: 10, perIP: 30, windowSecs: hour},
-	api.LimitClaim:     {perUser: 30, perIP: 90, windowSecs: hour},
-	api.LimitVote:      {perUser: 60, perIP: 180, windowSecs: hour},
-	api.LimitReact:     {perUser: 120, perIP: 360, windowSecs: hour},
-	api.LimitReport:    {perUser: 10, perIP: 30, windowSecs: hour},
-	api.LimitPost:      {perUser: 30, perIP: 90, windowSecs: hour},
-	api.LimitSearch:    {perUser: 600, perIP: 600, windowSecs: hour},
-	api.LimitExport:    {perUser: 5, perIP: 15, windowSecs: hour},
-	LimitPasswordReset: {perUser: 3, perIP: 10, windowSecs: hour},
+	api.LimitSignup:      {perUser: 10, perIP: 10, windowSecs: hour},
+	api.LimitLogin:       {perUser: 30, perIP: 30, windowSecs: 15 * minute},
+	api.LimitPublish:     {perUser: 10, perIP: 30, windowSecs: hour},
+	api.LimitClaim:       {perUser: 30, perIP: 90, windowSecs: hour},
+	api.LimitVote:        {perUser: 60, perIP: 180, windowSecs: hour},
+	api.LimitReact:       {perUser: 120, perIP: 360, windowSecs: hour},
+	api.LimitReport:      {perUser: 10, perIP: 30, windowSecs: hour},
+	api.LimitPost:        {perUser: 30, perIP: 90, windowSecs: hour},
+	api.LimitSearch:      {perUser: 600, perIP: 600, windowSecs: hour},
+	api.LimitPlaceSearch: {perUser: 3000, perIP: 6000, windowSecs: hour},
+	api.LimitExport:      {perUser: 5, perIP: 15, windowSecs: hour},
+	LimitPasswordReset:   {perUser: 3, perIP: 10, windowSecs: hour},
 }
 
 // Limiter counts hits in fixed windows in the rate_limit_counters table.

@@ -97,6 +97,9 @@ func TestRoutePolicies(t *testing.T) {
 		// Searching descriptions is public and scans text; it is bounded per
 		// address like the other public writes.
 		"/perspectiv.v1.PlaceService/SearchCharacters": api.LimitSearch,
+		// The place typeahead is public and runs on most keystrokes; its own,
+		// larger budget bounds a script without stopping a fast typist.
+		"/perspectiv.v1.PlaceService/SearchPlaces": api.LimitPlaceSearch,
 		// An export builds one large document; a few an hour is plenty.
 		"/perspectiv.v1.UserService/ExportMyData": api.LimitExport,
 		// Admin only, but a lookup by email is bounded so a leaked admin

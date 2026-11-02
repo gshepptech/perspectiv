@@ -50,7 +50,10 @@ const (
 	LimitReport  = "report"
 	LimitPost    = "post"
 	LimitSearch  = "search"
-	LimitExport  = "export"
+	// LimitPlaceSearch bounds the place typeahead, which runs on most
+	// keystrokes, so its budget is far above description search's.
+	LimitPlaceSearch = "place_search"
+	LimitExport      = "export"
 )
 
 // Routes maps every Connect procedure to its policy. A procedure missing here
@@ -91,7 +94,7 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.UserService/ListFollowedWriters": {Access: User},
 	"/perspectiv.v1.UserService/ListUserPosts":       {Access: Public},
 
-	"/perspectiv.v1.PlaceService/SearchPlaces": {Access: Public},
+	"/perspectiv.v1.PlaceService/SearchPlaces": {Access: Public, RateLimit: LimitPlaceSearch},
 	"/perspectiv.v1.PlaceService/GetPlace":     {Access: Public},
 	"/perspectiv.v1.PlaceService/ListChildren": {Access: Public},
 	"/perspectiv.v1.PlaceService/CreatePlace":  {Access: User, Verified: true},
