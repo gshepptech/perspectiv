@@ -132,7 +132,7 @@ describe.each(widths)("header at $name width", ({ viewport }) => {
     const dialog = page.getByRole("dialog", { name: "Search places" });
     await dialog.waitFor();
     await page.keyboard.type("starbucks");
-    await dialog.getByText("More places match: add a town to narrow it", { exact: true }).waitFor();
+    await dialog.getByText("Showing the first 20. Add a town or state to narrow it.", { exact: true }).waitFor();
     const box = await dialog.boundingBox();
     if (!box) throw new Error("dialog has no box");
     expect(box.x).toBeGreaterThanOrEqual(16 - 1);
@@ -140,6 +140,18 @@ describe.each(widths)("header at $name width", ({ viewport }) => {
     expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
     const scroll = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(scroll).toBeLessThanOrEqual(0);
+    // ↑ from the field makes the last result active and scrolls it into
+    // the dialog's view, focus staying in the field.
+    await page.keyboard.press("ArrowUp");
+    const last = dialog.getByRole("option").last();
+    expect(await last.getAttribute("aria-selected")).toBe("true");
+    const field = dialog.getByRole("combobox", { name: "Search places" });
+    expect(await field.getAttribute("aria-activedescendant")).toBe(await last.getAttribute("id"));
+    expect(await field.evaluate((el) => el === document.activeElement)).toBe(true);
+    const row = await last.boundingBox();
+    if (!row) throw new Error("the last result has no box");
+    expect(row.y).toBeGreaterThanOrEqual(0);
+    expect(row.y + row.height).toBeLessThanOrEqual(viewport.height);
     await page.context().close();
   }, 60_000);
 });

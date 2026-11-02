@@ -4,6 +4,18 @@ import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } fr
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 
+/**
+ * Somewhere the reader goes past the first or last part, supplied by a caller
+ * that has one (the lore's book: the neighbouring chapter). The part control
+ * at that end turns there, shown and named by `label`, instead of sitting
+ * disabled.
+ */
+export type ReaderEdge = {
+  /** The control's visible text and its name: "Next chapter", "Contents". */
+  label: string;
+  onTurn: () => void;
+};
+
 export type ReaderProps = {
   /** The article's heading: what the reader is reading. */
   title: string;
@@ -41,6 +53,10 @@ export type ReaderProps = {
    * across chapters: two listeners would each act on the key.
    */
   arrowKeys?: boolean;
+  /** What Previous does on the first part; left out, it is disabled there. */
+  beyondStart?: ReaderEdge;
+  /** What Next does on the last part; left out, it is disabled there. */
+  beyondEnd?: ReaderEdge;
 };
 
 const FADE_MS = 150;
@@ -131,6 +147,31 @@ function prefersReducedMotion(): boolean {
 }
 
 /**
+ * Previous or Next in the part row. Inside the parts it turns the part, its
+ * word shown from `sm` and its arrow always. At its end (`atEnd`) it does the
+ * caller's edge action, or is disabled when the caller gave none. An edge
+ * label shows at every width, its arrow from `sm`.
+ */
+function PartControl({ back = false, atEnd, edge, onTurn }: { back?: boolean; atEnd: boolean; edge?: ReaderEdge; onTurn: () => void }) {
+  const Icon = back ? ChevronLeft : ChevronRight;
+  const word = back ? "Previous" : "Next";
+  const beyond = atEnd ? edge : undefined;
+  return (
+    <Button
+      variant="secondary"
+      className={back ? "justify-self-start" : "justify-self-end"}
+      disabled={atEnd && !edge}
+      onClick={beyond ? beyond.onTurn : onTurn}
+      aria-label={beyond ? beyond.label : `${word} part`}
+    >
+      {back && <Icon aria-hidden size={16} className={cn("shrink-0", beyond && "hidden sm:block")} />}
+      {beyond ? <span>{beyond.label}</span> : <span className="hidden sm:inline">{word}</span>}
+      {!back && <Icon aria-hidden size={16} className={cn("shrink-0", beyond && "hidden sm:block")} />}
+    </Button>
+  );
+}
+
+/**
  * One part of a perspective per page, as semantic HTML: an article with the
  * title, the part's paragraphs, and previous and next buttons. ArrowLeft and
  * ArrowRight page while focus is not in a field. A page change moves focus to
@@ -155,8 +196,14 @@ export function Reader({
   position,
   announcePosition = true,
   arrowKeys = true,
+  beyondStart,
+  beyondEnd,
 }: ReaderProps) {
   const total = parts.length;
+  // A caller with edge actions gets labelled controls at the ends, too wide
+  // to share a phone's row with the position: there the position takes its
+  // own line above the two controls, and from `sm` the row is one line.
+  const edges = !!(beyondStart || beyondEnd);
   const current = Math.min(Math.max(part, 1), Math.max(total, 1));
   const body = parts[current - 1] ?? "";
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -262,30 +309,21 @@ export function Reader({
             <Body text={body} />
           </div>
           {/* mt-auto: in a page frame (the book's) the row sits at the frame's foot. */}
-          <nav aria-label="Pages" className="mt-auto grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-t border-rule pt-4">
-            <Button
-              variant="secondary"
-              className="justify-self-start"
-              disabled={current <= 1}
-              onClick={() => onPartChange(current - 1)}
-              aria-label="Previous part"
+          <nav
+            aria-label="Pages"
+            className={cn(
+              "mt-auto grid items-center gap-2 border-t border-rule pt-4",
+              edges ? "grid-cols-2 sm:grid-cols-[1fr_auto_1fr]" : "grid-cols-[1fr_auto_1fr]",
+            )}
+          >
+            <PartControl back atEnd={current <= 1} edge={beyondStart} onTurn={() => onPartChange(current - 1)} />
+            <span
+              aria-live={announcePosition ? "polite" : undefined}
+              className={cn("text-center text-sm text-ink-muted", edges && "col-span-2 row-start-1 sm:col-span-1 sm:col-start-2")}
             >
-              <ChevronLeft aria-hidden size={16} />
-              <span className="hidden sm:inline">Previous</span>
-            </Button>
-            <span aria-live={announcePosition ? "polite" : undefined} className="text-center text-sm text-ink-muted">
               {position ?? `Part ${current} of ${total}`}
             </span>
-            <Button
-              variant="secondary"
-              className="justify-self-end"
-              disabled={current >= total}
-              onClick={() => onPartChange(current + 1)}
-              aria-label="Next part"
-            >
-              <span className="hidden sm:inline">Next</span>
-              <ChevronRight aria-hidden size={16} />
-            </Button>
+            <PartControl atEnd={current >= total} edge={beyondEnd} onTurn={() => onPartChange(current + 1)} />
           </nav>
         </>
       )}

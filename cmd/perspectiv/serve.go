@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"time"
 
 	"connectrpc.com/connect"
@@ -131,6 +132,7 @@ func serveErr(ctx context.Context, cfg config, log zerolog.Logger) error {
 			_ = srv.Close()
 			return fmt.Errorf("start job workers: %w", err)
 		}
+		app.workerStopped.Store(new(app.worker.Stopped()))
 	}
 
 	var runErr error
@@ -156,16 +158,25 @@ type app struct {
 	sitemap api.SitemapSource
 	// worker is the working River client; nil unless the workers run.
 	worker *river.Client[pgx.Tx]
+	// workerStopped holds the worker's Stopped channel once Start has
+	// returned. River sets that channel inside Start, so reading Stopped
+	// from /healthz while Start runs is a data race; nil means starting.
+	workerStopped atomic.Pointer[<-chan struct{}]
 }
 
 // healthChecks are the /healthz components: the database in every role, and
-// the job client where the workers run, unhealthy once it has stopped.
+// the job client where the workers run, unhealthy until it has started and
+// once it has stopped.
 func (a *app) healthChecks(pool *pgxpool.Pool) map[string]func(context.Context) error {
 	checks := map[string]func(context.Context) error{"database": pool.Ping}
 	if a.worker != nil {
 		checks["jobs"] = func(context.Context) error {
+			stopped := a.workerStopped.Load()
+			if stopped == nil {
+				return errors.New("job client starting")
+			}
 			select {
-			case <-a.worker.Stopped():
+			case <-*stopped:
 				return errors.New("job client stopped")
 			default:
 				return nil
@@ -176,12 +187,12 @@ func (a *app) healthChecks(pool *pgxpool.Pool) map[string]func(context.Context) 
 }
 
 // stopped is closed when the working client stops; nil (never ready) where
-// no workers run.
+// no workers run or they have not started.
 func (a *app) stopped() <-chan struct{} {
-	if a.worker == nil {
-		return nil
+	if p := a.workerStopped.Load(); p != nil {
+		return *p
 	}
-	return a.worker.Stopped()
+	return nil
 }
 
 // shutdown drains HTTP requests, then lets running jobs finish, within

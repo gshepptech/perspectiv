@@ -278,17 +278,19 @@ ORDER BY m.under, m.is_exact DESC, m.is_prefix DESC, (st.stories > 0) DESC, m.le
 LIMIT @result_limit::integer;
 
 -- name: FindLocalities :many
--- The visible cities and towns named exactly one of names, for a search
--- that reads as a place and the town it is in. Best first: a locality with
--- a readable story at or below it (not under a hidden place), then a city
--- before a town, then the one with more places directly in it (counted up
--- to 500), so "tampa" means Tampa, Florida before Tampa, Kansas. Restricted
--- to the descendants of parent_id when it is set.
-SELECT l.id, lower(l.name)::text AS name
+-- The visible states, cities and towns named exactly one of names, for a
+-- search that reads as a place and the town or state it is in. Best first:
+-- a locality with a readable story at or below it (not under a hidden
+-- place), then a city before a town or state, then the one with more
+-- places directly in it (counted up to 500), so "tampa" means Tampa,
+-- Florida before Tampa, Kansas, and "new york" the city before the state
+-- when neither or both hold a story. Restricted to the descendants of
+-- parent_id when it is set. display_name is the name as listed.
+SELECT l.id, lower(l.name)::text AS name, l.name AS display_name, l.parent_id
 FROM places l
 WHERE l.hidden_at IS NULL
   AND lower(l.name) = ANY(@names::text[])
-  AND l.kind IN ('PLACE_KIND_CITY', 'PLACE_KIND_TOWN')
+  AND l.kind IN ('PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN')
   AND (sqlc.narg(parent_id)::uuid IS NULL
        OR (l.path @> ARRAY[sqlc.narg(parent_id)::uuid] AND l.id <> sqlc.narg(parent_id)::uuid))
   AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(l.path) AND h.hidden_at IS NOT NULL)

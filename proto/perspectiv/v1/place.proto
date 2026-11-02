@@ -85,6 +85,25 @@ message SearchPlacesResponse {
   // More places match than the result cap returned: the reader narrows the
   // search, for example by adding a town ("starbucks tampa").
   bool more = 2;
+  // How the search read the query as a place's name and the city, town or
+  // state it is in, so a reader adding the place it did not find starts
+  // from that name and that place. Unset when no split named a visible
+  // locality, or when a place's name starts with the whole query ("miami
+  // beach" is a name, not "beach" in Miami).
+  SearchSplit split = 3;
+}
+
+// SearchSplit is the first reading of a search as a name and a locality
+// whose locality the search found: the one it ranked first.
+message SearchSplit {
+  // The name part as typed, case kept and spaces collapsed: "joes crab
+  // shack" from "joes crab shack tampa".
+  string name = 1;
+  // The best city, town or state of the locality's name.
+  string locality_id = 2;
+  // That locality and the places it is in, nearest first: "Tampa,
+  // Florida".
+  string locality_label = 3;
 }
 
 message GetPlaceRequest {

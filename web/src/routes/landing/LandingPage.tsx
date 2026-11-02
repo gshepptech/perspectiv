@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router";
 
 import { categorySlug, formatDayBeside, placeCategories, placeCategoryLabel } from "@/components/reader/format";
 import { storyTitle } from "@/components/reader/storyTitle";
-import { PLACE_SEARCH_DEBOUNCE_MS, PlaceSearchField, PlaceSearchResults, useDebounced } from "@/components/search/PlaceSearch";
+import { PLACE_SEARCH_DEBOUNCE_MS, PlaceSearch, useDebounced } from "@/components/search/PlaceSearch";
 import { Button } from "@/components/ui/Button";
 import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
@@ -216,12 +216,8 @@ export function Component() {
 
   const search = (
     <>
-      <PlaceSearchField value={text} onChange={setText} large className={session ? "mt-8" : "mx-auto mt-10 max-w-xl"} />
-      {query ? (
-        <PlaceSearchResults query={query} />
-      ) : (
-        !session && <p className="mt-3 text-center text-sm text-ink-muted">Anyone can read. Sign up to write your side.</p>
-      )}
+      <PlaceSearch text={text} onTextChange={setText} query={query} large className={session ? "mt-8" : "mx-auto mt-10 max-w-xl"} />
+      {!query && !session && <p className="mt-3 text-center text-sm text-ink-muted">Anyone can read. Sign up to write your side.</p>}
     </>
   );
 

@@ -92,11 +92,12 @@ Running prose is left-aligned, never justified, with `hyphens: auto`.
   item on every page and at every width. It opens a Radix dialog titled
   "Search places", with one line under the title saying what it takes ("A
   place, or a place and its town: “starbucks tampa”."), that holds the
-  front page's place search: the labelled field, which takes focus on
+  front page's place search (see Place search, which gives its keys): the
+  labelled field, which takes focus on
   open, pinned 16px from the top on phones and a tenth of the way down from
   `sm` so it stays put as results arrive, and the same results, "more"
-  line and "Not here? Add …" link. Each result links to its place page and closes
-  the dialog. Pressing "/" opens it from anywhere except while focus is in
+  line and "Not here? Add …" link. Each result links to its place page and
+  closes the dialog, whether clicked or opened with Enter. Pressing "/" opens it from anywhere except while focus is in
   a text field, text area, select or editable text, and never with Ctrl,
   Alt or Meta held. Below `sm` the dialog is the viewport width less the
   16px gutter and at most the viewport's height, the results scrolling
@@ -150,6 +151,9 @@ an icon beside it.
 - Each page has **previous** and **next** controls as real `<button>` or `<a>`
   elements, labelled ("Previous part", "Next part"), disabled at the ends, plus a
   "Part 3 of 7" position label announced to screen readers (`aria-live="polite"`).
+  A caller with somewhere to go past an end (a lore's book, between
+  chapters) gives the Reader that edge's action and label instead, and the
+  control turns there rather than sitting disabled.
   The row is a three-column grid (`grid-cols-[1fr_auto_1fr]`): previous at the
   start, the label centred on the measure whatever the buttons' widths, next
   at the end.
@@ -499,18 +503,31 @@ thread stay on the lore page.
   returning reader gets a primary "Continue where you left off" link with
   the place under it in `text-sm` ("Chapter 2, part 3 of 4").
 - **Contents.** "Contents", then an ordered list of the chapters, each one
-  row link at least 44px tall: "Chapter 2" in `text-sm` `ink-muted`, the
-  writer's name in the serif face, and its part count. The lore page's "Who
-  was who" follows the list.
+  row link at least 44px tall, on three lines: "Chapter 2" in `text-sm`
+  `ink-muted`; the chapter's title in the serif face at `text-xl`; then
+  "by otter · 2 parts" in `text-sm` `ink-muted`. The writer's name there is
+  plain text, since the row is already one link. The lore page's "Who was
+  who" follows the list.
+- **A chapter is titled by who its writer was.** A chapter's title is its
+  writer's role in the lore, read from "Who was who": the label of a
+  character in another chapter that the writer claimed and its author
+  accepted, with its first letter capitalised ("The woman crying into a hot
+  dog wrapper"). A writer who claimed more than one takes the first, in
+  chapter order and then the character's order in its story. A writer no
+  one has placed is titled by their story's first words, at most 40
+  characters, cut after the last whole word that fits and ending "…" when
+  the story goes on ("The rain came in sideways and the…"). The username is
+  never the title; it is the byline.
 - **A chapter** is the story page's Reader with the measure, the part
-  headings and the 150ms cross-fade unchanged. Its title is "Chapter 2:
-  otter" and its byline the writer and genre.
+  headings and the 150ms cross-fade unchanged. Its byline is "by otter",
+  a profile link, and the genre, in `text-sm` `ink-muted`.
 - **A chapter opens like one.** The chapter's header is centred, with
   generous space above it (`pt-10`, `pt-16` from `sm`): "Chapter 2" on its
   own line in `text-sm` `ink-muted` in the interface face, then the
-  writer's name under it in the serif face at `text-3xl`, then the byline.
-  Both lines are the one `h1`, named outright with `aria-label` "Chapter
-  2: otter", since readers join two block lines differently.
+  chapter's title under it in the serif face at `text-3xl`, then the
+  byline. Both lines are the one `h1`, named outright with `aria-label`
+  "Chapter 2: The guy in the yellow raincoat", since readers join two block
+  lines differently.
 - **The page-turn row stays put.** Every page of the book (title, contents,
   each part of a chapter, the end) sits in a page frame at least the
   viewport's height less 12rem (`min-h-[calc(100dvh-12rem)]`), with its
@@ -518,27 +535,47 @@ thread stay on the lore page.
   the same place from one page to the next while a page's text fits. The
   row above the frame ("Back to the lore", "Contents") keeps its 44px
   height on every page, empty on the closing page, so the frame starts at
-  the same place too. A chapter's "Chapters" navigation sits under the
-  frame. A chapter always pages by part:
+  the same place too. A chapter always pages by part:
   the lore page already shows every story whole, so the book offers no
   "Read all parts on one page" toggle. The label between the part controls
   reads "Chapter 2, part 3 of 4".
-- **A chapter's end.** Under its last part, a "Chapters" navigation holds
-  "Previous chapter" (the contents, for chapter 1) and "Next chapter" ("The
-  end", for the last), each naming the chapter's writer, each a 44px
-  secondary-styled link to that chapter's first part.
+- **Next and Previous cross chapters.** A chapter's part controls go
+  exactly where the arrow keys go. On a chapter's last part, Next reads
+  "Next chapter" and opens the next chapter's first part, or "The end" on
+  the last chapter and opens the closing page. On part 1, Previous reads
+  "Previous chapter" and opens the previous chapter's last part, or
+  "Contents" in chapter 1 and opens the contents. These edge labels show
+  at every width, a phone's included, where the plain "Previous" and
+  "Next" are icons only; the button's name is its label. Below `sm` an
+  edge control drops its arrow, since its words say which way it goes.
+- **The book's page-turn row on a phone.** "Previous chapter", "Next
+  chapter" and "Chapter 2, part 1 of 1" do not fit on one line at 375px,
+  so below `sm` every page of the book (chapter or not) puts the position
+  on its own centred line, with Previous and Next on the line under it at
+  the two ends; from `sm` the row is the one line the story page has. The
+  story page's own row is unchanged at every width. No part control in
+  the book is ever disabled. The Reader takes the edge actions from its
+  caller; on the story page a story's first and last parts keep their
+  disabled Previous and Next.
+- **No second row of chapter links.** With Next and Previous crossing
+  chapters, a "Next chapter: …" row under the last part would repeat the
+  control above it, and its "Previous chapter" would open a different part
+  than Previous does. The jump list is the contents, one tap away in the
+  row above every chapter, and it names each chapter.
 - **Closing page.** "The end", one line naming the lore, and two links:
   "Back to the lore" and "Read its thread", which opens the lore page at
   `#thread` and moves focus to the thread's heading.
 - **Turning pages.** The title, contents and closing pages carry the same
   previous and next row a chapter does, as links ("Previous page", "Next
-  page"), with the position centred between them as on a chapter. `ArrowLeft` and `ArrowRight` turn
+  page"), with the position centred between them as on a chapter.
+  `ArrowLeft` and `ArrowRight` turn
   pages everywhere in the book while focus is not in a field, across
   chapter boundaries too: forward from a chapter's last part opens the next
   chapter's first, back from a first part opens the previous chapter's
   last. The book owns the keys on every page (the Reader's own arrow
-  keys are off there), and a key pressed while the previous turn is still
-  landing waits for it, so every press turns exactly one page.
+  keys are off there). Keys and a chapter's part controls take one turn
+  path: a press, by key or by button, made while the previous turn is
+  still landing waits for it, so every press turns exactly one page.
 - **Focus and announcement.** After a turn, focus moves to the new page's
   heading: a part's "Part N" heading within a chapter, otherwise the page's
   level-one heading. One visually hidden polite `status` line, outside the
@@ -568,6 +605,73 @@ list (at most 15rem tall) whose rows each take the height of their two
 lines, never squeezed to fit; a polite `status` line above the list says
 "3 places match" or "No other place matches." as the search answers.
 
+## Place search
+
+The front page's search and the header's Search dialog are one control: a
+WAI-ARIA combobox over a list of places. Focus stays in the field while the
+keys move through the list, so a reader can type, look and open a place
+without leaving it.
+
+- **Roles.** The field, labelled "Search places" and inside the `search`
+  landmark, is `role="combobox"` with `aria-autocomplete="list"`. Its
+  `aria-controls` names the results, a `role="listbox"` named "Matching
+  places", and `aria-expanded` is `true` only while that list shows at
+  least one place. Each result is an `option`: a link set in that role, so
+  a pointer can still open it in a new tab, and out of the tab order
+  (`tabindex="-1"`). The field's `aria-activedescendant` names the active
+  result, and is absent when none is active.
+- **Keys.**
+  - ↓ makes the next result active and ↑ the previous one, wrapping at
+    either end; ↓ from the field with none active takes the first, ↑ the
+    last. ↓ or ↑ also reopens a list that Escape closed.
+  - Enter opens the active result's place page, or the first result's when
+    none is active. Pressed before the results for the text in the field
+    have arrived, it opens the first of them once they do, and does
+    nothing when none match. Enter never submits a form or reloads the
+    page.
+  - Escape on the front page closes the list (the text stays), and a
+    second Escape clears the field. In the header dialog Escape closes the
+    dialog, which empties the field (see Header search).
+  - Typing, ←, →, Home and End leave no result active and do what they do
+    in any text field; Home and End move the caret to the start and end of
+    the text, never to the first or last result.
+  - Tab leaves the field for the next control, the "Not here? Add …" link.
+- **The active result** takes the `surface` fill and a 2px `accent`
+  outline inset by 2px, the focus ring's colour, so it is unmistakable
+  without relying on opacity; a hovered row takes the fill alone. When the
+  list scrolls (the dialog on a phone), the active row is scrolled into
+  view.
+- **Announcements.** One polite `status` line, always mounted and visually
+  hidden while places show, says what the list holds once per answer:
+  "Searching…", "4 places match “starbucks tampa”.", "No places match
+  “Atlantis”." or, at the cap, "Showing the first 20 places that match
+  “tampa”. Add a town or state to narrow it." A screen reader announces
+  the active result from `aria-activedescendant` as its whole row, the
+  name then its second line. Moving through the list adds nothing to the
+  status line.
+- **What and where.** A result's second line says what the place is and
+  where, nearest first, then its story count. A place inside a mall or a
+  venue names that first, after "at", so two same-named stores in one town
+  can be told apart: "Food & drink at International Plaza in Tampa,
+  Florida · 2 stories"; elsewhere it reads "Food & drink in Tampa, Florida
+  · 2 stories".
+- **More.** The search stops at 20 places. When more match, the line
+  "Showing the first 20. Add a town or state to narrow it." (`text-sm`,
+  `ink-muted`) follows the list. A town, a city or a state's full name
+  narrows it ("tampa florida", "starbucks, tampa").
+- **Adding the place that is missing.** The "Not here? Add …" link under
+  the results opens the composer's add form. When the server read the
+  search as a name and the city, town or state it is in, the response
+  carries that split, and the link offers the name and the place apart:
+  "Not here? Add “Joes Crab Shack” in Tampa, Florida". It opens
+  `/compose?add=<name>&in=<locality id>`, so the form starts with that
+  name and with "Where is it?" set to that locality. A name typed all in
+  lower case is suggested in title case, as the importer writes such
+  names (minor words such as "of" and "the" stay lower case inside a name,
+  and a letter after an apostrophe stays lower case: "Joe's Bar-B-Que");
+  a name with any capital is kept as typed. Without a split the link
+  offers the whole search as the name and leaves "Where is it?" empty.
+
 ## Composer: place picker
 
 "Where were you?" lists the matching places as the front page does: each
@@ -576,8 +680,10 @@ it is and how many stories it holds ("Food & drink in Tampa, Florida · 2
 stories", "No stories yet"), so a writer can tell which of two same-named
 listings their friends write in. Rows keep the server's order, which puts
 places with stories first within each match tier. When the search reaches
-its cap, the line "More places match: add a town to narrow it" follows the
-list.
+its cap, the line "Showing the first 20. Add a town or state to narrow it."
+follows the list. "Add a place" opens the add form from the search the
+same way the front page's link does: the name part, title-cased when it
+was typed all in lower case, and the city, town or state the search read.
 
 ## Composer: day and hour
 
@@ -735,12 +841,13 @@ canon and lore badges), the Follow row, the bio, the track record, then the
 writer's work in two tabs.
 
 - **Track record.** One row of four counts under the bio (under the Follow
-  row when there is no bio), in this order: stories, upvotes, people found,
-  places. Each count is the number in bold `ink` (bold being for counts
-  that need to be scanned) followed by its word in `ink-muted`, at
+  row when there is no bio), in this order: stories, upvotes, linked
+  writers, places. Each count is the number in bold `ink` (bold being for
+  counts that need to be scanned) with its words in `ink-muted`, at
   `text-sm`, as one list item, so a screen reader reads "12 stories", "340
-  upvotes", "5 people found", "3 places" ("1 story", "1 upvote", "1 person
-  found", "1 place" for one). The list is named "Track record". A zero
+  upvotes", "Linked with 5 writers", "3 places" ("1 story", "1 upvote",
+  "Linked with 1 writer", "1 place" for one). The linked writers' words
+  sit either side of the number, which stays the bold figure. The list is named "Track record". A zero
   shows as "0 stories" and so on. The row wraps (`flex-wrap`, 24px between
   counts, 8px between lines) and never scrolls sideways at 375px. It is
   plain text: nothing in it is a link or a button. It counts only what a
@@ -1090,10 +1197,12 @@ its place page.
 - **A place and its town.** The search reads a name with the city or town
   it is in, either way round or after a comma ("starbucks tampa", "tampa
   starbucks", "starbucks, tampa"), and lists the places of that name in
-  that town first, the best-known town of that name first. The search
-  stops at 20 places; when more match, the line "More places match: add a
-  town to narrow it" (`text-sm`, `ink-muted`) follows the list, and the
-  results' status line says it too, so the list never stops silently.
+  that town first, the best-known town of that name first. A state's full
+  name works the same way ("tampa florida"), after a city or town of that
+  name. The search stops at 20 places; when more match, the line "Showing
+  the first 20. Add a town or state to narrow it." (`text-sm`, `ink-muted`)
+  follows the list, and the results' status line says it too, so the list
+  never stops silently. The field's keys are in Place search.
 - **The example: two facing pages.** A `figure` that shows the product
   working, as a book opened flat. Its caption is one `text-sm` `ink-muted`
   line, "Example · Moonbean Coffee, Portland · Friday, 9 PM", with "Example"
@@ -1153,7 +1262,9 @@ its place page.
   "Browse by state".
 - **New members.** A signed-in member with no published story is not
   "back": the heading reads "Welcome, *username*" at the same size, and
-  the waiting lines are the same. Under them sits one call to action, the
+  the waiting lines are the same, except that "Nothing is waiting on you."
+  is left out: a member who has not written yet has nothing to wait on,
+  so the line would say nothing. Under them sits one call to action, the
   primary button "Write about a place you were at" (to `/compose`), and
   under that a short explainer in a bordered `surface` box: the `h2` "How a
   day works" over four numbered lines, the arc page's explainer without its
@@ -1161,7 +1272,7 @@ its place page.
   1. Every story is pinned to a place and a day, or one hour of it.
   2. Everyone who was there writes their own side.
   3. If someone else's story describes you, claim that character; your
-     stories link into a lore.
+     two stories link, and linked stories make a lore.
   4. The lore the day's writers favour most becomes its canon.
   While the member's published count is still loading the heading reads
   "Welcome, *username*" and neither block shows; "Welcome back" replaces

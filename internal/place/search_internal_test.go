@@ -54,6 +54,14 @@ func TestLocalitySplits(t *testing.T) {
 			want: []split{{name: "starbucks", locality: "tampa"}, {name: "tampa", locality: "starbucks"}},
 		},
 		{name: "comma with nothing before it", text: ", tampa", want: nil},
+		{
+			name: "case is kept, and a last In is dropped whatever its case",
+			text: "Joes In Tampa",
+			want: []split{
+				{name: "Joes", locality: "In Tampa"}, {name: "Tampa", locality: "Joes In"},
+				{name: "Joes", locality: "Tampa"}, {name: "In Tampa", locality: "Joes"},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -65,10 +73,10 @@ func TestLocalitySplits(t *testing.T) {
 	}
 }
 
-func TestSearchText(t *testing.T) {
+func TestSearchDisplay(t *testing.T) {
 	t.Parallel()
 	tests := []struct{ in, want string }{
-		{in: "  Starbucks   TAMPA ", want: "starbucks tampa"},
+		{in: "  Starbucks   TAMPA ", want: "Starbucks TAMPA"},
 		{in: "starbucks,", want: "starbucks"},
 		{in: ", starbucks , ", want: "starbucks"},
 		{in: "starbucks, tampa", want: "starbucks, tampa"},
@@ -77,8 +85,34 @@ func TestSearchText(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.in, func(t *testing.T) {
 			t.Parallel()
-			if got := searchText(tc.in); got != tc.want {
-				t.Fatalf("searchText(%q) = %q, want %q", tc.in, got, tc.want)
+			if got := searchDisplay(tc.in); got != tc.want {
+				t.Fatalf("searchDisplay(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestLocalityLabel(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, locality string
+		ancestors      []Ref
+		want           string
+	}{
+		{name: "a state stands alone", locality: "Florida", want: "Florida"},
+		{name: "a city and its state", locality: "Tampa", ancestors: []Ref{{Name: "Florida"}}, want: "Tampa, Florida"},
+		{
+			name:      "a town, nearest first",
+			locality:  "Southtown",
+			ancestors: []Ref{{Name: "Illinois"}, {Name: "Springfield"}},
+			want:      "Southtown, Springfield, Illinois",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := localityLabel(tc.locality, tc.ancestors); got != tc.want {
+				t.Fatalf("localityLabel = %q, want %q", got, tc.want)
 			}
 		})
 	}
@@ -107,19 +141,37 @@ func TestLocalityNames(t *testing.T) {
 	}
 }
 
-func TestLocalityIDs(t *testing.T) {
+func TestLocalityMatches(t *testing.T) {
 	t.Parallel()
 	a, b, c := uuid.New(), uuid.New(), uuid.New()
-	found := []Locality{{ID: a, Name: "saint petersburg"}, {ID: b, Name: "tampa"}, {ID: c, Name: "st. petersburg"}}
-	if got := localityIDs(found, "st petersburg"); !slices.Equal(got, []uuid.UUID{a, c}) {
-		t.Fatalf("ids = %v, want the two spellings in found order", got)
-	}
+	found := []Locality{{ID: a, Name: "saint petersburg"}, {ID: b, Name: "tampa"}, {ID: c, Name: "st. petersburg"}, {ID: a, Name: "saint petersburg"}}
 	many := make([]Locality, maxLocalitiesPerName+5)
 	for i := range many {
 		many[i] = Locality{ID: uuid.New(), Name: "valley"}
 	}
-	if got := localityIDs(many, "valley"); len(got) != maxLocalitiesPerName || got[0] != many[0].ID {
-		t.Fatalf("got %d ids, want the first %d", len(got), maxLocalitiesPerName)
+	ids := func(ls []Locality) []uuid.UUID {
+		out := make([]uuid.UUID, len(ls))
+		for i, l := range ls {
+			out[i] = l.ID
+		}
+		return out
+	}
+	tests := []struct {
+		name, locality string
+		found          []Locality
+		want           []uuid.UUID
+	}{
+		{name: "every spelling, in found order, each once", locality: "st petersburg", found: found, want: []uuid.UUID{a, c}},
+		{name: "none named", locality: "orlando", found: found, want: nil},
+		{name: "at most maxLocalitiesPerName", locality: "valley", found: many, want: ids(many[:maxLocalitiesPerName])},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := ids(localityMatches(tc.found, tc.locality)); !slices.Equal(got, tc.want) {
+				t.Fatalf("ids = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 

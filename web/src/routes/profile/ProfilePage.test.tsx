@@ -125,7 +125,7 @@ describe("public profile page", () => {
     expect(screen.getByText("In 3 lores")).toBeInTheDocument();
   });
 
-  it("shows the track record as four labelled counts under the bio, one word each", async () => {
+  it("shows the track record as four labelled counts under the bio", async () => {
     renderApp("/users/wren", {
       "UserService/GetProfile": () => ({
         body: { profile: { ...profile, storyCount: 12, upvotesReceived: 1, peopleFound: 5, placesWritten: 1, canonCount: 1, loreCount: 2 } },
@@ -133,11 +133,13 @@ describe("public profile page", () => {
       "PerspectiveService/ListByAuthor": () => ({ body: {} }),
     });
     const record = await screen.findByRole("list", { name: "Track record" });
-    expect(within(record).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["12 stories", "1 upvote", "5 people found", "1 place"]);
+    expect(within(record).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["12 stories", "1 upvote", "Linked with 5 writers", "1 place"]);
     // The bio comes first, then the record; the badges stay in the header.
     const bio = screen.getByText("I write about the corner bookshop.");
     expect(bio.compareDocumentPosition(record) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByText("In 1 canon")).toBeInTheDocument();
+    // The number stays the bold figure, between the linked writers' words.
+    expect(within(record).getByText("5", { selector: "span" })).toHaveClass("font-bold");
   });
 
   it("counts zero, one and many, with a thousands separator", async () => {
@@ -149,7 +151,7 @@ describe("public profile page", () => {
     expect(within(record).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
       "1 story",
       "12,345 upvotes",
-      "1 person found",
+      "Linked with 1 writer",
       "0 places",
     ]);
   });

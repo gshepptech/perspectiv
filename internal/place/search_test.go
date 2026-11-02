@@ -190,3 +190,104 @@ func TestSearchPlacesMore(t *testing.T) {
 		})
 	}
 }
+
+// TestSearchPlacesSplit covers the split SearchPlaces returns for the add
+// form: the name part as typed and the best locality with its label, a
+// state as a locality, and no split when nothing names a locality or a
+// place's name starts with the whole search.
+func TestSearchPlacesSplit(t *testing.T) {
+	t.Parallel()
+	h := newHierarchy(t)
+	c := client(t, h.pool)
+	store := perspectivv1.PlaceKind_PLACE_KIND_STORE
+	indiana := h.place(perspectivv1.PlaceKind_PLACE_KIND_STATE, "Indiana", uuid.Nil)
+	chicagoTown := h.place(perspectivv1.PlaceKind_PLACE_KIND_TOWN, "Chicago", indiana)
+	lakeside := h.place(perspectivv1.PlaceKind_PLACE_KIND_TOWN, "Lakeside", h.city)
+	h.hide(lakeside)
+	inChicago := h.place(store, "Starbucks", h.otherCity)
+	inChicagoTown := h.place(store, "Starbucks", chicagoTown)
+	inSouthtown := h.place(store, "Starbucks", h.town)
+	h.place(store, "Springfield Diner", h.otherCity)
+
+	tests := []struct {
+		name    string
+		req     *perspectivv1.SearchPlacesRequest
+		want    *splitWant
+		wantIDs []string
+		wantNot []string
+	}{
+		{
+			name: "a place not listed keeps its name as typed",
+			req:  &perspectivv1.SearchPlacesRequest{Query: "joes  crab shack Chicago"},
+			want: &splitWant{name: "joes crab shack", localityID: h.otherCity.String(), label: "Chicago, Illinois"},
+		},
+		{
+			name: "a town is labelled up to its state",
+			req:  &perspectivv1.SearchPlacesRequest{Query: "Starbucks, Southtown"},
+			want: &splitWant{name: "Starbucks", localityID: h.town.String(), label: "Southtown, Springfield, Illinois"},
+		},
+		{
+			name: "a last in is not part of the name",
+			req:  &perspectivv1.SearchPlacesRequest{Query: "Corner Cafe in Chicago"},
+			want: &splitWant{name: "Corner Cafe", localityID: h.otherCity.String(), label: "Chicago, Illinois"},
+		},
+		{
+			name:    "a state narrows the search",
+			req:     &perspectivv1.SearchPlacesRequest{Query: "starbucks illinois"},
+			want:    &splitWant{name: "starbucks", localityID: h.state.String(), label: "Illinois"},
+			wantIDs: idStrings(inChicago, inSouthtown),
+			wantNot: idStrings(inChicagoTown),
+		},
+		{
+			name: "the parent filter picks the locality",
+			req:  &perspectivv1.SearchPlacesRequest{Query: "starbucks chicago", ParentId: indiana.String()},
+			want: &splitWant{name: "starbucks", localityID: chicagoTown.String(), label: "Chicago, Indiana"},
+		},
+		{name: "one word has no split", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks"}},
+		{name: "no locality named", req: &perspectivv1.SearchPlacesRequest{Query: "white oaks mall"}},
+		{name: "a hidden town is not a locality", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks lakeside"}},
+		{name: "a name starting with the whole search is a name", req: &perspectivv1.SearchPlacesRequest{Query: "springfield diner"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			res, err := c.SearchPlaces(context.Background(), as(uuid.Nil, tc.req))
+			if err != nil {
+				t.Fatalf("SearchPlaces(%q): %v", tc.req.GetQuery(), err)
+			}
+			checkSplit(t, res.Msg.GetSplit(), tc.want)
+			ids := make([]string, len(res.Msg.GetPlaces()))
+			for i, p := range res.Msg.GetPlaces() {
+				ids[i] = p.GetId()
+			}
+			for _, id := range tc.wantIDs {
+				if !slices.Contains(ids, id) {
+					t.Errorf("places %v lack %s", ids, id)
+				}
+			}
+			if i := slices.IndexFunc(tc.wantNot, func(id string) bool { return slices.Contains(ids, id) }); i >= 0 {
+				t.Errorf("places %v hold %s, outside the state", ids, tc.wantNot[i])
+			}
+		})
+	}
+}
+
+// splitWant is the split a search should return: the name part, the
+// locality's id and its label.
+type splitWant struct{ name, localityID, label string }
+
+// checkSplit fails t unless got is the split want describes, or both are
+// absent.
+func checkSplit(t *testing.T, got *perspectivv1.SearchSplit, want *splitWant) {
+	t.Helper()
+	switch {
+	case want == nil && got != nil:
+		t.Fatalf("split = %v, want none", got)
+	case want != nil && got == nil:
+		t.Fatalf("no split, want %+v", *want)
+	case want != nil:
+		if g := (splitWant{got.GetName(), got.GetLocalityId(), got.GetLocalityLabel()}); g != *want {
+			t.Fatalf("split = %+v, want %+v", g, *want)
+		}
+	}
+}

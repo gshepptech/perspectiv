@@ -63,7 +63,7 @@ function landing(
 describe("landing page (AC-006, OT-036)", () => {
   it("renders a place search box and no feed for a signed-out reader", async () => {
     const { sent } = landing();
-    expect(await screen.findByRole("searchbox", { name: "Search places" })).toHaveAttribute("maxlength", "200");
+    expect(await screen.findByRole("combobox", { name: "Search places" })).toHaveAttribute("maxlength", "200");
     expect(screen.getByRole("search")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign in" })).toBeInTheDocument();
     // No feed of posts: the only listings are of places.
@@ -273,6 +273,10 @@ describe("landing page (AC-006, OT-036)", () => {
     const how = screen.getByRole("region", { name: "How a day works" });
     expect(within(how).getAllByRole("listitem")).toHaveLength(4);
     expect(how).toHaveTextContent("Everyone who was there writes their own side.");
+    // Point 3 says what a lore is.
+    expect(within(how).getAllByRole("listitem")[2]).toHaveTextContent(
+      "If someone else's story describes you, claim that character; your two stories link, and linked stories make a lore.",
+    );
     // The explainer sits right under the call to action, so no link points at it.
     expect(within(how).getByRole("heading", { level: 2, name: "How a day works" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "How a day works" })).toBeNull();
@@ -304,13 +308,15 @@ describe("landing page (AC-006, OT-036)", () => {
   it("returns matching places with their parent chain as typed", async () => {
     const user = userEvent.setup();
     const { calls } = landing();
-    await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "Spring");
-    const list = await screen.findByRole("list", { name: "Matching places" });
-    const items = within(list).getAllByRole("listitem");
+    await user.type(await screen.findByRole("combobox", { name: "Search places" }), "Spring");
+    const list = await screen.findByRole("listbox", { name: "Matching places" });
+    const items = within(list).getAllByRole("option");
     expect(items).toHaveLength(2);
-    expect(within(items[0]!).getByRole("link", { name: /Springfield/ })).toHaveAttribute("href", "/places/ci-spr");
+    expect(items[0]).toHaveAccessibleName(/^Springfield/);
+    expect(items[0]).toHaveAttribute("href", "/places/ci-spr");
     expect(items[0]).toHaveTextContent("City in Illinois");
-    expect(within(items[1]!).getByRole("link", { name: /White Oaks Mall/ })).toHaveAttribute("href", "/places/ml-wh");
+    expect(items[1]).toHaveAccessibleName(/^White Oaks Mall/);
+    expect(items[1]).toHaveAttribute("href", "/places/ml-wh");
     expect(items[1]).toHaveTextContent("Mall in Springfield, Illinois");
     await waitFor(() => expect(calls("PlaceService/SearchPlaces").at(-1)).toEqual({ query: "Spring" }));
   });
@@ -318,44 +324,45 @@ describe("landing page (AC-006, OT-036)", () => {
   it("does not search for a blank query", async () => {
     const user = userEvent.setup();
     const { calls } = landing();
-    await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "   ");
+    await user.type(await screen.findByRole("combobox", { name: "Search places" }), "   ");
     await new Promise((r) => setTimeout(r, 400));
     expect(calls("PlaceService/SearchPlaces")).toEqual([]);
-    expect(screen.queryByRole("list", { name: "Matching places" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("listbox", { name: "Matching places" })).not.toBeInTheDocument();
   });
 
   it("says so when nothing matches", async () => {
     const user = userEvent.setup();
     landing(() => ({ body: { places: [] } }));
-    await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "Atlantis");
+    await user.type(await screen.findByRole("combobox", { name: "Search places" }), "Atlantis");
     expect(await screen.findByText("No places match “Atlantis”.")).toBeInTheDocument();
   });
 
   it("says when more places match than it lists, and how to narrow them", async () => {
     const user = userEvent.setup();
     landing(() => ({ body: { ...results, more: true } }));
-    await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "Spring");
-    expect(await screen.findByText("More places match: add a town to narrow it")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("More places match: add a town to narrow it.");
+    await user.type(await screen.findByRole("combobox", { name: "Search places" }), "Spring");
+    expect(await screen.findByText("Showing the first 2. Add a town or state to narrow it.")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Showing the first 2 places that match “Spring”. Add a town or state to narrow it.");
+    expect(screen.getByRole("status")).not.toHaveTextContent("2 places match");
   });
 
   it("shows an error when the search fails", async () => {
     const user = userEvent.setup();
     landing(() => connectError("unavailable"));
-    await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "Spring");
+    await user.type(await screen.findByRole("combobox", { name: "Search places" }), "Spring");
     expect(await screen.findByRole("alert")).toHaveTextContent("Search is unavailable");
   });
 
   it("keeps the query in the address so back returns to the results", async () => {
     const user = userEvent.setup();
     const { router } = landing();
-    await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "Spring");
+    await user.type(await screen.findByRole("combobox", { name: "Search places" }), "Spring");
     await waitFor(() => expect(router.state.location.search).toBe("?q=Spring"));
-    await user.click(await screen.findByRole("link", { name: /White Oaks Mall/ }));
+    await user.click(await screen.findByRole("option", { name: /White Oaks Mall/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/places/ml-wh"));
     await router.navigate(-1);
-    expect(await screen.findByRole("searchbox", { name: "Search places" })).toHaveValue("Spring");
-    expect(await screen.findByRole("list", { name: "Matching places" })).toBeInTheDocument();
+    expect(await screen.findByRole("combobox", { name: "Search places" })).toHaveValue("Spring");
+    expect(await screen.findByRole("listbox", { name: "Matching places" })).toBeInTheDocument();
   });
 
   it("links the kinds of place with days to their best days, above the states", async () => {
@@ -464,20 +471,31 @@ describe("landing page (AC-006, OT-036)", () => {
     expect(yours.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("tells a returning member when nothing is waiting on them", async () => {
+  it.each([
+    { name: "tells a returning member when nothing is waiting on them", published: true, nothing: true },
+    { name: "says nothing about waiting to a member who has not published", published: false, nothing: false },
+  ])("$name", async ({ published, nothing }) => {
+    const story = { id: "p-2", arcId: "arc-2", arcTitle: "Lights out", status: "PERSPECTIVE_STATUS_PUBLISHED" };
     renderApp(
       "/",
       {
         "PlaceService/ListChildren": () => ({ body: states }),
-        "PerspectiveService/ListMine": () => ({ body: { perspectives: [] } }),
+        "PerspectiveService/ListMine": () => ({ body: { perspectives: published ? [story] : [] } }),
         "NotifyService/ListInbox": () => ({ body: { unreadCount: 0 } }),
         "LoreService/ListClaims": () => ({ body: { claims: [] } }),
       },
       { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
     );
-    const waiting = await screen.findByRole("list", { name: "Waiting on you" });
-    expect(waiting).toHaveTextContent("Nothing is waiting on you.");
-    expect(screen.getByRole("searchbox", { name: "Search places" })).toBeInTheDocument();
+    await screen.findByRole("heading", { level: 1, name: published ? "Welcome back, wren" : "Welcome, wren" });
+    expect(screen.getByRole("combobox", { name: "Search places" })).toBeInTheDocument();
+    if (nothing) {
+      expect(await screen.findByRole("list", { name: "Waiting on you" })).toHaveTextContent("Nothing is waiting on you.");
+    } else {
+      await screen.findByRole("region", { name: "How a day works" });
+      // Both counts have answered, and no empty list stands in for the line.
+      await waitFor(() => expect(screen.queryByText("Nothing is waiting on you.")).toBeNull());
+      expect(screen.queryByRole("list", { name: "Waiting on you" })).toBeNull();
+    }
   });
 
   it("puts followed places with new stories first and counts them", async () => {
@@ -512,8 +530,37 @@ describe("landing page (AC-006, OT-036)", () => {
   it("offers to add a place that search does not find", async () => {
     const user = userEvent.setup();
     landing(() => ({ body: { places: [] } }));
-    await user.type(await screen.findByRole("searchbox", { name: "Search places" }), "Dollar General");
+    await user.type(await screen.findByRole("combobox", { name: "Search places" }), "Dollar General");
     const add = await screen.findByRole("link", { name: "Not here? Add “Dollar General” as a new place" });
-    expect(add).toHaveAttribute("href", "/compose?add=Dollar%20General");
+    expect(add).toHaveAttribute("href", "/compose?add=Dollar+General");
+  });
+
+  it.each([
+    {
+      name: "a name and its town: the town goes to Where",
+      typed: "joes crab shack tampa",
+      split: { name: "joes crab shack", localityId: "ci-tpa", localityLabel: "Tampa, Florida" },
+      link: "Not here? Add “Joes Crab Shack” in Tampa, Florida",
+      href: "/compose?add=Joes+Crab+Shack&in=ci-tpa",
+    },
+    {
+      name: "a capital typed keeps the name as typed",
+      typed: "McDonald's, Tampa",
+      split: { name: "McDonald's", localityId: "ci-tpa", localityLabel: "Tampa, Florida" },
+      link: "Not here? Add “McDonald's” in Tampa, Florida",
+      href: "/compose?add=McDonald%27s&in=ci-tpa",
+    },
+    {
+      name: "no split: the whole search, title-cased",
+      typed: "corner books",
+      split: undefined,
+      link: "Not here? Add “Corner Books” as a new place",
+      href: "/compose?add=Corner+Books",
+    },
+  ])("adds a place from the split the server read: $name", async ({ typed, split, link, href }) => {
+    const user = userEvent.setup();
+    landing(() => ({ body: { places: [], split } }));
+    await user.type(await screen.findByRole("combobox", { name: "Search places" }), typed);
+    expect(await screen.findByRole("link", { name: link })).toHaveAttribute("href", href);
   });
 });

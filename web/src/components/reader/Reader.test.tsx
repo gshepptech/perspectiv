@@ -128,7 +128,7 @@ describe("Reader pages one part at a time (OT-033)", () => {
 
   it("leaves the arrow keys to a caller that turns pages itself", async () => {
     const onPartChange = vi.fn();
-    render(<Reader title="Chapter 1: wren" parts={parts} part={2} onPartChange={onPartChange} arrowKeys={false} />);
+    render(<Reader title="The power went out." chapter="Chapter 1" parts={parts} part={2} onPartChange={onPartChange} arrowKeys={false} />);
     await userEvent.keyboard("{ArrowRight}{ArrowLeft}");
     expect(onPartChange).not.toHaveBeenCalled();
     // The buttons still turn the part.
@@ -151,6 +151,33 @@ describe("Reader pages one part at a time (OT-033)", () => {
     expect(next).toBeDisabled();
     await user.click(prev);
     expect(screen.getByText("Part 2 of 3")).toBeInTheDocument();
+  });
+
+  it("turns past an end with the caller's edge action, labelled at every width, instead of disabling it", async () => {
+    const user = userEvent.setup();
+    const onPartChange = vi.fn();
+    const back = vi.fn();
+    const on = vi.fn();
+    const edges = { onPartChange, beyondStart: { label: "Contents", onTurn: back }, beyondEnd: { label: "Next chapter", onTurn: on } };
+    const { rerender } = render(<Reader title="The power went out." parts={parts} part={1} {...edges} />);
+    const start = screen.getByRole("button", { name: "Contents" });
+    expect(start).toBeEnabled();
+    // The label is the button's text, not hidden below `sm` as "Previous" is.
+    expect(within(start).getByText("Contents")).not.toHaveClass("hidden");
+    expect(screen.getByRole("button", { name: "Next part" })).toBeEnabled();
+    await user.click(start);
+    expect(back).toHaveBeenCalledOnce();
+
+    rerender(<Reader title="The power went out." parts={parts} part={3} {...edges} />);
+    const end = screen.getByRole("button", { name: "Next chapter" });
+    expect(within(end).getByText("Next chapter")).not.toHaveClass("hidden");
+    expect(screen.getByRole("button", { name: "Previous part" })).toBeEnabled();
+    await user.click(end);
+    expect(on).toHaveBeenCalledOnce();
+    // Inside the parts the controls turn the part, not the edge.
+    await user.click(screen.getByRole("button", { name: "Previous part" }));
+    expect(onPartChange).toHaveBeenCalledWith(2);
+    expect(back).toHaveBeenCalledOnce();
   });
 
   it("operates from the keyboard with Tab and Enter", async () => {

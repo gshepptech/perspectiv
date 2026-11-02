@@ -41,7 +41,7 @@ describe("PlacePicker results", () => {
       "Raymond James StadiumSports in Tampa, Florida · 12 stories",
       "Raymond James StadiumStore in Tampa, Florida · No stories yet",
     ]);
-    expect(screen.queryByText("More places match: add a town to narrow it")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Add a town or state to narrow it/)).not.toBeInTheDocument();
     await user.click(rows[0]!);
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: "p-busy" }));
   });
@@ -55,6 +55,6 @@ describe("PlacePicker results", () => {
     const user = userEvent.setup();
     renderPicker({ places: [busy], more: true });
     await user.type(screen.getByRole("searchbox", { name: "Where were you?" }), "stadium");
-    expect(await screen.findByText("More places match: add a town to narrow it")).toBeInTheDocument();
+    expect(await screen.findByText(/^Showing the first \d+\. Add a town or state to narrow it\.$/)).toBeInTheDocument();
   });
 });

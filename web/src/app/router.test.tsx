@@ -177,13 +177,13 @@ describe("header search", () => {
     await screen.findByTestId("page");
     await user.click(within(screen.getByRole("navigation", { name: "Primary" })).getByRole("button", { name: "Search" }));
     const dialog = await screen.findByRole("dialog", { name: "Search places" });
-    const field = within(dialog).getByRole("searchbox", { name: "Search places" });
+    const field = within(dialog).getByRole("combobox", { name: "Search places" });
     expect(field).toHaveFocus();
     await user.type(field, "starbucks tampa");
-    const result = await within(dialog).findByRole("link", { name: /Starbucks/ });
+    const result = await within(dialog).findByRole("option", { name: /Starbucks/ });
     expect(result).toHaveAttribute("href", "/places/p-1");
     expect(result).toHaveTextContent("Food & drink in Tampa, Florida · 3 stories");
-    expect(within(dialog).getByText("More places match: add a town to narrow it")).toBeInTheDocument();
+    expect(within(dialog).getByText("Showing the first 1. Add a town or state to narrow it.")).toBeInTheDocument();
     await user.click(result);
     await waitFor(() => expect(router.state.location.pathname).toBe("/places/p-1"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -206,14 +206,14 @@ describe("header search", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       await user.keyboard("/");
       const dialog = await screen.findByRole("dialog", { name: "Search places" });
-      const field = within(dialog).getByRole("searchbox", { name: "Search places" });
+      const field = within(dialog).getByRole("combobox", { name: "Search places" });
       expect(field).toHaveValue("");
       await user.type(field, "tampa");
       await user.keyboard("{Escape}");
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Search" })).toHaveFocus();
       await user.keyboard("/");
-      expect(within(await screen.findByRole("dialog")).getByRole("searchbox")).toHaveValue("");
+      expect(within(await screen.findByRole("dialog")).getByRole("combobox")).toHaveValue("");
     } finally {
       other.remove();
     }

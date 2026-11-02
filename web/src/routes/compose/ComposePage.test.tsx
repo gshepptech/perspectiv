@@ -731,6 +731,46 @@ describe("choosing a place", () => {
     expect(within(form).getByText(/More than one in town\? Add the street/)).toBeInTheDocument();
   });
 
+  it.each([
+    {
+      name: "the search's town fills Where, and a lower-case name is title-cased",
+      path: "/compose?add=joes+crab+shack&in=p-city",
+      want: "Joes Crab Shack",
+      where: /New York City/,
+    },
+    { name: "a name with a capital stays as typed", path: "/compose?add=McDonald%27s&in=p-city", want: "McDonald's", where: /New York City/ },
+    { name: "no town leaves Where to choose", path: "/compose?add=joes+crab+shack", want: "Joes Crab Shack", where: null },
+  ])("starts the add form from the front page's link: $name", async ({ path, want, where }) => {
+    installApi({
+      "PlaceService/SearchPlaces": () => ok({ places: [] }),
+      "PlaceService/GetPlace": () => ok({ place: nyCity }),
+    });
+    renderRoute(path);
+    const form = await screen.findByRole("form", { name: "Add a place" });
+    expect(within(form).getByRole("textbox", { name: "Name" })).toHaveValue(want);
+    if (where) {
+      expect(await within(form).findByRole("radio", { name: where })).toBeChecked();
+    } else {
+      expect(within(form).queryByRole("radiogroup", { name: "Places it can be in" })).toBeNull();
+    }
+  });
+
+  it("starts the picker's add form from the split the search read", async () => {
+    const user = userEvent.setup();
+    installApi({
+      "PlaceService/SearchPlaces": () =>
+        ok({ places: [], split: { name: "tiny tea", localityId: "p-city", localityLabel: "New York City, New York" } }),
+      "PlaceService/GetPlace": () => ok({ place: nyCity }),
+    });
+    renderRoute("/compose");
+    await user.type(await screen.findByRole("searchbox", { name: "Where were you?" }), "tiny tea new york city");
+    expect(await screen.findByText("No places match “tiny tea new york city”.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add a place" }));
+    const form = await screen.findByRole("form", { name: "Add a place" });
+    expect(within(form).getByRole("textbox", { name: "Name" })).toHaveValue("Tiny Tea");
+    expect(await within(form).findByRole("radio", { name: /New York City/ })).toBeChecked();
+  });
+
   it("opens the add form with the place it was added from already chosen", async () => {
     const user = userEvent.setup();
     const added = { ...nyStore, id: "p-new", name: "Tiny Tea", parentId: "p-city", userAdded: true };

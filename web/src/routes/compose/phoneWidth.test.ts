@@ -538,7 +538,7 @@ const cases: Case[] = [
   { path: "/perspectives/pub-1", label: "Heart, 9999" },
   { path: "/lores/lore-canon", text: label },
   // The lore as a book: title page, contents, a chapter's last part with
-  // its chapter links, the last chapter's end, and the closing page.
+  // its "Next chapter" control, the last chapter's end, and the closing page.
   { path: "/lores/lore-canon/book", text: "Written by" },
   { path: "/lores/lore-canon/book?at=contents", text: "Chapter 6" },
   { path: "/lores/lore-canon/book?chapter=2&part=3", text: "Next chapter" },

@@ -52,7 +52,11 @@ func (h *Handler) SearchPlaces(ctx context.Context, req *connect.Request[perspec
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
-	return connect.NewResponse(&perspectivv1.SearchPlacesResponse{Places: placesToProto(found.Places), More: found.More}), nil
+	res := &perspectivv1.SearchPlacesResponse{Places: placesToProto(found.Places), More: found.More}
+	if sp := found.Split; sp != nil {
+		res.Split = &perspectivv1.SearchSplit{Name: sp.Name, LocalityId: sp.LocalityID.String(), LocalityLabel: sp.LocalityLabel}
+	}
+	return connect.NewResponse(res), nil
 }
 
 // GetPlace returns one place with its ancestors.

@@ -44,7 +44,10 @@ function FirstStory() {
         <ol className="mt-2 grid list-decimal gap-1.5 pl-5 text-ink">
           <li>Every story is pinned to a place and a day, or one hour of it.</li>
           <li>Everyone who was there writes their own side.</li>
-          <li>If someone else&apos;s story describes you, claim that character; your stories link into a lore.</li>
+          <li>
+            If someone else&apos;s story describes you, claim that character; your two stories link, and linked stories make a
+            lore.
+          </li>
           <li>The lore the day&apos;s writers favour most becomes its canon.</li>
         </ol>
       </section>
@@ -56,8 +59,9 @@ function FirstStory() {
  * The top of the front door for a member: what is waiting on them, each
  * with the page that deals with it. A count still loading, or one that
  * failed to load, is left out rather than shown as zero. A member who has
- * published is welcomed back; one who has not is welcomed, then asked to
- * write and shown how a day works.
+ * published is welcomed back, and told when nothing is waiting; one who has
+ * not is welcomed, then asked to write and shown how a day works, with no
+ * "Nothing is waiting" line, since nothing could be waiting yet.
  */
 export function WelcomeBack({ username }: { username: string }) {
   const unread = useUnreadCount(true);
@@ -66,12 +70,13 @@ export function WelcomeBack({ username }: { username: string }) {
   const unreadCount = unread.data ?? 0;
   const waitingCount = waiting.data?.count ?? 0;
   const settled = unread.isSuccess && waiting.isSuccess;
+  const nothingWaiting = settled && hasPublished === true && unreadCount === 0 && waitingCount === 0;
   return (
     <div className="min-w-0">
       <h1 id="landing-title" className="text-2xl wrap-anywhere sm:text-3xl">
         {hasPublished ? "Welcome back" : "Welcome"}, {username}
       </h1>
-      {(settled || unreadCount > 0 || waitingCount > 0) && (
+      {(nothingWaiting || unreadCount > 0 || waitingCount > 0) && (
         <ul aria-label="Waiting on you" className="mt-3 grid gap-x-6 sm:flex sm:flex-wrap">
           {unreadCount > 0 && (
             <li className="flex flex-wrap items-center gap-x-2">
@@ -103,7 +108,7 @@ export function WelcomeBack({ username }: { username: string }) {
               </Link>
             </li>
           )}
-          {settled && unreadCount === 0 && waitingCount === 0 && <li className="text-ink-muted">Nothing is waiting on you.</li>}
+          {nothingWaiting && <li className="text-ink-muted">Nothing is waiting on you.</li>}
         </ul>
       )}
       {hasPublished === false && <FirstStory />}

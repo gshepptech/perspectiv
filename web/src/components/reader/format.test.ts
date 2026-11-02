@@ -38,6 +38,37 @@ describe("search result labels", () => {
     expect(placeChain(PlaceKind.CITY, tampa.slice(0, 1) as never, PlaceCategory.SPORTS_AND_RECREATION)).toBe("City in Florida");
   });
 
+  it.each([
+    {
+      name: "a store in a mall names the mall after at",
+      kind: PlaceKind.STORE,
+      category: PlaceCategory.FOOD_AND_DRINK,
+      chain: [...tampa, { id: "m", kind: PlaceKind.MALL, name: "International Plaza" }],
+      want: "Food & drink at International Plaza in Tampa, Florida",
+    },
+    {
+      name: "a stand in a venue in a mall names both, nearest first",
+      kind: PlaceKind.STORE,
+      category: PlaceCategory.UNSPECIFIED,
+      chain: [
+        ...tampa,
+        { id: "m", kind: PlaceKind.MALL, name: "Westshore" },
+        { id: "v", kind: PlaceKind.STORE, name: "Food Hall" },
+      ],
+      want: "Store at Food Hall, Westshore in Tampa, Florida",
+    },
+    {
+      name: "a mall in a town reads in, as before",
+      kind: PlaceKind.MALL,
+      category: PlaceCategory.UNSPECIFIED,
+      chain: tampa,
+      want: "Mall in Tampa, Florida",
+    },
+    { name: "a state has no chain", kind: PlaceKind.STATE, category: PlaceCategory.UNSPECIFIED, chain: [], want: "State" },
+  ])("$name", ({ kind, category, chain, want }) => {
+    expect(placeChain(kind, chain as never, category)).toBe(want);
+  });
+
   it("says what a place is on its own page the same way", () => {
     expect(placeLabel(PlaceKind.STORE, PlaceCategory.SPORTS_AND_RECREATION)).toBe("Sports");
     expect(placeLabel(PlaceKind.STORE)).toBe("Store");

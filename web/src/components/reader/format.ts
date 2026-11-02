@@ -40,12 +40,19 @@ export function labelledCategory(kind: PlaceKind, category = PlaceCategory.UNSPE
  * "Mall in Springfield, Illinois": the kind, then the ancestors from the
  * nearest up to the state. A store or venue with a category says what it is
  * instead ("Sports in Tampa, Florida"), since a stadium or a park is not a
- * store or a mall to anyone who was there.
+ * store or a mall to anyone who was there. A place inside a mall or a venue
+ * names it first, after "at", so two same-named stores in one town read
+ * apart: "Food & drink at International Plaza in Tampa, Florida".
  */
 export function placeChain(kind: PlaceKind, ancestors: readonly PlaceRef[], category = PlaceCategory.UNSPECIFIED): string {
   const label = placeLabel(kind, category);
-  if (ancestors.length === 0) return label;
-  return `${label} in ${[...ancestors].reverse().map((a) => a.name).join(", ")}`;
+  const nearest = [...ancestors].reverse();
+  const inside = nearest.findIndex((a) => a.kind !== PlaceKind.MALL && a.kind !== PlaceKind.STORE);
+  const venues = (inside < 0 ? nearest : nearest.slice(0, inside)).map((a) => a.name);
+  const towns = (inside < 0 ? [] : nearest.slice(inside)).map((a) => a.name);
+  return [label, venues.length > 0 && `at ${venues.join(", ")}`, towns.length > 0 && `in ${towns.join(", ")}`]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export function genreLabel(genre: Genre): string {

@@ -51,6 +51,58 @@ Nothing in progress.
 
 ## Done
 
+- A data race in serve: /healthz read the River client's Stopped channel
+  while Start was still setting it, because the server answers before the
+  workers start. The channel is now published only once Start returns, and
+  /healthz reports "job client starting" until then. Found by -race in
+  TestServeByRole under load; verified by three -race -count runs of the
+  cmd/perspectiv integration tests.
+- Walkthrough fixes: the place search is a keyboard combobox, a missing
+  place is added apart from its town, and four labels say what they mean.
+  Design text first (`docs/design-system.md` § Place search, new; §
+  Header search, § Landing, § Composer: place picker, § Profile). The
+  front page's and the header dialog's field is `role="combobox"`
+  (`aria-expanded`, `aria-controls`, `aria-activedescendant`) over a
+  `listbox` of result links set as `option`s: ↓ and ↑ move and wrap, Enter
+  opens the active result or the first (an Enter that beats the answer
+  waits for it), Escape closes the list and then clears the field (the
+  dialog closes on it), and Home, End, ← and → stay in the text.
+  SearchPlaces now returns the `split` it read (the name part as typed and
+  the best locality's id and label, left out when a place's name starts
+  with the whole search), and a state's full name is a locality too
+  (FindLocalities reads states, after a same-named city), so "Add a town
+  or state" is true. "Not here? Add “Joes Crab Shack” in Tampa, Florida"
+  opens `/compose?add=…&in=…`, the composer's own "Add a place" uses the
+  split the same way, and an all-lower-case name is title-cased as the
+  importer does. The "more" line reads "Showing the first 20. Add a town
+  or state to narrow it."; a result inside a mall or venue reads "at
+  *mall* in *town*". The track record says "Linked with 5 writers"; the
+  welcome box says linked stories make a lore, and a member who has not
+  published is not told "Nothing is waiting on you." (the "How a day
+  works" link had already gone in 062fb80). Verified by integration tests
+  (split, state locality, labels), Go unit tests, vitest for each key and
+  the add-form prefill, a real-browser check that ↑ scrolls the last
+  result into the phone-width dialog, and e2e steps for the keys, axe on
+  the open combobox, and the add link. Dev data has no store filed under a
+  mall or venue yet, so the "at *mall*" line shows only once one is.
+
+- Lore as a book: Next and Previous cross chapters, and chapters are
+  titled by who their writer was. Design text first (`docs/design-system.md`
+  § Lore as a book, § Pagination). The Reader takes `beyondStart` and
+  `beyondEnd` edge actions (a label and a turn); the book supplies "Next
+  chapter" / "The end" and "Previous chapter" / "Contents", and every part
+  control goes through the book's one turn path, so a press while a turn
+  lands is held as an arrow key is. The second "Chapters" row under a
+  chapter's last part is gone: the contents are the jump list. On a phone
+  the book's position line sits above Previous and Next. A chapter's title
+  is its writer's first role in "Who was who" (shared `castOf`), else its
+  story's first words cut at a word within 40 characters; the username is
+  the byline, and the contents rows read "Chapter 2", the title, then "by
+  otter · 2 parts". The story page's Reader is unchanged. Verified: unit
+  tests for the edges, the held button press (fails with the hold removed)
+  and the titles; `make check`; `make e2e`; screenshots at 375px and
+  1280px against the dev loop.
+
 - Walkthrough fixes: thread posts have addresses, requests name their
   story, Saved unsaves in place, and the front page shows followed
   writers. Design text first (`docs/design-system.md` § Lore page: thread,

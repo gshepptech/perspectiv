@@ -787,11 +787,11 @@ func (q *Queries) EverywhereArcsRanked(ctx context.Context, arg EverywhereArcsRa
 }
 
 const findLocalities = `-- name: FindLocalities :many
-SELECT l.id, lower(l.name)::text AS name
+SELECT l.id, lower(l.name)::text AS name, l.name AS display_name, l.parent_id
 FROM places l
 WHERE l.hidden_at IS NULL
   AND lower(l.name) = ANY($1::text[])
-  AND l.kind IN ('PLACE_KIND_CITY', 'PLACE_KIND_TOWN')
+  AND l.kind IN ('PLACE_KIND_STATE', 'PLACE_KIND_CITY', 'PLACE_KIND_TOWN')
   AND ($2::uuid IS NULL
        OR (l.path @> ARRAY[$2::uuid] AND l.id <> $2::uuid))
   AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(l.path) AND h.hidden_at IS NOT NULL)
@@ -815,16 +815,20 @@ type FindLocalitiesParams struct {
 }
 
 type FindLocalitiesRow struct {
-	ID   uuid.UUID
-	Name string
+	ID          uuid.UUID
+	Name        string
+	DisplayName string
+	ParentID    uuid.NullUUID
 }
 
-// The visible cities and towns named exactly one of names, for a search
-// that reads as a place and the town it is in. Best first: a locality with
-// a readable story at or below it (not under a hidden place), then a city
-// before a town, then the one with more places directly in it (counted up
-// to 500), so "tampa" means Tampa, Florida before Tampa, Kansas. Restricted
-// to the descendants of parent_id when it is set.
+// The visible states, cities and towns named exactly one of names, for a
+// search that reads as a place and the town or state it is in. Best first:
+// a locality with a readable story at or below it (not under a hidden
+// place), then a city before a town or state, then the one with more
+// places directly in it (counted up to 500), so "tampa" means Tampa,
+// Florida before Tampa, Kansas, and "new york" the city before the state
+// when neither or both hold a story. Restricted to the descendants of
+// parent_id when it is set. display_name is the name as listed.
 func (q *Queries) FindLocalities(ctx context.Context, arg FindLocalitiesParams) ([]FindLocalitiesRow, error) {
 	rows, err := q.db.Query(ctx, findLocalities, arg.Names, arg.ParentID, arg.Lim)
 	if err != nil {
@@ -834,7 +838,12 @@ func (q *Queries) FindLocalities(ctx context.Context, arg FindLocalitiesParams) 
 	var items []FindLocalitiesRow
 	for rows.Next() {
 		var i FindLocalitiesRow
-		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.DisplayName,
+			&i.ParentID,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

@@ -171,31 +171,53 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
   }
 
   const lorePath = await talkInTheThread(arc, ana, ben, cal);
-  await readAsABook(anon, lorePath);
+  await readAsABook(anon, lorePath, anaAcct.username, benAcct.username);
 });
 
 /**
  * A signed-out reader opens the lore as a book from its page, turns from the
- * title page to the contents and into chapter 1, then with the arrow key
- * through chapter 1's parts and on into chapter 2.
+ * title page to the contents and into chapter 1, pages through chapter 1's
+ * parts with the arrow key, and turns into chapter 2 with its Next button,
+ * back with Previous and on again with the arrow key. Each chapter is titled
+ * by who its writer was: Ana, whom no one placed, by her opening words; Ben
+ * by the character he claimed in Ana's story.
  */
-async function readAsABook(page: Page, lorePath: string) {
+async function readAsABook(page: Page, lorePath: string, ana: string, ben: string) {
+  const first = "The rain came in sideways and the…";
+  const second = "The barista with the green scarf";
   await page.goto(lorePath);
   await page.getByRole("link", { name: "Read as a book" }).click();
   await expect(page.getByRole("list", { name: "Writers" })).toBeVisible();
   await page.getByRole("link", { name: "Next page" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Contents" })).toBeFocused();
-  await page.getByRole("list", { name: "Chapters" }).getByRole("link").first().click();
-  await expect(page.getByRole("heading", { level: 1, name: /^Chapter 1: / })).toBeFocused();
-  const label = await page.getByRole("navigation", { name: "Pages" }).getByText(/^Chapter 1, part 1 of \d+$/).textContent();
+  const rows = page.getByRole("list", { name: "Chapters" }).getByRole("link");
+  await expect(rows.nth(0)).toContainText(`Chapter 1${first}by ${ana} · 2 parts`);
+  await expect(rows.nth(1)).toContainText(`Chapter 2${second}by ${ben} · 1 part`);
+  await rows.first().click();
+  const chapter1 = page.getByRole("heading", { level: 1, name: `Chapter 1: ${first}` });
+  await expect(chapter1).toBeFocused();
+  // The writer is the byline, never the title.
+  await expect(page.locator("article header").getByRole("link", { name: ana, exact: true })).toBeVisible();
+  const pages = page.getByRole("navigation", { name: "Pages" });
+  const label = await pages.getByText(/^Chapter 1, part 1 of \d+$/).textContent();
   const parts = Number(/of (\d+)$/.exec(label ?? "")?.[1] ?? 0);
   expect(parts).toBeGreaterThan(0);
-  for (let part = 1; part <= parts; part++) {
+  for (let part = 1; part < parts; part++) {
     await page.keyboard.press("ArrowRight");
-    await expect(page).toHaveURL(part < parts ? new RegExp(`[?]chapter=1&part=${part + 1}$`) : /[?]chapter=2&part=1$/);
+    await expect(page).toHaveURL(new RegExp(`[?]chapter=1&part=${part + 1}$`));
   }
-  await expect(page.getByRole("heading", { level: 1, name: /^Chapter 2: / })).toBeFocused();
+  // On the last part Next is "Next chapter", with no second row of chapter links.
+  await expect(page.getByRole("navigation", { name: "Chapters" })).toHaveCount(0);
+  await pages.getByRole("button", { name: "Next chapter" }).click();
+  await expect(page).toHaveURL(/[?]chapter=2&part=1$/);
+  await expect(page.getByRole("heading", { level: 1, name: `Chapter 2: ${second}` })).toBeFocused();
   await expect(page.getByRole("status").filter({ hasText: /^Chapter 2, part 1 of \d+$/ })).toBeAttached();
+  // Previous on a first part goes back to the previous chapter's last part, as ArrowLeft does.
+  await pages.getByRole("button", { name: "Previous chapter" }).click();
+  await expect(page).toHaveURL(new RegExp(`[?]chapter=1&part=${parts}$`));
+  await expect(chapter1).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByRole("heading", { level: 1, name: `Chapter 2: ${second}` })).toBeFocused();
 }
 
 /**

@@ -210,17 +210,20 @@ func (s *Store) Search(ctx context.Context, q SearchQuery) ([]Place, error) {
 	return ps, nil
 }
 
-// maxLocalityRows bounds the cities and towns FindLocalities reads for one
+// maxLocalityRows bounds the localities FindLocalities reads for one
 // search, across every name it asks about.
 const maxLocalityRows = 100
 
-// Locality is a city or town a search names: its id and lowercased name.
+// Locality is a state, city or town a search names: its id, lowercased
+// name, name as listed and parent (uuid.Nil for a state).
 type Locality struct {
-	ID   uuid.UUID
-	Name string
+	ID          uuid.UUID
+	Name        string
+	DisplayName string
+	ParentID    uuid.UUID
 }
 
-// Localities returns the visible cities and towns named exactly one of
+// Localities returns the visible states, cities and towns named exactly one of
 // names (lowercased), best first as the FindLocalities query documents.
 // Under a parent other than uuid.Nil only its descendants count.
 func (s *Store) Localities(ctx context.Context, names []string, parent uuid.UUID) ([]Locality, error) {
@@ -234,7 +237,7 @@ func (s *Store) Localities(ctx context.Context, names []string, parent uuid.UUID
 	}
 	out := make([]Locality, len(rows))
 	for i, r := range rows {
-		out[i] = Locality{ID: r.ID, Name: r.Name}
+		out[i] = Locality{ID: r.ID, Name: r.Name, DisplayName: r.DisplayName, ParentID: r.ParentID.UUID}
 	}
 	return out, nil
 }

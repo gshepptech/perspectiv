@@ -1,7 +1,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 
 import { perspectiveQuery } from "@/components/actions/queries";
@@ -26,7 +26,7 @@ import {
   searchOf,
   writePlace,
 } from "./bookPages";
-import { loreTabTitle, readableStories, UNNAMED } from "./loreText";
+import { chapterTitles, loreTabTitle, readableStories, UNNAMED } from "./loreText";
 import { WhoWasWho } from "./WhoWasWho";
 
 /** The level-one heading of the title, contents and closing pages; a chapter's is the Reader's. */
@@ -82,11 +82,13 @@ function TopBar({ loreId, contents, empty }: { loreId: string; contents: boolean
 /**
  * Previous and next page on the title, contents and closing pages: links to
  * the neighbouring page's address, styled as the Reader's part controls, with
- * the position between them. An end with nowhere to go is a disabled button.
+ * the position between them, laid out as a chapter's row is (on a phone the
+ * position on its own line above the controls). An end with nowhere to go is
+ * a disabled button.
  */
 function PageTurn({ previous, next, position }: { previous: BookPage | null; next: BookPage | null; position: string }) {
   return (
-    <nav aria-label="Pages" className="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-t border-rule pt-4">
+    <nav aria-label="Pages" className="mt-8 grid grid-cols-2 items-center gap-2 border-t border-rule pt-4 sm:grid-cols-[1fr_auto_1fr]">
       {previous ? (
         <Button variant="secondary" asChild className="justify-self-start">
           <Link to={{ search: searchOf(previous) }} aria-label="Previous page">
@@ -100,7 +102,7 @@ function PageTurn({ previous, next, position }: { previous: BookPage | null; nex
           <span className="hidden sm:inline">Previous</span>
         </Button>
       )}
-      <span className="text-center text-sm text-ink-muted">{position}</span>
+      <span className="col-span-2 row-start-1 text-center text-sm text-ink-muted sm:col-span-1 sm:col-start-2">{position}</span>
       {next ? (
         <Button variant="secondary" asChild className="justify-self-end">
           <Link to={{ search: searchOf(next) }} aria-label="Next page">
@@ -167,7 +169,17 @@ function TitlePage({
   );
 }
 
-function ContentsPage({ chapters, parts, memberIds }: { chapters: Perspective[]; parts: readonly number[]; memberIds: Set<string> }) {
+function ContentsPage({
+  chapters,
+  titles,
+  parts,
+  memberIds,
+}: {
+  chapters: Perspective[];
+  titles: readonly string[];
+  parts: readonly number[];
+  memberIds: Set<string>;
+}) {
   return (
     <section aria-labelledby={HEADING_ID} className="mx-auto max-w-measure py-4">
       <Heading>Contents</Heading>
@@ -177,18 +189,18 @@ function ContentsPage({ chapters, parts, memberIds }: { chapters: Perspective[];
         <ol aria-label="Chapters" className="mt-6 grid gap-2">
           {chapters.map((p, i) => {
             const n = parts[i] ?? 1;
+            const count = `${n} ${n === 1 ? "part" : "parts"}`;
             return (
               <li key={p.id} className="min-w-0">
+                {/* The writer's name is plain text: the row is already one link. */}
                 <Link
                   to={{ search: searchOf({ kind: "chapter", chapter: i + 1, part: 1 }) }}
-                  className="flex min-h-11 min-w-0 flex-wrap items-baseline gap-x-3 border-b border-rule py-2 hover:bg-surface"
+                  className="flex min-h-11 min-w-0 flex-col border-b border-rule py-2 hover:bg-surface"
                 >
                   <span className="text-sm text-ink-muted">Chapter {i + 1}</span>
-                  <span className="min-w-0 font-serif text-xl wrap-anywhere text-accent underline underline-offset-4">
-                    {p.author?.username ?? "Someone"}
-                  </span>
-                  <span className="text-sm text-ink-muted">
-                    {n} {n === 1 ? "part" : "parts"}
+                  <span className="min-w-0 font-serif text-xl wrap-anywhere text-accent underline underline-offset-4">{titles[i]}</span>
+                  <span className="min-w-0 text-sm wrap-anywhere text-ink-muted">
+                    {p.author ? `by ${p.author.username} · ${count}` : count}
                   </span>
                 </Link>
               </li>
@@ -198,30 +210,6 @@ function ContentsPage({ chapters, parts, memberIds }: { chapters: Perspective[];
       )}
       <WhoWasWho stories={chapters} memberIds={memberIds} />
     </section>
-  );
-}
-
-/** "Previous chapter" and "Next chapter" under a chapter's last part. */
-function ChapterEnd({ chapter, chapters }: { chapter: number; chapters: Perspective[] }) {
-  const before = chapter > 1 ? chapters[chapter - 2] : undefined;
-  const after = chapter < chapters.length ? chapters[chapter] : undefined;
-  const to = (page: BookPage) => ({ search: searchOf(page) });
-  const cls = "inline-flex min-h-11 max-w-full min-w-0 items-center gap-1 wrap-anywhere";
-  return (
-    <nav aria-label="Chapters" className="mx-auto mt-6 flex max-w-measure flex-wrap justify-between gap-3">
-      <Button variant="secondary" asChild className={cls}>
-        <Link to={before ? to({ kind: "chapter", chapter: chapter - 1, part: 1 }) : to({ kind: "contents" })}>
-          <ChevronLeft aria-hidden size={16} className="shrink-0" />
-          {before ? `Previous chapter: ${before.author?.username ?? "Someone"}` : "Contents"}
-        </Link>
-      </Button>
-      <Button variant="secondary" asChild className={cls}>
-        <Link to={after ? to({ kind: "chapter", chapter: chapter + 1, part: 1 }) : to({ kind: "end" })}>
-          {after ? `Next chapter: ${after.author?.username ?? "Someone"}` : "The end"}
-          <ChevronRight aria-hidden size={16} className="shrink-0" />
-        </Link>
-      </Button>
-    </nav>
   );
 }
 
@@ -283,14 +271,21 @@ export function Component() {
 
   // A turn changes the address at once but renders later: the router commits
   // its state in a transition. Until the turn is on screen it is in flight,
-  // and an arrow key pressed meanwhile waits for it rather than turning from
-  // the page still shown, which would repeat the turn instead of going on.
+  // and a press meanwhile, by arrow key or by a chapter's part control, waits
+  // for it rather than turning from the page still shown, which would repeat
+  // the turn instead of going on. `step` turns from the page on screen; the
+  // effect below keeps it current.
   const inFlight = useRef(false);
   const waiting = useRef<boolean[]>([]);
-  const turn = (to: BookPage) => {
-    inFlight.current = true;
-    void navigate({ search: searchOf(to) });
-  };
+  const step = useRef<(back: boolean) => boolean>(() => false);
+  /** The book's one turn path: a page back or forward, or held while a turn lands. True when the press is taken. */
+  const press = useCallback((back: boolean) => {
+    if (inFlight.current) {
+      waiting.current.push(back);
+      return true;
+    }
+    return step.current(back);
+  }, []);
 
   // The book turns every page with the arrow keys, parts included (the
   // Reader's own keys are off), so one listener decides each key. The page
@@ -302,7 +297,7 @@ export function Component() {
     if (!ready) return;
     const sizes = counts === "" ? [] : counts.split(",").map(Number);
     const here = pageFrom(new URLSearchParams(at), sizes);
-    const step = (back: boolean) => {
+    step.current = (back: boolean) => {
       const to = back ? previousPage(here, sizes) : nextPage(here, sizes);
       if (!to) return false;
       inFlight.current = true;
@@ -310,25 +305,19 @@ export function Component() {
       return true;
     };
     // This page is on screen: the turn that led here has landed, and the
-    // first key that waited for it turns from here.
+    // first press that waited for it turns from here.
     inFlight.current = false;
     const next = waiting.current.shift();
-    if (next !== undefined) step(next);
+    if (next !== undefined) step.current(next);
     function onKeyDown(e: KeyboardEvent) {
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       if (ownsArrowKeys(e.target)) return;
-      const back = e.key === "ArrowLeft";
-      if (inFlight.current) {
-        e.preventDefault();
-        waiting.current.push(back);
-        return;
-      }
-      if (step(back)) e.preventDefault();
+      if (press(e.key === "ArrowLeft")) e.preventDefault();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [ready, navigate, at, counts]);
+  }, [ready, navigate, at, counts, press]);
 
   // After a turn to another page (not another part of the same chapter, which
   // the Reader focuses itself), focus its level-one heading. Arriving at the
@@ -373,6 +362,7 @@ export function Component() {
   const position = positionOf(page, parts);
   const writers = [...new Set(chapters.map((p) => p.author?.username ?? "").filter(Boolean))];
   const memberIds = new Set(lore.members.map((m) => m.user?.userId ?? ""));
+  const titles = chapterTitles(chapters, memberIds);
   let content: ReactNode;
   switch (page.kind) {
     case "title": {
@@ -384,7 +374,7 @@ export function Component() {
       break;
     }
     case "contents":
-      content = <ContentsPage chapters={chapters} parts={parts} memberIds={memberIds} />;
+      content = <ContentsPage chapters={chapters} titles={titles} parts={parts} memberIds={memberIds} />;
       break;
     case "end":
       content = <EndPage loreId={lore.id} title={title} />;
@@ -392,33 +382,33 @@ export function Component() {
     case "chapter": {
       const p = chapters[page.chapter - 1];
       const genre = p && p.genre !== Genre.UNSPECIFIED ? genreLabel(p.genre) : "";
-      const total = parts[page.chapter - 1] ?? 1;
       content = (
-        <>
-          <Reader
-            key={page.chapter}
-            chapter={`Chapter ${page.chapter}`}
-            title={p?.author?.username ?? "Someone"}
-            className={PAGE_FRAME}
-            byline={
-              <p className="flex flex-wrap items-center justify-center gap-x-3">
-                {p?.author && (
-                  <span className="inline-flex min-h-11 items-center gap-1">
-                    by <AuthorLink username={p.author.username} className="inline-flex min-h-11 items-center" />
-                  </span>
-                )}
-                {genre && <span>{genre}</span>}
-              </p>
-            }
-            parts={bodies[page.chapter - 1] ?? []}
-            part={page.part}
-            onPartChange={(n) => turn({ kind: "chapter", chapter: page.chapter, part: n })}
-            position={position}
-            announcePosition={false}
-            arrowKeys={false}
-          />
-          {page.part >= total && <ChapterEnd chapter={page.chapter} chapters={chapters} />}
-        </>
+        <Reader
+          key={page.chapter}
+          chapter={`Chapter ${page.chapter}`}
+          title={titles[page.chapter - 1] ?? ""}
+          className={PAGE_FRAME}
+          byline={
+            <p className="flex flex-wrap items-center justify-center gap-x-3">
+              {p?.author && (
+                <span className="inline-flex min-h-11 items-center gap-1">
+                  by <AuthorLink username={p.author.username} className="inline-flex min-h-11 items-center" />
+                </span>
+              )}
+              {genre && <span>{genre}</span>}
+            </p>
+          }
+          parts={bodies[page.chapter - 1] ?? []}
+          part={page.part}
+          // Every part control goes through the book's turn path, so a press
+          // while a turn lands is held as a key is, and the ends cross chapters.
+          onPartChange={(n) => press(n < page.part)}
+          beyondStart={{ label: page.chapter > 1 ? "Previous chapter" : "Contents", onTurn: () => press(true) }}
+          beyondEnd={{ label: page.chapter < chapters.length ? "Next chapter" : "The end", onTurn: () => press(false) }}
+          position={position}
+          announcePosition={false}
+          arrowKeys={false}
+        />
       );
       break;
     }

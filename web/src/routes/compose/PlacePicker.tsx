@@ -39,6 +39,9 @@ export function PlacePicker({
     enabled: query.length >= MIN_QUERY,
   });
   const places = search.data?.places ?? [];
+  // How the server read the search in the field as a name and the town or
+  // state it is in, when it did: the add form starts from it.
+  const split = query === text.trim() ? search.data?.split : undefined;
 
   return (
     <section aria-labelledby="pick-title" className="mx-auto grid w-full max-w-measure min-w-0 gap-4">
@@ -88,9 +91,14 @@ export function PlacePicker({
           ))}
         </ul>
       )}
-      {search.data?.more && <MorePlacesNote />}
+      {search.data?.more && <MorePlacesNote count={places.length} />}
       {adding ? (
-        <AddPlace initialName={text.trim()} initialParentId={addIn} onAdded={onPick} onCancel={() => setAdding(false)} />
+        <AddPlace
+          initialName={split?.name || text.trim()}
+          initialParentId={addIn || split?.localityId || ""}
+          onAdded={onPick}
+          onCancel={() => setAdding(false)}
+        />
       ) : (
         <div className="grid justify-items-start gap-2">
           <p className="text-sm text-ink-muted">Not listed? Add it yourself.</p>

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { PLACE_QUERY_MAX } from "@/components/search/PlaceSearch";
+import { suggestPlaceName } from "@/components/search/placeName";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PlaceKind } from "@/gen/perspectiv/v1/enums_pb";
@@ -63,7 +64,8 @@ function placeTrail(p: Place): string {
 
 /**
  * Adds a mall or store that the place search does not find, under a place the
- * author picks, then hands the new place to the composer.
+ * author picks, then hands the new place to the composer. A name typed all
+ * in lower case starts out title-cased, as the importer writes such names.
  */
 export function AddPlace({
   initialName,
@@ -85,7 +87,7 @@ export function AddPlace({
   const parentErrorId = useId();
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: { name: initialName, kind: String(PlaceKind.STORE), parentId: initialParentId },
+    defaultValues: { name: suggestPlaceName(initialName), kind: String(PlaceKind.STORE), parentId: initialParentId },
   });
   const kind = Number(form.watch("kind")) as PlaceKind;
   const where = form.watch("parentId");

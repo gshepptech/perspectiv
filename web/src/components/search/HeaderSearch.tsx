@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/Dialog";
 
-import { PLACE_SEARCH_DEBOUNCE_MS, PlaceSearchField, PlaceSearchResults, useDebounced } from "./PlaceSearch";
+import { PLACE_SEARCH_DEBOUNCE_MS, PlaceSearch, useDebounced } from "./PlaceSearch";
 
 /** Input types that take typed text, where "/" is a character, not a shortcut. */
 const nonTextInputs = new Set(["button", "checkbox", "color", "file", "image", "radio", "range", "reset", "submit"]);
@@ -24,12 +24,7 @@ function slashIsTaken(el: Element | null): boolean {
 function SearchBody({ onFollow }: { onFollow: () => void }) {
   const [text, setText] = useState("");
   const query = useDebounced(text.trim(), PLACE_SEARCH_DEBOUNCE_MS);
-  return (
-    <>
-      <PlaceSearchField value={text} onChange={setText} className="mt-4" />
-      {query && <PlaceSearchResults query={query} onFollow={onFollow} />}
-    </>
-  );
+  return <PlaceSearch text={text} onTextChange={setText} query={query} onFollow={onFollow} className="mt-4" />;
 }
 
 /**
