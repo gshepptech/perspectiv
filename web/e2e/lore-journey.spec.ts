@@ -38,7 +38,14 @@ async function claim(w: Writer, arc: string, author: string, label: string) {
   await actions.getByRole("button", { name: "Claim a character" }).click();
   const dialog = w.page.getByRole("dialog", { name: "Claim a character" });
   await dialog.getByRole("listitem").filter({ hasText: label }).getByRole("button", { name: "That was me" }).click();
-  await expect(dialog.getByRole("status")).toContainText("Claim sent.");
+  // A claim that fails shows an alert in the dialog; name it in the failure
+  // rather than only timing out on the missing confirmation.
+  const sent = dialog.getByRole("status").filter({ hasText: "Claim sent." });
+  const refused = dialog.getByRole("alert");
+  await expect(sent.or(refused)).toBeVisible();
+  if (await refused.isVisible()) {
+    throw new Error(`claim of "${label}" by ${w.account.username} was refused: ${(await refused.innerText()).trim()}`);
+  }
   await w.page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
 }

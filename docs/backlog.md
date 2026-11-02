@@ -51,6 +51,48 @@ Nothing in progress.
 
 ## Done
 
+- An e2e flake in lore-journey (a claim that did not land within 20 s) could
+  not be reproduced in 18 runs, and the rerun had erased its evidence. So
+  the suite now keeps it: a failed `make e2e` copies its traces, report and
+  server log to tmp/e2e/failures/<time>/, a second run in the same checkout
+  is refused (they share the e2e database and saved sign-ins), and a claim
+  step that is refused names the dialog's alert instead of only timing out.
+  Root cause stays open until the next occurrence.
+- Two-factor sign-in hardened after a security review. Turning it on now
+  signs out every other session and ends open challenges in the same
+  transaction, so a refresh cookie taken earlier stops working; Login
+  re-reads the password hash inside its transaction under a share lock on
+  the users row and reads the two-factor state under the two-factor lock
+  that confirming takes, so neither a reset nor turning it on can race a
+  sign-in. A password reset and "sign out everywhere" delete open
+  challenges before revoking sessions. One lock order (login lock, users
+  row, two-factor lock, then the two-factor rows and sessions) is written
+  at the top of `internal/auth/twofactor.go`; the second step now takes
+  the account's locks before its challenge row, which removes a deadlock
+  with turning two-factor off. A pending setup counts its own wrong codes
+  (`totp_secrets.setup_failures`, migration 41): the fifth deletes it, and
+  none count toward the sign-in lockout. A replayed right code is refused
+  but no longer counted. Members are emailed "Your recovery codes were
+  replaced" when they make new codes, and "A recovery code was used to…"
+  when one turns two-factor off or makes new codes. Recovery codes are
+  hashed with the account's id (hash version 2); unsalted codes stored
+  before still work until used or replaced (ADR 0004).
+  `perspectiv admin reset-two-factor` now takes the operator's name and
+  writes it into the audit row's reason (runbook updated). Verified by
+  TestSecondStepRacingSignOutLeavesNoSession,
+  TestLoginRacingPasswordResetChecksTheNewPassword,
+  TestLoginRacingTwoFactorSetupKeepsNoSession,
+  TestDisableRacingSecondStepDoesNotDeadlock,
+  TestTurningOnTwoFactorSignsOutOtherSessions,
+  TestPendingSetupCountsItsOwnWrongCodes, TestRecoveryCodeChangesAreEmailed,
+  TestReplayedCodeIsNotCounted, TestRecoveryCodeHashes and
+  TestAdminResetTwoFactor, each failing against the code before the change
+  (the race tests park one request on a lock the test holds); by
+  TestRecoveryCodeHashIsPerAccount and the notify email tests; and by
+  TestParallelSecondStepsSpendACodeOnce and
+  TestTwoFactorLockoutIsPerAccount, which held before and are kept as
+  regression tests.
+
 - Two-factor sign-in with an authenticator app (RFC 6238: SHA-1, six
   digits, 30-second steps, one step of drift, a used step refused as a
   replay), implemented in `internal/auth/totp.go` (ADR 0004). Settings →

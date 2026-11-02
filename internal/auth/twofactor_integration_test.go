@@ -267,8 +267,9 @@ func TestTwoFactorSignInWithTOTP(t *testing.T) {
 	if !strings.Contains(e.logs.String(), `"reason":"replayed_code"`) {
 		t.Fatal("the replay was not audited as one")
 	}
-	if n := e.count(`SELECT count(*) FROM two_factor_attempts WHERE user_id = $1 AND NOT succeeded`, m.id); n != 2 {
-		t.Fatalf("failed codes recorded = %d, want 2 (the short one and the replay)", n)
+	// A replay is refused but not counted (TestReplayedCodeIsNotCounted).
+	if n := e.count(`SELECT count(*) FROM two_factor_attempts WHERE user_id = $1 AND NOT succeeded`, m.id); n != 1 {
+		t.Fatalf("failed codes recorded = %d, want 1 (the short one)", n)
 	}
 	if !strings.Contains(e.logs.String(), `"second_factor":"totp"`) {
 		t.Fatal("no login_succeeded line naming the second factor")

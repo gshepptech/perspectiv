@@ -72,6 +72,19 @@ stays dark on light in the dark theme, as scanners expect.
   while that key is listed; re-sealing them is not yet a background job,
   so an old key can be retired only once no row names it
   (`deploy/k3s/README.md` says how to check).
+- Neutral: recovery codes are hashed, not encrypted: SHA-256 over the
+  account's id and the normalised code (hash version 2, migration 41), so
+  the same code hashes differently for every account. An HMAC keyed from
+  `ENCRYPTION_KEYS` was considered and refused: those keys rotate, and a
+  hash keyed by a retired key would stop every code stored under it
+  working. At 80 random bits a code needs no secret key to resist search;
+  the per-account salt is what stops one search covering every account.
+  Codes stored unsalted before migration 41 (hash version 1) are checked
+  both ways and keep working until used or replaced, rather than being
+  deleted in a hard cutover that would lock out a member who already lost
+  their phone. Version 1 can be dropped once
+  `SELECT count(*) FROM recovery_codes WHERE hash_version = 1 AND used_at IS NULL`
+  is zero.
 
 ### Support Obligation
 

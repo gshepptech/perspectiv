@@ -246,16 +246,19 @@ operator task, audited:
    confirm one detail only the owner would know (for example a story title
    they wrote, or roughly when they joined). If anything does not match,
    stop.
-2. Run, with the reason saying how the owner was confirmed:
+2. Run, with your own name as the operator and the reason saying how the
+   owner was confirmed:
 
    ```sh
    kubectl -n perspectiv exec deploy/perspectiv-api -- \
-     /perspectiv admin reset-two-factor <username> "owner confirmed by email from account address and story title"
+     /perspectiv admin reset-two-factor <username> "<your name>" "owner confirmed by email from account address and story title"
    ```
 
    It turns two-factor sign-in off, signs the account out on every device,
-   writes a "reset two-factor sign-in" entry to the audit log with the
-   reason, and emails the member that two-factor sign-in is off.
+   writes a "reset two-factor sign-in" entry to the audit log whose reason
+   reads "operator <your name>: <reason>", so the log says who ran it, and
+   emails the member that two-factor sign-in is off. The operator name is
+   required, one line, at most 64 bytes.
 3. Tell them to sign in with their password and turn two-factor sign-in on
    again in Settings.
 

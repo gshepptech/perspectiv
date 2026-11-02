@@ -12,6 +12,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // TOTP parameters (RFC 6238): HMAC-SHA-1, six digits, 30-second steps. They
@@ -130,8 +132,10 @@ func otpauthURI(secret []byte, account string) string {
 
 // Recovery codes: RecoveryCodeCount per account, each 16 characters of
 // Crockford's base32 (80 random bits) shown as four groups of four. Only a
-// SHA-256 of the normalised code is stored; at 80 bits a stolen hash cannot
-// be searched back to its code.
+// SHA-256 of the account's id and the normalised code is stored
+// (hashRecoveryCode); at 80 bits a stolen hash cannot be searched back to its
+// code, and the id makes every account's hashes its own, so one table of
+// precomputed hashes cannot be tried against every account at once.
 const (
 	RecoveryCodeCount    = 10
 	recoveryCodeChars    = 16
@@ -186,8 +190,26 @@ func normalizeRecoveryCode(s string) (string, bool) {
 	return b.String(), true
 }
 
-// hashRecoveryCode is the stored form of a normalised recovery code.
-func hashRecoveryCode(normalized string) []byte {
+// hashRecoveryCode is the stored form of a normalised recovery code for the
+// account userID: hash version 2 in recovery_codes.hash_version.
+//
+// The salt is the account id rather than an HMAC key derived from
+// ENCRYPTION_KEYS: those keys rotate, and a hash keyed by one would stop
+// every stored code working when it is retired. At 80 random bits a code
+// needs no secret key to resist search; the per-account salt is what stops
+// one search covering every account.
+func hashRecoveryCode(userID uuid.UUID, normalized string) []byte {
+	h := sha256.New()
+	h.Write([]byte("perspectiv.recovery.v2\x00"))
+	h.Write(userID[:])
+	h.Write([]byte(normalized))
+	return h.Sum(nil)
+}
+
+// legacyRecoveryCodeHash is hash version 1, unsalted: how codes were stored
+// before migration 41. It is only compared, never written; a version 1 code
+// keeps working until it is used or its set is replaced.
+func legacyRecoveryCodeHash(normalized string) []byte {
 	sum := sha256.Sum256([]byte("perspectiv.recovery:" + normalized))
 	return sum[:]
 }

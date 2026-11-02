@@ -345,7 +345,28 @@ cmd_e2e() {
 	load_env
 	has_web || die "web/package.json does not exist yet"
 	curl -fsS "$MAILPIT_URL/api/v1/info" >/dev/null || die "mailpit is not answering at $MAILPIT_URL; run make dev-up"
-	(cd "$ROOT/web" && pnpm exec playwright test)
+	local work="$ROOT/tmp/e2e" lock="$ROOT/tmp/e2e.lock"
+	# Two runs in one checkout share the e2e database, ports and saved
+	# sign-ins, and each breaks the other; refuse a second one.
+	mkdir -p "$ROOT/tmp"
+	if ! mkdir "$lock" 2>/dev/null; then
+		die "another e2e run holds $lock; wait for it, or remove the directory if no run is going"
+	fi
+	local status=0
+	(cd "$ROOT/web" && pnpm exec playwright test) || status=$?
+	rmdir "$lock"
+	if [ "$status" -ne 0 ]; then
+		# Playwright clears its results on the next run; keep this failure's
+		# traces, screenshots and server log so a rerun cannot erase them.
+		local keep
+		keep="$work/failures/$(date -u +%Y%m%dT%H%M%SZ)"
+		mkdir -p "$keep"
+		for d in test-results playwright-report logs; do
+			[ -e "$work/$d" ] && cp -R "$work/$d" "$keep/"
+		done
+		echo "e2e failed; evidence kept in ${keep#"$ROOT"/}" >&2
+	fi
+	return "$status"
 }
 
 cmd_env() {

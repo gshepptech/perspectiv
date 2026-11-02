@@ -22,6 +22,21 @@ SELECT (email_verified_at IS NOT NULL)::boolean AS verified, (suspended_at IS NO
 FROM users
 WHERE id = $1 AND deleted_at IS NULL;
 
+-- name: LockUserForLogin :one
+-- The account's password hash and session fields, read inside Login's
+-- transaction with the row share-locked: a password reset or change that
+-- updates the row waits for this sign-in to commit, and one that committed
+-- first is the hash this sign-in checks.
+SELECT id, password_hash, username, role, email_verified_at
+FROM users
+WHERE id = sqlc.arg(id)::uuid AND deleted_at IS NULL
+FOR SHARE;
+
+-- name: ShareLockUser :one
+-- Share-locks a live account's row: step 2 of the lock order in
+-- twofactor.go, taken before the two-factor lock.
+SELECT id FROM users WHERE id = sqlc.arg(id)::uuid AND deleted_at IS NULL FOR SHARE;
+
 -- name: LockLoginAttempts :exec
 -- Serialises login attempts on one account for the rest of the transaction,
 -- so a burst of parallel guesses cannot all read the same failure count.
@@ -305,19 +320,31 @@ FROM totp_secrets t
 WHERE t.user_id = sqlc.arg(user_id)::uuid AND t.confirmed_at IS NOT NULL;
 
 -- name: UpsertPendingTotp :one
--- Starts (or restarts) setup with a new secret. A confirmed row is left
--- alone and no row is returned, so setup never replaces a secret in use.
+-- Starts (or restarts) setup with a new secret and no wrong codes counted.
+-- A confirmed row is left alone and no row is returned, so setup never
+-- replaces a secret in use.
 INSERT INTO totp_secrets AS t (user_id, key_id, algorithm, ciphertext)
 VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(key_id)::text, sqlc.arg(algorithm)::text, sqlc.arg(ciphertext))
 ON CONFLICT (user_id) DO UPDATE
 SET key_id = excluded.key_id, algorithm = excluded.algorithm, ciphertext = excluded.ciphertext,
-    created_at = now(), last_used_step = NULL
+    created_at = now(), last_used_step = NULL, setup_failures = 0
 WHERE t.confirmed_at IS NULL
 RETURNING t.user_id;
 
 -- name: ConfirmTotp :exec
 UPDATE totp_secrets SET confirmed_at = now(), last_used_step = sqlc.arg(step)::bigint
 WHERE user_id = sqlc.arg(user_id)::uuid AND confirmed_at IS NULL;
+
+-- name: RecordSetupFailure :one
+-- Counts one wrong code against a pending setup and returns the count.
+UPDATE totp_secrets SET setup_failures = setup_failures + 1
+WHERE user_id = sqlc.arg(user_id)::uuid AND confirmed_at IS NULL
+RETURNING setup_failures;
+
+-- name: DeletePendingTotp :exec
+-- Ends a setup that is still waiting for its first code; a confirmed secret
+-- is left alone.
+DELETE FROM totp_secrets WHERE user_id = sqlc.arg(user_id)::uuid AND confirmed_at IS NULL;
 
 -- name: SetTotpLastUsedStep :exec
 UPDATE totp_secrets SET last_used_step = sqlc.arg(step)::bigint WHERE user_id = sqlc.arg(user_id)::uuid;
@@ -329,12 +356,17 @@ DELETE FROM totp_secrets WHERE user_id = sqlc.arg(user_id)::uuid;
 DELETE FROM recovery_codes WHERE user_id = sqlc.arg(user_id)::uuid;
 
 -- name: InsertRecoveryCode :exec
-INSERT INTO recovery_codes (user_id, code_hash) VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(code_hash));
+-- New codes are always hash version 2 (migration 41).
+INSERT INTO recovery_codes (user_id, code_hash, hash_version) VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(code_hash), 2);
 
 -- name: UseRecoveryCode :one
--- Spends one unused recovery code; no row when the code is wrong or spent.
+-- Spends one unused recovery code, matched by its version 2 hash or, for a
+-- code stored before migration 41, its version 1 hash. No row when the code
+-- is wrong or spent.
 UPDATE recovery_codes SET used_at = now()
-WHERE user_id = sqlc.arg(user_id)::uuid AND code_hash = sqlc.arg(code_hash) AND used_at IS NULL
+WHERE user_id = sqlc.arg(user_id)::uuid AND used_at IS NULL
+  AND ((hash_version = 2 AND code_hash = sqlc.arg(code_hash)::bytea)
+    OR (hash_version = 1 AND code_hash = sqlc.arg(legacy_code_hash)::bytea))
 RETURNING id;
 
 -- name: CountRecoveryCodesLeft :one
@@ -343,6 +375,13 @@ SELECT count(*)::int FROM recovery_codes WHERE user_id = sqlc.arg(user_id)::uuid
 -- name: InsertTwoFactorChallenge :exec
 INSERT INTO two_factor_challenges (user_id, token_hash, expires_at)
 VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(token_hash), sqlc.arg(expires_at));
+
+-- name: PeekTwoFactorChallenge :one
+-- The account of an unused, unexpired challenge, read without a lock so the
+-- second step can take the account's locks before the challenge's (the lock
+-- order in twofactor.go).
+SELECT user_id FROM two_factor_challenges
+WHERE token_hash = sqlc.arg(token_hash) AND used_at IS NULL AND expires_at > now();
 
 -- name: GetTwoFactorChallengeForUpdate :one
 -- An unused, unexpired challenge and its live account, locked so it is

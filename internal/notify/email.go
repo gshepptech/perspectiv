@@ -186,7 +186,7 @@ func (w *emailWorker) render(a jobs.EmailArgs, c cast) (mailer.Message, error) {
 	case jobs.TemplateTwoFactorEnabled:
 		body, err = w.accountContent(a.Data, "/forgot-password",
 			"Two-factor sign-in is on",
-			"Two-factor sign-in is now on for your Perspectiv account: signing in asks for a code from your authenticator app after your password. If you did not turn it on, reset your password now.",
+			"Two-factor sign-in is now on for your Perspectiv account: signing in asks for a code from your authenticator app after your password, and every other device signed in to the account was signed out. If you did not turn it on, reset your password now.",
 			"Reset your password")
 	case jobs.TemplateTwoFactorDisabled:
 		body, err = w.accountContent(a.Data, "/forgot-password",
@@ -194,9 +194,12 @@ func (w *emailWorker) render(a jobs.EmailArgs, c cast) (mailer.Message, error) {
 			"Two-factor sign-in was turned off for your Perspectiv account, so signing in asks only for your password. If you did not do this, reset your password now, then turn two-factor sign-in on again in Settings.",
 			"Reset your password")
 	case jobs.TemplateRecoveryCodeUsed:
+		subject, text := recoveryCodeUsed(a.Data)
+		body, err = w.accountContent(a.Data, "/forgot-password", subject, text, "Reset your password")
+	case jobs.TemplateRecoveryCodesReplaced:
 		body, err = w.accountContent(a.Data, "/forgot-password",
-			"A recovery code was used to sign in",
-			recoveryCodeUsedBody(a.Data["left"]),
+			"Your recovery codes were replaced",
+			"A new set of recovery codes was made for your Perspectiv account, and the old codes no longer work. If you did not do this, reset your password now, then make new recovery codes in Settings.",
 			"Reset your password")
 	case jobs.TemplateDigest:
 		body, err = w.digestContent(a.Data)
@@ -297,6 +300,22 @@ func (w *emailWorker) accountContent(data map[string]string, path, subject, body
 		link = w.baseURL + path + "?token=" + url.QueryEscape(token)
 	}
 	return content{Subject: subject, Body: body, Action: action, Link: link}, nil
+}
+
+// recoveryCodeUsed is the subject and paragraph of a recovery-code-used
+// email: what the code was used for and, after a sign-in, how many are left.
+func recoveryCodeUsed(data map[string]string) (subject, body string) {
+	switch data["used_for"] {
+	case jobs.RecoveryCodeUsedForTurnOff:
+		return "A recovery code was used to turn off two-factor sign-in",
+			"One of your Perspectiv account's recovery codes was used to turn two-factor sign-in off. " +
+				"If it was not you, reset your password now, then turn two-factor sign-in on again in Settings."
+	case jobs.RecoveryCodeUsedForNewCodes:
+		return "A recovery code was used to make new recovery codes",
+			"One of your Perspectiv account's recovery codes was used to make a new set of recovery codes, so the old ones no longer work. " +
+				"If it was not you, reset your password now, then make new recovery codes in Settings."
+	}
+	return "A recovery code was used to sign in", recoveryCodeUsedBody(data["left"])
 }
 
 // recoveryCodeUsedBody says a recovery code signed in and how many are left.

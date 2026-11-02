@@ -1046,7 +1046,12 @@ TOTP, OTP, 2FA or MFA.
      your app", `inputMode="numeric"`, `autocomplete="one-time-code"`,
      six characters wide, then primary "Turn on". A wrong code says "That
      code is not right. Check that your phone's clock is set
-     automatically." under the field.
+     automatically." under the field. The fifth wrong code ends the setup
+     (the server deletes the new key; these wrong codes never count toward
+     the sign-in lockout), and the step shows the `FormAlert` it shows for
+     an expired setup, "This setup has expired. Cancel and start again."
+     Turning it on signs out every other device, as changing the password
+     does, and the "Two-factor sign-in is on" email says so.
 - **Step 3, recovery codes.** Shown once, right after it turns on, with
   focus moved to its heading "Save your recovery codes". The line under it:
   "Each code signs you in once if you lose your phone. This is the only
@@ -1067,6 +1072,10 @@ TOTP, OTP, 2FA or MFA.
   codes stop working." / "Signing in will ask only for your password.").
   A wrong password is said under the password field, a wrong code under
   the code field. Making new codes then shows Step 3 with the new set.
+  The server emails the member "Your recovery codes were replaced" when
+  codes are made, and "A recovery code was used to…" whenever a recovery
+  code makes new codes or turns two-factor sign-in off, as it does for a
+  sign-in.
 - **Lost your phone and your codes?** A closing `text-sm` `ink-muted`
   paragraph on both Off and On: "Lost your phone and every recovery code?
   Write to us from this account's email address. We check it is you
@@ -1123,7 +1132,9 @@ asked for instead:
 - **The audit log** names an operator's reset from the command line as
   "**The command line** reset a user's two-factor sign-in: *username*",
   with the reason quoted below like any entry, and lists "Reset a user's
-  two-factor sign-in" in the action filter.
+  two-factor sign-in" in the action filter. The reason begins with the
+  name of the operator who ran it ("operator Dana Ops: owner confirmed by
+  email…"), which the command requires.
 
 ## Following writers
 

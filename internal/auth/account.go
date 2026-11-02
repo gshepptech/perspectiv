@@ -284,18 +284,21 @@ func (s *Service) ConfirmEmailChange(ctx context.Context, token string) error {
 // SignOutEverywhere revokes every session the caller has, this one included.
 func (s *Service) SignOutEverywhere(ctx context.Context, caller apiutil.Caller) error {
 	err := s.inTx(ctx, func(q *dbq.Queries, _ pgx.Tx) error {
+		// Signing everyone out also ends a sign-in waiting on its second
+		// step. The challenges go first, as in ChangePassword: a second
+		// step holding its challenge makes this wait until its session is
+		// committed, so the revocation below ends that session too.
+		if err := q.DeleteTwoFactorChallenges(ctx, caller.UserID); err != nil {
+			return internal("end two-factor challenges", err)
+		}
 		if err := q.RevokeUserSessions(ctx, caller.UserID); err != nil {
 			return internal("revoke sessions", err)
 		}
 		if err := q.RevokeUserRefreshTokens(ctx, caller.UserID); err != nil {
 			return internal("revoke refresh tokens", err)
 		}
-		// Signing everyone out also ends a sign-in waiting on its second
-		// step, and cancels an email change someone else may have started
+		// It also cancels an email change someone else may have started
 		// from a session.
-		if err := q.DeleteTwoFactorChallenges(ctx, caller.UserID); err != nil {
-			return internal("end two-factor challenges", err)
-		}
 		return retireTokens(ctx, q, caller.UserID, purposeChangeEmail)
 	})
 	if err != nil {

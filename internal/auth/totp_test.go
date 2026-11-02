@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // rfcSecret is the SHA-1 seed of RFC 6238 Appendix B: the ASCII string
@@ -170,7 +172,8 @@ func TestRecoveryCodes(t *testing.T) {
 	if !ok {
 		t.Fatalf("a generated code does not normalise: %q", codes[0])
 	}
-	stored := hashRecoveryCode(norm)
+	owner := uuid.New()
+	stored := hashRecoveryCode(owner, norm)
 	typed := []string{
 		strings.ToUpper(codes[0]),
 		strings.ReplaceAll(codes[0], "-", ""),
@@ -179,7 +182,7 @@ func TestRecoveryCodes(t *testing.T) {
 	}
 	for _, in := range typed {
 		n, ok := normalizeRecoveryCode(in)
-		if !ok || string(hashRecoveryCode(n)) != string(stored) {
+		if !ok || string(hashRecoveryCode(owner, n)) != string(stored) {
 			t.Errorf("%q does not match its code", in)
 		}
 	}
@@ -194,5 +197,32 @@ func TestRecoveryCodes(t *testing.T) {
 		if _, ok := normalizeRecoveryCode(bad); ok {
 			t.Errorf("%q normalised as a code", bad)
 		}
+	}
+}
+
+// The stored hash of a recovery code is the account's own: the same code
+// hashes differently for two accounts, and differently from the unsalted
+// version 1 hash it replaced.
+func TestRecoveryCodeHashIsPerAccount(t *testing.T) {
+	t.Parallel()
+	const norm = "0123456789abcdef"
+	a, b := uuid.New(), uuid.New()
+	tests := []struct {
+		name      string
+		got, want []byte
+		same      bool
+	}{
+		{name: "same account, same code", got: hashRecoveryCode(a, norm), want: hashRecoveryCode(a, norm), same: true},
+		{name: "two accounts, same code", got: hashRecoveryCode(a, norm), want: hashRecoveryCode(b, norm)},
+		{name: "salted against unsalted", got: hashRecoveryCode(a, norm), want: legacyRecoveryCodeHash(norm)},
+		{name: "two codes, same account", got: hashRecoveryCode(a, norm), want: hashRecoveryCode(a, "0123456789abcdeg")},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := string(tc.got) == string(tc.want); got != tc.same {
+				t.Errorf("hashes equal = %v, want %v", got, tc.same)
+			}
+		})
 	}
 }

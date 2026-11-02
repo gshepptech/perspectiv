@@ -401,12 +401,13 @@ func TestAdminGrant(t *testing.T) {
 	}
 }
 
-// perspectiv admin reset-two-factor <username> <reason> is the audited way
-// back in for a member who lost their authenticator and every recovery code:
-// it removes the account's two-factor sign-in, signs it out everywhere,
-// writes a TWO_FACTOR_RESET audit row with the reason and no actor, and
-// queues the "two-factor sign-in is off" email. An account without
-// two-factor sign-in, or an unknown one, exits non-zero and changes nothing.
+// perspectiv admin reset-two-factor <username> <operator> <reason> is the
+// audited way back in for a member who lost their authenticator and every
+// recovery code: it removes the account's two-factor sign-in, signs it out
+// everywhere, writes a TWO_FACTOR_RESET audit row with no actor whose reason
+// names the operator who ran it, and queues the "two-factor sign-in is off"
+// email. An account without two-factor sign-in, an unknown one, or an
+// operator name that is not one line, exits non-zero and changes nothing.
 func TestAdminResetTwoFactor(t *testing.T) {
 	t.Parallel()
 	pool := testdb.New(t)
@@ -436,7 +437,14 @@ func TestAdminResetTwoFactor(t *testing.T) {
 	}
 
 	var stderr bytes.Buffer
-	if code := run(ctx, []string{"admin", "reset-two-factor", "lost_phone", "owner confirmed by email"}, env(e), io.Discard, &stderr); code != exitOK {
+	if code := run(ctx, []string{"admin", "reset-two-factor", "lost_phone", "line\nbreak", "owner confirmed"}, env(e), io.Discard, &stderr); code == exitOK {
+		t.Fatal("an operator name with a line break was accepted")
+	}
+	if got := count(`SELECT count(*) FROM totp_secrets WHERE user_id = $1`); got != 1 {
+		t.Fatal("a refused reset removed two-factor sign-in")
+	}
+	stderr.Reset()
+	if code := run(ctx, []string{"admin", "reset-two-factor", "lost_phone", "Dana Ops", "owner confirmed by email"}, env(e), io.Discard, &stderr); code != exitOK {
 		t.Fatalf("reset exit = %d; stderr:\n%s", code, stderr.String())
 	}
 	checks := []struct {
@@ -446,8 +454,8 @@ func TestAdminResetTwoFactor(t *testing.T) {
 		{"secret removed", `SELECT count(*) FROM totp_secrets WHERE user_id = $1`, 0},
 		{"recovery codes removed", `SELECT count(*) FROM recovery_codes WHERE user_id = $1`, 0},
 		{"signed out everywhere", `SELECT count(*) FROM sessions WHERE user_id = $1 AND revoked_at IS NULL`, 0},
-		{"audited with the reason and no actor", `SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_TWO_FACTOR_RESET'
-			AND target_id = $1 AND actor_id IS NULL AND reason = 'owner confirmed by email'`, 1},
+		{"audited with the operator, the reason and no actor", `SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_TWO_FACTOR_RESET'
+			AND target_id = $1 AND actor_id IS NULL AND reason = 'operator Dana Ops: owner confirmed by email'`, 1},
 		{"member emailed", `SELECT count(*) FROM river_job WHERE kind = 'email' AND args->>'To' = (SELECT email FROM users WHERE id = $1)
 			AND args->>'Template' = 'two_factor_disabled'`, 1},
 	}
@@ -458,8 +466,8 @@ func TestAdminResetTwoFactor(t *testing.T) {
 	}
 
 	for _, args := range [][]string{
-		{"admin", "reset-two-factor", "lost_phone", "again"},
-		{"admin", "reset-two-factor", "nobody_here", "owner confirmed"},
+		{"admin", "reset-two-factor", "lost_phone", "Dana Ops", "again"},
+		{"admin", "reset-two-factor", "nobody_here", "Dana Ops", "owner confirmed"},
 	} {
 		stderr.Reset()
 		if code := run(ctx, args, env(e), io.Discard, &stderr); code == exitOK {

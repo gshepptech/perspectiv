@@ -32,12 +32,24 @@ const (
 	TemplateChangeEmail       = "change_email"
 	TemplateEmailChangeNotice = "email_change_notice"
 	// TemplateTwoFactorEnabled and TemplateTwoFactorDisabled tell a member
-	// their two-factor sign-in was turned on or off; TemplateRecoveryCodeUsed
-	// that a recovery code signed in, with the number left in Data["left"].
-	// Data carries the password-reset page's link, for when it was not them.
-	TemplateTwoFactorEnabled  = "two_factor_enabled"
-	TemplateTwoFactorDisabled = "two_factor_disabled"
-	TemplateRecoveryCodeUsed  = "recovery_code_used"
+	// their two-factor sign-in was turned on or off. TemplateRecoveryCodeUsed
+	// says a recovery code was used: Data["used_for"] is one of the
+	// RecoveryCodeUsedFor values (sign-in when absent), and after a sign-in
+	// Data["left"] is the number still unused. TemplateRecoveryCodesReplaced
+	// says a new set of recovery codes replaced the old one. Data carries the
+	// password-reset page's link, for when it was not them.
+	TemplateTwoFactorEnabled      = "two_factor_enabled"
+	TemplateTwoFactorDisabled     = "two_factor_disabled"
+	TemplateRecoveryCodeUsed      = "recovery_code_used"
+	TemplateRecoveryCodesReplaced = "recovery_codes_replaced"
+)
+
+// What a recovery code was used for, in a TemplateRecoveryCodeUsed email's
+// Data["used_for"].
+const (
+	RecoveryCodeUsedForSignIn   = "sign_in"
+	RecoveryCodeUsedForTurnOff  = "turn_off"
+	RecoveryCodeUsedForNewCodes = "new_codes"
 )
 
 // ExpiryArgs schedules the PENDING to SOLO check for one perspective.

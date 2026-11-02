@@ -151,6 +151,17 @@ func (q *Queries) CountRecoveryCodesLeft(ctx context.Context, userID uuid.UUID) 
 	return column_1, err
 }
 
+const deletePendingTotp = `-- name: DeletePendingTotp :exec
+DELETE FROM totp_secrets WHERE user_id = $1::uuid AND confirmed_at IS NULL
+`
+
+// Ends a setup that is still waiting for its first code; a confirmed secret
+// is left alone.
+func (q *Queries) DeletePendingTotp(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deletePendingTotp, userID)
+	return err
+}
+
 const deleteRecoveryCodes = `-- name: DeleteRecoveryCodes :exec
 DELETE FROM recovery_codes WHERE user_id = $1::uuid
 `
@@ -282,11 +293,21 @@ WHERE user_id = $1::uuid
 FOR UPDATE
 `
 
+type GetTotpForUpdateRow struct {
+	UserID       uuid.UUID
+	KeyID        string
+	Algorithm    string
+	Ciphertext   []byte
+	CreatedAt    time.Time
+	ConfirmedAt  *time.Time
+	LastUsedStep *int64
+}
+
 // The account's TOTP row, locked so two codes checked at once are
 // serialised and the second sees the first one's last_used_step.
-func (q *Queries) GetTotpForUpdate(ctx context.Context, userID uuid.UUID) (TotpSecret, error) {
+func (q *Queries) GetTotpForUpdate(ctx context.Context, userID uuid.UUID) (GetTotpForUpdateRow, error) {
 	row := q.db.QueryRow(ctx, getTotpForUpdate, userID)
-	var i TotpSecret
+	var i GetTotpForUpdateRow
 	err := row.Scan(
 		&i.UserID,
 		&i.KeyID,
@@ -553,7 +574,7 @@ func (q *Queries) InsertLoginAttempt(ctx context.Context, arg InsertLoginAttempt
 }
 
 const insertRecoveryCode = `-- name: InsertRecoveryCode :exec
-INSERT INTO recovery_codes (user_id, code_hash) VALUES ($1::uuid, $2)
+INSERT INTO recovery_codes (user_id, code_hash, hash_version) VALUES ($1::uuid, $2, 2)
 `
 
 type InsertRecoveryCodeParams struct {
@@ -561,6 +582,7 @@ type InsertRecoveryCodeParams struct {
 	CodeHash []byte
 }
 
+// New codes are always hash version 2 (migration 41).
 func (q *Queries) InsertRecoveryCode(ctx context.Context, arg InsertRecoveryCodeParams) error {
 	_, err := q.db.Exec(ctx, insertRecoveryCode, arg.UserID, arg.CodeHash)
 	return err
@@ -863,6 +885,38 @@ func (q *Queries) LockTwoFactorAttempts(ctx context.Context, userID uuid.UUID) e
 	return err
 }
 
+const lockUserForLogin = `-- name: LockUserForLogin :one
+SELECT id, password_hash, username, role, email_verified_at
+FROM users
+WHERE id = $1::uuid AND deleted_at IS NULL
+FOR SHARE
+`
+
+type LockUserForLoginRow struct {
+	ID              uuid.UUID
+	PasswordHash    string
+	Username        string
+	Role            string
+	EmailVerifiedAt *time.Time
+}
+
+// The account's password hash and session fields, read inside Login's
+// transaction with the row share-locked: a password reset or change that
+// updates the row waits for this sign-in to commit, and one that committed
+// first is the hash this sign-in checks.
+func (q *Queries) LockUserForLogin(ctx context.Context, id uuid.UUID) (LockUserForLoginRow, error) {
+	row := q.db.QueryRow(ctx, lockUserForLogin, id)
+	var i LockUserForLoginRow
+	err := row.Scan(
+		&i.ID,
+		&i.PasswordHash,
+		&i.Username,
+		&i.Role,
+		&i.EmailVerifiedAt,
+	)
+	return i, err
+}
+
 const lockWaitlistEntry = `-- name: LockWaitlistEntry :one
 SELECT id, email, note, created_at, invited_at, code FROM waitlist WHERE id = $1::uuid FOR UPDATE
 `
@@ -943,6 +997,21 @@ func (q *Queries) OwnLiveSession(ctx context.Context, arg OwnLiveSessionParams) 
 	var live bool
 	err := row.Scan(&live)
 	return live, err
+}
+
+const peekTwoFactorChallenge = `-- name: PeekTwoFactorChallenge :one
+SELECT user_id FROM two_factor_challenges
+WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()
+`
+
+// The account of an unused, unexpired challenge, read without a lock so the
+// second step can take the account's locks before the challenge's (the lock
+// order in twofactor.go).
+func (q *Queries) PeekTwoFactorChallenge(ctx context.Context, tokenHash []byte) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, peekTwoFactorChallenge, tokenHash)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
 }
 
 const purgeEmailTokens = `-- name: PurgeEmailTokens :execrows
@@ -1079,6 +1148,20 @@ func (q *Queries) PurgeTwoFactorChallenges(ctx context.Context, arg PurgeTwoFact
 	return result.RowsAffected(), nil
 }
 
+const recordSetupFailure = `-- name: RecordSetupFailure :one
+UPDATE totp_secrets SET setup_failures = setup_failures + 1
+WHERE user_id = $1::uuid AND confirmed_at IS NULL
+RETURNING setup_failures
+`
+
+// Counts one wrong code against a pending setup and returns the count.
+func (q *Queries) RecordSetupFailure(ctx context.Context, userID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, recordSetupFailure, userID)
+	var setup_failures int32
+	err := row.Scan(&setup_failures)
+	return setup_failures, err
+}
+
 const retireEmailTokens = `-- name: RetireEmailTokens :exec
 UPDATE email_tokens SET used_at = now()
 WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL
@@ -1213,6 +1296,19 @@ func (q *Queries) SetTotpLastUsedStep(ctx context.Context, arg SetTotpLastUsedSt
 	return err
 }
 
+const shareLockUser = `-- name: ShareLockUser :one
+SELECT id FROM users WHERE id = $1::uuid AND deleted_at IS NULL FOR SHARE
+`
+
+// Share-locks a live account's row: step 2 of the lock order in
+// twofactor.go, taken before the two-factor lock.
+func (q *Queries) ShareLockUser(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, shareLockUser, id)
+	var id_2 uuid.UUID
+	err := row.Scan(&id_2)
+	return id_2, err
+}
+
 const touchSession = `-- name: TouchSession :exec
 UPDATE sessions SET last_used_at = now() WHERE id = $1
 `
@@ -1256,7 +1352,7 @@ INSERT INTO totp_secrets AS t (user_id, key_id, algorithm, ciphertext)
 VALUES ($1::uuid, $2::text, $3::text, $4)
 ON CONFLICT (user_id) DO UPDATE
 SET key_id = excluded.key_id, algorithm = excluded.algorithm, ciphertext = excluded.ciphertext,
-    created_at = now(), last_used_step = NULL
+    created_at = now(), last_used_step = NULL, setup_failures = 0
 WHERE t.confirmed_at IS NULL
 RETURNING t.user_id
 `
@@ -1268,8 +1364,9 @@ type UpsertPendingTotpParams struct {
 	Ciphertext []byte
 }
 
-// Starts (or restarts) setup with a new secret. A confirmed row is left
-// alone and no row is returned, so setup never replaces a secret in use.
+// Starts (or restarts) setup with a new secret and no wrong codes counted.
+// A confirmed row is left alone and no row is returned, so setup never
+// replaces a secret in use.
 func (q *Queries) UpsertPendingTotp(ctx context.Context, arg UpsertPendingTotpParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, upsertPendingTotp,
 		arg.UserID,
@@ -1328,18 +1425,23 @@ func (q *Queries) UseMemberInvite(ctx context.Context, arg UseMemberInviteParams
 
 const useRecoveryCode = `-- name: UseRecoveryCode :one
 UPDATE recovery_codes SET used_at = now()
-WHERE user_id = $1::uuid AND code_hash = $2 AND used_at IS NULL
+WHERE user_id = $1::uuid AND used_at IS NULL
+  AND ((hash_version = 2 AND code_hash = $2::bytea)
+    OR (hash_version = 1 AND code_hash = $3::bytea))
 RETURNING id
 `
 
 type UseRecoveryCodeParams struct {
-	UserID   uuid.UUID
-	CodeHash []byte
+	UserID         uuid.UUID
+	CodeHash       []byte
+	LegacyCodeHash []byte
 }
 
-// Spends one unused recovery code; no row when the code is wrong or spent.
+// Spends one unused recovery code, matched by its version 2 hash or, for a
+// code stored before migration 41, its version 1 hash. No row when the code
+// is wrong or spent.
 func (q *Queries) UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error) {
-	row := q.db.QueryRow(ctx, useRecoveryCode, arg.UserID, arg.CodeHash)
+	row := q.db.QueryRow(ctx, useRecoveryCode, arg.UserID, arg.CodeHash, arg.LegacyCodeHash)
 	var id int64
 	err := row.Scan(&id)
 	return id, err

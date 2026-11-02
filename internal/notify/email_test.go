@@ -128,7 +128,7 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 				"link": baseURL + "/forgot-password",
 			}},
 			wantSubject: "Two-factor sign-in is on",
-			wantText:    []string{"If you did not turn it on, reset your password now.", baseURL + "/forgot-password"},
+			wantText:    []string{"every other device signed in to the account was signed out", "If you did not turn it on, reset your password now.", baseURL + "/forgot-password"},
 		},
 		{
 			name: "two-factor turned off",
@@ -153,6 +153,30 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 			}},
 			wantSubject: "A recovery code was used to sign in",
 			wantText:    []string{"That was the last one: make new codes in Settings now."},
+		},
+		{
+			name: "a recovery code used to turn two-factor sign-in off says so",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateRecoveryCodeUsed, Data: map[string]string{
+				"link": baseURL + "/forgot-password", "used_for": jobs.RecoveryCodeUsedForTurnOff,
+			}},
+			wantSubject: "A recovery code was used to turn off two-factor sign-in",
+			wantText:    []string{"used to turn two-factor sign-in off", baseURL + "/forgot-password"},
+		},
+		{
+			name: "a recovery code used to make new codes says so",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateRecoveryCodeUsed, Data: map[string]string{
+				"link": baseURL + "/forgot-password", "used_for": jobs.RecoveryCodeUsedForNewCodes,
+			}},
+			wantSubject: "A recovery code was used to make new recovery codes",
+			wantText:    []string{"the old ones no longer work", baseURL + "/forgot-password"},
+		},
+		{
+			name: "recovery codes replaced points at a password reset in case it was not them",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateRecoveryCodesReplaced, Data: map[string]string{
+				"link": baseURL + "/forgot-password",
+			}},
+			wantSubject: "Your recovery codes were replaced",
+			wantText:    []string{"the old codes no longer work", baseURL + "/forgot-password"},
 		},
 		{
 			name: "claim received names the claimant and the arc (FR-037)",

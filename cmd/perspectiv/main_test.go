@@ -34,10 +34,11 @@ func TestRunExitCodesWithoutDatabase(t *testing.T) {
 		{"migrate unreachable database", []string{"migrate"}, unreachable, exitFailure, "migrat"},
 		{"grant unreachable database", []string{"admin", "grant", "founder"}, unreachable, exitFailure, "grant"},
 		{"keygen extra argument", []string{"keygen", "now"}, unreachable, exitUsage, "usage"},
-		{"reset two-factor without a reason", []string{"admin", "reset-two-factor", "founder"}, unreachable, exitUsage, "usage"},
-		{"reset two-factor without PUBLIC_BASE_URL", []string{"admin", "reset-two-factor", "founder", "owner confirmed"},
+		{"reset two-factor without a reason", []string{"admin", "reset-two-factor", "founder", "Dana Ops"}, unreachable, exitUsage, "usage"},
+		{"reset two-factor without an operator", []string{"admin", "reset-two-factor", "founder"}, unreachable, exitUsage, "usage"},
+		{"reset two-factor without PUBLIC_BASE_URL", []string{"admin", "reset-two-factor", "founder", "Dana Ops", "owner confirmed"},
 			with(unreachable, "PUBLIC_BASE_URL", ""), exitUsage, "PUBLIC_BASE_URL"},
-		{"reset two-factor unreachable database", []string{"admin", "reset-two-factor", "founder", "owner confirmed"},
+		{"reset two-factor unreachable database", []string{"admin", "reset-two-factor", "founder", "Dana Ops", "owner confirmed"},
 			unreachable, exitFailure, "two-factor"},
 	}
 	for _, tc := range cases {

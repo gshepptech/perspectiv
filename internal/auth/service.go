@@ -300,8 +300,15 @@ type LoginResult struct {
 // two-factor sign-in on gets a challenge instead and no session, so a right
 // password alone never signs in to it.
 // Every attempt on an existing account is recorded in login_attempts.
+//
+// The password hash and the two-factor state are read inside the
+// transaction, under the lock order in twofactor.go: the users row
+// share-locked, so a password reset or change either committed before this
+// read or waits for this sign-in to commit and then ends what it started;
+// and the two-factor lock, so turning two-factor on either committed before
+// the read or revokes the session this sign-in starts.
 func (s *Service) Login(ctx context.Context, email, password, userAgent string) (LoginResult, error) {
-	u, err := s.q.GetUserByEmail(ctx, strings.TrimSpace(email))
+	found, err := s.q.GetUserByEmail(ctx, strings.TrimSpace(email))
 	if errors.Is(err, pgx.ErrNoRows) {
 		_, _ = s.passwords.VerifyPassword(s.dummyHash, password)
 		s.log.Warn().Str("event", "login_failed").Str("reason", "unknown_email").Msg("login refused")
@@ -310,51 +317,20 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent string) 
 	if err != nil {
 		return LoginResult{}, internal("get user", err)
 	}
-	role, err := roleFromDB(u.Role)
-	if err != nil {
-		return LoginResult{}, apiutil.Internal(err)
-	}
+	userID := found.ID
 	var out LoginResult
 	var refused error
 	err = s.inTx(ctx, func(q *dbq.Queries, _ pgx.Tx) error {
-		if err := q.LockLoginAttempts(ctx, u.ID); err != nil {
-			return internal("lock login attempts", err)
-		}
-		failures, err := q.CountRecentFailedLogins(ctx, dbq.CountRecentFailedLoginsParams{
-			UserID: u.ID, WindowMinutes: int32(LockoutWindow / time.Minute),
-		})
-		if err != nil {
-			return internal("count failed logins", err)
-		}
-		if failures >= LockoutFailures {
-			refused = errLockedOut
+		u, err := s.checkLoginPassword(ctx, q, userID, password)
+		if errors.Is(err, errLockedOut) || errors.Is(err, errBadCredentials) {
+			// The attempt is recorded; the refusal returns once it commits.
+			refused = err
 			return nil
 		}
-		ok, err := s.passwords.VerifyPassword(u.PasswordHash, password)
 		if err != nil {
-			return apiutil.Internal(err)
-		}
-		if err := q.InsertLoginAttempt(ctx, dbq.InsertLoginAttemptParams{UserID: u.ID, Succeeded: ok}); err != nil {
-			return internal("record login attempt", err)
-		}
-		if !ok {
-			refused = errBadCredentials
-			return nil
-		}
-		// Read under the lock rather than from the row above, so a member
-		// who just turned two-factor on is asked for it.
-		_, err = q.GetTwoFactorStatus(ctx, u.ID)
-		switch {
-		case err == nil:
-			out.Challenge, out.ChallengeExpiresAt, err = startChallenge(ctx, q, u.ID, s.now())
 			return err
-		case !errors.Is(err, pgx.ErrNoRows):
-			return internal("read two-factor status", err)
 		}
-		tokens, err := s.startSession(ctx, q, deviceLabel(userAgent), SessionUser{
-			ID: u.ID, Username: u.Username, Role: role, EmailVerified: u.EmailVerifiedAt != nil,
-		})
-		out.Tokens = &tokens
+		out, err = s.startSignIn(ctx, q, u, userAgent)
 		return err
 	})
 	if err != nil {
@@ -362,18 +338,85 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent string) 
 	}
 	switch {
 	case errors.Is(refused, errLockedOut):
-		s.log.Warn().Str("event", "login_locked").Str("sub", u.ID.String()).Msg("login refused by lockout")
+		s.log.Warn().Str("event", "login_locked").Str("sub", userID.String()).Msg("login refused by lockout")
 		return LoginResult{}, refused
 	case errors.Is(refused, errBadCredentials):
-		s.log.Warn().Str("event", "login_failed").Str("reason", "wrong_password").Str("sub", u.ID.String()).Msg("login refused")
+		s.log.Warn().Str("event", "login_failed").Str("reason", "wrong_password").Str("sub", userID.String()).Msg("login refused")
 		return LoginResult{}, refused
 	}
 	if out.Challenge != "" {
-		s.log.Info().Str("event", "login_two_factor_required").Str("sub", u.ID.String()).Msg("password accepted; second factor needed")
+		s.log.Info().Str("event", "login_two_factor_required").Str("sub", userID.String()).Msg("password accepted; second factor needed")
 		return out, nil
 	}
-	s.log.Info().Str("event", "login_succeeded").Str("sub", u.ID.String()).Msg("signed in")
+	s.log.Info().Str("event", "login_succeeded").Str("sub", userID.String()).Msg("signed in")
 	return out, nil
+}
+
+// checkLoginPassword is Login's password step, under the login lock and
+// with the users row share-locked (steps 1 and 2 of the lock order in
+// twofactor.go). A locked-out account is errLockedOut and a wrong password
+// errBadCredentials, recorded in login_attempts first.
+func (s *Service) checkLoginPassword(ctx context.Context, q *dbq.Queries, userID uuid.UUID, password string) (dbq.LockUserForLoginRow, error) {
+	if err := q.LockLoginAttempts(ctx, userID); err != nil {
+		return dbq.LockUserForLoginRow{}, internal("lock login attempts", err)
+	}
+	failures, err := q.CountRecentFailedLogins(ctx, dbq.CountRecentFailedLoginsParams{
+		UserID: userID, WindowMinutes: int32(LockoutWindow / time.Minute),
+	})
+	if err != nil {
+		return dbq.LockUserForLoginRow{}, internal("count failed logins", err)
+	}
+	if failures >= LockoutFailures {
+		return dbq.LockUserForLoginRow{}, errLockedOut
+	}
+	u, err := q.LockUserForLogin(ctx, userID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// Deleted since it was found by email.
+		_, _ = s.passwords.VerifyPassword(s.dummyHash, password)
+		return dbq.LockUserForLoginRow{}, errBadCredentials
+	}
+	if err != nil {
+		return dbq.LockUserForLoginRow{}, internal("lock user", err)
+	}
+	ok, err := s.passwords.VerifyPassword(u.PasswordHash, password)
+	if err != nil {
+		return dbq.LockUserForLoginRow{}, apiutil.Internal(err)
+	}
+	if err := q.InsertLoginAttempt(ctx, dbq.InsertLoginAttemptParams{UserID: u.ID, Succeeded: ok}); err != nil {
+		return dbq.LockUserForLoginRow{}, internal("record login attempt", err)
+	}
+	if !ok {
+		return dbq.LockUserForLoginRow{}, errBadCredentials
+	}
+	return u, nil
+}
+
+// startSignIn follows a right password: a challenge when the account has
+// two-factor sign-in on, a session otherwise. The state is read under the
+// two-factor lock, which ConfirmTwoFactorSetup takes too, so a member who
+// just turned two-factor on is asked for it.
+func (s *Service) startSignIn(ctx context.Context, q *dbq.Queries, u dbq.LockUserForLoginRow, userAgent string) (LoginResult, error) {
+	if err := q.LockTwoFactorAttempts(ctx, u.ID); err != nil {
+		return LoginResult{}, internal("lock two-factor attempts", err)
+	}
+	var out LoginResult
+	_, err := q.GetTwoFactorStatus(ctx, u.ID)
+	switch {
+	case err == nil:
+		out.Challenge, out.ChallengeExpiresAt, err = startChallenge(ctx, q, u.ID, s.now())
+		return out, err
+	case !errors.Is(err, pgx.ErrNoRows):
+		return LoginResult{}, internal("read two-factor status", err)
+	}
+	role, err := roleFromDB(u.Role)
+	if err != nil {
+		return LoginResult{}, apiutil.Internal(err)
+	}
+	tokens, err := s.startSession(ctx, q, deviceLabel(userAgent), SessionUser{
+		ID: u.ID, Username: u.Username, Role: role, EmailVerified: u.EmailVerifiedAt != nil,
+	})
+	out.Tokens = &tokens
+	return out, err
 }
 
 // startSession creates a session with its first refresh token and signs an

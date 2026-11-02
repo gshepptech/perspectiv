@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -26,17 +27,48 @@ import (
 //     TwoFactorChallengeTTL and is spent by the first right code.
 //   - A setup that was started but never confirmed with a code is refused
 //     after TwoFactorSetupTTL, and setup starts again with a new secret.
-//   - Wrong codes are counted in two_factor_attempts, apart from wrong
+//     Its wrong codes are counted on the setup itself
+//     (totp_secrets.setup_failures), not toward the sign-in lockout below:
+//     the TwoFactorSetupFailures-th deletes the pending secret, and setup
+//     starts again behind the password. So a stolen session can neither
+//     guess its way through setup nor lock the owner out of signing in.
+//   - Wrong codes at sign-in, and when turning two-factor off or making new
+//     recovery codes, are counted in two_factor_attempts, apart from wrong
 //     passwords: TwoFactorFailures inside TwoFactorWindow, or
 //     TwoFactorDailyFailures inside TwoFactorDailyWindow, refuse every code
 //     for the account, the right one included, until the oldest of them
 //     leaves the window. Six digits leave a guesser one chance in about
 //     330,000 per code with the drift window, so the daily cap is what keeps
 //     a year of guessing, by someone who already has the password, below a
-//     few percent. A refused code is not itself counted.
+//     few percent. A refused code is not itself counted, and neither is a
+//     replayed one (a right code for a step already used), so a client
+//     that retries a request cannot lock its own member out; the replay is
+//     still refused and logged.
+//
+// Lock order. Every transaction here that touches an account's sign-in
+// state takes the account's locks in this order, skipping any it does not
+// need, so no two of them can wait on each other:
+//
+//  1. the login lock (LockLoginAttempts), around a password check;
+//  2. the users row: FOR SHARE (ShareLockUser, LockUserForLogin), or the
+//     UPDATE of a password reset or change, or the operator reset's
+//     FOR UPDATE;
+//  3. the two-factor lock (LockTwoFactorAttempts), through lockTwoFactor;
+//  4. the account's two-factor rows (its totp_secrets row, challenges and
+//     recovery codes), then its sessions and refresh tokens.
+//
+// Step 2 comes before 3 because every insert that references users (a
+// session, an attempt, a recovery code) takes a key-share lock on the users
+// row: had the two-factor lock come first, a transaction holding the users
+// row (the operator reset, account deletion) could wait for it while the
+// holder waits for the row. CompleteTwoFactorLogin reads its challenge's
+// account without a lock (PeekTwoFactorChallenge), takes 2 and 3, and only
+// then locks the challenge row, so it and DisableTwoFactor or the operator
+// reset, which delete challenges after taking 3, never hold one lock each.
 const (
 	TwoFactorChallengeTTL  = 5 * time.Minute
 	TwoFactorSetupTTL      = 30 * time.Minute
+	TwoFactorSetupFailures = 5
 	TwoFactorFailures      = 5
 	TwoFactorWindow        = 15 * time.Minute
 	TwoFactorDailyFailures = 20
@@ -55,6 +87,7 @@ var (
 	errTwoFactorOn      = apiutil.FailedPrecondition("two-factor sign-in is already on")
 	errTwoFactorOff     = apiutil.FailedPrecondition("two-factor sign-in is not on")
 	errSetupNotStarted  = apiutil.FailedPrecondition("set up two-factor sign-in again; that setup has expired")
+	errSetupAbandoned   = apiutil.FailedPrecondition("too many wrong codes; set up two-factor sign-in again")
 	errNoCode           = apiutil.InvalidArg("enter a code")
 	errTwoFactorRefusal = []error{errTwoFactorLocked, errTwoFactorLockedDaily, errWrongLoginCode, errWrongCode}
 )
@@ -88,11 +121,27 @@ func deferAnyRefusal(err error, refused *error) error {
 	return deferRefusal(err, refused)
 }
 
-// gateSecondFactor serialises the account's code checks for the rest of the
-// transaction and refuses a locked-out account before any code is compared.
-func gateSecondFactor(ctx context.Context, q *dbq.Queries, userID uuid.UUID) error {
+// lockTwoFactor takes steps 2 and 3 of the lock order: the account's users
+// row, share-locked, then its two-factor lock, which serialises everything
+// that reads or changes the account's two-factor state for the rest of the
+// transaction. A deleted account is errAccountNotFound.
+func lockTwoFactor(ctx context.Context, q *dbq.Queries, userID uuid.UUID) error {
+	if _, err := q.ShareLockUser(ctx, userID); errors.Is(err, pgx.ErrNoRows) {
+		return errAccountNotFound
+	} else if err != nil {
+		return internal("lock user", err)
+	}
 	if err := q.LockTwoFactorAttempts(ctx, userID); err != nil {
 		return internal("lock two-factor attempts", err)
+	}
+	return nil
+}
+
+// gateSecondFactor takes lockTwoFactor's locks and refuses a locked-out
+// account before any code is compared.
+func gateSecondFactor(ctx context.Context, q *dbq.Queries, userID uuid.UUID) error {
+	if err := lockTwoFactor(ctx, q, userID); err != nil {
+		return err
 	}
 	for _, w := range []struct {
 		minutes int32
@@ -118,7 +167,7 @@ func gateSecondFactor(ctx context.Context, q *dbq.Queries, userID uuid.UUID) err
 // openSecret decrypts a stored TOTP secret. A row this server cannot
 // decrypt (an unknown key id or algorithm, a damaged ciphertext) is an
 // internal error: the code is refused, never waved through.
-func (s *Service) openSecret(row dbq.TotpSecret) ([]byte, error) {
+func (s *Service) openSecret(row dbq.GetTotpForUpdateRow) ([]byte, error) {
 	secret, err := s.enc.Decrypt(crypto.Sealed{KeyID: row.KeyID, Algorithm: row.Algorithm, Ciphertext: row.Ciphertext})
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("open totp secret: %w", err))
@@ -129,7 +178,8 @@ func (s *Service) openSecret(row dbq.TotpSecret) ([]byte, error) {
 // checkSecondFactor checks a code for an account with two-factor sign-in
 // on, after gateSecondFactor: six digits against the app's secret, anything
 // else as a recovery code, which it spends. Every check is recorded in
-// two_factor_attempts. reason is set when the code is refused.
+// two_factor_attempts except a replayed code, which is refused without
+// counting toward the lockout. reason is set when the code is refused.
 func (s *Service) checkSecondFactor(ctx context.Context, q *dbq.Queries, userID uuid.UUID, code string, wrong error,
 ) (factor secondFactor, reason string, err error) {
 	if strings.TrimSpace(code) == "" {
@@ -142,44 +192,66 @@ func (s *Service) checkSecondFactor(ctx context.Context, q *dbq.Queries, userID 
 	if err != nil {
 		return "", "", internal("load totp secret", err)
 	}
-	ok := false
 	if digits, isTOTP := isTOTPCode(code); isTOTP {
-		secret, err := s.openSecret(row)
-		if err != nil {
-			return "", "", err
-		}
-		step, result := matchTOTP(secret, digits, s.now(), row.LastUsedStep)
-		switch result {
-		case totpAccepted:
-			if err := q.SetTotpLastUsedStep(ctx, dbq.SetTotpLastUsedStepParams{UserID: userID, Step: step}); err != nil {
-				return "", "", internal("record code step", err)
-			}
-			ok, factor = true, factorTOTP
-		case totpReplayed:
-			reason = "replayed_code"
-		case totpWrong:
-			reason = "wrong_code"
-		}
+		factor, reason, err = s.checkAppCode(ctx, q, row, digits)
 	} else if norm, isCode := normalizeRecoveryCode(code); isCode {
-		_, err := q.UseRecoveryCode(ctx, dbq.UseRecoveryCodeParams{UserID: userID, CodeHash: hashRecoveryCode(norm)})
-		switch {
-		case err == nil:
-			ok, factor = true, factorRecovery
-		case errors.Is(err, pgx.ErrNoRows):
-			reason = "wrong_recovery_code"
-		default:
-			return "", "", internal("use recovery code", err)
-		}
+		factor, reason, err = spendRecoveryCode(ctx, q, userID, norm)
 	} else {
 		reason = "malformed_code"
 	}
-	if err := q.InsertTwoFactorAttempt(ctx, dbq.InsertTwoFactorAttemptParams{UserID: userID, Succeeded: ok}); err != nil {
-		return "", "", internal("record two-factor attempt", err)
+	if err != nil {
+		return "", "", err
+	}
+	ok := factor != ""
+	// A replay was right once: a client retrying a request that already
+	// went through sends it, and counting it would lock the member out.
+	if reason != "replayed_code" {
+		if err := q.InsertTwoFactorAttempt(ctx, dbq.InsertTwoFactorAttemptParams{UserID: userID, Succeeded: ok}); err != nil {
+			return "", "", internal("record two-factor attempt", err)
+		}
 	}
 	if !ok {
 		return "", reason, wrong
 	}
 	return factor, "", nil
+}
+
+// checkAppCode checks six digits against the account's app secret and, when
+// they are right, records their step as used.
+func (s *Service) checkAppCode(ctx context.Context, q *dbq.Queries, row dbq.GetTotpForUpdateRow, digits string) (secondFactor, string, error) {
+	secret, err := s.openSecret(row)
+	if err != nil {
+		return "", "", err
+	}
+	step, result := matchTOTP(secret, digits, s.now(), row.LastUsedStep)
+	switch result {
+	case totpAccepted:
+		if err := q.SetTotpLastUsedStep(ctx, dbq.SetTotpLastUsedStepParams{UserID: row.UserID, Step: step}); err != nil {
+			return "", "", internal("record code step", err)
+		}
+		return factorTOTP, "", nil
+	case totpReplayed:
+		return "", "replayed_code", nil
+	default:
+		return "", "wrong_code", nil
+	}
+}
+
+// spendRecoveryCode spends the account's unused recovery code norm, matched
+// by its salted hash or, for a code stored before hashes were salted, its
+// unsalted one.
+func spendRecoveryCode(ctx context.Context, q *dbq.Queries, userID uuid.UUID, norm string) (secondFactor, string, error) {
+	_, err := q.UseRecoveryCode(ctx, dbq.UseRecoveryCodeParams{
+		UserID: userID, CodeHash: hashRecoveryCode(userID, norm), LegacyCodeHash: legacyRecoveryCodeHash(norm),
+	})
+	switch {
+	case err == nil:
+		return factorRecovery, "", nil
+	case errors.Is(err, pgx.ErrNoRows):
+		return "", "wrong_recovery_code", nil
+	default:
+		return "", "", internal("use recovery code", err)
+	}
 }
 
 // startChallenge records a single-use challenge for an account whose
@@ -247,18 +319,32 @@ type secondStep struct {
 	refused error
 }
 
-// completeSecondStep is CompleteTwoFactorLogin's transaction.
+// completeSecondStep is CompleteTwoFactorLogin's transaction. It learns the
+// challenge's account without a lock, takes the account's locks, and only
+// then locks the challenge (the lock order at the top of this file); a
+// challenge ended in between, by a reset or by turning two-factor off, is
+// gone by the time it is locked.
 func (s *Service) completeSecondStep(ctx context.Context, q *dbq.Queries, tx pgx.Tx, challenge, code, userAgent string, st *secondStep) error {
-	ch, err := q.GetTwoFactorChallengeForUpdate(ctx, hashToken(challenge))
+	tokHash := hashToken(challenge)
+	userID, err := q.PeekTwoFactorChallenge(ctx, tokHash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errChallengeEnded
+	}
+	if err != nil {
+		return internal("find two-factor challenge", err)
+	}
+	st.userID = userID
+	if err := gateSecondFactor(ctx, q, userID); errors.Is(err, errAccountNotFound) {
+		return errChallengeEnded
+	} else if err != nil {
+		return deferAnyRefusal(err, &st.refused)
+	}
+	ch, err := q.GetTwoFactorChallengeForUpdate(ctx, tokHash)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return errChallengeEnded
 	}
 	if err != nil {
 		return internal("load two-factor challenge", err)
-	}
-	st.userID = ch.UserID
-	if err := gateSecondFactor(ctx, q, ch.UserID); err != nil {
-		return deferAnyRefusal(err, &st.refused)
 	}
 	factor, why, err := s.checkSecondFactor(ctx, q, ch.UserID, code, errWrongLoginCode)
 	st.reason = why
@@ -286,8 +372,9 @@ func (s *Service) completeSecondStep(ctx context.Context, q *dbq.Queries, tx pgx
 	if st.out.CodesLeft, err = q.CountRecoveryCodesLeft(ctx, ch.UserID); err != nil {
 		return internal("count recovery codes", err)
 	}
-	return s.securityMail(ctx, tx, ch.Email, ch.Username, jobs.TemplateRecoveryCodeUsed,
-		map[string]string{"left": strconv.Itoa(int(st.out.CodesLeft))})
+	return s.securityMail(ctx, tx, ch.Email, ch.Username, jobs.TemplateRecoveryCodeUsed, map[string]string{
+		"used_for": jobs.RecoveryCodeUsedForSignIn, "left": strconv.Itoa(int(st.out.CodesLeft)),
+	})
 }
 
 // logCodeRefusal writes the audit line for a refused second factor:
@@ -403,8 +490,16 @@ func (s *Service) BeginTwoFactorSetup(ctx context.Context, caller apiutil.Caller
 
 // ConfirmTwoFactorSetup turns two-factor sign-in on once code matches the
 // pending secret, and returns the account's ten recovery codes. The code's
-// step is recorded as used, so it cannot sign in afterwards. A wrong code
-// counts toward the two-factor lockout.
+// step is recorded as used, so it cannot sign in afterwards. Turning it on
+// signs out every other session, as a password change does, so a session
+// someone else held before it was on does not outlast it, and ends any open
+// challenge; the member is emailed. A wrong code counts against the pending
+// setup only: the TwoFactorSetupFailures-th deletes it.
+//
+// Login takes the same two-factor lock before it reads whether two-factor
+// sign-in is on, so a sign-in running alongside either commits its session
+// before the revocation here runs, which then ends it, or waits and is asked
+// for a code.
 func (s *Service) ConfirmTwoFactorSetup(ctx context.Context, caller apiutil.Caller, code string) ([]string, error) {
 	digits, isTOTP := isTOTPCode(code)
 	if !isTOTP {
@@ -420,39 +515,73 @@ func (s *Service) ConfirmTwoFactorSetup(ctx context.Context, caller apiutil.Call
 		if err != nil {
 			return err
 		}
-		if err := gateSecondFactor(ctx, q, u.ID); err != nil {
-			return deferAnyRefusal(err, &refused)
+		if err := lockTwoFactor(ctx, q, u.ID); err != nil {
+			return err
 		}
 		secret, err := s.pendingSecret(ctx, q, u.ID)
 		if err != nil {
 			return err
 		}
 		step, result := matchTOTP(secret, digits, s.now(), nil)
-		ok := result == totpAccepted
-		if err := q.InsertTwoFactorAttempt(ctx, dbq.InsertTwoFactorAttemptParams{UserID: u.ID, Succeeded: ok}); err != nil {
-			return internal("record two-factor attempt", err)
+		if result != totpAccepted {
+			return failSetup(ctx, q, u.ID, &refused)
 		}
-		if !ok {
-			refused = errWrongCode
-			return nil
-		}
-		if err := q.ConfirmTotp(ctx, dbq.ConfirmTotpParams{UserID: u.ID, Step: step}); err != nil {
-			return internal("confirm totp", err)
-		}
-		if err := replaceRecoveryCodes(ctx, q, u.ID, codes); err != nil {
-			return err
-		}
-		return s.securityMail(ctx, tx, u.Email, u.Username, jobs.TemplateTwoFactorEnabled, nil)
+		return s.turnOnTwoFactor(ctx, q, tx, u, caller.SessionID, step, codes)
 	})
 	if err != nil {
 		return nil, err
 	}
 	if refused != nil {
-		s.logCodeRefusal("two_factor_setup", caller.UserID, "wrong_code", refused)
+		reason := "wrong_code"
+		if errors.Is(refused, errSetupAbandoned) {
+			reason = "too_many_wrong_codes"
+		}
+		s.logCodeRefusal("two_factor_setup", caller.UserID, reason, refused)
 		return nil, refused
 	}
 	s.log.Info().Str("event", "two_factor_enabled").Str("sub", caller.UserID.String()).Msg("two-factor sign-in turned on")
 	return codes, nil
+}
+
+// turnOnTwoFactor confirms the pending secret with the step its first code
+// used, stores the recovery codes, ends any open challenge, signs out every
+// session but keep, and emails the member.
+func (s *Service) turnOnTwoFactor(ctx context.Context, q *dbq.Queries, tx pgx.Tx, u dbq.GetUserByIDRow, keep uuid.UUID,
+	step int64, codes []string,
+) error {
+	if err := q.ConfirmTotp(ctx, dbq.ConfirmTotpParams{UserID: u.ID, Step: step}); err != nil {
+		return internal("confirm totp", err)
+	}
+	if err := replaceRecoveryCodes(ctx, q, u.ID, codes); err != nil {
+		return err
+	}
+	if err := q.DeleteTwoFactorChallenges(ctx, u.ID); err != nil {
+		return internal("end two-factor challenges", err)
+	}
+	if err := revokeOthers(ctx, q, u.ID, keep); err != nil {
+		return err
+	}
+	return s.securityMail(ctx, tx, u.Email, u.Username, jobs.TemplateTwoFactorEnabled, nil)
+}
+
+// failSetup counts a wrong code against the pending setup and keeps the
+// refusal in refused, to return once the count commits: errWrongCode, or
+// errSetupAbandoned once the TwoFactorSetupFailures-th wrong code has
+// deleted the setup.
+func failSetup(ctx context.Context, q *dbq.Queries, userID uuid.UUID, refused *error) error {
+	n, err := q.RecordSetupFailure(ctx, userID)
+	if err != nil {
+		return internal("count wrong setup code", err)
+	}
+	if n < TwoFactorSetupFailures {
+		*refused = errWrongCode
+		return nil
+	}
+	if err := q.DeletePendingTotp(ctx, userID); err != nil {
+		return internal("end two-factor setup", err)
+	}
+	*refused = errSetupAbandoned
+	return nil
 }
 
 // pendingSecret loads and opens the secret of a setup that is waiting for
@@ -486,7 +615,7 @@ func replaceRecoveryCodes(ctx context.Context, q *dbq.Queries, userID uuid.UUID,
 		if !ok {
 			return apiutil.Internal(errors.New("generated recovery code does not normalise"))
 		}
-		if err := q.InsertRecoveryCode(ctx, dbq.InsertRecoveryCodeParams{UserID: userID, CodeHash: hashRecoveryCode(norm)}); err != nil {
+		if err := q.InsertRecoveryCode(ctx, dbq.InsertRecoveryCodeParams{UserID: userID, CodeHash: hashRecoveryCode(userID, norm)}); err != nil {
 			return internal("store recovery code", err)
 		}
 	}
@@ -536,11 +665,16 @@ func (s *Service) withPasswordAndCode(ctx context.Context, caller apiutil.Caller
 // DisableTwoFactor turns two-factor sign-in off, given the current password
 // and a current code (from the app, or a recovery code). The secret, the
 // recovery codes and any open sign-in challenge are deleted, and the member
-// is emailed.
+// is emailed; a recovery code used for it is emailed about too.
 func (s *Service) DisableTwoFactor(ctx context.Context, caller apiutil.Caller, password, code string) error {
+	var used secondFactor
 	err := s.withPasswordAndCode(ctx, caller, "two_factor_disable", password, code,
-		func(q *dbq.Queries, tx pgx.Tx, u dbq.GetUserByIDRow, _ secondFactor) error {
+		func(q *dbq.Queries, tx pgx.Tx, u dbq.GetUserByIDRow, factor secondFactor) error {
+			used = factor
 			if err := removeTwoFactor(ctx, q, u.ID); err != nil {
+				return err
+			}
+			if err := s.recoveryCodeMail(ctx, tx, u, factor, jobs.RecoveryCodeUsedForTurnOff); err != nil {
 				return err
 			}
 			return s.securityMail(ctx, tx, u.Email, u.Username, jobs.TemplateTwoFactorDisabled, nil)
@@ -548,8 +682,26 @@ func (s *Service) DisableTwoFactor(ctx context.Context, caller apiutil.Caller, p
 	if err != nil {
 		return err
 	}
+	s.logRecoveryCodeUsed(caller.UserID, used, jobs.RecoveryCodeUsedForTurnOff)
 	s.log.Info().Str("event", "two_factor_disabled").Str("sub", caller.UserID.String()).Msg("two-factor sign-in turned off")
 	return nil
+}
+
+// recoveryCodeMail queues the recovery-code-used email when factor is a
+// recovery code; usedFor says what it was used for.
+func (s *Service) recoveryCodeMail(ctx context.Context, tx pgx.Tx, u dbq.GetUserByIDRow, factor secondFactor, usedFor string) error {
+	if factor != factorRecovery {
+		return nil
+	}
+	return s.securityMail(ctx, tx, u.Email, u.Username, jobs.TemplateRecoveryCodeUsed, map[string]string{"used_for": usedFor})
+}
+
+// logRecoveryCodeUsed writes the audit line for a recovery code spent on
+// something other than signing in.
+func (s *Service) logRecoveryCodeUsed(userID uuid.UUID, factor secondFactor, usedFor string) {
+	if factor == factorRecovery {
+		s.log.Warn().Str("event", "recovery_code_used").Str("sub", userID.String()).Str("used_for", usedFor).Msg("recovery code spent")
+	}
 }
 
 // removeTwoFactor deletes the account's secret, recovery codes and open
@@ -572,20 +724,30 @@ func removeTwoFactor(ctx context.Context, q *dbq.Queries, userID uuid.UUID) erro
 }
 
 // RegenerateRecoveryCodes replaces every recovery code with ten new ones,
-// given the current password and a current code. A recovery code given as
-// that code is spent before the new set replaces it.
+// given the current password and a current code, and emails the member. A
+// recovery code given as that code is spent before the new set replaces it,
+// and is emailed about too.
 func (s *Service) RegenerateRecoveryCodes(ctx context.Context, caller apiutil.Caller, password, code string) ([]string, error) {
 	codes, err := newRecoveryCodes()
 	if err != nil {
 		return nil, apiutil.Internal(err)
 	}
+	var used secondFactor
 	err = s.withPasswordAndCode(ctx, caller, "recovery_codes_regenerate", password, code,
-		func(q *dbq.Queries, _ pgx.Tx, u dbq.GetUserByIDRow, _ secondFactor) error {
-			return replaceRecoveryCodes(ctx, q, u.ID, codes)
+		func(q *dbq.Queries, tx pgx.Tx, u dbq.GetUserByIDRow, factor secondFactor) error {
+			used = factor
+			if err := replaceRecoveryCodes(ctx, q, u.ID, codes); err != nil {
+				return err
+			}
+			if err := s.recoveryCodeMail(ctx, tx, u, factor, jobs.RecoveryCodeUsedForNewCodes); err != nil {
+				return err
+			}
+			return s.securityMail(ctx, tx, u.Email, u.Username, jobs.TemplateRecoveryCodesReplaced, nil)
 		})
 	if err != nil {
 		return nil, err
 	}
+	s.logRecoveryCodeUsed(caller.UserID, used, jobs.RecoveryCodeUsedForNewCodes)
 	s.log.Info().Str("event", "recovery_codes_regenerated").Str("sub", caller.UserID.String()).Msg("recovery codes replaced")
 	return codes, nil
 }
@@ -594,19 +756,27 @@ func (s *Service) RegenerateRecoveryCodes(ctx context.Context, caller apiutil.Ca
 // the username.
 var ErrUnknownUser = errors.New("no account has that username")
 
+// maxOperatorName bounds the operator name ResetTwoFactor records.
+const maxOperatorName = 64
+
 // ResetTwoFactor is the way back in for a member who lost both their
 // authenticator and every recovery code. An operator runs it from the
 // command line (perspectiv admin reset-two-factor) once they have satisfied
 // themselves, outside the app, that the request comes from the account's
 // owner; no API route reaches it. In one transaction it removes the
 // account's two-factor sign-in, signs out every session, writes a
-// TWO_FACTOR_RESET audit row with no actor and the operator's reason, and
-// emails the member. An account without two-factor sign-in is refused, so
-// nothing is audited that did not happen.
-func ResetTwoFactor(ctx context.Context, pool *pgxpool.Pool, enq *jobs.Enqueuer, publicBaseURL, username, reason string) error {
-	username, reason = strings.TrimSpace(username), strings.TrimSpace(reason)
-	if username == "" || reason == "" {
-		return errors.New("reset two-factor: a username and a reason are required")
+// TWO_FACTOR_RESET audit row with no actor and the reason "operator
+// <operator>: <reason>", so the row says who ran it, and emails the member.
+// An account without two-factor sign-in is refused, so nothing is audited
+// that did not happen.
+func ResetTwoFactor(ctx context.Context, pool *pgxpool.Pool, enq *jobs.Enqueuer, publicBaseURL, username, operator, reason string) error {
+	username = strings.TrimSpace(username)
+	audit, err := operatorReason(operator, reason)
+	if err != nil {
+		return err
+	}
+	if username == "" {
+		return errors.New("reset two-factor: a username is required")
 	}
 	return pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
 		q := dbq.New(tx)
@@ -617,25 +787,23 @@ func ResetTwoFactor(ctx context.Context, pool *pgxpool.Pool, enq *jobs.Enqueuer,
 		if err != nil {
 			return fmt.Errorf("reset two-factor: find user: %w", err)
 		}
+		// Lock order step 3, after the users row above, before the rows.
+		if err := q.LockTwoFactorAttempts(ctx, u.ID); err != nil {
+			return fmt.Errorf("reset two-factor: lock two-factor: %w", err)
+		}
 		if _, err := q.GetTwoFactorStatus(ctx, u.ID); errors.Is(err, pgx.ErrNoRows) {
 			return fmt.Errorf("reset two-factor for %q: %w", username, errTwoFactorOff)
 		} else if err != nil {
 			return fmt.Errorf("reset two-factor: read status: %w", err)
 		}
-		if err := removeTwoFactor(ctx, q, u.ID); err != nil {
+		if err := endTwoFactor(ctx, q, u.ID); err != nil {
 			return fmt.Errorf("reset two-factor: %w", err)
-		}
-		if err := q.RevokeUserSessions(ctx, u.ID); err != nil {
-			return fmt.Errorf("reset two-factor: revoke sessions: %w", err)
-		}
-		if err := q.RevokeUserRefreshTokens(ctx, u.ID); err != nil {
-			return fmt.Errorf("reset two-factor: revoke refresh tokens: %w", err)
 		}
 		if err := moderation.WriteAudit(ctx, tx, moderation.AuditEntry{
 			Action:     perspectivv1.AuditAction_AUDIT_ACTION_TWO_FACTOR_RESET,
 			TargetKind: perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_USER,
 			TargetID:   &u.ID,
-			Reason:     reason,
+			Reason:     audit,
 		}); err != nil {
 			return fmt.Errorf("reset two-factor: write audit row: %w", err)
 		}
@@ -643,4 +811,34 @@ func ResetTwoFactor(ctx context.Context, pool *pgxpool.Pool, enq *jobs.Enqueuer,
 			"link": strings.TrimSuffix(publicBaseURL, "/") + "/forgot-password", "username": u.Username,
 		}})
 	})
+}
+
+// operatorReason is the audit reason for an operator's reset: "operator
+// <operator>: <reason>". Both are required, and the name is one line of at
+// most maxOperatorName bytes.
+func operatorReason(operator, reason string) (string, error) {
+	operator, reason = strings.TrimSpace(operator), strings.TrimSpace(reason)
+	if operator == "" || reason == "" {
+		return "", errors.New("reset two-factor: the operator's name and a reason are required")
+	}
+	if len(operator) > maxOperatorName || strings.ContainsFunc(operator, unicode.IsControl) {
+		return "", fmt.Errorf("reset two-factor: the operator's name must be one line of at most %d bytes", maxOperatorName)
+	}
+	return "operator " + operator + ": " + reason, nil
+}
+
+// endTwoFactor removes the account's two-factor sign-in and then signs out
+// every session: after the challenges are gone, so a second step that was
+// waiting on them cannot start a session this revocation misses.
+func endTwoFactor(ctx context.Context, q *dbq.Queries, userID uuid.UUID) error {
+	if err := removeTwoFactor(ctx, q, userID); err != nil {
+		return err
+	}
+	if err := q.RevokeUserSessions(ctx, userID); err != nil {
+		return internal("revoke sessions", err)
+	}
+	if err := q.RevokeUserRefreshTokens(ctx, userID); err != nil {
+		return internal("revoke refresh tokens", err)
+	}
+	return nil
 }
