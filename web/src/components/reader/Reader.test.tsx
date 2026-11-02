@@ -103,6 +103,17 @@ describe("Reader pages one part at a time (OT-033)", () => {
     });
   }
 
+  it("turns one part per key even when keys come faster than the page redraws", () => {
+    // The parent has not redrawn yet: part stays 1 while two keys arrive.
+    const onPartChange = vi.fn();
+    render(<Reader title="A story" parts={parts} part={1} onPartChange={onPartChange} />);
+    fireEvent.keyDown(document.body, { key: "ArrowRight" });
+    fireEvent.keyDown(document.body, { key: "ArrowRight" });
+    // A third key past the last part does nothing.
+    fireEvent.keyDown(document.body, { key: "ArrowRight" });
+    expect(onPartChange.mock.calls).toEqual([[2], [3]]);
+  });
+
   it("leaves the arrow keys to a caller that turns pages itself", async () => {
     const onPartChange = vi.fn();
     render(<Reader title="Chapter 1: wren" parts={parts} part={2} onPartChange={onPartChange} arrowKeys={false} />);

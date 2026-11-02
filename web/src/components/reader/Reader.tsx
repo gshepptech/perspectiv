@@ -168,20 +168,30 @@ export function Reader({
     }
   }, [current, whole]);
 
+  // The part the last key turned to. The router changes the address at once
+  // but redraws a moment later, so a second key pressed in between would
+  // otherwise turn from the part still on screen and be lost; it turns from
+  // here instead, and this catches up when the redraw lands.
+  const heading = useRef(current);
+  useEffect(() => {
+    heading.current = current;
+  }, [current]);
+
   useEffect(() => {
     if (whole || !arrowKeys) return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
       if (ownsArrowKeys(e.target)) return;
-      const next = e.key === "ArrowLeft" ? current - 1 : current + 1;
+      const next = e.key === "ArrowLeft" ? heading.current - 1 : heading.current + 1;
       if (next < 1 || next > total) return;
       e.preventDefault();
+      heading.current = next;
       onPartChange(next);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [current, total, onPartChange, whole, arrowKeys]);
+  }, [total, onPartChange, whole, arrowKeys]);
 
   return (
     <article className="mx-auto w-full max-w-measure min-w-0" aria-labelledby="reader-title">
