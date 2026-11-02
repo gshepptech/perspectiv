@@ -93,7 +93,7 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
   });
   const gilStory = await writeInArc(gil, arc, { genre: "Comedy", parts: ["I sorted that crate three times and nobody bought a thing."] });
   await visit(gil.page, gilAcct, arc);
-  await gil.page.getByRole("link", { name: `Read ${ivyAcct.username}'s perspective` }).click();
+  await gil.page.getByRole("link", { name: `Read ${ivyAcct.username}'s story` }).click();
   const actions = gil.page.getByRole("region", { name: "Respond to this story" });
   await actions.getByRole("button", { name: "Claim a character" }).click();
   const dialog = gil.page.getByRole("dialog", { name: "Claim a character" });
@@ -160,8 +160,8 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
   // Ivy saves Gil's story and follows him, so Saved, his profile and
   // Settings' "Writers you follow" have something in them.
   await visit(ivy.page, ivyAcct, gilStory.perspective);
-  await ivy.page.getByRole("button", { name: `Save ${gilAcct.username}'s perspective` }).click();
-  await expect(ivy.page.getByRole("button", { name: `Saved ${gilAcct.username}'s perspective` })).toHaveAttribute("aria-pressed", "true");
+  await ivy.page.getByRole("button", { name: `Save ${gilAcct.username}'s story` }).click();
+  await expect(ivy.page.getByRole("button", { name: `Saved ${gilAcct.username}'s story` })).toHaveAttribute("aria-pressed", "true");
   await visit(ivy.page, ivyAcct, "/saved");
   findings.push(...(await scanBothThemes(ivy.page, "/saved", ivy.page.getByRole("list", { name: "Saved stories" }))));
   await visit(ivy.page, ivyAcct, `/users/${gilAcct.username}`);
@@ -183,7 +183,7 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
     ["/", (p) => p.getByRole("heading", { level: 1, name: `Welcome back, ${ivyAcct.username}` })],
     [place as string, (p) => p.getByRole("link", { name: "Record Store Day line around the block" })],
     ["/best/shopping", (p) => p.getByRole("link", { name: "Record Store Day line around the block" })],
-    [arc, (p) => p.getByRole("article", { name: `${gilAcct.username}'s perspective` })],
+    [arc, (p) => p.getByRole("article", { name: `${gilAcct.username}'s story` })],
     [perspective, (p) => p.getByText("The line started before dawn.")],
     [lore as string, (p) => p.getByText("The line started before dawn.")],
     [`/users/${ivyAcct.username}`, (p) => p.getByRole("link", { name: /Record Store Day/ })],

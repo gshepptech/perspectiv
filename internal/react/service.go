@@ -55,7 +55,7 @@ func (s *Service) React(ctx context.Context, caller, perspectiveID uuid.UUID, em
 	t, err := q.GetTarget(ctx, perspectiveID)
 	visible := err == nil && t.Status == statusPublished && t.DeletedAt == nil && t.HiddenAt == nil
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && !visible) {
-		return nil, apiutil.NotFound("perspective not found")
+		return nil, apiutil.NotFound("story not found")
 	}
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("read perspective: %w", err))
@@ -87,7 +87,7 @@ func write(ctx context.Context, q *dbq.Queries, author, caller, perspectiveID uu
 		return apiutil.Internal(fmt.Errorf("read block: %w", err))
 	}
 	if blocked {
-		return apiutil.PermissionDenied("you cannot react to this perspective")
+		return apiutil.PermissionDenied("you cannot react to this story")
 	}
 	if err := q.InsertReact(ctx, dbq.InsertReactParams{PerspectiveID: perspectiveID, UserID: caller, Emoji: emoji}); err != nil {
 		return apiutil.Internal(fmt.Errorf("write react: %w", err))

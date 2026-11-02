@@ -28,7 +28,7 @@ func (s *Service) MembershipOf(ctx context.Context, tx pgx.Tx, perspectiveID uui
 	q := dbq.New(tx)
 	row, err := q.GetPerspectiveLore(ctx, perspectiveID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, nil, false, apiutil.NotFound("perspective not found")
+		return uuid.Nil, nil, false, apiutil.NotFound("story not found")
 	}
 	if err != nil {
 		return uuid.Nil, nil, false, apiutil.Internal(fmt.Errorf("read perspective lore: %w", err))
@@ -249,13 +249,13 @@ func (s *Service) RemoveFromLore(ctx context.Context, tx pgx.Tx, perspectiveID u
 	q := dbq.New(tx)
 	arc, err := q.GetPerspectiveArc(ctx, perspectiveID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return apiutil.NotFound("perspective not found")
+		return apiutil.NotFound("story not found")
 	}
 	if err != nil {
 		return apiutil.Internal(fmt.Errorf("read perspective arc: %w", err))
 	}
 	if !arc.Valid {
-		return apiutil.FailedPrecondition("perspective is not published")
+		return apiutil.FailedPrecondition("story is not published")
 	}
 	// A published perspective never changes arc, so the arc read before the
 	// locks is the arc it is in.

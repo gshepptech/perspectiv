@@ -19,7 +19,7 @@ const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", tim
 
 /** The hides an admin can undo from the log, and what each restores. */
 const restorable: Partial<Record<AuditAction, string>> = {
-  [AuditAction.HIDE_PERSPECTIVE]: "perspective",
+  [AuditAction.HIDE_PERSPECTIVE]: "story",
   [AuditAction.HIDE_PLACE]: "place",
   [AuditAction.HIDE_LORE_POST]: "thread post",
 };

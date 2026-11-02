@@ -81,7 +81,7 @@ func visible(t target) bool {
 func readTarget(ctx context.Context, q *dbq.Queries, id uuid.UUID) (target, error) {
 	t, err := q.GetTarget(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && !visible(t)) {
-		return target{}, apiutil.NotFound("perspective not found")
+		return target{}, apiutil.NotFound("story not found")
 	}
 	if err != nil {
 		return target{}, apiutil.Internal(fmt.Errorf("read perspective: %w", err))
@@ -101,7 +101,7 @@ func blocked(ctx context.Context, q *dbq.Queries, author, caller uuid.UUID) erro
 		return apiutil.Internal(fmt.Errorf("read block: %w", err))
 	}
 	if b {
-		return apiutil.PermissionDenied("you cannot vote on this perspective")
+		return apiutil.PermissionDenied("you cannot vote on this story")
 	}
 	return nil
 }
@@ -129,7 +129,7 @@ func (s *Service) Vote(ctx context.Context, caller, perspectiveID uuid.UUID, on 
 		return VoteResult{}, err
 	}
 	if t.AuthorID == caller {
-		return VoteResult{}, apiutil.InvalidArg("you cannot vote on your own perspective")
+		return VoteResult{}, apiutil.InvalidArg("you cannot vote on your own story")
 	}
 	participant, err := q.IsParticipant(ctx, dbq.IsParticipantParams{ArcID: *t.ArcID, AuthorID: caller, Published: statusPublished})
 	if err != nil {
@@ -207,13 +207,13 @@ func (s *Service) VoteRemove(ctx context.Context, caller, perspectiveID uuid.UUI
 		return RemoveResult{}, err
 	}
 	if !ok {
-		return RemoveResult{}, apiutil.FailedPrecondition("this perspective is not in a lore")
+		return RemoveResult{}, apiutil.FailedPrecondition("this story is not in a lore")
 	}
 	if len(members) < MinRemoveLore {
 		return RemoveResult{}, apiutil.FailedPrecondition("not enough members to vote")
 	}
 	if caller == t.AuthorID {
-		return RemoveResult{}, apiutil.PermissionDenied("you cannot vote out your own perspective")
+		return RemoveResult{}, apiutil.PermissionDenied("you cannot vote out your own story")
 	}
 	eligible := eligibleVoters(members, t.AuthorID)
 	if !slices.Contains(eligible, caller) {

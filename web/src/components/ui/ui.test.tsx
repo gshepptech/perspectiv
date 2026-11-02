@@ -81,7 +81,7 @@ describe("Dialog", () => {
           <Button>Report</Button>
         </DialogTrigger>
         <DialogContent>
-          <DialogTitle>Report this perspective</DialogTitle>
+          <DialogTitle>Report this story</DialogTitle>
           <DialogDescription>Tell the moderators what is wrong.</DialogDescription>
           <DialogClose asChild>
             <Button>Cancel</Button>
@@ -92,7 +92,7 @@ describe("Dialog", () => {
     const trigger = screen.getByRole("button", { name: "Report" });
     trigger.focus();
     await user.keyboard("{Enter}");
-    const dialog = await screen.findByRole("dialog", { name: "Report this perspective" });
+    const dialog = await screen.findByRole("dialog", { name: "Report this story" });
     expect(dialog).toHaveAccessibleDescription("Tell the moderators what is wrong.");
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

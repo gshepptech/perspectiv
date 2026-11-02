@@ -103,7 +103,7 @@ type UpdateInput struct {
 	Characters []characterInput
 }
 
-var errNotFound = apiutil.NotFound("perspective not found")
+var errNotFound = apiutil.NotFound("story not found")
 
 // SaveDraft creates or replaces the caller's draft and returns it. Drafts
 // hold the same part, word and character limits as a publish, and may leave
@@ -142,7 +142,7 @@ func saveDraftRow(ctx context.Context, q *dbq.Queries, caller uuid.UUID, in Draf
 		return uuid.Nil, err
 	}
 	if row.Status != statusDraft {
-		return uuid.Nil, apiutil.FailedPrecondition("this perspective is published; edit it with Update")
+		return uuid.Nil, apiutil.FailedPrecondition("this story is published; edit it with Update")
 	}
 	if err := q.UpdateDraft(ctx, dbq.UpdateDraftParams{
 		ID: in.ID, PlaceID: in.PlaceID, LocalDate: dateToDB(in.LocalDate),
@@ -195,7 +195,7 @@ func (s *Service) publishTx(ctx context.Context, tx pgx.Tx, caller uuid.UUID, in
 			return uuid.Nil, uuid.Nil, err
 		}
 		if row.Status != statusDraft {
-			return uuid.Nil, uuid.Nil, apiutil.AlreadyExists("this perspective is already published; edit it instead")
+			return uuid.Nil, uuid.Nil, apiutil.AlreadyExists("this story is already published; edit it instead")
 		}
 	}
 	arcID, _, err := s.arcs.ResolveForPublish(ctx, tx, arc.ResolveInput{
@@ -305,7 +305,7 @@ func (s *Service) Update(ctx context.Context, caller uuid.UUID, in UpdateInput) 
 			return uuid.Nil, apiutil.FailedPrecondition("a draft is edited with SaveDraft")
 		}
 		if row.HiddenAt != nil {
-			return uuid.Nil, apiutil.FailedPrecondition("this perspective was hidden by a moderator")
+			return uuid.Nil, apiutil.FailedPrecondition("this story was hidden by a moderator")
 		}
 		if err := q.UpdatePublished(ctx, dbq.UpdatePublishedParams{ID: in.ID, Genre: in.Genre}); err != nil {
 			return uuid.Nil, apiutil.Internal(fmt.Errorf("update perspective: %w", err))
@@ -480,7 +480,7 @@ func removedCharacters(existing []dbq.ListCharacterClaimsRow, chars []characterI
 			continue
 		}
 		if !known[c.id] {
-			return nil, apiutil.InvalidArg(fmt.Sprintf("character %d is not one of this perspective's characters", i+1))
+			return nil, apiutil.InvalidArg(fmt.Sprintf("character %d is not one of this story's characters", i+1))
 		}
 		kept[c.id] = true
 	}

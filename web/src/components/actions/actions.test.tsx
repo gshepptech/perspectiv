@@ -39,7 +39,7 @@ function openSignedIn(routes: Record<string, FakeHandler>, store: Store = {}, ar
 
 async function card(region: string, author: string) {
   const section = await screen.findByRole("region", { name: region });
-  return within(section).getByRole("article", { name: `${author}'s perspective` });
+  return within(section).getByRole("article", { name: `${author}'s story` });
 }
 
 const storyRoute = { path: "/perspectives/:perspectiveId", Component: ReadPage };
@@ -133,7 +133,7 @@ describe("upvote rail on the day page", () => {
     expect(within(otter).queryByRole("group", { name: "Reacts" })).toBeNull();
     expect(within(otter).queryByRole("button", { name: "Claim a character" })).toBeNull();
     expect(within(otter).queryByRole("button", { name: /^Report:/ })).toBeNull();
-    expect(within(otter).getByRole("link", { name: "Read otter's perspective" })).toHaveAttribute("href", "/perspectives/p-otter");
+    expect(within(otter).getByRole("link", { name: "Read otter's story" })).toHaveAttribute("href", "/perspectives/p-otter");
   });
 });
 
@@ -397,13 +397,13 @@ describe("claim", () => {
   it("shows the server's reason when a claim is refused", async () => {
     await openStory("p-heron", HERON, {
       over: { characters },
-      routes: { "LoreService/ClaimCharacter": () => connectError("failed_precondition", "write your perspective in this arc first") },
+      routes: { "LoreService/ClaimCharacter": () => connectError("failed_precondition", "write your story about this day first") },
     });
     const actions = await story();
     await userEvent.click(await within(actions).findByRole("button", { name: "Claim a character" }));
     const dialog = await screen.findByRole("dialog");
     await userEvent.click(within(dialog).getByRole("button", { name: /^That was me/ }));
-    expect(await within(dialog).findByRole("alert")).toHaveTextContent("write your perspective in this arc first");
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("write your story about this day first");
   });
 
   it("offers no claim on a perspective that names no characters", async () => {
@@ -500,13 +500,13 @@ describe("claim from a \"That was me\" link", () => {
 });
 
 describe("remove vote", () => {
-  it("a member of a 4-member lore votes to remove another member's perspective after confirming", async () => {
+  it("a member of a 4-member lore votes to remove another member's story after confirming", async () => {
     const app = await openStory("p-otter", OTTER, {
       routes: { "VoteService/VoteRemove": () => ({ body: { removeVotes: 1, eligibleVoters: 3, removed: false } }) },
     });
     const actions = await story();
     await userEvent.click(await within(actions).findByRole("button", { name: "Vote to remove" }));
-    const dialog = await screen.findByRole("dialog", { name: "Vote to remove otter's perspective?" });
+    const dialog = await screen.findByRole("dialog", { name: "Vote to remove otter's story?" });
     await userEvent.click(within(dialog).getByRole("button", { name: "Vote to remove" }));
     expect(await within(actions).findByRole("status")).toHaveTextContent("1 of 3 members have voted to remove");
     expect(bodiesFor(app.api, "VoteService/VoteRemove")).toEqual([{ perspectiveId: "p-otter" }]);
@@ -542,7 +542,7 @@ describe("report", () => {
     const app = await openStory("p-otter", OTTER, { routes: { "ModerationService/Report": () => ({ body: { reportId: "r-9" } }) } });
     const actions = await story();
     await userEvent.click(await within(actions).findByRole("button", { name: /^Report:/ }));
-    const dialog = await screen.findByRole("dialog", { name: "Report otter's perspective" });
+    const dialog = await screen.findByRole("dialog", { name: "Report otter's story" });
 
     await userEvent.click(within(dialog).getByRole("button", { name: "Send report" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("Choose a reason");
@@ -603,32 +603,32 @@ describe("save", () => {
       },
     });
     const actions = await story();
-    const save = await within(actions).findByRole("button", { name: "Save otter's perspective", pressed: false });
+    const save = await within(actions).findByRole("button", { name: "Save otter's story", pressed: false });
     expect(save).toHaveTextContent("Save");
 
     await userEvent.click(save);
-    const saved = await within(actions).findByRole("button", { name: "Saved otter's perspective", pressed: true });
+    const saved = await within(actions).findByRole("button", { name: "Saved otter's story", pressed: true });
     expect(saved).toHaveTextContent("Saved");
 
     await userEvent.click(saved);
-    await within(actions).findByRole("button", { name: "Save otter's perspective", pressed: false });
+    await within(actions).findByRole("button", { name: "Save otter's story", pressed: false });
     expect(bodiesFor(app.api, "PerspectiveService/SavePerspective")).toEqual([{ perspectiveId: "p-otter", on: true }, { perspectiveId: "p-otter" }]);
   });
 
   it("shows a story the reader saved earlier as Saved", async () => {
     await openStory("p-otter", OTTER, { over: { saved: true } });
     const actions = await story();
-    expect(await within(actions).findByRole("button", { name: "Saved otter's perspective" })).toHaveAttribute("aria-pressed", "true");
+    expect(await within(actions).findByRole("button", { name: "Saved otter's story" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("says so in place when the story can no longer be saved", async () => {
     await openStory("p-otter", OTTER, {
-      routes: { "PerspectiveService/SavePerspective": () => connectError("not_found", "perspective not found") },
+      routes: { "PerspectiveService/SavePerspective": () => connectError("not_found", "story not found") },
     });
     const actions = await story();
-    await userEvent.click(await within(actions).findByRole("button", { name: "Save otter's perspective" }));
-    expect(await within(actions).findByRole("alert")).toHaveTextContent("perspective not found");
-    expect(within(actions).getByRole("button", { name: "Save otter's perspective" })).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(await within(actions).findByRole("button", { name: "Save otter's story" }));
+    expect(await within(actions).findByRole("alert")).toHaveTextContent("story not found");
+    expect(within(actions).getByRole("button", { name: "Save otter's story" })).toHaveAttribute("aria-pressed", "false");
   });
 });
 
@@ -637,7 +637,7 @@ describe("the arc page's reads", () => {
     const arc = dayArcResponse();
     arc.tales = [summary({ id: "p-del", loreStatus: "LORE_STATUS_SOLO", deleted: true, excerpt: "" })];
     const app = await openSignedIn({}, {}, arc);
-    await screen.findByText("This perspective was deleted.");
+    await screen.findByText("This story was deleted.");
     await within(await card("Canon", "otter")).findByRole("button", { name: /^Upvote/, pressed: false });
     expect(bodiesFor(app.api, "PerspectiveService/Get")).toEqual([]);
   });

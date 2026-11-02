@@ -9,9 +9,10 @@ import { formatDayBeside } from "./format";
 /**
  * One day in an epic listing (docs/design-system.md, Place page epic): its
  * title, the opening of its canon's first story (or its first story), then
- * its canon by name and how many are in it. `withCity` names the place with
- * its city, for a listing that spans cities; `markNew` labels a day with a
- * story from the last seven days "New" (the Newest tab).
+ * its canon by name, how many stories it has and how many of those are
+ * linked. `withCity` names the place with its city, for a listing that spans
+ * cities; `markNew` labels a day with a story from the last seven days "New"
+ * (the Newest tab).
  */
 export function ArcItem({ arc, withCity = false, markNew = false }: { arc: EpicArc; withCity?: boolean; markNew?: boolean }) {
   const where = withCity && arc.city ? `${arc.place?.name ?? ""}, ${arc.city}` : arc.place?.name;
@@ -34,9 +35,9 @@ export function ArcItem({ arc, withCity = false, markNew = false }: { arc: EpicA
         )}
         <span className="wrap-anywhere">{where}</span>
         <span>{formatDayBeside(arc.title, arc.localDate, arc.hour)}</span>
-        {arc.memberCount > 0 && <span>{arc.memberCount} in lore</span>}
         <span>
-          {arc.perspectiveCount} {arc.perspectiveCount === 1 ? "perspective" : "perspectives"}
+          {arc.perspectiveCount} {arc.perspectiveCount === 1 ? "story" : "stories"}
+          {arc.memberCount > 0 && ` · ${arc.memberCount} linked`}
         </span>
       </p>
     </li>

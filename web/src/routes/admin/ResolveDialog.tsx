@@ -24,7 +24,7 @@ type Values = z.infer<typeof schema>;
 /** What a resolution did, for the queue's status line. */
 export type Resolution = { action: ModerationAction; suspended?: string };
 
-const NO_AUTHOR = "This perspective no longer shows its author, so they cannot be suspended from here.";
+const NO_AUTHOR = "This story no longer shows its author, so they cannot be suspended from here.";
 
 /**
  * Suspends the author of a reported perspective: the server applies
@@ -39,7 +39,7 @@ async function suspendAuthor(report: Report, reason: string): Promise<Resolution
     targetKind: ReportTargetKind.USER,
     targetId: author.userId,
     reason: report.reason,
-    details: `Filed from the report on perspective ${report.targetId}: ${reason}`,
+    details: `Filed from the report on story ${report.targetId}: ${reason}`,
   });
   await clients.moderation.resolve({ reportId: filed.reportId, action: ModerationAction.SUSPEND_USER, reason });
   return { action: ModerationAction.SUSPEND_USER, suspended: author.username };

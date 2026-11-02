@@ -36,7 +36,7 @@ func TestLocalitySplits(t *testing.T) {
 			},
 		},
 		{
-			name: "a last name word in is dropped",
+			name: "a last name word in is dropped, and in before a town names no state",
 			text: "starbucks in tampa",
 			want: []split{
 				{name: "starbucks", locality: "in tampa"}, {name: "tampa", locality: "starbucks in"},
@@ -49,10 +49,56 @@ func TestLocalitySplits(t *testing.T) {
 			want: []split{{name: "starbucks", locality: "tampa"}, {name: "tampa", locality: "starbucks"}},
 		},
 		{
-			name: "comma: a state after the town is ignored",
-			text: "starbucks ,tampa, fl",
+			name: "comma: a state name after the town is ignored",
+			text: "starbucks ,tampa, florida",
 			want: []split{{name: "starbucks", locality: "tampa"}, {name: "tampa", locality: "starbucks"}},
 		},
+		{
+			name: "comma: a state code after the town narrows the town, then names the state",
+			text: "starbucks ,tampa, fl",
+			want: []split{
+				{name: "starbucks", locality: "tampa", state: "florida"}, {name: "tampa", locality: "starbucks", state: "florida"},
+				{name: "starbucks tampa", state: "florida"},
+			},
+		},
+		{name: "a last code is the state", text: "starbucks fl", want: []split{{name: "starbucks", state: "florida"}}},
+		{name: "a first code is the state", text: "FL Starbucks", want: []split{{name: "Starbucks", state: "florida"}}},
+		{name: "a town and a code", text: "tampa fl", want: []split{{name: "tampa", state: "florida"}}},
+		{name: "a town, comma, a code", text: "Tampa, Fl.", want: []split{{name: "Tampa", state: "florida"}}},
+		{
+			name: "name, town and code: the town within the state first",
+			text: "publix tampa fl",
+			want: []split{
+				{name: "publix", locality: "tampa", state: "florida"}, {name: "tampa", locality: "publix", state: "florida"},
+				{name: "publix tampa", state: "florida"},
+			},
+		},
+		{
+			name: "name in town and code",
+			text: "pizza in tampa fl",
+			want: []split{
+				{name: "pizza", locality: "in tampa", state: "florida"}, {name: "tampa", locality: "pizza in", state: "florida"},
+				{name: "pizza", locality: "tampa", state: "florida"}, {name: "in tampa", locality: "pizza", state: "florida"},
+				{name: "pizza in tampa", state: "florida"},
+			},
+		},
+		{name: "a last word code after a name is the state", text: "pizza ok", want: []split{{name: "pizza", state: "oklahoma"}}},
+		{
+			name: "a last in after a name is Indiana, and not part of the name",
+			text: "Starbucks In",
+			want: []split{{name: "Starbucks", state: "indiana"}},
+		},
+		{
+			name: "a first word code is a word",
+			text: "ok pizza",
+			want: []split{{name: "ok", locality: "pizza"}, {name: "pizza", locality: "ok"}},
+		},
+		{
+			name: "mt first is Mount, not Montana",
+			text: "mt dora",
+			want: []split{{name: "mt", locality: "dora"}, {name: "dora", locality: "mt"}},
+		},
+		{name: "a code alone has no split", text: "ok", want: nil},
 		{name: "comma with nothing before it", text: ", tampa", want: nil},
 		{
 			name: "case is kept, and a last In is dropped whatever its case",
@@ -68,6 +114,130 @@ func TestLocalitySplits(t *testing.T) {
 			t.Parallel()
 			if got := localitySplits(tc.text); !slices.Equal(got, tc.want) {
 				t.Fatalf("localitySplits(%q) = %q, want %q", tc.text, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestStateOf(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name, text, wantState, wantRest string
+	}{
+		{name: "last, lower case", text: "starbucks fl", wantState: "florida", wantRest: "starbucks"},
+		{name: "last, upper case", text: "starbucks FL", wantState: "florida", wantRest: "starbucks"},
+		{name: "last, with a full stop", text: "Starbucks Fl.", wantState: "florida", wantRest: "Starbucks"},
+		{name: "after a comma", text: "tampa, fl", wantState: "florida", wantRest: "tampa"},
+		{name: "after a comma and no space", text: "tampa,FL", wantState: "florida", wantRest: "tampa"},
+		{name: "first", text: "fl starbucks", wantState: "florida", wantRest: "starbucks"},
+		{name: "first, before a comma", text: "FL., starbucks", wantState: "florida", wantRest: "starbucks"},
+		{name: "last wins over first", text: "fl starbucks ga", wantState: "georgia", wantRest: "fl starbucks"},
+		{name: "the district", text: "museum dc", wantState: "district of columbia", wantRest: "museum"},
+		{name: "a territory", text: "beach pr", wantState: "puerto rico", wantRest: "beach"},
+		{name: "a code alone", text: "fl"},
+		{name: "a code with a full stop alone", text: "Fl."},
+		{name: "a state's name is no code", text: "starbucks florida"},
+		{name: "three letters are no code", text: "starbucks fla"},
+		{name: "a code inside a word", text: "starbucks flats"},
+		// The codes that are also words: a state only when last after another word.
+		{name: "word code last after a word", text: "pizza ok", wantState: "oklahoma", wantRest: "pizza"},
+		{name: "word code last after a comma", text: "pizza, OK", wantState: "oklahoma", wantRest: "pizza"},
+		{name: "word code first is a word", text: "ok pizza"},
+		{name: "word code alone", text: "ok"},
+		{name: "in last is Indiana", text: "starbucks in", wantState: "indiana", wantRest: "starbucks"},
+		{name: "in before a town is a word", text: "starbucks in tampa"},
+		{name: "in first is a word", text: "in tampa"},
+		{name: "me last is Maine", text: "lobster shack me", wantState: "maine", wantRest: "lobster shack"},
+		{name: "or first is a word", text: "or something"},
+		{name: "hi first is a word", text: "hi there"},
+		{name: "oh first is a word", text: "oh my"},
+		{name: "la first is a word", text: "la quinta"},
+		{name: "co last is Colorado", text: "smith & co", wantState: "colorado", wantRest: "smith &"},
+		{name: "mt first is Mount", text: "mt dora"},
+		{name: "a word code after another word code", text: "in ok", wantState: "oklahoma", wantRest: "in"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			state, rest, ok := stateOf(tc.text)
+			if state != tc.wantState || rest != tc.wantRest || ok != (tc.wantState != "") {
+				t.Fatalf("stateOf(%q) = %q, %q, %v; want %q, %q", tc.text, state, rest, ok, tc.wantState, tc.wantRest)
+			}
+		})
+	}
+}
+
+// Every code that is also a word reads as a state last after a name and
+// as a word anywhere else.
+func TestWordCodesOnlyLast(t *testing.T) {
+	t.Parallel()
+	for _, code := range wordCodes {
+		t.Run(code, func(t *testing.T) {
+			t.Parallel()
+			if _, ok := stateCodes[code]; !ok {
+				t.Fatalf("word code %q is not in stateCodes", code)
+			}
+			if _, _, ok := stateOf("pizza " + code); !ok {
+				t.Errorf("%q last is no state", code)
+			}
+			for _, text := range []string{code, code + " pizza", code + ", pizza", "pizza " + code + " tampa"} {
+				if state, _, ok := stateOf(text); ok {
+					t.Errorf("stateOf(%q) = %q, want no state", text, state)
+				}
+			}
+		})
+	}
+}
+
+// stateCodes reads the importer's state list: every code is two lowercase
+// letters, and a few spot checks hold, including DC and a territory.
+func TestStateCodes(t *testing.T) {
+	t.Parallel()
+	if len(stateCodes) < 51 {
+		t.Fatalf("stateCodes has %d entries, want the 50 states and DC at least", len(stateCodes))
+	}
+	for code := range stateCodes {
+		if len(code) != 2 || code != strings.ToLower(code) {
+			t.Errorf("code %q is not two lowercase letters", code)
+		}
+	}
+	for code, want := range map[string]string{"fl": "florida", "dc": "district of columbia", "il": "illinois", "pr": "puerto rico"} {
+		if got := stateCodes[code]; got != want {
+			t.Errorf("stateCodes[%q] = %q, want %q", code, got, want)
+		}
+	}
+}
+
+func TestSplitLocalities(t *testing.T) {
+	t.Parallel()
+	florida, washingtonCity, washingtonState, tampaFL := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	found := []Locality{
+		{ID: washingtonCity, Name: "washington", ParentID: uuid.New()},
+		{ID: washingtonState, Name: "washington"},
+		{ID: florida, Name: "florida"},
+	}
+	inState := []Locality{{ID: tampaFL, Name: "tampa", ParentID: florida}}
+	tests := []struct {
+		name string
+		sp   split
+		want []uuid.UUID
+	}{
+		{name: "the state itself", sp: split{name: "starbucks", state: "florida"}, want: []uuid.UUID{florida}},
+		{name: "the state, not a city of its name", sp: split{name: "starbucks", state: "washington"}, want: []uuid.UUID{washingtonState}},
+		{name: "a state not found", sp: split{name: "starbucks", state: "texas"}},
+		{name: "a town within the state", sp: split{name: "publix", locality: "tampa", state: "florida"}, want: []uuid.UUID{tampaFL}},
+		{name: "a town not within the state", sp: split{name: "publix", locality: "washington", state: "florida"}},
+		{name: "a town by name alone", sp: split{name: "starbucks", locality: "washington"}, want: []uuid.UUID{washingtonCity, washingtonState}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var got []uuid.UUID
+			for _, l := range splitLocalities(tc.sp, found, inState) {
+				got = append(got, l.ID)
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("ids = %v, want %v", got, tc.want)
 			}
 		})
 	}

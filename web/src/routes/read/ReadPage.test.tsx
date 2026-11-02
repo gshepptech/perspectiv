@@ -91,14 +91,14 @@ describe("read page (US-007, OT-033, OT-036)", () => {
 
   it("shows a placeholder for a deleted perspective", async () => {
     readPage("/perspectives/p-1", () => ({ body: { perspective: { ...perspective, parts: [], author: undefined, deleted: true } } }));
-    expect(await screen.findByText("This perspective was deleted by its author.")).toBeInTheDocument();
+    expect(await screen.findByText("This story was deleted by its author.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Next part" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to the day" })).toHaveAttribute("href", "/arcs/arc-1");
   });
 
   it("shows a placeholder for a perspective hidden by moderation", async () => {
     readPage("/perspectives/p-1", () => ({ body: { perspective: { ...perspective, parts: [], author: undefined, hidden: true } } }));
-    expect(await screen.findByText("This perspective was hidden by a moderator.")).toBeInTheDocument();
+    expect(await screen.findByText("This story was hidden by a moderator.")).toBeInTheDocument();
   });
 
   it("marks the author's own draft as a draft", async () => {
@@ -136,10 +136,10 @@ describe("read page (US-007, OT-033, OT-036)", () => {
     await screen.findByText("The doors opened at nine.");
     expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute("href", "/compose?perspectiveId=p-1");
     await user.click(screen.getByRole("button", { name: "Delete" }));
-    const dialog = await screen.findByRole("dialog", { name: "Delete this perspective?" });
+    const dialog = await screen.findByRole("dialog", { name: "Delete this story?" });
     expect(calls("PerspectiveService/Delete")).toEqual([]);
-    await user.click(within(dialog).getByRole("button", { name: "Delete perspective" }));
-    expect(await screen.findByText("This perspective was deleted by its author.")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Delete story" }));
+    expect(await screen.findByText("This story was deleted by its author.")).toBeInTheDocument();
     expect(calls("PerspectiveService/Delete")).toEqual([{ perspectiveId: "p-1" }]);
   });
 
@@ -164,7 +164,7 @@ describe("read page (US-007, OT-033, OT-036)", () => {
     expect(calls("PerspectiveService/Delete")).toEqual([{ perspectiveId: "p-1" }]);
   });
 
-  it("offers no edit or delete on someone else's perspective", async () => {
+  it("offers no edit or delete on someone else's story", async () => {
     readPage("/perspectives/p-1", undefined, { refresh: () => sessionReply({ token: "tok", username: "teller" }) });
     await screen.findByText("The doors opened at nine.");
     expect(screen.queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
@@ -174,7 +174,7 @@ describe("read page (US-007, OT-033, OT-036)", () => {
 
   it("shows not found for an unknown perspective", async () => {
     readPage("/perspectives/nope", () => connectError("not_found"));
-    expect(await screen.findByRole("heading", { name: "Perspective not found" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Story not found" })).toBeInTheDocument();
   });
 
   it("shows an error when the server cannot be reached", async () => {
@@ -194,7 +194,7 @@ describe("reader and arc page share one cached perspective", () => {
     await user.click(await screen.findByRole("link", { name: "Back to the day" }));
     const canon = await screen.findByRole("region", { name: "Canon" });
     // The row of the perspective just read uses the reader's cache entry.
-    const otter = within(canon).getByRole("article", { name: "otter's perspective" });
+    const otter = within(canon).getByRole("article", { name: "otter's story" });
     // Signed out, the rail shows the count with no button.
     expect(otter).toHaveTextContent("2 upvotes");
     expect(within(otter).queryByRole("button", { name: /^Upvote/ })).toBeNull();

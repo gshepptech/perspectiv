@@ -270,7 +270,7 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
       >
         <header className="grid gap-1">
           <h1 id="compose-title" ref={heading} tabIndex={-1} className="text-2xl focus:outline-none sm:text-3xl">
-            {published ? "Edit your perspective" : "Write a perspective"}
+            {published ? "Edit your story" : "Write a story"}
           </h1>
           <p className="text-ink-muted [overflow-wrap:anywhere]">
             {place.name}

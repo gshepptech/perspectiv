@@ -213,8 +213,10 @@ describe("a lore read as a book", () => {
     await user.click(screen.getByRole("button", { name: "Next part" }));
     await waitFor(() => expect(search(router)).toBe("?chapter=1&part=2"));
 
-    // Next on a chapter's last part opens the next chapter's first.
-    await user.click(screen.getByRole("button", { name: "Next chapter" }));
+    // Next on a chapter's last part opens the next chapter's first. The router
+    // holds the new address before React renders the last part's controls, so
+    // the button is awaited, not read at once.
+    await user.click(await screen.findByRole("button", { name: "Next chapter" }));
     await focused(1, "Chapter 2: The guy in the yellow raincoat");
     expect(search(router)).toBe("?chapter=2&part=1");
     expect(status()).toHaveTextContent("Chapter 2, part 1 of 1");

@@ -113,7 +113,7 @@ describe("public profile page", () => {
       "UserService/GetProfile": () => ({ body: { profile } }),
       "PerspectiveService/ListByAuthor": () => ({ body: {} }),
     });
-    expect(await screen.findByText("wren has not published a perspective yet.")).toBeInTheDocument();
+    expect(await screen.findByText("wren has not published a story yet.")).toBeInTheDocument();
   });
 
   it("shows the user's canon and lore badges", async () => {

@@ -61,7 +61,7 @@ export function BlocksSection({ blocked }: { blocked: UserRef[] }) {
   return (
     <Section title="Blocked users">
       <p className="text-sm text-ink-muted">
-        A blocked user cannot claim your characters, vote on or react to your perspectives, or set off notifications to
+        A blocked user cannot claim your characters, vote on or react to your stories, or set off notifications to
         you. Blocking also ends any follow between you, both ways. You can both still read everything.
       </p>
       {blocked.length === 0 ? (

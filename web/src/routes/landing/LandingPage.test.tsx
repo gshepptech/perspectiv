@@ -120,7 +120,7 @@ describe("landing page (AC-006, OT-036)", () => {
       },
       { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
     );
-    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    const yours = await screen.findByRole("region", { name: "Your stories" });
     const draft = await within(yours).findByRole("link", { name: /^Frost on the fountain/ });
     expect(draft).toHaveAttribute("href", "/compose?perspectiveId=d-1");
     // A draft row ends with Continue where a published row has Edit.
@@ -161,7 +161,7 @@ describe("landing page (AC-006, OT-036)", () => {
       { "PlaceService/ListChildren": () => ({ body: states }), "PerspectiveService/ListMine": () => ({ body: mine }) },
       { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
     );
-    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    const yours = await screen.findByRole("region", { name: "Your stories" });
     const titles = await waitFor(() => {
       // Each row's title link; the rows' Continue links are not titles.
       const links = within(yours)
@@ -215,7 +215,7 @@ describe("landing page (AC-006, OT-036)", () => {
       },
       { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
     );
-    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    const yours = await screen.findByRole("region", { name: "Your stories" });
     const dead = (await within(yours).findByRole("link", { name: /You already published for this day/ })).closest("li")!;
     expect(dead).toHaveTextContent("Draft · You already published for this day");
     // Only the superseded draft offers Delete, and nothing is deleted unasked.
@@ -229,7 +229,7 @@ describe("landing page (AC-006, OT-036)", () => {
     await waitFor(() => expect(within(yours).queryByRole("link", { name: /already published/ })).toBeNull());
     expect(calls("PerspectiveService/Delete")).toEqual([{ perspectiveId: "d-dead" }]);
     expect(within(yours).getAllByRole("listitem")).toHaveLength(2);
-    expect(screen.getByRole("heading", { name: "Your perspectives" })).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "Your stories" })).toHaveFocus();
   });
 
   it("says an hour's draft was superseded for that hour", async () => {
@@ -251,7 +251,7 @@ describe("landing page (AC-006, OT-036)", () => {
       { "PlaceService/ListChildren": () => ({ body: states }), "PerspectiveService/ListMine": () => ({ body: mine }) },
       { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
     );
-    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    const yours = await screen.findByRole("region", { name: "Your stories" });
     expect(await within(yours).findByText("Draft · You already published for this hour")).toBeInTheDocument();
   });
 
@@ -466,7 +466,7 @@ describe("landing page (AC-006, OT-036)", () => {
     expect(within(waiting).getByRole("link", { name: "Review requests" })).toHaveAttribute("href", "/claims");
     expect(calls("LoreService/ListClaims")[0]).toMatchObject({ direction: "CLAIM_DIRECTION_INCOMING", status: "CLAIM_STATUS_PENDING" });
     // Their writing comes before the search.
-    const yours = await screen.findByRole("region", { name: "Your perspectives" });
+    const yours = await screen.findByRole("region", { name: "Your stories" });
     const search = screen.getByRole("search");
     expect(yours.compareDocumentPosition(search) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

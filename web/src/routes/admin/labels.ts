@@ -5,7 +5,7 @@ import type { Resolution } from "./ResolveDialog";
 export function targetKindLabel(kind: ReportTargetKind): string {
   switch (kind) {
     case ReportTargetKind.PERSPECTIVE:
-      return "Perspective";
+      return "Story";
     case ReportTargetKind.PLACE:
       return "Place";
     case ReportTargetKind.USER:
@@ -22,7 +22,7 @@ export function targetKindLabel(kind: ReportTargetKind): string {
 export function actionLabel(action: ModerationAction): string {
   switch (action) {
     case ModerationAction.HIDE_PERSPECTIVE:
-      return "Hide perspective";
+      return "Hide story";
     case ModerationAction.HIDE_PLACE:
       return "Hide place";
     case ModerationAction.SUSPEND_USER:
@@ -41,7 +41,7 @@ export function actionLabel(action: ModerationAction): string {
 /** The status line a page shows once a report is resolved. */
 export function resolutionMessage(r: Resolution): string {
   return r.suspended
-    ? `${r.suspended} is suspended. The report on their perspective stays open.`
+    ? `${r.suspended} is suspended. The report on their story stays open.`
     : `Report resolved: ${actionLabel(r.action).toLowerCase()}.`;
 }
 
@@ -90,7 +90,7 @@ export function choicesFor(kind: ReportTargetKind): ResolveChoice[] {
 export function targetHref(kind: ReportTargetKind, id: string): { href: string; text: string } | null {
   switch (kind) {
     case ReportTargetKind.PERSPECTIVE:
-      return { href: `/perspectives/${encodeURIComponent(id)}`, text: "Open the perspective" };
+      return { href: `/perspectives/${encodeURIComponent(id)}`, text: "Open the story" };
     case ReportTargetKind.PLACE:
       return { href: `/places/${encodeURIComponent(id)}`, text: "Open the place" };
     case ReportTargetKind.LORE_NAME:
@@ -107,7 +107,7 @@ export function targetHref(kind: ReportTargetKind, id: string): { href: string; 
 export function auditActionLabel(action: AuditAction): string {
   switch (action) {
     case AuditAction.HIDE_PERSPECTIVE:
-      return "hid a perspective";
+      return "hid a story";
     case AuditAction.HIDE_PLACE:
       return "hid a place";
     case AuditAction.SUSPEND_USER:

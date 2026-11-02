@@ -229,7 +229,7 @@ The lore page's stories are chapters of one account, not cards on a board.
   hairline and space (`border-t border-rule pt-8`; the first, right under
   "The stories", has neither), with no box, fill or shadow, so the prose
   takes the full measure at 390px.
-- Its heading ("otter's perspective", the name a link) is the serif `h3` at
+- Its heading ("otter's story", the name a link) is the serif `h3` at
   `text-xl`; the genre sits on the same line in `text-sm` `ink-muted`.
 - The action row under it is the story page's.
 
@@ -259,7 +259,7 @@ alone), a profile the username, and a fixed page its heading
 - **Targets:** buttons and links in navigation are at least 44px tall on touch
   layouts, and so are the action buttons and links in lists and dialogs
   (Accept, Reject, Claim a character, That was me, the inbox's All, Unread
-  and Mark all read, a request's links to its two perspectives).
+  and Mark all read, a request's links to its two stories).
 - **Status lines** that take focus after an action carry `tabIndex={-1}` and
   no `aria-label`, so focusing one reads its message. When an action removes
   the control that had focus (a sent claim or report), focus moves to its
@@ -322,7 +322,7 @@ lore page.
   `accent` underlined links, each 44px tall, separated by an `ink-muted`
   "›"), the arc title, then one metadata line:
   the place-local day and who started it. The primary action ("Write your
-  perspective", or "Read yours" for a participant) sits in the header at every
+  story", or "Read yours" for a participant) sits in the header at every
   width.
 - **Two columns from `lg`:** a feed column (`minmax(0,1fr)`) and an 18rem
   sidebar. Below `lg` the sidebar follows the feed.
@@ -366,7 +366,7 @@ lore page.
   sidebar falls under every story, it is a closed one-line disclosure under
   the header instead ("Is this you? 2 people nobody has claimed yet").
 - **Not yet able to claim or upvote.** On a story's page, a reader with no
-  perspective in its arc, or a signed-out reader, still sees "Claim a
+  story in its arc, or a signed-out reader, still sees "Claim a
   character" (when the story has someone open to claim) and "Upvote".
   Pressing either opens a bordered `surface` note in place under the
   actions instead of a dialog or a silent redirect: "To say this was you,
@@ -658,7 +658,12 @@ without leaving it.
 - **More.** The search stops at 20 places. When more match, the line
   "Showing the first 20. Add a town or state to narrow it." (`text-sm`,
   `ink-muted`) follows the list. A town, a city or a state's full name
-  narrows it ("tampa florida", "starbucks, tampa").
+  narrows it ("tampa florida", "starbucks, tampa"), and so does a state's
+  two-letter postal code at either end ("starbucks fl", "FL starbucks"),
+  which also keeps a town to that state ("publix tampa fl", "publix,
+  tampa, FL."). A code that is also a word ("in", "ok", "me") is read as
+  a state only as the last word after a name, so "starbucks in tampa"
+  still means Tampa.
 - **Adding the place that is missing.** The "Not here? Add …" link under
   the results opens the composer's add form. When the server read the
   search as a name and the city, town or state it is in, the response
@@ -752,7 +757,7 @@ day and hour, and the composer finds it wherever they come in:
 - When several drafts exist for one place, day and hour, the one changed
   most recently opens, and the note says so: "You started more than one
   draft for this day, so the one you changed last is open. The others are
-  under Your perspectives on the front page."
+  under Your stories on the front page."
 - A draft whose parts are all empty is never saved: autosave waits until a
   part has text, and the save status line reads "Your draft saves once a
   part has text." until then. The server refuses an all-empty draft as well, so an
@@ -786,7 +791,8 @@ title as the link, the opening of its canon's first story (or its first story)
 in the serif face clamped to two lines, then a `text-sm` line: "Canon" and
 a crown when the day has one, followed by the canon lore's name in italics
 when its members have named it ("Canon: *The long queue*"), the place, the
-day, how many are in lore and the story count. The row is one shared
+day, and the count: "14 stories · 12 linked", the linked part left out at
+zero. The row is one shared
 component (`ArcItem` in `web/src/components/reader/`), so the place page and
 the best-days pages cannot drift apart. The list's accessible name is "Days".
 
@@ -868,13 +874,13 @@ writer's work in two tabs.
   draws its dividers and a closing rule, never a top border of its own.
 - **Badges** in the header are flairs (Flairs and tags): "In 2 canons"
   with a `Crown` in `accent`, "In 5 lores" with `Users` in `ink-muted`.
-- **Stories tab.** Each perspective row is one link at least 44px tall. It
+- **Stories tab.** Each story row is one link at least 44px tall. It
   leads with where and when (place and day, `ink`, medium weight), then the
   day's title in the serif face, then the story's own opening (its first
   part, clamped to two lines), then its standing in `text-sm`, so a
   writer's stories are told apart even when their days share a title.
   "Show more" brings 20 more and moves focus to the first new row. With
-  none, it says "wren has not published a perspective yet."
+  none, it says "wren has not published a story yet."
 - **Thread posts tab.** The writer's posts in lore threads, newest first,
   replies included, as a list named "Thread posts". Each row is one link
   at least 44px tall to the lore's page: first the lore's name ("Unnamed
@@ -909,7 +915,7 @@ writer's work in two tabs.
   sentence underlines on hover. Following the link, by any click or by
   Enter, marks the notification read. A notification with no page is plain
   text and has no hover.
-- **Who might be in a new story.** A "new perspective on your day" row
+- **Who might be in a new story.** A "new story on your day" row
   adds a `text-sm` `ink-muted` line under its sentence, inside the link:
   "Who might be in it: “the woman with the foam parrot”, “the clerk” and
   2 more." It names up to three of the story's characters nobody has
@@ -939,7 +945,7 @@ writer's work in two tabs.
   claimed yet.
 - **What a request is about.** Each request names the story it concerns,
   as a `text-sm` `accent` underlined link 44px tall, never a bare "Your
-  perspective": "About your story at UCF Stadium, October 3, 2026" on a
+  story": "About your story at UCF Stadium, October 3, 2026" on a
   request on the reader's characters, "About otter's story at UCF Stadium,
   October 3, 2026" on one of the reader's own claims, the day as the
   reader sees days elsewhere ("October 3, 2026, 21:00" for an hour's
@@ -1005,7 +1011,7 @@ two rows for the same browser are told apart.
   `sm`, at least 44px tall, `ghost` with an outline lucide `Bookmark`
   reading "Save" when off, `secondary` with a filled `Bookmark` reading
   "Saved" when on, `aria-pressed` either way, and an accessible name that
-  adds the story ("Save otter's perspective", "Saved otter's perspective")
+  adds the story ("Save otter's story", "Saved otter's story")
   so a page of cards reads as distinct buttons. Like Report it is not
   offered on the reader's own story, and never on a deleted or hidden
   placeholder. A
@@ -1028,7 +1034,7 @@ two rows for the same browser are told apart.
   but the row stays until the reader leaves the page: a `text-sm`
   `ink-muted` "Removed." appears before the toggle (a visually hidden
   polite `status` after it says the same to a screen reader), and the
-  toggle reads "Undo", named "Undo: save otter's perspective again", with
+  toggle reads "Undo", named "Undo: save otter's story again", with
   no `aria-pressed`. Undo saves it again in place. Focus stays on the
   button throughout, since it is the same button. The next visit lists
   only what is saved.
@@ -1124,7 +1130,7 @@ heading, a plain list of entries with `rule` dividers, "Show more" to page.
   - **Moderator actions**: the audit entries about this user.
 - **Audit log** (`/admin/audit`): an action filter (a Select: "All
   actions" and each action) above the entries, newest first. Each entry
-  reads as one sentence then detail: "**ana** hid a perspective: *Rain at
+  reads as one sentence then detail: "**ana** hid a story: *Rain at
   the deli*", with the time below in `ink-muted` and the reason, when
   there is one, quoted. An entry from the command line names "The command
   line" as its actor. A target that has a page links to it; a user target
@@ -1141,7 +1147,7 @@ heading, a plain list of entries with `rule` dividers, "Show more" to page.
   tall.
 - **Undoing a decision.** A suspended account's dossier offers "Lift
   suspension…" beside its standing; a hide entry in the audit log
-  (perspective, place or thread post) offers "Restore…". Both open the
+  (story, place or thread post) offers "Restore…". Both open the
   same small dialog: what is being undone, a required "Reason for the
   audit log", and a primary button naming the action. On success the
   dialog closes, a status line says what changed and takes focus, and the
@@ -1257,7 +1263,7 @@ its place page.
   per thing waiting, each a count in bold and a link ("2 unread
   notifications · Open your inbox", "1 request waiting on you · Review
   requests"), or "Nothing is waiting on you." when both are zero. "Your
-  perspectives" follows it, then the search field, then "Places you
+  stories" follows it, then the search field, then "Places you
   follow", "Where people are writing", "Browse by kind of place" and
   "Browse by state".
 - **New members.** A signed-in member with no published story is not
@@ -1277,7 +1283,7 @@ its place page.
   While the member's published count is still loading the heading reads
   "Welcome, *username*" and neither block shows; "Welcome back" replaces
   it once a published story is found.
-- **Your perspectives.** One row per draft or story, newest edit first.
+- **Your stories.** One row per draft or story, newest edit first.
   A row's title is the day's title; a draft that joins an existing day
   (or hour) takes that day's title, a draft that would start a day takes
   the title the writer gave it, and a draft with neither takes its first
@@ -1322,3 +1328,29 @@ for a day arc and "hour" for an hour arc (`arcSpan`): "Back to the day",
 "Day title", "Day not found", "Each hour has its own canon". Where the
 kind is not yet known (loading, not found) it says "day". URLs and code
 identifiers keep `arc`.
+
+"Perspective" is likewise a word for the code. One person's written account
+MUST be called a "story" in every string a reader or writer sees or hears:
+page and tab titles, headings, buttons, accessible names, status lines,
+empty states, notification sentences and settings labels, email subjects
+and bodies, and the server error messages a user can see. "Perspectiv" is
+the product name and stays. A tagline MAY use "perspective" as a nod to
+the name. Code identifiers, proto and RPC names, enum values, URLs
+(`/perspectives/:id`), database columns, query keys and validation errors
+that name a wire field (`perspective_id is required`) keep `perspective`.
+New copy MUST use these fixed phrasings:
+
+- The composer and place picker heading and tab title: "Write a story";
+  a published one being edited: "Edit your story". The day page action:
+  "Write your story".
+- The front page section: "Your stories".
+- A story by name, as a heading, link or accessible name: "otter's story"
+  ("Save otter's story", "Report otter's story"); with no name, "this
+  story".
+- Counts: "1 story", "14 stories". A day's count of stories in its lores
+  follows the story count as "14 stories · 12 linked", and is left out
+  at zero; "in lore" is not used as a count.
+- Not found: "Story not found".
+- A request: "Accepting one links both stories into the same lore."
+- The notification setting: "A new story on your day"; a claim:
+  "otter claimed a character in your story".

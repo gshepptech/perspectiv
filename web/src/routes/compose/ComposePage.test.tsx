@@ -70,7 +70,7 @@ afterEach(() => {
 async function openComposer(path = "/compose?placeId=p-ny", routes: Record<string, ApiHandler> = {}) {
   const api = installApi({ "PlaceService/GetPlace": getPlace, ...routes });
   renderRoute(path);
-  await screen.findByRole("heading", { name: "Write a perspective" });
+  await screen.findByRole("heading", { name: "Write a story" });
   return api;
 }
 
@@ -282,7 +282,7 @@ describe("composer autosave (FR-044)", () => {
       "PerspectiveService/Publish": () => ok({ perspectiveId: "d-3", arcId: "arc-3" }),
     });
     renderRoute("/compose?perspectiveId=d-3");
-    await screen.findByRole("heading", { name: "Write a perspective" });
+    await screen.findByRole("heading", { name: "Write a story" });
     // The debounce never elapses on its own here: only publish can save.
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
     fireEvent.change(screen.getByRole("textbox", { name: "Part 1" }), { target: { value: "Quick one." } });
@@ -413,7 +413,7 @@ describe("composer: finding the draft as the day and hour change", () => {
     fireEvent.change(screen.getByLabelText("Day of your visit"), { target: { value: "2026-09-26" } });
     expect(await screen.findByDisplayValue("Bubbles the size of cars.")).toBeInTheDocument();
     expect(screen.getByRole("status", { name: "Composer notice" })).toHaveTextContent(
-      "You started more than one draft for this day, so the one you changed last is open. The others are under Your perspectives on the front page.",
+      "You started more than one draft for this day, so the one you changed last is open. The others are under Your stories on the front page.",
     );
   });
 
@@ -539,7 +539,7 @@ describe("publishing", () => {
     await user.type(screen.getByRole("textbox", { name: "Part 1" }), "Rain.");
     await user.click(screen.getByRole("button", { name: "Publish" }));
     // The read route belongs to another work stream; reaching it is the outcome.
-    await waitFor(() => expect(screen.queryByRole("heading", { name: "Write a perspective" })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Write a story" })).toBeNull());
   });
 
   it("on ALREADY_EXISTS opens the author's existing perspective for that place and day (OT-016, AC-012)", async () => {
@@ -562,7 +562,7 @@ describe("publishing", () => {
     await user.type(screen.getByRole("textbox", { name: "Part 1" }), "A second go.");
     await user.click(screen.getByRole("button", { name: "Publish" }));
 
-    expect(await screen.findByRole("heading", { name: "Edit your perspective" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Edit your story" })).toBeInTheDocument();
     expect(api.callsTo("PerspectiveService/ListMine").find((c) => c.body.status === "PERSPECTIVE_STATUS_PUBLISHED")?.body).toMatchObject({
       status: "PERSPECTIVE_STATUS_PUBLISHED",
       placeId: "p-ny",
@@ -571,7 +571,7 @@ describe("publishing", () => {
     });
     expect(api.callsTo("PerspectiveService/Get").at(-1)?.body).toEqual({ perspectiveId: "pub-1" });
     expect(screen.getByRole("textbox", { name: "Part 1" })).toHaveValue("The bell over the door rang twice.");
-    expect(screen.getByText(/already published a perspective here/i)).toBeInTheDocument();
+    expect(screen.getByText(/already published a story here/i)).toBeInTheDocument();
   });
 
   it("shows the server's reason when publish is refused for another cause", async () => {
@@ -584,7 +584,7 @@ describe("publishing", () => {
     await user.type(screen.getByRole("textbox", { name: "Part 1" }), "Rain.");
     await user.click(screen.getByRole("button", { name: "Publish" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("verify your email first");
-    expect(screen.getByRole("heading", { name: "Write a perspective" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Write a story" })).toBeInTheDocument();
   });
 
   it("refuses to publish a part over 300 words or without a genre, naming the problem", async () => {
@@ -628,7 +628,7 @@ describe("editing a published perspective", () => {
         ok({ perspective: publishedPerspective({ parts: [{ position: 1, body: (body.parts as string[])[0] }] }) }),
     });
     renderRoute("/compose?perspectiveId=pub-1");
-    expect(await screen.findByRole("heading", { name: "Edit your perspective" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Edit your story" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Day of your visit")).toBeNull();
     expect(screen.getByText(/2026-10-15, 14:00/)).toBeInTheDocument();
     expect(screen.queryByRole("textbox", { name: "Title of the day" })).toBeNull();
@@ -668,7 +668,7 @@ describe("editing a published perspective", () => {
         }),
     });
     renderRoute("/compose?perspectiveId=d-5");
-    expect(await screen.findByRole("heading", { name: "Write a perspective" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Write a story" })).toBeInTheDocument();
     expect(screen.getByLabelText("Day of your visit")).toHaveValue("2026-10-12");
     expect(screen.getByRole("textbox", { name: "Title of the day" })).toHaveValue("Closing time");
     expect(screen.getByRole("combobox", { name: "Genre" })).toHaveTextContent("Romance");
@@ -688,7 +688,7 @@ describe("choosing a place", () => {
     await user.type(search, "corner");
     const results = await screen.findByRole("list", { name: "Matching places" });
     await user.click(within(results).getByRole("button", { name: /Corner Books/ }));
-    expect(await screen.findByRole("heading", { name: "Write a perspective" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Write a story" })).toBeInTheDocument();
     expect(api.callsTo("PlaceService/SearchPlaces")[0]?.body).toMatchObject({ query: "corner" });
     expect(screen.getByLabelText("Day of your visit")).toBeInTheDocument();
   });
@@ -890,7 +890,7 @@ describe("composer: one story per day, and writing your side", () => {
       "ArcService/FindDayArc": () => ok({}),
     });
     expect(await screen.findByText(/Write your side of this day/)).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 1, name: "Write a perspective" })).toHaveFocus();
+    expect(screen.getByRole("heading", { level: 1, name: "Write a story" })).toHaveFocus();
     // The day and hour are theirs, shown as text, not as controls.
     expect(screen.queryByLabelText("Day of your visit")).not.toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "Hour" })).not.toBeInTheDocument();

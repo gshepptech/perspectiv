@@ -16,7 +16,7 @@ import { isLocalDate, parseHour, todayIn } from "./localDate";
 import { PlacePicker } from "./PlacePicker";
 
 const EXISTING_NOTICE =
-  "You already published a perspective here, so it is open for editing. Each person writes one story per day.";
+  "You already published a story here, so it is open for editing. Each person writes one story per day.";
 
 // Composer data is read fresh on every visit: initial form values must never
 // come from a cached copy that predates the author's last save.
@@ -34,13 +34,13 @@ function LoadFailed({ error }: { error: unknown }) {
   const e = ConnectError.from(error);
   const text =
     e.code === Code.NotFound
-      ? "We could not find that place or perspective. It may have been removed or hidden."
+      ? "We could not find that place or story. It may have been removed or hidden."
       : e.code === Code.PermissionDenied
-        ? "Only the author can edit this perspective."
+        ? "Only the author can edit this story."
         : `The composer could not open: ${e.rawMessage}`;
   return (
     <section className="mx-auto grid max-w-measure gap-4">
-      <h1 className="text-2xl sm:text-3xl">Write a perspective</h1>
+      <h1 className="text-2xl sm:text-3xl">Write a story</h1>
       <p role="alert" className="font-medium text-error">
         {text}
       </p>
@@ -152,7 +152,7 @@ function Existing({ perspectiveId, ...shared }: Shared & { perspectiveId: string
  * wanted to claim a character in.
  */
 export function Component() {
-  useDocumentTitle("Write a perspective");
+  useDocumentTitle("Write a story");
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   const perspectiveId = params.get("perspectiveId") ?? "";

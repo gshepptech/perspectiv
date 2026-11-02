@@ -66,7 +66,7 @@ export type Draft = {
 
 /** Fills the composer and publishes; returns the new perspective's path and its arc's path. */
 async function fillAndPublish(page: Page, draft: Draft): Promise<{ perspective: string; arc: string }> {
-  await expect(page.getByRole("heading", { level: 1, name: "Write a perspective" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Write a story" })).toBeVisible();
   if (draft.title) await page.getByLabel("Title of the day").fill(draft.title);
   await page.getByLabel("Genre").click();
   await page.getByRole("option", { name: draft.genre, exact: true }).click();
@@ -98,16 +98,16 @@ export async function writeAt(w: Writer, place: string, draft: Draft) {
   return fillAndPublish(w.page, draft);
 }
 
-/** Opens an existing arc and publishes through its "Write your perspective" link, so the place and day match. */
+/** Opens an existing arc and publishes through its "Write your story" link, so the place and day match. */
 export async function writeInArc(w: Writer, arcPath: string, draft: Draft) {
   await visit(w.page, w.account, arcPath);
-  await w.page.getByRole("link", { name: "Write your perspective" }).click();
+  await w.page.getByRole("link", { name: "Write your story" }).click();
   return fillAndPublish(w.page, draft);
 }
 
-/** The card for `username`'s perspective on an arc page, or within one section of it. */
+/** The card for `username`'s story on an arc page, or within one section of it. */
 export function card(scope: Page | Locator, username: string): Locator {
-  return scope.getByRole("article", { name: `${username}'s perspective` });
+  return scope.getByRole("article", { name: `${username}'s story` });
 }
 
 /**

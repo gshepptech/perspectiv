@@ -51,15 +51,15 @@ func (s *Service) CreateInvite(ctx context.Context, caller, perspectiveID uuid.U
 		t, err := q.InviteTarget(ctx, dbq.InviteTargetParams{PerspectiveID: perspectiveID, CharacterID: characterID})
 		switch {
 		case errors.Is(err, pgx.ErrNoRows):
-			return apiutil.NotFound("perspective not found")
+			return apiutil.NotFound("story not found")
 		case err != nil:
 			return apiutil.Internal(fmt.Errorf("read invite target: %w", err))
 		case t.AuthorID != caller:
-			return apiutil.PermissionDenied("only the author can invite people to this perspective")
+			return apiutil.PermissionDenied("only the author can invite people to this story")
 		case !t.Readable:
-			return apiutil.FailedPrecondition("only a published perspective can be shared")
+			return apiutil.FailedPrecondition("only a published story can be shared")
 		case !t.CharacterOk:
-			return apiutil.InvalidArg("that character is not in this perspective")
+			return apiutil.InvalidArg("that character is not in this story")
 		}
 		fresh, err := newInviteCode()
 		if err != nil {

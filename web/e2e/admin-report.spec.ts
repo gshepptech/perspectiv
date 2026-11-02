@@ -9,7 +9,7 @@ import { reportAccounts } from "./support/accounts.ts";
 import { reader, signedIn, visit, writeAt } from "./support/ui.ts";
 
 const STORE = "Harbor Light Laundromat";
-const HIDDEN = "This perspective was hidden by a moderator.";
+const HIDDEN = "This story was hidden by a moderator.";
 
 test("NFR-004 a report is resolved by an admin and the perspective is hidden from readers", async ({ browser }) => {
   test.setTimeout(180_000);
@@ -29,12 +29,12 @@ test("NFR-004 a report is resolved by an admin and the perspective is hidden fro
   // Any signed-in, verified reader can report; the reporter has no
   // perspective in this arc.
   await visit(reporter.page, reporterAcct, arc);
-  await reporter.page.getByRole("link", { name: `Read ${writerAcct.username}'s perspective` }).click();
+  await reporter.page.getByRole("link", { name: `Read ${writerAcct.username}'s story` }).click();
   await reporter.page
     .getByRole("region", { name: "Respond to this story" })
     .getByRole("button", { name: /^Report:/ })
     .click();
-  const dialog = reporter.page.getByRole("dialog", { name: `Report ${writerAcct.username}'s perspective` });
+  const dialog = reporter.page.getByRole("dialog", { name: `Report ${writerAcct.username}'s story` });
   await dialog.getByRole("combobox", { name: "Reason" }).click();
   await reporter.page.getByRole("option", { name: "Real name or handle of a non-user" }).click();
   await dialog.getByLabel("Details (optional)").fill("Names a real person who does not use the site.");
@@ -53,15 +53,15 @@ test("NFR-004 a report is resolved by an admin and the perspective is hidden fro
   await expect(admin.page.getByRole("heading", { level: 1, name: "Report queue" })).toBeVisible();
   const open = admin.page.getByRole("list", { name: "Open reports" });
   const item = open.getByRole("listitem").filter({ hasText: `Reported by ${reporterAcct.username}` });
-  await expect(item).toContainText("Perspective:");
+  await expect(item).toContainText("Story:");
   await expect(item).toContainText("Real name or handle of a non-user");
   await item.getByRole("button", { name: "Resolve" }).click();
   const resolve = admin.page.getByRole("dialog", { name: "Resolve report" });
-  await resolve.getByRole("radio", { name: "Hide perspective" }).check();
+  await resolve.getByRole("radio", { name: "Hide story" }).check();
   await resolve.getByLabel("Reason for the audit log").fill("Names a non-user by their real name.");
   await resolve.getByRole("button", { name: "Resolve report" }).click();
   await expect(resolve).toBeHidden();
-  await expect(admin.page.getByRole("status", { name: "Queue status" })).toHaveText("Report resolved: hide perspective.");
+  await expect(admin.page.getByRole("status", { name: "Queue status" })).toHaveText("Report resolved: hide story.");
   await expect(item).toHaveCount(0);
 
   await admin.page.getByRole("tab", { name: "Resolved" }).click();
@@ -69,7 +69,7 @@ test("NFR-004 a report is resolved by an admin and the perspective is hidden fro
     .getByRole("list", { name: "Resolved reports" })
     .getByRole("listitem")
     .filter({ hasText: `Reported by ${reporterAcct.username}` });
-  await expect(done).toContainText(`Hide perspective by ${adminAcct.username}`);
+  await expect(done).toContainText(`Hide story by ${adminAcct.username}`);
   await expect(done).toContainText("Names a non-user by their real name.");
 
   // Hidden content: readers get the placeholder, never the text.
@@ -77,7 +77,7 @@ test("NFR-004 a report is resolved by an admin and the perspective is hidden fro
   await expect(anon.getByText(HIDDEN)).toBeVisible();
   await expect(anon.getByText(story)).toHaveCount(0);
   await anon.goto(arc);
-  await expect(anon.getByRole("article", { name: "Unavailable perspective" })).toContainText(HIDDEN);
+  await expect(anon.getByRole("article", { name: "Unavailable story" })).toContainText(HIDDEN);
   await expect(anon.getByText(story)).toHaveCount(0);
 
   // The author sees the same placeholder on their own perspective.

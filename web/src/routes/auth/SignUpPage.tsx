@@ -56,7 +56,7 @@ function Terms() {
         </li>
         <li>
           Real names and handles of people who are not users are prohibited. Describe the people in your story as
-          characters instead. Anyone can report a perspective that names someone, and moderators remove it.
+          characters instead. Anyone can report a story that names someone, and moderators remove it.
         </li>
         <li>No harassment, hateful or sexual content, or spam.</li>
       </ul>

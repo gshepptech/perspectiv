@@ -46,7 +46,7 @@ export function PlacePicker({
   return (
     <section aria-labelledby="pick-title" className="mx-auto grid w-full max-w-measure min-w-0 gap-4">
       <h1 id="pick-title" className="text-2xl sm:text-3xl">
-        Write a perspective
+        Write a story
       </h1>
       <div className="grid gap-1.5">
         <label htmlFor={inputId} className="text-sm font-medium text-ink">

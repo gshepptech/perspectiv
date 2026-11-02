@@ -54,7 +54,7 @@ function Story({ p, rights }: { p: Perspective; rights: ViewerRights }) {
       <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h3 id={`story-${p.id}`} className="min-w-0 text-xl wrap-break-word">
           {p.author ? <AuthorLink username={p.author.username} /> : "Someone"}
-          {"'s perspective"}
+          {"'s story"}
         </h3>
         <p className="text-sm text-ink-muted">{p.genre !== Genre.UNSPECIFIED ? genreLabel(p.genre) : ""}</p>
       </header>

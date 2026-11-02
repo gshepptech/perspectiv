@@ -41,7 +41,7 @@ export function DeleteAccountSection() {
   return (
     <Section title="Delete account">
       <p>
-        Deleting your account removes it and every perspective you wrote. Claims that link your perspectives to
+        Deleting your account removes it and every story you wrote. Claims that link your stories to
         others are dissolved. This cannot be undone.
       </p>
       <Dialog
@@ -59,7 +59,7 @@ export function DeleteAccountSection() {
         </DialogTrigger>
         <DialogContent>
           <DialogTitle>Delete your account</DialogTitle>
-          <DialogDescription>Enter your password to confirm. Your perspectives are removed with it.</DialogDescription>
+          <DialogDescription>Enter your password to confirm. Your stories are removed with it.</DialogDescription>
           <Form {...form}>
             <form noValidate className="mt-4 grid gap-4" onSubmit={form.handleSubmit((v) => remove.mutate(v))}>
               <FormField

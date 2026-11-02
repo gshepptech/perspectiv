@@ -107,7 +107,7 @@ export function PerspectiveActions({
           upvotes={p?.upvotes ?? summary.upvotes}
           voted={p?.voted ?? false}
           canVote={canVote}
-          targetName={`${authorName}'s perspective`}
+          targetName={`${authorName}'s story`}
           blocked={blocked && p ? { expanded: why === "upvote", controls: whyId, onPress: () => toggle("upvote") } : undefined}
         />
         {p && (
@@ -155,12 +155,12 @@ export function PerspectiveActions({
           </p>
         )}
         {canVoteOut && <RemoveVoteButton perspectiveId={summary.id} authorName={authorName} />}
-        {p && !own && <SaveButton perspectiveId={summary.id} saved={p.saved} targetName={`${authorName}'s perspective`} />}
+        {p && !own && <SaveButton perspectiveId={summary.id} saved={p.saved} targetName={`${authorName}'s story`} />}
         {!own && (
           <ReportDialog
             targetKind={ReportTargetKind.PERSPECTIVE}
             targetId={summary.id}
-            targetLabel={`${authorName}'s perspective`}
+            targetLabel={`${authorName}'s story`}
           />
         )}
       </div>

@@ -41,7 +41,7 @@ export function RemoveVoteButton({ perspectiveId, authorName }: { perspectiveId:
           </Button>
         </DialogTrigger>
         <DialogContent>
-          <DialogTitle>Vote to remove {authorName}&apos;s perspective?</DialogTitle>
+          <DialogTitle>Vote to remove {authorName}&apos;s story?</DialogTitle>
           <DialogDescription>
             When more than half of the lore&apos;s other members vote to remove it, it leaves the lore and stays readable as a
             tale. Your vote cannot be taken back.
@@ -64,7 +64,7 @@ export function RemoveVoteButton({ perspectiveId, authorName }: { perspectiveId:
       {remove.data && (
         <p role="status" className="w-full text-sm text-ink-muted">
           {remove.data.removed
-            ? "This perspective is now removed from the lore."
+            ? "This story is now removed from the lore."
             : `${remove.data.removeVotes} of ${remove.data.eligibleVoters} members have voted to remove it.`}
         </p>
       )}

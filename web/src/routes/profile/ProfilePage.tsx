@@ -95,7 +95,7 @@ function Stories({ userId, username }: { userId: string; username: string }) {
       )}
       {list.isError && (
         <p role="alert" className="text-sm text-error">
-          {username}&apos;s perspectives could not be loaded. Try again in a moment.
+          {username}&apos;s stories could not be loaded. Try again in a moment.
         </p>
       )}
       {list.isSuccess && <WritingList pages={list.data.pages} username={username} listRef={more.list} />}
@@ -162,7 +162,7 @@ function WritingList({
   listRef: RefObject<HTMLUListElement | null>;
 }) {
   const items = pages.flatMap((page) => page.perspectives);
-  if (items.length === 0) return <p className="text-ink-muted">{username} has not published a perspective yet.</p>;
+  if (items.length === 0) return <p className="text-ink-muted">{username} has not published a story yet.</p>;
   return (
     // The tab row's hairline is the rule above the first row (Folio, Profile).
     <ul ref={listRef} aria-label="Stories" className="divide-y divide-rule border-b border-rule">

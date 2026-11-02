@@ -51,6 +51,30 @@ Nothing in progress.
 
 ## Done
 
+- Readers and writers see "story", never "perspective": the composer
+  ("Write a story", "Edit your story"), "Your stories" on the front page,
+  "otter's story" headings and accessible names, "Story not found", the
+  inbox and notification settings, Requests ("links both stories"), the
+  verified-email page, admin labels, the email subjects and bodies, and the
+  user-visible server errors. Day counts read "14 stories · 12 linked"
+  instead of "12 in lore · 14 perspectives". Code, proto, URLs, query keys
+  and wire-field errors keep `perspective`. The rule and its fixed
+  phrasings are in the design system's Voice section, and
+  `web/src/app/voice.test.ts` fails on a new prose "perspective" in
+  `web/src/routes` or `web/src/components` (it finds all 57 the old tree
+  had). Verified by the web unit tests, the Go notify tests and the e2e
+  suite.
+- Place search reads two-letter state codes. "starbucks fl", "FL
+  starbucks" and "starbucks, fl." search Florida; "publix tampa fl" and
+  "publix, tampa, FL" search Tampa within Florida, so a Tampa elsewhere is
+  left out; the returned split names that state or town, so "Add place"
+  starts there. Codes that are also words (in, me, or, ok, hi, de, pa, oh,
+  al, ma, co, la, id, wa, as, mt) count only as the last word after a
+  name: "starbucks in tampa" still means Tampa. The 56 codes
+  (`internal/place/statecodes.go`) are tested against the importer's
+  state list. Verified by the unit and integration search tests and by
+  EXPLAIN ANALYZE on the dev data for "starbucks fl", "publix tampa fl"
+  and "ok" (each statement under 4ms, no new scan of places).
 - A data race in serve: /healthz read the River client's Stopped channel
   while Start was still setting it, because the server answers before the
   workers start. The channel is now published only once Start returns, and

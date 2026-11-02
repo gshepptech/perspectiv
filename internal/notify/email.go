@@ -161,7 +161,7 @@ func (w *emailWorker) render(a jobs.EmailArgs, c cast) (mailer.Message, error) {
 	case jobs.TemplateVerifyEmail:
 		body, err = w.accountContent(a.Data, "/verify-email",
 			"Verify your email",
-			"Confirm this address to start writing perspectives on Perspectiv.",
+			"Confirm this address to start writing stories on Perspectiv.",
 			"Verify email")
 	case jobs.TemplatePasswordReset:
 		body, err = w.accountContent(a.Data, "/reset-password",
@@ -302,25 +302,25 @@ func (w *emailWorker) notificationContent(data map[string]string, cast cast) (co
 	switch kind {
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_CLAIM_RECEIVED:
 		subject = actor + " says they are in your story"
-		body = actor + " says they are one of the characters in your perspective in " + arc + ". Accept or reject the claim."
+		body = actor + " says they are one of the characters in your story in " + arc + ". Accept or reject the claim."
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_CLAIM_ACCEPTED:
 		subject = "Your claim was accepted"
-		body = actor + " accepted your claim in " + arc + ". Your perspectives are now linked."
+		body = actor + " accepted your claim in " + arc + ". Your stories are now linked."
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC:
-		subject = "A new perspective in " + arc
-		body = actor + " published a new perspective in " + arc + "."
+		subject = "A new story in " + arc
+		body = actor + " published a new story in " + arc + "."
 		if who := castPhrase(cast); who != "" {
 			body += " Who might be in it: " + who + ". If one of them was you, open the story and claim them."
 		}
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_VOTE_OUT_OPENED:
 		subject = "A remove vote opened in " + arc
-		body = "A member of your lore in " + arc + " opened a vote to remove a perspective from it."
+		body = "A member of your lore in " + arc + " opened a vote to remove a story from it."
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_CANON_CHANGE:
 		subject = "The canon changed in " + arc
 		body = "A different lore is now canon in " + arc + ", or the day no longer has one."
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_INVITE_ANSWERED:
 		subject = actor + " wrote their side of " + arc
-		body = actor + " followed your invite and wrote their perspective in " + arc + ". Read it, and claim each other's characters if you recognise yourselves."
+		body = actor + " followed your invite and wrote their story in " + arc + ". Read it, and claim each other's characters if you recognise yourselves."
 	case perspectivv1.NotificationKind_NOTIFICATION_KIND_NEW_STORY_AT_FOLLOWED_PLACE:
 		subject = actor + " wrote about " + arc
 		body = actor + " wrote a new story in " + arc + ", at a place you follow. Were you there too?"

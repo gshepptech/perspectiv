@@ -141,7 +141,7 @@ export function ClaimDialog({
             Loading characters…
           </p>
         ) : sorted.length === 0 ? (
-          <p className="mt-4 text-sm text-ink-muted">This perspective names no characters.</p>
+          <p className="mt-4 text-sm text-ink-muted">This story names no characters.</p>
         ) : (
           <ul className="mt-4 divide-y divide-rule border-y border-rule">
             {sorted.map((c) => (

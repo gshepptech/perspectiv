@@ -70,7 +70,7 @@ func TestNewStoryEmailNamesCast(t *testing.T) {
 		{
 			name: "labels are quoted and escaped",
 			c:    cast{Labels: []string{"the woman with the foam parrot", "the clerk", "the <b>twins</b>"}, More: 2},
-			wantText: "wren published a new perspective in Rainy Tuesday. Who might be in it: " +
+			wantText: "wren published a new story in Rainy Tuesday. Who might be in it: " +
 				"“the woman with the foam parrot”, “the clerk”, “the <b>twins</b>” and 2 more. " +
 				"If one of them was you, open the story and claim them.\n",
 			wantHTML:  "“the clerk”, “the &lt;b&gt;twins&lt;/b&gt;” and 2 more.",
@@ -83,7 +83,7 @@ func TestNewStoryEmailNamesCast(t *testing.T) {
 		},
 		{
 			name:     "nobody unclaimed names nobody",
-			wantText: "wren published a new perspective in Rainy Tuesday.\n",
+			wantText: "wren published a new story in Rainy Tuesday.\n",
 		},
 	}
 	for _, tc := range tests {

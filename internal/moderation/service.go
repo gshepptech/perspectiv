@@ -170,7 +170,7 @@ func requireReportable(ctx context.Context, q *dbq.Queries, kind perspectivv1.Re
 	switch kind {
 	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PERSPECTIVE:
 		ok, err = q.PerspectiveReportable(ctx, id)
-		what = "perspective"
+		what = "story"
 	case perspectivv1.ReportTargetKind_REPORT_TARGET_KIND_PLACE:
 		ok, err = q.PlaceReportable(ctx, id)
 		what = "place"
@@ -445,7 +445,7 @@ func applyAction(ctx context.Context, q *dbq.Queries, admin uuid.UUID, action pe
 	case perspectivv1.ModerationAction_MODERATION_ACTION_HIDE_PERSPECTIVE:
 		arcID, err := q.HidePerspective(ctx, target)
 		if errors.Is(err, pgx.ErrNoRows) {
-			return apiutil.NotFound("the reported perspective no longer exists")
+			return apiutil.NotFound("the reported story no longer exists")
 		}
 		if err != nil {
 			return apiutil.Internal(fmt.Errorf("hide perspective: %w", err))

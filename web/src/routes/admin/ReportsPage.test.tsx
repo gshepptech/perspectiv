@@ -46,11 +46,11 @@ describe("report queue (FR-035)", () => {
     const api = installApi({ "ModerationService/ListReports": () => ok({ reports: [report()] }) }, admin);
     renderRoute("/admin/reports");
     const item = await screen.findByRole("listitem", { name: /The rainy Thursday/ });
-    expect(item).toHaveTextContent("Perspective");
+    expect(item).toHaveTextContent("Story");
     expect(item).toHaveTextContent("Real name or handle of a non-user");
     expect(item).toHaveTextContent("Names my neighbour in part 2.");
     expect(item).toHaveTextContent("Reported by marlo");
-    expect(within(item).getByRole("link", { name: "Open the perspective" })).toHaveAttribute("href", "/perspectives/p-7");
+    expect(within(item).getByRole("link", { name: "Open the story" })).toHaveAttribute("href", "/perspectives/p-7");
     expect(api.callsTo("ModerationService/ListReports")[0]?.body).toMatchObject({ status: "REPORT_STATUS_OPEN" });
   });
 
@@ -91,7 +91,7 @@ describe("report queue (FR-035)", () => {
     const dialog = await screen.findByRole("dialog", { name: "Resolve report" });
     const actions = within(dialog).getByRole("group", { name: "Action" });
     expect(within(actions).getAllByRole("radio").map((r) => r.getAttribute("aria-label") ?? r.closest("label")?.textContent)).toEqual([
-      "Hide perspective",
+      "Hide story",
       "Suspend the author",
       "Dismiss",
     ]);
@@ -101,7 +101,7 @@ describe("report queue (FR-035)", () => {
     expect(await within(dialog).findByText("Say why. The reason is written to the audit log.")).toBeInTheDocument();
     expect(api.callsTo("ModerationService/Resolve")).toHaveLength(0);
 
-    await user.click(within(actions).getByRole("radio", { name: "Hide perspective" }));
+    await user.click(within(actions).getByRole("radio", { name: "Hide story" }));
     await user.type(within(dialog).getByRole("textbox", { name: "Reason for the audit log" }), "Names a private person");
     await user.click(within(dialog).getByRole("button", { name: "Resolve report" }));
 
@@ -113,7 +113,7 @@ describe("report queue (FR-035)", () => {
     });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(await screen.findByText("No open reports.")).toBeInTheDocument();
-    expect(screen.getByRole("status", { name: "Queue status" })).toHaveTextContent("Report resolved: hide perspective.");
+    expect(screen.getByRole("status", { name: "Queue status" })).toHaveTextContent("Report resolved: hide story.");
     // The Resolve button went with the report; focus is on what happened.
     await waitFor(() => expect(screen.getByRole("status", { name: "Queue status" })).toHaveFocus());
   });
@@ -137,7 +137,7 @@ describe("report queue (FR-035)", () => {
     await user.click(within(userItem).getByRole("button", { name: "Resolve" }));
     let dialog = await screen.findByRole("dialog", { name: "Resolve report" });
     expect(within(dialog).getByRole("radio", { name: "Suspend user" })).toBeInTheDocument();
-    expect(within(dialog).queryByRole("radio", { name: "Hide perspective" })).toBeNull();
+    expect(within(dialog).queryByRole("radio", { name: "Hide story" })).toBeNull();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
@@ -168,7 +168,7 @@ describe("report queue (FR-035)", () => {
     await user.click(within(postItem).getByRole("button", { name: "Resolve" }));
     let dialog = await screen.findByRole("dialog", { name: "Resolve report" });
     expect(within(dialog).getByRole("radio", { name: "Hide post" })).toBeInTheDocument();
-    expect(within(dialog).queryByRole("radio", { name: "Hide perspective" })).toBeNull();
+    expect(within(dialog).queryByRole("radio", { name: "Hide story" })).toBeNull();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 
@@ -194,7 +194,7 @@ describe("report queue (FR-035)", () => {
     await user.keyboard("{Enter}");
     const dialog = await screen.findByRole("dialog", { name: "Resolve report" });
     // Focus starts on the first action; arrows move between actions.
-    expect(within(dialog).getByRole("radio", { name: "Hide perspective" })).toHaveFocus();
+    expect(within(dialog).getByRole("radio", { name: "Hide story" })).toHaveFocus();
     await user.keyboard("{ArrowDown}");
     expect(within(dialog).getByRole("radio", { name: "Suspend the author" })).toBeChecked();
     await user.keyboard("{ArrowDown}");
@@ -248,7 +248,7 @@ describe("report queue (FR-035)", () => {
       targetKind: "REPORT_TARGET_KIND_USER",
       targetId: "u-author",
       reason: "REPORT_REASON_REAL_NAME_OR_HANDLE_OF_NON_USER",
-      details: "Filed from the report on perspective p-7: Repeatedly names a neighbour",
+      details: "Filed from the report on story p-7: Repeatedly names a neighbour",
     });
     expect(api.callsTo("ModerationService/Resolve")[0]?.body).toEqual({
       reportId: "r-user",
@@ -276,7 +276,7 @@ describe("report queue (FR-035)", () => {
     await user.type(within(dialog).getByRole("textbox", { name: "Reason for the audit log" }), "spam");
     await user.click(within(dialog).getByRole("button", { name: "Resolve report" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent(
-      "This perspective no longer shows its author, so they cannot be suspended from here.",
+      "This story no longer shows its author, so they cannot be suspended from here.",
     );
     expect(api.callsTo("ModerationService/Report")).toHaveLength(0);
     expect(api.callsTo("ModerationService/Resolve")).toHaveLength(0);
@@ -308,7 +308,7 @@ describe("report queue (FR-035)", () => {
     expect(await screen.findByText("No open reports.")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Resolved" }));
     const item = await screen.findByRole("listitem", { name: /The rainy Thursday/ });
-    expect(item).toHaveTextContent("Hide perspective by warden");
+    expect(item).toHaveTextContent("Hide story by warden");
     expect(item).toHaveTextContent("Names a private person");
     expect(within(item).queryByRole("button", { name: "Resolve" })).toBeNull();
     expect(api.callsTo("ModerationService/ListReports").at(-1)?.body).toMatchObject({

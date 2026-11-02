@@ -39,10 +39,10 @@ function Gone({ p }: { p: Perspective }) {
       <BackLink p={p} />
       <section className="mx-auto max-w-measure border-y border-rule py-8" aria-labelledby="read-gone">
         <h1 id="read-gone" ref={heading} tabIndex={-1} className="text-2xl wrap-anywhere focus:outline-none sm:text-3xl">
-          {p.arcTitle || "A perspective"}
+          {p.arcTitle || "A story"}
         </h1>
         <p className="mt-3 text-ink-muted">
-          {p.hidden ? "This perspective was hidden by a moderator." : "This perspective was deleted by its author."}
+          {p.hidden ? "This story was hidden by a moderator." : "This story was deleted by its author."}
         </p>
       </section>
     </div>
@@ -188,7 +188,7 @@ function AuthorActions({ p }: { p: Perspective }) {
       if (isDraft) await navigate("/");
     },
   });
-  const noun = isDraft ? "draft" : "perspective";
+  const noun = isDraft ? "draft" : "story";
   return (
     <div className="flex flex-wrap items-center gap-3">
       {!isDraft && <InviteDialog p={p} openOnArrival={params.get("invite") === "1"} />}
@@ -263,7 +263,7 @@ export function Component() {
   const title = loaded ? storyTitle(loaded) : "";
   useDocumentTitle(
     query.isError
-      ? "Perspective not found"
+      ? "Story not found"
       : loaded && loaded.author && !loaded.deleted && !loaded.hidden
         ? `${title} by ${loaded.author.username}`
         : title,
@@ -287,16 +287,16 @@ export function Component() {
   }
   if (query.isError) {
     if (ConnectError.from(query.error).code === Code.NotFound) {
-      return <Missing title="Perspective not found" detail="It may never have existed, or it is a draft that is not yours." />;
+      return <Missing title="Story not found" detail="It may never have existed, or it is a draft that is not yours." />;
     }
     return (
       <p role="alert" className="mx-auto max-w-measure text-error">
-        This perspective could not be loaded. Try again in a moment.
+        This story could not be loaded. Try again in a moment.
       </p>
     );
   }
   const p = query.data;
-  if (!p) return <Missing title="Perspective not found" detail="It may have been removed." />;
+  if (!p) return <Missing title="Story not found" detail="It may have been removed." />;
 
   if (p.deleted || p.hidden) return <Gone p={p} />;
 

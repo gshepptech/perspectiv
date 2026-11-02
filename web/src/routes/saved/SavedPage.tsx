@@ -31,7 +31,7 @@ function SavedRow({ p }: { p: Perspective }) {
         <SaveButton
           perspectiveId={p.id}
           saved={saved}
-          targetName={`${p.author?.username ?? "someone"}'s perspective`}
+          targetName={`${p.author?.username ?? "someone"}'s story`}
           onSaved={setSaved}
           undo
         />

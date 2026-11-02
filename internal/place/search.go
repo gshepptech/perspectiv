@@ -15,7 +15,7 @@ import (
 
 // A search can name a place and the city, town or state it is in:
 // "starbucks tampa", "tampa starbucks", "starbucks in tampa", "starbucks,
-// tampa" or "tampa florida". Each way of splitting the words into a name
+// tampa", "tampa florida", "starbucks fl" or "starbucks tampa fl". Each way of splitting the words into a name
 // and a locality that names a visible state, city or town is searched under
 // those localities, best locality first, beside the plain search of the
 // whole text.
@@ -35,9 +35,11 @@ const (
 )
 
 // split is one reading of a search as a place name and the city or town it
-// is in.
+// is in. state, when set, is the name of the state a code in the search
+// named ("fl"): the locality is within that state, or, when locality is
+// empty, the state is the locality.
 type split struct {
-	name, locality string
+	name, locality, state string
 }
 
 // Split is how a search read its text as a place's name and the locality
@@ -154,18 +156,14 @@ func (s *Service) searchLocalities(ctx context.Context, display string, parentID
 	if len(splits) == 0 {
 		return nil, nil, nil
 	}
-	var names []string
-	for _, sp := range splits {
-		names = append(names, localityNames(strings.ToLower(sp.locality))...)
-	}
-	found, err := s.store.Localities(ctx, names, parentID)
+	found, inState, err := s.findLocalities(ctx, splits, parentID)
 	if err != nil {
 		return nil, nil, err
 	}
 	var lists [][]Place
 	var read *splitRead
 	for _, sp := range splits {
-		locs := localityMatches(found, strings.ToLower(sp.locality))
+		locs := splitLocalities(sp, found, inState)
 		if len(locs) == 0 {
 			continue
 		}
@@ -189,6 +187,63 @@ func (s *Service) searchLocalities(ctx context.Context, display string, parentID
 		}
 	}
 	return lists, read, nil
+}
+
+// findLocalities reads the localities splits name, under parentID when it
+// is set: found holds the states and the localities named without one, and
+// inState the localities named within a state, read under that state once
+// found holds it. Every split names the same state, if any (localitySplits).
+func (s *Service) findLocalities(ctx context.Context, splits []split, parentID uuid.UUID) (found, inState []Locality, err error) {
+	var names, inStateNames []string
+	for _, sp := range splits {
+		switch {
+		case sp.locality == "":
+			names = append(names, strings.ToLower(sp.state))
+		case sp.state != "":
+			inStateNames = append(inStateNames, localityNames(strings.ToLower(sp.locality))...)
+		default:
+			names = append(names, localityNames(strings.ToLower(sp.locality))...)
+		}
+	}
+	found, err = s.store.Localities(ctx, names, parentID)
+	if err != nil || len(inStateNames) == 0 {
+		return found, nil, err
+	}
+	state, ok := stateLocality(found, splits[len(splits)-1].state)
+	if !ok {
+		return found, nil, nil
+	}
+	inState, err = s.store.Localities(ctx, inStateNames, state.ID)
+	return found, inState, err
+}
+
+// splitLocalities picks the localities a split names, best first: the
+// state itself, the localities found within its state, or the localities
+// found by name alone.
+func splitLocalities(sp split, found, inState []Locality) []Locality {
+	switch {
+	case sp.locality == "":
+		if l, ok := stateLocality(found, sp.state); ok {
+			return []Locality{l}
+		}
+		return nil
+	case sp.state != "":
+		return localityMatches(inState, strings.ToLower(sp.locality))
+	default:
+		return localityMatches(found, strings.ToLower(sp.locality))
+	}
+}
+
+// stateLocality finds in found the state named state: the locality of that
+// name with no parent, so a city named for a state ("Washington") is not
+// taken for it.
+func stateLocality(found []Locality, state string) (Locality, bool) {
+	name := strings.ToLower(state)
+	i := slices.IndexFunc(found, func(l Locality) bool { return l.Name == name && l.ParentID == uuid.Nil })
+	if i < 0 {
+		return Locality{}, false
+	}
+	return found[i], true
 }
 
 // localityMatches picks from found, which is best first, up to
@@ -237,14 +292,61 @@ func localityNames(locality string) []string {
 }
 
 // localitySplits lists the readings of text as a name and a locality, most
+// likely first, in text's own case. When text starts or ends with a state
+// code (stateOf), the rest of it is read as townSplits reads a text, each
+// locality within that state, and last as a name in the state itself:
+// "publix tampa fl" tries Publix in Tampa, Florida before "publix tampa" in
+// Florida. Otherwise the readings are townSplits'.
+func localitySplits(text string) []split {
+	state, rest, ok := stateOf(text)
+	if !ok {
+		return townSplits(text)
+	}
+	var out []split
+	for _, sp := range townSplits(rest) {
+		sp.state = state
+		out = append(out, sp)
+	}
+	return append(out, split{name: nameWords(strings.Fields(strings.ReplaceAll(rest, ",", " "))), state: state})
+}
+
+// stateOf reads a USPS code (stateCodes), in any case and with or without
+// a full stop, as the last word of text after a space or a comma, or as
+// its first word when the code is not also a word (wordCodes), and returns
+// the state's name and the rest of text, which is never empty: "Tampa,
+// FL." is Florida and "Tampa"; "ok" alone and "in tampa" name no state.
+func stateOf(text string) (state, rest string, ok bool) {
+	if i := strings.LastIndexAny(text, " ,"); i >= 0 {
+		name, found := stateCodes[codeKey(text[i+1:])]
+		if r := strings.TrimRight(text[:i], " ,"); found && r != "" {
+			return name, r, true
+		}
+	}
+	if i := strings.IndexAny(text, " ,"); i >= 0 {
+		code := codeKey(text[:i])
+		name, found := stateCodes[code]
+		if r := strings.TrimLeft(text[i+1:], " ,"); found && r != "" && !slices.Contains(wordCodes, code) {
+			return name, r, true
+		}
+	}
+	return "", "", false
+}
+
+// codeKey is a word as stateCodes keys it: lowercase, without a last full
+// stop.
+func codeKey(word string) string {
+	return strings.ToLower(strings.TrimSuffix(word, "."))
+}
+
+// townSplits lists the readings of text as a name and a locality, most
 // likely first, in text's own case. With a comma, the name comes before it
-// and the locality after it ("starbucks, tampa, fl"), or the other way
-// round. Without one, the locality is the last or the first one to
+// and the locality after it ("starbucks, tampa, florida"), or the other
+// way round. Without one, the locality is the last or the first one to
 // maxLocalityWords words, longer first and the last words before the
 // first: "starbucks st petersburg" tries "st petersburg" before
 // "petersburg". A last name word "in", in any case, is dropped ("starbucks
 // in tampa").
-func localitySplits(text string) []split {
+func townSplits(text string) []split {
 	if before, after, ok := strings.Cut(text, ","); ok {
 		town, _, _ := strings.Cut(after, ",")
 		name, town := normalizeName(before), normalizeName(town)

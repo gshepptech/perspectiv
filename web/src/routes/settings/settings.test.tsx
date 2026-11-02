@@ -255,9 +255,9 @@ describe("SettingsPage notification toggles", () => {
     settings();
     const region = await screen.findByRole("region", { name: "Notifications" });
     const labels = [
-      "Someone claims a character in your perspective",
+      "Someone claims a character in your story",
       "Your claim is accepted",
-      "A new perspective on your day",
+      "A new story on your day",
       "A vote to remove opens",
       "The canon of your day changes",
       "A report you made is resolved",

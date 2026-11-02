@@ -27,12 +27,12 @@ const UMBRELLA = "the woman shaking out a yellow umbrella";
 async function openStory(w: Writer, arc: string, author: string) {
   // A fresh load: the arc decides who may act from who has written here.
   await visit(w.page, w.account, arc);
-  await w.page.getByRole("link", { name: `Read ${author}'s perspective` }).click();
+  await w.page.getByRole("link", { name: `Read ${author}'s story` }).click();
   await expect(w.page.getByRole("heading", { level: 1 })).toBeVisible();
   return w.page.getByRole("region", { name: "Respond to this story" });
 }
 
-/** Claims `label` in `author`'s perspective from the story's own page. */
+/** Claims `label` in `author`'s story from the story's own page. */
 async function claim(w: Writer, arc: string, author: string, label: string) {
   const actions = await openStory(w, arc, author);
   await actions.getByRole("button", { name: "Claim a character" }).click();
@@ -43,11 +43,11 @@ async function claim(w: Writer, arc: string, author: string, label: string) {
   await expect(dialog).toBeHidden();
 }
 
-/** Casts a remove vote on `target`'s perspective from its own page; returns the actions under it. */
+/** Casts a remove vote on `target`'s story from its own page; returns the actions under it. */
 async function voteToRemove(w: Writer, arc: string, target: string) {
   const actions = await openStory(w, arc, target);
   await actions.getByRole("button", { name: "Vote to remove" }).click();
-  const dialog = w.page.getByRole("dialog", { name: `Vote to remove ${target}'s perspective?` });
+  const dialog = w.page.getByRole("dialog", { name: `Vote to remove ${target}'s story?` });
   await dialog.getByRole("button", { name: "Vote to remove" }).click();
   await expect(dialog).toBeHidden();
   return actions;
@@ -152,7 +152,7 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
   await expect(card(ben.page.getByRole("region", { name: "Canon" }), deeAcct.username)).toHaveCount(0);
 
   // The lore is down to 3 members, below the canon minimum, so the next pass
-  // clears canon; Dee's perspective stays readable as a removed tale.
+  // clears canon; Dee's story stays readable as a removed tale.
   await reloadUntil(
     anon,
     arc,

@@ -172,7 +172,7 @@ function YourPerspectives() {
   if (mine.isError) {
     return (
       <p role="alert" className="mt-12 text-sm text-error">
-        Your perspectives could not be loaded. Try again in a moment.
+        Your stories could not be loaded. Try again in a moment.
       </p>
     );
   }
@@ -180,7 +180,7 @@ function YourPerspectives() {
   return (
     <section aria-labelledby="landing-mine" className="mt-12">
       <h2 id="landing-mine" ref={heading} tabIndex={-1} className="text-xl focus:outline-none">
-        Your perspectives
+        Your stories
       </h2>
       <ul ref={more.list} className="mt-3 divide-y divide-rule border-y border-rule">
         {items.map((p) => (

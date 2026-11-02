@@ -29,7 +29,7 @@ function Rail({ summary, rights }: { summary: PerspectiveSummary; rights?: Viewe
       upvotes={summary.upvotes}
       voted={summary.voted}
       canVote={canVote}
-      targetName={name ? `${name}'s perspective` : "this perspective"}
+      targetName={name ? `${name}'s story` : "this story"}
     />
   );
 }
@@ -57,9 +57,9 @@ export function StoryRow({
   const name = summary.author?.username;
   if (summary.deleted || summary.hidden) {
     return (
-      <article aria-label="Unavailable perspective" className="py-3 pl-14">
+      <article aria-label="Unavailable story" className="py-3 pl-14">
         <p className="text-sm text-ink-muted">
-          {summary.deleted ? "This perspective was deleted." : "This perspective was hidden by a moderator."}
+          {summary.deleted ? "This story was deleted." : "This story was hidden by a moderator."}
         </p>
       </article>
     );
@@ -68,7 +68,7 @@ export function StoryRow({
   const genre = genreLabel(summary.genre);
   const href = `/perspectives/${summary.id}`;
   return (
-    <article aria-label={name ? `${name}'s perspective` : "A perspective"} className="flex min-w-0 gap-2 py-3">
+    <article aria-label={name ? `${name}'s story` : "A story"} className="flex min-w-0 gap-2 py-3">
       <Rail summary={summary} rights={rights} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm text-ink-muted">
@@ -85,7 +85,7 @@ export function StoryRow({
           <p className="mt-1 line-clamp-2 max-w-measure font-serif text-prose break-words hyphens-manual text-ink">{summary.excerpt}</p>
         )}
         <Link to={href} className="mt-1 inline-flex min-h-11 min-w-11 items-center text-sm font-medium text-accent underline underline-offset-4">
-          Read <span className="sr-only">{name ? `${name}'s perspective` : "this perspective"}</span>
+          Read <span className="sr-only">{name ? `${name}'s story` : "this story"}</span>
         </Link>
       </div>
     </article>

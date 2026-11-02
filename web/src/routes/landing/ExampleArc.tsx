@@ -48,7 +48,7 @@ export function ExampleArc() {
       </p>
       <p className="mt-2 flex min-w-0 items-start gap-2 text-sm text-ink">
         <BookMarked aria-hidden size={16} className="mt-0.5 shrink-0 text-ink-muted" />
-        <span className="min-w-0">Linked with two more perspectives into a lore, it became the canon of that night.</span>
+        <span className="min-w-0">Linked with two more stories into a lore, it became the canon of that night.</span>
       </p>
     </figure>
   );

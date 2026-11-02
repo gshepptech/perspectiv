@@ -192,7 +192,7 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
           </>
         ) : (
           <>
-            You said you are {label} in <strong className="font-semibold">{author}</strong>'s perspective
+            You said you are {label} in <strong className="font-semibold">{author}</strong>'s story
           </>
         )}
       </p>
@@ -287,7 +287,7 @@ function ClaimList({ direction }: { direction: ClaimDirection }) {
       <p className="text-ink-muted">
         {incoming
           ? "No one has claimed your characters yet."
-          : "You have not claimed anyone's character yet. When you recognise yourself in another perspective from your day, claim that character from it."}
+          : "You have not claimed anyone's character yet. When you recognise yourself in another story from your day, claim that character from it."}
       </p>
     );
   }
@@ -324,7 +324,7 @@ export function Component() {
         Requests
       </h1>
       <p className="text-ink-muted">
-        A request says “that character was me”. Accepting one links both perspectives into the same lore.
+        A request says “that character was me”. Accepting one links both stories into the same lore.
       </p>
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList aria-label="Requests">

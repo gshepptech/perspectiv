@@ -49,7 +49,7 @@ describe("audit log", () => {
     renderRoute("/admin/audit");
     const list = await screen.findByRole("list", { name: "Audit entries" });
     const [hide, grant, code] = within(list).getAllByRole("listitem");
-    expect(hide).toHaveTextContent("ana hid a perspective: Rain at the deli");
+    expect(hide).toHaveTextContent("ana hid a story: Rain at the deli");
     expect(hide).toHaveTextContent("“names the cashier”");
     expect(within(hide!).getByRole("link", { name: "Rain at the deli" })).toHaveAttribute("href", "/perspectives/p-7");
     expect(within(hide!).getByRole("link", { name: "ana" })).toHaveAttribute("href", "/admin/users?q=u-a");
@@ -114,10 +114,10 @@ describe("restoring hidden content", () => {
     const [hide, dismiss] = within(list).getAllByRole("listitem");
     expect(within(dismiss!).queryByRole("button", { name: "Restore…" })).not.toBeInTheDocument();
     await user.click(within(hide!).getByRole("button", { name: "Restore…" }));
-    const dialog = await screen.findByRole("dialog", { name: "Restore this perspective?" });
+    const dialog = await screen.findByRole("dialog", { name: "Restore this story?" });
     await user.type(within(dialog).getByLabelText("Reason for the audit log"), "hidden by mistake");
-    await user.click(within(dialog).getByRole("button", { name: "Restore perspective" }));
-    const status = await screen.findByText("The perspective is restored.");
+    await user.click(within(dialog).getByRole("button", { name: "Restore story" }));
+    const status = await screen.findByText("The story is restored.");
     expect(status).toHaveAttribute("role", "status");
     expect(status).not.toHaveAttribute("aria-label");
     expect(api.callsTo("ModerationService/Restore")[0]?.body).toMatchObject({
@@ -140,7 +140,7 @@ describe("restoring hidden content", () => {
     await user.click(await screen.findByRole("button", { name: "Restore…" }));
     const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Reason for the audit log"), "check");
-    await user.click(within(dialog).getByRole("button", { name: "Restore perspective" }));
+    await user.click(within(dialog).getByRole("button", { name: "Restore story" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("This is not hidden.");
   });
 });

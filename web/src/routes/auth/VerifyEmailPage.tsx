@@ -48,7 +48,7 @@ export function Component() {
     return (
       <AuthPanel>
         <AuthHeading>Your email is verified</AuthHeading>
-        <p className="mt-4">You can now publish perspectives, claim characters, vote and react.</p>
+        <p className="mt-4">You can now publish stories, claim characters, vote and react.</p>
         {next ? (
           <p className="mt-6">
             <Link to={through(next)} className={linkClass}>

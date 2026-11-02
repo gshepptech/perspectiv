@@ -49,7 +49,7 @@ describe("claims inbox", () => {
       "href",
       "/perspectives/p-mine",
     );
-    expect(within(item).queryByRole("link", { name: "Your perspective" })).toBeNull();
+    expect(within(item).queryByRole("link", { name: "Your story" })).toBeNull();
     expect(within(item).getByRole("link", { name: "Read their story" })).toHaveAttribute("href", "/perspectives/p-theirs");
     expect(api.callsTo("LoreService/ListClaims")[0]?.body).toMatchObject({ direction: "CLAIM_DIRECTION_INCOMING" });
   });
@@ -244,7 +244,7 @@ describe("claims inbox", () => {
     const outgoingTab = screen.getByRole("tab", { name: "Your claims" });
     expect(outgoingTab).toHaveAttribute("aria-selected", "true");
     const item = await screen.findByRole("listitem", { name: /juniper/ });
-    expect(item).toHaveTextContent("You said you are “the clerk with the green scarf” in juniper's perspective");
+    expect(item).toHaveTextContent("You said you are “the clerk with the green scarf” in juniper's story");
     expect(item).toHaveTextContent("Accepted");
     expect(within(item).getByRole("link", { name: "About juniper's story at UCF Stadium, October 3, 2026" })).toHaveAttribute(
       "href",

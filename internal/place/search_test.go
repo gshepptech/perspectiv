@@ -70,7 +70,10 @@ func TestSearchPlacesByLocality(t *testing.T) {
 		{name: "name then town", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks chicago"}, want: chicagoFirst},
 		{name: "town then name", req: &perspectivv1.SearchPlacesRequest{Query: "Chicago Starbucks"}, want: chicagoFirst},
 		{name: "name, comma, town", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks, chicago"}, want: chicagoFirst},
-		{name: "a state after the town", req: &perspectivv1.SearchPlacesRequest{Query: "Starbucks, Chicago, IL"}, want: chicagoFirst},
+		{name: "a state name after the town is ignored", req: &perspectivv1.SearchPlacesRequest{Query: "Starbucks, Chicago, Indiana"}, want: chicagoFirst},
+		{name: "a state code after the town keeps the town in it", req: &perspectivv1.SearchPlacesRequest{Query: "Starbucks, Chicago, IL"}, want: idStrings(inChicago, reserve)},
+		{name: "town and code without a comma", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks chicago il"}, want: idStrings(inChicago, reserve)},
+		{name: "a last in after the town is Indiana", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks chicago in"}, want: idStrings(inChicagoTown)},
 		{name: "name in town", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks in chicago"}, want: chicagoFirst},
 		{name: "a town under a city", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks southtown"}, want: idStrings(inSouthtown)},
 		{name: "a city covers its towns", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks springfield"}, want: idStrings(inSouthtown)},
@@ -193,8 +196,9 @@ func TestSearchPlacesMore(t *testing.T) {
 
 // TestSearchPlacesSplit covers the split SearchPlaces returns for the add
 // form: the name part as typed and the best locality with its label, a
-// state as a locality, and no split when nothing names a locality or a
-// place's name starts with the whole search.
+// state as a locality, by name or by code, a town within a coded state, and
+// no split when nothing names a locality or a place's name starts with the
+// whole search.
 func TestSearchPlacesSplit(t *testing.T) {
 	t.Parallel()
 	h := newHierarchy(t)
@@ -208,6 +212,8 @@ func TestSearchPlacesSplit(t *testing.T) {
 	inChicagoTown := h.place(store, "Starbucks", chicagoTown)
 	inSouthtown := h.place(store, "Starbucks", h.town)
 	h.place(store, "Springfield Diner", h.otherCity)
+	driveIn := h.place(store, "Drive In", h.otherCity)
+	diner := h.place(store, "Diner", chicagoTown)
 
 	tests := []struct {
 		name    string
@@ -242,6 +248,53 @@ func TestSearchPlacesSplit(t *testing.T) {
 			name: "the parent filter picks the locality",
 			req:  &perspectivv1.SearchPlacesRequest{Query: "starbucks chicago", ParentId: indiana.String()},
 			want: &splitWant{name: "starbucks", localityID: chicagoTown.String(), label: "Chicago, Indiana"},
+		},
+		{
+			name:    "a state code narrows the search",
+			req:     &perspectivv1.SearchPlacesRequest{Query: "starbucks IL"},
+			want:    &splitWant{name: "starbucks", localityID: h.state.String(), label: "Illinois"},
+			wantIDs: idStrings(inChicago, inSouthtown),
+			wantNot: idStrings(inChicagoTown),
+		},
+		{
+			name:    "a first code with a full stop",
+			req:     &perspectivv1.SearchPlacesRequest{Query: "Il. Starbucks"},
+			want:    &splitWant{name: "Starbucks", localityID: h.state.String(), label: "Illinois"},
+			wantIDs: idStrings(inChicago, inSouthtown),
+			wantNot: idStrings(inChicagoTown),
+		},
+		{
+			name:    "a town and a code: the town within that state",
+			req:     &perspectivv1.SearchPlacesRequest{Query: "Starbucks, Chicago, IN."},
+			want:    &splitWant{name: "Starbucks", localityID: chicagoTown.String(), label: "Chicago, Indiana"},
+			wantIDs: idStrings(inChicagoTown),
+			wantNot: idStrings(inChicago),
+		},
+		{
+			name:    "a town not in the coded state falls back to the state",
+			req:     &perspectivv1.SearchPlacesRequest{Query: "diner southtown in"},
+			want:    &splitWant{name: "diner southtown", localityID: indiana.String(), label: "Indiana"},
+			wantNot: idStrings(diner),
+		},
+		{
+			name:    "a town and a code: a word code last is the state",
+			req:     &perspectivv1.SearchPlacesRequest{Query: "diner chicago in"},
+			want:    &splitWant{name: "diner", localityID: chicagoTown.String(), label: "Chicago, Indiana"},
+			wantIDs: idStrings(diner),
+		},
+		{
+			name:    "in before a town is the word in",
+			req:     &perspectivv1.SearchPlacesRequest{Query: "starbucks in chicago"},
+			want:    &splitWant{name: "starbucks", localityID: h.otherCity.String(), label: "Chicago, Illinois"},
+			wantIDs: idStrings(inChicago, inChicagoTown),
+		},
+		{name: "a word code first is a word", req: &perspectivv1.SearchPlacesRequest{Query: "in starbucks"}},
+		{name: "a code alone has no split", req: &perspectivv1.SearchPlacesRequest{Query: "il"}},
+		{name: "a code of a state not listed", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks tx"}},
+		{
+			name:    "a name starting with the whole search keeps a last code in the name",
+			req:     &perspectivv1.SearchPlacesRequest{Query: "drive in"},
+			wantIDs: idStrings(driveIn),
 		},
 		{name: "one word has no split", req: &perspectivv1.SearchPlacesRequest{Query: "starbucks"}},
 		{name: "no locality named", req: &perspectivv1.SearchPlacesRequest{Query: "white oaks mall"}},

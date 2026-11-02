@@ -62,11 +62,11 @@ describe("saved stories page", () => {
       { refresh: signedIn },
     );
     const list = await screen.findByRole("list", { name: "Saved stories" });
-    const toggle = within(list).getByRole("button", { name: "Saved otter's perspective" });
+    const toggle = within(list).getByRole("button", { name: "Saved otter's story" });
     expect(toggle).toHaveAttribute("aria-pressed", "true");
 
     await user.click(toggle);
-    const undo = await within(list).findByRole("button", { name: "Undo: save otter's perspective again" });
+    const undo = await within(list).findByRole("button", { name: "Undo: save otter's story again" });
     // The same button, so focus never left it.
     expect(undo).toBe(toggle);
     expect(undo).toHaveFocus();
@@ -77,7 +77,7 @@ describe("saved stories page", () => {
     expect(calls("PerspectiveService/ListSaved")).toHaveLength(1);
 
     await user.click(undo);
-    await waitFor(() => expect(within(list).getByRole("button", { name: "Saved otter's perspective" })).toHaveFocus());
+    await waitFor(() => expect(within(list).getByRole("button", { name: "Saved otter's story" })).toHaveFocus());
     expect(within(list).getByRole("status")).toBeEmptyDOMElement();
     expect(calls("PerspectiveService/SavePerspective")).toEqual([
       { perspectiveId: "p-1" },

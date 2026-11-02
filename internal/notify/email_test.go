@@ -175,8 +175,8 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 				"characters":      `["the woman with the foam parrot","the clerk"]`,
 				"more_characters": "2",
 			}},
-			wantSubject: "A new perspective in Rainy Tuesday",
-			wantText:    []string{"wren published a new perspective in Rainy Tuesday.\n"},
+			wantSubject: "A new story in Rainy Tuesday",
+			wantText:    []string{"wren published a new story in Rainy Tuesday.\n"},
 			notInHTML:   []string{"Who might be in it", "the clerk"},
 		},
 		{
@@ -185,8 +185,8 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 				"user_id": recipientID, "kind": "NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "actor": "wren",
 				"arc_title": "Rainy\r\n\r\nBcc: x@evil.test\u202e", "path": "/perspectives/p-1",
 			}},
-			wantSubject: "A new perspective in Rainy Bcc: x@evil.test",
-			wantText:    []string{"wren published a new perspective in Rainy Bcc: x@evil.test.\n"},
+			wantSubject: "A new story in Rainy Bcc: x@evil.test",
+			wantText:    []string{"wren published a new story in Rainy Bcc: x@evil.test.\n"},
 		},
 		{
 			name: "a new story with no unclaimed characters names nobody",
@@ -194,8 +194,8 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 				"user_id": recipientID, "kind": "NOTIFICATION_KIND_NEW_PERSPECTIVE_IN_ARC", "actor": "wren",
 				"arc_title": "Rainy Tuesday", "path": "/perspectives/p-1",
 			}},
-			wantSubject: "A new perspective in Rainy Tuesday",
-			wantText:    []string{"wren published a new perspective in Rainy Tuesday.\n"},
+			wantSubject: "A new story in Rainy Tuesday",
+			wantText:    []string{"wren published a new story in Rainy Tuesday.\n"},
 		},
 	}
 	for _, tc := range tests {

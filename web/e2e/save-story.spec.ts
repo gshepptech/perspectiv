@@ -23,8 +23,8 @@ test("a member saves a story, finds it on Saved, and unsaves it", async ({ brows
     genre: "Comedy",
     parts: ["A red box kite caught in the oak over the shop door and stayed there all afternoon."],
   });
-  const saveName = `Save ${finnAcct.username}'s perspective`;
-  const savedName = `Saved ${finnAcct.username}'s perspective`;
+  const saveName = `Save ${finnAcct.username}'s story`;
+  const savedName = `Saved ${finnAcct.username}'s story`;
 
   // Reading is public; saving needs an account, and sign-in comes back here.
   const anon = await reader(browser);

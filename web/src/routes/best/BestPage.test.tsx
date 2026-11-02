@@ -57,6 +57,10 @@ describe("best days at a kind of place", () => {
     expect(items[0]).toHaveTextContent("Canon: Last whistle");
     expect(items[0]).toHaveTextContent("The lights went out in the second half.");
     expect(items[1]).toHaveTextContent("Lake Courts, Chicago");
+    // The count reads as stories, then how many are linked; none linked leaves that out.
+    expect(items[0]).toHaveTextContent("6 stories · 4 linked");
+    expect(items[1]).toHaveTextContent("1 story");
+    expect(items[1]).not.toHaveTextContent("linked");
     expect(screen.getByRole("tab", { name: "Ranked" })).toHaveAttribute("aria-selected", "true");
     // Everywhere: no place, the category as the filter.
     expect(calls("PlaceService/GetEpic")).toEqual([{ tab: "EPIC_TAB_RANKED", category: "PLACE_CATEGORY_SPORTS_AND_RECREATION" }]);

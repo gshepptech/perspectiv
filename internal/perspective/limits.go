@@ -45,10 +45,10 @@ func countWords(s string) int {
 // still writing, though not only blank ones (see anyText).
 func checkParts(parts []string, publish bool) error {
 	if len(parts) > maxParts {
-		return apiutil.InvalidArg(fmt.Sprintf("a perspective has at most %d parts", maxParts))
+		return apiutil.InvalidArg(fmt.Sprintf("a story has at most %d parts", maxParts))
 	}
 	if publish && len(parts) == 0 {
-		return apiutil.InvalidArg("a perspective needs at least one part")
+		return apiutil.InvalidArg("a story needs at least one part")
 	}
 	for i, body := range parts {
 		if utf8.RuneCountInString(body) > maxPartRunes {
@@ -92,7 +92,7 @@ type characterInput struct {
 // belongs to the perspective is checked against the store.
 func checkCharacters(in []*perspectivv1.CharacterInput) ([]characterInput, error) {
 	if len(in) > maxCharacters {
-		return nil, apiutil.InvalidArg(fmt.Sprintf("a perspective declares at most %d characters", maxCharacters))
+		return nil, apiutil.InvalidArg(fmt.Sprintf("a story declares at most %d characters", maxCharacters))
 	}
 	out := make([]characterInput, 0, len(in))
 	seen := make(map[uuid.UUID]bool, len(in))

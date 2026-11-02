@@ -233,7 +233,7 @@ func (s *Service) ResolveClaim(ctx context.Context, caller, claimID uuid.UUID, a
 		if err := acceptable(cl.target, cl.claimant); err != nil {
 			return 0, err
 		}
-		if err := refuseHiddenArc(ctx, q, cl.arcID, apiutil.FailedPrecondition("one of these perspectives is no longer published")); err != nil {
+		if err := refuseHiddenArc(ctx, q, cl.arcID, apiutil.FailedPrecondition("one of these stories is no longer published")); err != nil {
 			return 0, err
 		}
 	}
@@ -279,7 +279,7 @@ func lockPendingClaim(ctx context.Context, q *dbq.Queries, caller, claimID uuid.
 		return pendingClaim{}, apiutil.PermissionDenied("only the character's author can resolve this claim")
 	}
 	if !cl.ArcID.Valid {
-		return pendingClaim{}, apiutil.FailedPrecondition("this claim's perspective is not published")
+		return pendingClaim{}, apiutil.FailedPrecondition("this claim's story is not published")
 	}
 	out := pendingClaim{id: claimID, arcID: cl.ArcID.UUID, perspectiveID: cl.PerspectiveID}
 	if err := q.LockArcLore(ctx, out.arcID); err != nil {
@@ -324,7 +324,7 @@ func (s *Service) linkAccepted(ctx context.Context, tx pgx.Tx, caller uuid.UUID,
 // caller's perspective.
 func claimantPerspective(ctx context.Context, q *dbq.Queries, ch dbq.GetCharacterRow, caller uuid.UUID) (uuid.UUID, error) {
 	if ch.AuthorID == caller {
-		return uuid.Nil, apiutil.FailedPrecondition("you cannot claim a character in your own perspective")
+		return uuid.Nil, apiutil.FailedPrecondition("you cannot claim a character in your own story")
 	}
 	mine, err := q.FindAuthorPerspectiveInArc(ctx, dbq.FindAuthorPerspectiveInArcParams{ArcID: ch.ArcID.UUID, AuthorID: caller})
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -366,7 +366,7 @@ func refuseHiddenArc(ctx context.Context, q *dbq.Queries, arcID uuid.UUID, refus
 func acceptable(target, claimant lockedPerspective) error {
 	switch {
 	case !readable(target) || !readable(claimant):
-		return apiutil.FailedPrecondition("one of these perspectives is no longer published")
+		return apiutil.FailedPrecondition("one of these stories is no longer published")
 	case target.ArcID != claimant.ArcID:
 		return apiutil.FailedPrecondition("both stories must be about the same day")
 	case removed(target) || removed(claimant):

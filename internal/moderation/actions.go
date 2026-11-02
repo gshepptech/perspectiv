@@ -130,7 +130,7 @@ func restore(ctx context.Context, q *dbq.Queries, kind perspectivv1.AuditTargetK
 		perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_WAITLIST_ENTRY,
 		perspectivv1.AuditTargetKind_AUDIT_TARGET_KIND_UNSPECIFIED:
 	}
-	return apiutil.InvalidArg("only a perspective, place or thread post can be restored")
+	return apiutil.InvalidArg("only a story, place or thread post can be restored")
 }
 
 func restoredOne(n int64, err error) error {

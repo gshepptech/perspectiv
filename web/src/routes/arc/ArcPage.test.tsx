@@ -46,7 +46,7 @@ describe("arc page reading order", () => {
     // The former canon, now a 3-member contender, keeps every story listed.
     const former = within(sublores).getByRole("region", { name: "moth, finch and 1 other" });
     for (const name of ["moth", "finch", "vole"]) {
-      expect(within(former).getByRole("article", { name: `${name}'s perspective` })).toBeInTheDocument();
+      expect(within(former).getByRole("article", { name: `${name}'s story` })).toBeInTheDocument();
     }
     expect(within(former).getByText("1 more person to be eligible for canon")).toBeInTheDocument();
     expect(within(former).getByRole("link", { name: /Open this lore/ })).toHaveAttribute("href", "/lores/lore-former");
@@ -56,7 +56,7 @@ describe("arc page reading order", () => {
     expect(within(alone).getByText(/Removed from lore/)).toBeInTheDocument();
     expect(within(alone).getByText(/Waiting for a link/)).toBeInTheDocument();
     // Every story links to its own page.
-    expect(within(alone).getByRole("link", { name: "Read solo_teller's perspective" })).toHaveAttribute("href", "/perspectives/p-solo");
+    expect(within(alone).getByRole("link", { name: "Read solo_teller's story" })).toHaveAttribute("href", "/perspectives/p-solo");
   });
 
   it("titles a named lore by its name, with its people under it", async () => {
@@ -94,9 +94,9 @@ describe("arc page reading order", () => {
     ];
     await open("/arcs/arc-day", () => ({ body: res }));
     const alone = await screen.findByRole("region", { name: "Standing alone" });
-    expect(within(alone).getByText("This perspective was deleted.")).toBeInTheDocument();
-    expect(within(alone).getByText("This perspective was hidden by a moderator.")).toBeInTheDocument();
-    for (const gone of within(alone).getAllByRole("article", { name: "Unavailable perspective" })) {
+    expect(within(alone).getByText("This story was deleted.")).toBeInTheDocument();
+    expect(within(alone).getByText("This story was hidden by a moderator.")).toBeInTheDocument();
+    for (const gone of within(alone).getAllByRole("article", { name: "Unavailable story" })) {
       expect(within(gone).queryByRole("button")).toBeNull();
       expect(within(gone).queryByRole("link")).toBeNull();
     }
@@ -180,7 +180,7 @@ describe("signed-out reader", () => {
     expect(within(canon).getByText("Canon text by otter")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Standing alone" })).toHaveTextContent("A tale nobody claimed");
 
-    const card = within(canon).getByRole("article", { name: "otter's perspective" });
+    const card = within(canon).getByRole("article", { name: "otter's story" });
     expect(card).toHaveTextContent("2 upvotes");
     expect(within(card).queryByRole("button", { name: /^Upvote/ })).toBeNull();
     expect(screen.queryAllByRole("button", { name: /^Upvote/ })).toEqual([]);
@@ -222,11 +222,11 @@ describe("participation", () => {
     res.canon.lore = lore("lore-canon", "CANON", [{ perspectiveId: "p-otter", user: OTTER }]);
     res.viewer = { perspectiveId: "", loreId: "" };
     await open("/arcs/arc-day", () => ({ body: res }), { signedIn: true });
-    const write = await screen.findByRole("link", { name: "Write your perspective" });
+    const write = await screen.findByRole("link", { name: "Write your story" });
     expect(write).toHaveAttribute("href", "/compose?placeId=pl-store&date=2026-10-01");
     expect(screen.getByText(/Only people who wrote about this day can upvote, claim characters or post in a lore's thread/)).toBeInTheDocument();
     // The same arrow a signed-out reader sees: a count, and the rule once.
-    const otter = within(screen.getByRole("region", { name: "Canon" })).getByRole("article", { name: "otter's perspective" });
+    const otter = within(screen.getByRole("region", { name: "Canon" })).getByRole("article", { name: "otter's story" });
     expect(within(otter).queryByRole("button", { name: /^Upvote/ })).toBeNull();
     const note = screen.getByRole("note");
     expect(note).toHaveTextContent(UPVOTE_RULE);
@@ -236,7 +236,7 @@ describe("participation", () => {
   it("links a participant to their own perspective instead", async () => {
     await open("/arcs/arc-day", () => ({ body: dayArcResponse() }), { signedIn: true });
     expect(await screen.findByRole("link", { name: "Read yours" })).toHaveAttribute("href", "/perspectives/p-wren");
-    expect(screen.queryByRole("link", { name: "Write your perspective" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Write your story" })).toBeNull();
     // A writer of this day votes on the rows, so nobody tells them who may.
     expect(screen.queryByRole("note")).toBeNull();
   });
@@ -245,7 +245,7 @@ describe("participation", () => {
     await open("/arcs/arc-h15", () => ({
       body: { arc: arc({ id: "arc-h15", hour: 15, parentArcId: "arc-day" }), sublores: [], tales: [], hours: [] },
     }), { signedIn: true });
-    expect(await screen.findByRole("link", { name: "Write your perspective" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "Write your story" })).toHaveAttribute(
       "href",
       "/compose?placeId=pl-store&date=2026-10-01&hour=15",
     );
@@ -305,7 +305,7 @@ describe("arc page lists are paged (NFR-008)", () => {
     res.viewer = { perspectiveId: "p-page-three", loreId: "lore-elsewhere" };
     await open("/arcs/arc-day", () => ({ body: res }), { signedIn: true });
     expect(await screen.findByRole("link", { name: "Read yours" })).toHaveAttribute("href", "/perspectives/p-page-three");
-    expect(screen.queryByText(/Only people with a perspective here can upvote/)).toBeNull();
+    expect(screen.queryByText(/Only people who wrote about this day can upvote/)).toBeNull();
   });
 });
 

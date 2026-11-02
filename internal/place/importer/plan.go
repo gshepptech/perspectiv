@@ -442,6 +442,17 @@ func stateCode(region string) (string, bool) {
 	return code, ok
 }
 
+// StateNamesByCode maps each lowercase USPS code the importer files places
+// under to that state's lowercase name, for place search to read "fl" as
+// Florida. It returns a new map each call.
+func StateNamesByCode() map[string]string {
+	out := make(map[string]string, len(stateNames))
+	for name, code := range stateNames {
+		out[strings.ToLower(code)] = name
+	}
+	return out
+}
+
 // stateNames maps full state names to codes, for place records whose region
 // column holds the name.
 var stateNames = map[string]string{

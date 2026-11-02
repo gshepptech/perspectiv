@@ -46,10 +46,10 @@ describe("InboxPage", () => {
     inbox();
     await screen.findByRole("list", { name: "Notifications" });
     const text = items().map((li) => li.textContent);
-    expect(text[0]).toContain("rook claimed a character in your perspective in Food court, Saturday");
+    expect(text[0]).toContain("rook claimed a character in your story in Food court, Saturday");
     expect(text[1]).toContain("rook accepted your claim in Food court, Saturday");
-    expect(text[2]).toContain("rook published a new perspective in Food court, Saturday");
-    expect(text[3]).toContain("A vote to remove a perspective opened in Food court, Saturday");
+    expect(text[2]).toContain("rook published a new story in Food court, Saturday");
+    expect(text[3]).toContain("A vote to remove a story opened in Food court, Saturday");
     expect(text[4]).toContain("The canon of Food court, Saturday changed");
     expect(text[5]).toContain("A report you made was resolved");
     expect(screen.getByRole("main")).not.toHaveTextContent("@");
@@ -275,7 +275,7 @@ describe("a new story in your day", () => {
     },
   ])("says who might be in it: $name", ({ over, detail }) => {
     expect(describeNotification(story(over))).toEqual({
-      text: "otter published a new perspective in Fourth quarter.",
+      text: "otter published a new story in Fourth quarter.",
       to: "/perspectives/p-1",
       ...(detail && { detail }),
     });

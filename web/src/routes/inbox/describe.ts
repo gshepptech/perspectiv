@@ -36,15 +36,15 @@ export function describeNotification(n: Notification): Described {
   const perspectivePage = n.perspectiveId ? `/perspectives/${n.perspectiveId}` : arcPage;
   switch (n.kind) {
     case NotificationKind.CLAIM_RECEIVED:
-      return { text: `${who} claimed a character in your perspective in ${arc}.`, to: "/claims" };
+      return { text: `${who} claimed a character in your story in ${arc}.`, to: "/claims" };
     case NotificationKind.CLAIM_ACCEPTED:
       return { text: `${who} accepted your claim in ${arc}.`, to: arcPage };
     case NotificationKind.NEW_PERSPECTIVE_IN_ARC: {
       const detail = castLine(n);
-      return { text: `${who} published a new perspective in ${arc}.`, to: perspectivePage, ...(detail && { detail }) };
+      return { text: `${who} published a new story in ${arc}.`, to: perspectivePage, ...(detail && { detail }) };
     }
     case NotificationKind.VOTE_OUT_OPENED:
-      return { text: `A vote to remove a perspective opened in ${arc}.`, to: perspectivePage };
+      return { text: `A vote to remove a story opened in ${arc}.`, to: perspectivePage };
     case NotificationKind.CANON_CHANGE:
       return { text: `The canon of ${arc} changed.`, to: arcPage };
     case NotificationKind.INVITE_ANSWERED:

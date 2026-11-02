@@ -252,7 +252,7 @@ function HourTimeline({
                 <span className="min-w-0 break-words">{a.title}</span>
               </h3>
               <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-ink-muted">
-                <span>{plural(h.perspectiveCount, "perspective", "perspectives")}</span>
+                <span>{plural(h.perspectiveCount, "story", "stories")}</span>
                 <Link to={`/arcs/${a.id}`} className="font-medium text-accent underline underline-offset-4">
                   Open the {at} hour
                 </Link>
@@ -451,7 +451,7 @@ function ArcView({ res }: { res: GetArcResponse }) {
             <Button asChild size="sm" className="min-h-11">
               <Link to={composeHref({ placeId: arc.place?.id ?? "", localDate: arc.localDate, hour: arc.hour })}>
                 <PenLine aria-hidden size={16} />
-                Write your perspective
+                Write your story
               </Link>
             </Button>
           )}

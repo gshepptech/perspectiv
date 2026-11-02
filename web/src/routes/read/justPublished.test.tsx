@@ -125,7 +125,7 @@ describe("publishing to claim a character in someone else's story", () => {
       "PlaceService/GetPlace": () => ok({ place: { id: "pl-1", kind: "PLACE_KIND_STORE", name: "UCF Stadium", timezone: "America/New_York" } }),
     });
     renderRoute(composeHref({ placeId: "pl-1", localDate: "2026-10-03" }, "/perspectives/p-other?claim=1"));
-    await screen.findByRole("heading", { name: "Write a perspective" });
+    await screen.findByRole("heading", { name: "Write a story" });
     expect(takeAfterPublish({ placeId: "pl-1", localDate: "2026-10-03" })).toBe("/perspectives/p-other?claim=1");
     expect(composeHref({ placeId: "pl-1", localDate: "2026-10-03" }, "//evil.example/")).toBe("/compose?placeId=pl-1&date=2026-10-03");
     rememberAfterPublish({ placeId: "pl-1", localDate: "2026-10-03" }, "https://evil.example/");

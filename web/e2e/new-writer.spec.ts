@@ -30,7 +30,7 @@ async function composeAtStore(page: Page) {
   await page.waitForURL(/\/compose$/);
   await page.getByRole("searchbox", { name: "Where were you?" }).fill(STORE);
   await page.getByRole("list", { name: "Matching places" }).getByRole("button", { name: new RegExp(STORE) }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Write a perspective" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Write a story" })).toBeVisible();
 }
 
 test("a draft is resumed, a new story names who might be in it, and a request quotes the claimant", async ({ browser }) => {
@@ -47,7 +47,7 @@ test("a draft is resumed, a new story names who might be in it, and a request qu
 
     // Leave, then find the draft on the front page with a way back in.
     await visit(gil.page, gilAcct, "/");
-    const yours = gil.page.getByRole("region", { name: "Your perspectives" });
+    const yours = gil.page.getByRole("region", { name: "Your stories" });
     await expect(yours.getByRole("listitem").filter({ hasText: "Draft ·" })).toHaveCount(1);
     await expect(yours.getByRole("link", { name: /^Continue The fog sat on the wharf/ })).toBeVisible();
 
@@ -74,7 +74,7 @@ test("a draft is resumed, a new story names who might be in it, and a request qu
     await expect(gil.page.getByRole("status", { name: "Save status" })).toHaveText("Draft saved");
 
     await visit(gil.page, gilAcct, "/");
-    const yours = gil.page.getByRole("region", { name: "Your perspectives" });
+    const yours = gil.page.getByRole("region", { name: "Your stories" });
     const row = yours.getByRole("link", { name: /^The oyster boats came in after…/ });
     await expect(row).toContainText("Draft");
     await expect(yours).not.toContainText(/Untitled/);
@@ -107,10 +107,10 @@ test("a draft is resumed, a new story names who might be in it, and a request qu
 
   await test.step("the notification and its email say who might be in the new story", async () => {
     const who = "Who might be in it: “the woman with the foam parrot”, “the clerk”, “the twins” and 1 more.";
-    const mail = await waitForEmail(gilAcct.email, `A new perspective in ${TITLE}`);
+    const mail = await waitForEmail(gilAcct.email, `A new story in ${TITLE}`);
     expect(mail.Text.replace(/\s+/g, " ")).toContain(`${who} If one of them was you, open the story and claim them.`);
     await visit(gil.page, gilAcct, "/inbox");
-    const row = gil.page.getByRole("list", { name: "Notifications" }).getByRole("listitem").filter({ hasText: `published a new perspective in ${TITLE}` });
+    const row = gil.page.getByRole("list", { name: "Notifications" }).getByRole("listitem").filter({ hasText: `published a new story in ${TITLE}` });
     await expect(row.getByRole("link")).toContainText(who);
   });
 

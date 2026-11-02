@@ -74,7 +74,7 @@ describe("lore page", () => {
     expect(await screen.findByText("The power went out.")).toBeInTheDocument();
     expect(screen.getByText("I don't sing.")).toBeInTheDocument();
     // Each story is a plain article under a hairline, headed in the serif (Folio, Lore page: stories).
-    const story = screen.getByRole("article", { name: "wren's perspective" });
+    const story = screen.getByRole("article", { name: "wren's story" });
     expect(story).toHaveClass("border-t", "border-rule");
     expect(story.className).not.toMatch(/rounded|shadow|\bp-5\b/);
     expect(within(story).getByRole("heading", { level: 3 }).className).not.toMatch(/font-sans/);
@@ -85,7 +85,7 @@ describe("lore page", () => {
     expect(within(thread).queryByText(/Write your/)).toBeNull();
     expect(document.title).toBe("Unnamed lore in Open mic night · Perspectiv");
     // A tag opens the claimant's own story of the day.
-    const wrens = screen.getByRole("article", { name: "wren's perspective" });
+    const wrens = screen.getByRole("article", { name: "wren's story" });
     expect(await within(wrens).findByRole("link", { name: "otter’s story" })).toHaveAttribute("href", "/perspectives/p-otter");
   });
 

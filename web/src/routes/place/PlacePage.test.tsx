@@ -151,7 +151,7 @@ describe("place page (AC-008, FR-066, FR-032)", () => {
     expect(within(items[0]!).getByRole("link", { name: "The night the fountain froze" })).toHaveAttribute("href", "/arcs/arc-canon");
     expect(items[0]).toHaveTextContent("Prairie Books");
     expect(items[0]).toHaveTextContent("Canon: Ice night");
-    expect(items[0]).toHaveTextContent("5 in lore");
+    expect(items[0]).toHaveTextContent("7 stories · 5 linked");
     expect(items[0]).toHaveTextContent("January 14, 2026");
     expect(items[1]).toHaveTextContent("July 4, 2026, 14:00");
     expect(items[1]).not.toHaveTextContent("Canon");
