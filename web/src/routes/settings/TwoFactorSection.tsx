@@ -19,6 +19,7 @@ import { FormAlert } from "@/routes/auth/AuthPanel";
 import { errorMessage } from "@/routes/auth/errors";
 import { anyCodeSchema, appCodeSchema, passwordSchema } from "@/routes/auth/rules";
 
+import { sessionsKey } from "./DeviceList";
 import { Saved } from "./Section";
 
 // Query keys follow ["domain", "operation", ...inputs].
@@ -381,6 +382,8 @@ export function TwoFactorSection({ username }: { username: string }) {
         onCodes={(codes) => {
           updateSession({ twoFactorEnabled: true });
           void reread();
+          // Turning it on signs out every other device; the list must say so.
+          void queryClient.invalidateQueries({ queryKey: sessionsKey });
           setSaid("Two-factor sign-in is on.");
           setStep({ kind: "codes", codes });
         }}

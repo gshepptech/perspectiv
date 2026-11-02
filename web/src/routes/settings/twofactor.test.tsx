@@ -67,6 +67,7 @@ describe("Settings two-factor sign-in", () => {
     await user.type(within(twoFactor).getByLabelText("Current password"), "right password");
     await user.click(within(twoFactor).getByRole("button", { name: "Continue" }));
 
+    const sessionsBefore = api.sent("AuthService/ListSessions").length;
     // Step 2: the QR code is an SVG drawn here from the URI; nothing else is fetched.
     const qr = await within(twoFactor).findByRole("img", { name: "QR code for adding Perspectiv to your authenticator app" });
     expect(qr.tagName.toLowerCase()).toBe("svg");
@@ -107,6 +108,8 @@ describe("Settings two-factor sign-in", () => {
     expect(within(twoFactor).queryByRole("list", { name: "Recovery codes" })).not.toBeInTheDocument();
     expect(api.sent("AuthService/BeginTwoFactorSetup").at(-1)).toEqual({ currentPassword: "right password" });
     expect(api.sent("AuthService/ConfirmTwoFactorSetup").at(-1)).toEqual({ code: "123456" });
+    // Turning it on signs out the other devices, so the list is read again.
+    await waitFor(() => expect(api.sent("AuthService/ListSessions").length).toBeGreaterThan(sessionsBefore));
   });
 
   it("warns when few recovery codes are left", async () => {

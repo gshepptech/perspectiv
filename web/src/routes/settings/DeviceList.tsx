@@ -8,7 +8,7 @@ import { clients } from "@/lib/connect";
 import { FormAlert } from "@/routes/auth/AuthPanel";
 import { errorMessage } from "@/routes/auth/errors";
 
-const sessionsKey = ["auth", "listSessions"] as const;
+export const sessionsKey = ["auth", "listSessions"] as const;
 const day = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 const relative = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 
