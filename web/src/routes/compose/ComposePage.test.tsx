@@ -898,3 +898,139 @@ describe("composer: one story per day, and writing your side", () => {
     expect(screen.getByText(/Set to match their story/)).toBeInTheDocument();
   });
 });
+
+describe("composer: clearing a draft offers to delete it", () => {
+  const stored = {
+    id: "d-old",
+    status: "PERSPECTIVE_STATUS_DRAFT",
+    place: { id: nyStore.id, kind: nyStore.kind, name: nyStore.name },
+    localDate: "2026-10-01",
+    hour: 14,
+    genre: "GENRE_COMEDY",
+    parts: [{ position: 1, body: "I came back for the cat." }],
+  };
+  const question = () => screen.queryByText("This draft is empty. Delete it?");
+
+  /** The writer's draft for the day until it is deleted; ListMine and Get read the same store. */
+  function draftStore() {
+    let live = true;
+    const routes: Record<string, ApiHandler> = {
+      "PlaceService/GetPlace": getPlace,
+      "PerspectiveService/ListMine": (body) =>
+        ok({ perspectives: live && body.status === "PERSPECTIVE_STATUS_DRAFT" && body.localDate === stored.localDate ? [stored] : [] }),
+      "PerspectiveService/Get": () => (live ? ok({ perspective: stored }) : apiError("not_found", "story not found")),
+      "PerspectiveService/Delete": () => {
+        live = false;
+        return ok({});
+      },
+    };
+    return routes;
+  }
+
+  it("asks once every part of a saved draft is empty, saves nothing, and leaves focus in the part", async () => {
+    const user = userEvent.setup();
+    const api = installApi(draftStore());
+    renderRoute("/compose?perspectiveId=d-old");
+    const part = await screen.findByRole("textbox", { name: "Part 1" });
+    expect(part).toHaveValue("I came back for the cat.");
+    expect(question()).toBeNull();
+
+    await user.clear(part);
+    expect(question()).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep writing" })).toBeInTheDocument();
+    expect(part).toHaveFocus();
+    // Announced as it appears, from a region that was already there.
+    expect(question()?.closest("[aria-live='polite']")).not.toBeNull();
+    await new Promise((r) => setTimeout(r, AUTOSAVE_DEBOUNCE_MS + 300));
+    expect(api.callsTo("PerspectiveService/SaveDraft")).toHaveLength(0);
+    expect(api.callsTo("PerspectiveService/Delete")).toHaveLength(0);
+  });
+
+  it("puts the question away on Keep writing, and asks again only after the parts are emptied again", async () => {
+    const user = userEvent.setup();
+    installApi({ ...draftStore(), "PerspectiveService/SaveDraft": (body) => draftReply("d-old", body) });
+    renderRoute("/compose?perspectiveId=d-old");
+    const part = await screen.findByRole("textbox", { name: "Part 1" });
+    await user.clear(part);
+    await user.click(screen.getByRole("button", { name: "Keep writing" }));
+    expect(question()).toBeNull();
+    expect(part).toHaveFocus();
+
+    await user.type(part, "x");
+    expect(question()).toBeNull();
+    await user.clear(part);
+    expect(question()).toBeInTheDocument();
+  });
+
+  it("deletes the draft and opens the composer clean on the same place, day and hour", async () => {
+    const user = userEvent.setup();
+    const api = installApi(draftStore());
+    const router = renderRoute("/compose?placeId=p-ny&date=2026-10-01&hour=14");
+    const part = await screen.findByRole("textbox", { name: "Part 1" });
+    expect(part).toHaveValue("I came back for the cat.");
+    await waitFor(() => expect(router.state.location.search).toContain("perspectiveId=d-old"));
+
+    await user.clear(part);
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    const notice = await screen.findByText("Your empty draft is deleted.");
+    expect(api.callsTo("PerspectiveService/Delete")).toEqual([
+      { procedure: "PerspectiveService/Delete", body: { perspectiveId: "d-old" } },
+    ]);
+    // The button that had focus is gone, so the notice takes it.
+    expect(notice.closest("p")).toHaveFocus();
+    const params = new URLSearchParams(router.state.location.search);
+    expect(params.get("perspectiveId")).toBeNull();
+    expect(params.get("placeId")).toBe("p-ny");
+    expect(params.get("date")).toBe("2026-10-01");
+    expect(params.get("hour")).toBe("14");
+    expect(screen.getByRole("textbox", { name: "Part 1" })).toHaveValue("");
+    expect(screen.getByLabelText("Day of your visit")).toHaveValue("2026-10-01");
+    expect(screen.getByRole("combobox", { name: "Hour" })).toHaveTextContent("14:00");
+    expect(question()).toBeNull();
+    expect(screen.queryByText(/open again/)).toBeNull();
+    expect(screen.getByRole("status", { name: "Save status" })).toHaveTextContent("Your draft saves once a part has text.");
+  });
+
+  it("names the day in the address when the draft was opened by its id alone", async () => {
+    const user = userEvent.setup();
+    installApi(draftStore());
+    const router = renderRoute("/compose?perspectiveId=d-old");
+    await user.clear(await screen.findByRole("textbox", { name: "Part 1" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(await screen.findByText("Your empty draft is deleted.")).toBeInTheDocument();
+    expect(router.state.location.search).toBe("?placeId=p-ny&date=2026-10-01&hour=14");
+    expect(screen.getByRole("textbox", { name: "Part 1" })).toHaveValue("");
+  });
+
+  it("says so and keeps the question when the delete fails", async () => {
+    const user = userEvent.setup();
+    const api = installApi({ ...draftStore(), "PerspectiveService/Delete": () => apiError("unavailable") });
+    const router = renderRoute("/compose?perspectiveId=d-old");
+    await user.clear(await screen.findByRole("textbox", { name: "Part 1" }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Not deleted. Try again in a moment.");
+    expect(api.callsTo("PerspectiveService/Delete")).toHaveLength(1);
+    expect(question()).toBeInTheDocument();
+    expect(router.state.location.search).toBe("?perspectiveId=d-old");
+  });
+
+  it("never asks about a draft that was never saved", async () => {
+    const user = userEvent.setup();
+    await openComposer("/compose?placeId=p-ny&date=2026-10-01");
+    const part = screen.getByRole("textbox", { name: "Part 1" });
+    await user.type(part, "Gone");
+    await user.clear(part);
+    expect(question()).toBeNull();
+  });
+
+  it("never asks about a published story whose parts are cleared", async () => {
+    const user = userEvent.setup();
+    installApi({ "PlaceService/GetPlace": getPlace, "PerspectiveService/Get": () => ok({ perspective: publishedPerspective() }) });
+    renderRoute("/compose?perspectiveId=pub-1");
+    await screen.findByRole("heading", { name: "Edit your story" });
+    await user.clear(screen.getByRole("textbox", { name: "Part 1" }));
+    expect(question()).toBeNull();
+  });
+});

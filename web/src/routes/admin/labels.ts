@@ -136,6 +136,8 @@ export function auditActionLabel(action: AuditAction): string {
       return "invited someone from the waitlist";
     case AuditAction.USER_LOOKUP:
       return "looked up a user";
+    case AuditAction.TWO_FACTOR_RESET:
+      return "reset a user's two-factor sign-in";
     case AuditAction.UNSPECIFIED:
       return "did something unrecorded";
   }
@@ -158,6 +160,7 @@ export const auditActions: AuditAction[] = [
   AuditAction.ACCESS_CODE_REVOKE,
   AuditAction.WAITLIST_INVITE,
   AuditAction.USER_LOOKUP,
+  AuditAction.TWO_FACTOR_RESET,
 ];
 
 /** Where an admin opens an audit entry's target, when it has a page. */

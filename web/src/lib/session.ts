@@ -2,7 +2,13 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { useSyncExternalStore } from "react";
 import { redirect } from "react-router";
 
-import type { LoginResponse, RefreshResponse, SessionUser, SignUpResponse } from "@/gen/perspectiv/v1/auth_pb";
+import type {
+  CompleteTwoFactorLoginResponse,
+  LoginResponse,
+  RefreshResponse,
+  SessionUser,
+  SignUpResponse,
+} from "@/gen/perspectiv/v1/auth_pb";
 import type { Role } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
 
@@ -12,6 +18,8 @@ export type Session = {
   username: string;
   role: Role;
   emailVerified: boolean;
+  /** Whether the account has two-factor sign-in on, as the server last said. */
+  twoFactorEnabled: boolean;
 };
 
 // The access token lives only in this module's memory. It is never written to
@@ -36,7 +44,13 @@ function publish(next: Session | null): void {
 
 function toSession(user: SessionUser | undefined): Session | null {
   if (!user || !user.userId) return null;
-  return { userId: user.userId, username: user.username, role: user.role, emailVerified: user.emailVerified };
+  return {
+    userId: user.userId,
+    username: user.username,
+    role: user.role,
+    emailVerified: user.emailVerified,
+    twoFactorEnabled: user.twoFactorEnabled,
+  };
 }
 
 /** The current access token, or null when signed out. */
@@ -50,11 +64,12 @@ export function currentSession(): Session | null {
 }
 
 /**
- * Takes the tokens from a Login, Refresh or SignUp response. A response
- * without an access token or a user is treated as signed out rather than
- * half signed in.
+ * Takes the tokens from a Login, CompleteTwoFactorLogin, Refresh or SignUp
+ * response. A response without an access token or a user (a Login answered
+ * with a two-factor challenge, say) is treated as signed out rather than half
+ * signed in.
  */
-export function signIn(res: LoginResponse | RefreshResponse | SignUpResponse): Session | null {
+export function signIn(res: LoginResponse | CompleteTwoFactorLoginResponse | RefreshResponse | SignUpResponse): Session | null {
   const session = toSession(res.user);
   if (!res.accessToken || !session) {
     clearSession();

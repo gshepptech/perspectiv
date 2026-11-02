@@ -19,6 +19,8 @@ secrets:
   # required: a Secret in the release namespace, created outside the chart so
   # no secret value ever sits in a values file. Keys:
   #   JWT_SECRET         HS256 signing key, at least 32 bytes
+  #   ENCRYPTION_KEYS    age secret keys (AGE-SECRET-KEY-1...), one per line,
+  #                      the current one first; they encrypt two-factor secrets
   #   POSTGRES_PASSWORD  URL-safe (hex) password for the perspectiv database role
   #   RESEND_API_KEY     Resend API key; may be omitted when app.mail.provider is smtp
   existingSecret: ""

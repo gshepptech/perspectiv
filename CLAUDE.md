@@ -81,6 +81,7 @@ Go modules and `web/package.json` for npm packages.
 | Vite / TypeScript / vitest | 8 / 7 / 5 | ADR 0001 |
 | react-router | 8 Data Mode | ADR 0001 |
 | lucide-react | 1.x | ADR 0001 |
+| qrcode.react | 4.2.0 (exact) | ADR 0004 |
 | Mailpit (dev) | `axllent/mailpit:v1.31.6` | |
 | Prometheus / Tempo / Loki / Grafana (dev) | v3.15.0 / 2.7.2 / 3.6.18 / 11.6.16 | `make dev-grafana` |
 
@@ -135,3 +136,4 @@ ADRs live in `docs/adr/` in MADR format.
 - [0001](docs/adr/0001-pin-forward-frontend-majors.md) Pin the frontend forward to Vite 8, TypeScript 7, vitest 5, react-router 8 and lucide-react 1.
 - [0002](docs/adr/0002-river-job-runner.md) Run background jobs on River in PostgreSQL.
 - [0003](docs/adr/0003-k3s-single-vm.md) Deploy v1 on self-managed k3s on one VM with PostgreSQL in-cluster.
+- [0004](docs/adr/0004-totp-in-house-and-qr-code-library.md) Write TOTP in-house (RFC 6238) and draw its QR code with qrcode.react.

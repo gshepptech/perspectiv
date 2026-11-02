@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
 import { useWaitingRequests } from "@/routes/claims/waiting";
+import { ReadMoreLink } from "@/routes/guide/ReadMore";
 import { useUnreadCount } from "@/routes/inbox/unread";
 
 const linkClass = "inline-flex min-h-11 items-center font-medium text-accent underline underline-offset-4";
@@ -50,6 +51,7 @@ function FirstStory() {
           </li>
           <li>The lore the day&apos;s writers favour most becomes its canon.</li>
         </ol>
+        <ReadMoreLink className="mt-2" />
       </section>
     </div>
   );

@@ -220,21 +220,25 @@ func TestLookupUser(t *testing.T) {
 		})
 	}
 
+	// The dossier says whether two-factor sign-in is on; a setup never
+	// confirmed with a code does not count.
+	e.exec(`INSERT INTO totp_secrets (user_id, key_id, algorithm, ciphertext, confirmed_at) VALUES ($1, 'k', 'a', '\x00', now())`, w.author)
+	e.exec(`INSERT INTO totp_secrets (user_id, key_id, algorithm, ciphertext) VALUES ($1, 'k', 'a', '\x00')`, reporter)
 	u, err := lookup("writer_one")
 	if err != nil {
 		t.Fatalf("LookupUser: %v", err)
 	}
 	if u.GetEmailHint() != "Wr•••@example.test" || !u.GetEmailVerified() || u.GetRole() != perspectivv1.Role_ROLE_USER ||
 		u.GetStories() != 1 || u.GetFailedSignIns_24H() != 2 || u.GetReportsAgainst() != 2 || u.GetOpenReportsAgainst() != 1 ||
-		u.GetReportsFiled() != 0 || u.GetLastSignInAt() != nil || u.GetDeleted() {
+		u.GetReportsFiled() != 0 || u.GetLastSignInAt() != nil || u.GetDeleted() || !u.GetTwoFactorEnabled() {
 		t.Fatalf("view = %+v", u)
 	}
 	g, err := lookup(gone.String())
 	if err != nil {
 		t.Fatalf("LookupUser deleted: %v", err)
 	}
-	if !g.GetDeleted() || g.GetEmailHint() != "" {
-		t.Fatalf("deleted view = %+v, want deleted and no hint", g)
+	if !g.GetDeleted() || g.GetEmailHint() != "" || g.GetTwoFactorEnabled() {
+		t.Fatalf("deleted view = %+v, want deleted, no hint and no two-factor", g)
 	}
 
 	for _, q := range []string{"nobody", "nobody@example.test", uuid.NewString(), "gone"} {

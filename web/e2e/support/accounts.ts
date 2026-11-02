@@ -77,11 +77,20 @@ export const a11yAccounts = () => ({
   ivy: account("ivy", true),
 });
 
+/**
+ * The admin who turns on two-factor sign-in. Setup signs each account up from
+ * its own address, so this one does not share the others' sign-up budget.
+ */
+export const twoFactorAccounts = () => ({
+  tia: account("tia", true),
+});
+
 export function allAccounts(): Account[] {
   return [
     ...Object.values(loreAccounts()),
     ...Object.values(reportAccounts()),
     ...Object.values(findAccounts()),
     ...Object.values(a11yAccounts()),
+    ...Object.values(twoFactorAccounts()),
   ];
 }

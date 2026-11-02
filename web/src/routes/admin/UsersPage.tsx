@@ -118,6 +118,9 @@ function Dossier({
         <Fact term="Joined">{u.joinedAt ? day.format(timestampDate(u.joinedAt)) : "Unknown"}</Fact>
         <Fact term="Last sign-in">{lastSignIn(u, new Date())}</Fact>
         <Fact term="Failed sign-ins, last 24 hours">{u.failedSignIns24h}</Fact>
+        <Fact term="Two-factor sign-in">
+          {u.twoFactorEnabled ? "On" : <span className={u.role === Role.ADMIN ? "text-warning" : undefined}>Off</span>}
+        </Fact>
         <Fact term="Stories">
           {u.stories}
           {u.hiddenStories > 0 && `, ${u.hiddenStories} hidden`}

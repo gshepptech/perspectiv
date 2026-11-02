@@ -183,6 +183,21 @@ func (w *emailWorker) render(a jobs.EmailArgs, c cast) (mailer.Message, error) {
 			"Your Perspectiv email is being changed",
 			"Someone signed in to your Perspectiv account asked to change its email away from this address. If it was you, there is nothing to do. If it was not, reset your password now: that also cancels the change.",
 			"Reset your password")
+	case jobs.TemplateTwoFactorEnabled:
+		body, err = w.accountContent(a.Data, "/forgot-password",
+			"Two-factor sign-in is on",
+			"Two-factor sign-in is now on for your Perspectiv account: signing in asks for a code from your authenticator app after your password. If you did not turn it on, reset your password now.",
+			"Reset your password")
+	case jobs.TemplateTwoFactorDisabled:
+		body, err = w.accountContent(a.Data, "/forgot-password",
+			"Two-factor sign-in is off",
+			"Two-factor sign-in was turned off for your Perspectiv account, so signing in asks only for your password. If you did not do this, reset your password now, then turn two-factor sign-in on again in Settings.",
+			"Reset your password")
+	case jobs.TemplateRecoveryCodeUsed:
+		body, err = w.accountContent(a.Data, "/forgot-password",
+			"A recovery code was used to sign in",
+			recoveryCodeUsedBody(a.Data["left"]),
+			"Reset your password")
 	case jobs.TemplateDigest:
 		body, err = w.digestContent(a.Data)
 	case jobs.TemplateNotification:
@@ -282,6 +297,21 @@ func (w *emailWorker) accountContent(data map[string]string, path, subject, body
 		link = w.baseURL + path + "?token=" + url.QueryEscape(token)
 	}
 	return content{Subject: subject, Body: body, Action: action, Link: link}, nil
+}
+
+// recoveryCodeUsedBody says a recovery code signed in and how many are left.
+func recoveryCodeUsedBody(left string) string {
+	codes := left + " recovery codes are left"
+	switch left {
+	case "":
+		codes = "Each code works once"
+	case "0":
+		codes = "That was the last one: make new codes in Settings now"
+	case "1":
+		codes = "1 recovery code is left"
+	}
+	return "Someone signed in to your Perspectiv account with one of its recovery codes. " + codes +
+		". If it was not you, reset your password now and make new recovery codes in Settings."
 }
 
 // notificationContent builds one notification's email; cast is the

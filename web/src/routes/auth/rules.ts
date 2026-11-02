@@ -15,6 +15,17 @@ export const emailSchema = z.string().trim().pipe(z.email({ error: "Enter a vali
 // so the two can never disagree.
 export const passwordSchema = z.string().min(1, { error: "Enter a password." });
 
+// The six digits an authenticator app shows; spaces are dropped, as some apps
+// show the code in two groups of three.
+export const appCodeSchema = z
+  .string()
+  .transform((v) => v.replace(/\s/g, ""))
+  .pipe(z.string().regex(/^\d{6}$/, { error: "Enter the six digits your app shows." }));
+
+// A recovery code, or the app's six digits, where either is accepted. The
+// server reads the form; the client only refuses an empty field.
+export const anyCodeSchema = z.string().trim().min(1, { error: "Enter a code." });
+
 /**
  * Where to go after signing in. Only a same-site path is followed: a value
  * that is absolute ("https://..."), protocol-relative ("//host") or that a

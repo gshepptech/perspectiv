@@ -26,6 +26,12 @@ const (
 	// RateWindowRetention keeps a rate-limit counter this long after its
 	// window opened; the longest limit window is an hour.
 	RateWindowRetention = 24 * time.Hour
+	// TwoFactorAttemptRetention keeps a checked second-factor code's record
+	// this long; the two-factor lockout reads only the last day.
+	TwoFactorAttemptRetention = 30 * 24 * time.Hour
+	// TwoFactorChallengeRetention keeps a sign-in's second-step challenge
+	// this long after it expired; it is never usable after expiry.
+	TwoFactorChallengeRetention = 24 * time.Hour
 )
 
 const (
@@ -56,8 +62,9 @@ type retentionWorker struct {
 }
 
 // NewRetentionWorker returns the worker that deletes, in batches, the
-// emailed links, ended sessions, sign-in attempts and rate-limit counters
-// older than their retention.
+// emailed links, ended sessions, sign-in attempts, rate-limit counters,
+// second-factor attempts and expired second-step challenges older than
+// their retention.
 func NewRetentionWorker(pool *pgxpool.Pool, log zerolog.Logger) river.Worker[RetentionArgs] {
 	return &retentionWorker{q: dbq.New(pool), now: time.Now, log: log.With().Str("component", "auth_retention").Logger()}
 }
@@ -89,6 +96,12 @@ func Purge(ctx context.Context, q *dbq.Queries, now time.Time, log zerolog.Logge
 		}},
 		{"rate_limit_counters", RateWindowRetention, func(ctx context.Context, before time.Time) (int64, error) {
 			return q.PurgeRateWindows(ctx, dbq.PurgeRateWindowsParams{Before: before, Batch: retentionBatch})
+		}},
+		{"two_factor_attempts", TwoFactorAttemptRetention, func(ctx context.Context, before time.Time) (int64, error) {
+			return q.PurgeTwoFactorAttempts(ctx, dbq.PurgeTwoFactorAttemptsParams{Before: before, Batch: retentionBatch})
+		}},
+		{"two_factor_challenges", TwoFactorChallengeRetention, func(ctx context.Context, before time.Time) (int64, error) {
+			return q.PurgeTwoFactorChallenges(ctx, dbq.PurgeTwoFactorChallengesParams{Before: before, Batch: retentionBatch})
 		}},
 	}
 	for _, p := range purges {

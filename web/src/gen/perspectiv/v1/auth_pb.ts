@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file perspectiv/v1/auth.proto.
  */
 export const file_perspectiv_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChhwZXJzcGVjdGl2L3YxL2F1dGgucHJvdG8SDXBlcnNwZWN0aXYudjEiawoLU2Vzc2lvblVzZXISDwoHdXNlcl9pZBgBIAEoCRIQCgh1c2VybmFtZRgCIAEoCRIhCgRyb2xlGAMgASgOMhMucGVyc3BlY3Rpdi52MS5Sb2xlEhYKDmVtYWlsX3ZlcmlmaWVkGAQgASgIIn8KDVNpZ25VcFJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSFQoNYWdlX2NvbmZpcm1lZBgEIAEoCBITCgthY2Nlc3NfY29kZRgFIAEoCRIPCgd3ZWJzaXRlGAYgASgJIp4BCg5TaWduVXBSZXNwb25zZRIPCgd1c2VyX2lkGAEgASgJEhQKDGFjY2Vzc190b2tlbhgCIAEoCRI7ChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEdXNlchgEIAEoCzIaLnBlcnNwZWN0aXYudjEuU2Vzc2lvblVzZXIiLwoMTG9naW5SZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIowBCg1Mb2dpblJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRI7ChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEdXNlchgDIAEoCzIaLnBlcnNwZWN0aXYudjEuU2Vzc2lvblVzZXIiDwoNTG9nb3V0UmVxdWVzdCIQCg5Mb2dvdXRSZXNwb25zZSIQCg5SZWZyZXNoUmVxdWVzdCKOAQoPUmVmcmVzaFJlc3BvbnNlEhQKDGFjY2Vzc190b2tlbhgBIAEoCRI7ChdhY2Nlc3NfdG9rZW5fZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEdXNlchgDIAEoCzIaLnBlcnNwZWN0aXYudjEuU2Vzc2lvblVzZXIiIwoSVmVyaWZ5RW1haWxSZXF1ZXN0Eg0KBXRva2VuGAEgASgJIhUKE1ZlcmlmeUVtYWlsUmVzcG9uc2UiLAobUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJIh4KHFJlcXVlc3RQYXNzd29yZFJlc2V0UmVzcG9uc2UiOwoUUmVzZXRQYXNzd29yZFJlcXVlc3QSDQoFdG9rZW4YASABKAkSFAoMbmV3X3Bhc3N3b3JkGAIgASgJIhcKFVJlc2V0UGFzc3dvcmRSZXNwb25zZSIWChRHZXRTaWduVXBJbmZvUmVxdWVzdCIsChVHZXRTaWduVXBJbmZvUmVzcG9uc2USEwoLaW52aXRlX29ubHkYASABKAgiQwoTSm9pbldhaXRsaXN0UmVxdWVzdBINCgVlbWFpbBgBIAEoCRIMCgRub3RlGAIgASgJEg8KB3dlYnNpdGUYAyABKAkiFgoUSm9pbldhaXRsaXN0UmVzcG9uc2UiuQEKCkFjY2Vzc0NvZGUSDAoEY29kZRgBIAEoCRIMCgRub3RlGAIgASgJEhAKCG1heF91c2VzGAMgASgFEgwKBHVzZXMYBCABKAUSLgoKY3JlYXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDwoHcmV2b2tlZBgHIAEoCCJgChdDcmVhdGVBY2Nlc3NDb2RlUmVxdWVzdBIMCgRjb2RlGAEgASgJEgwKBG5vdGUYAiABKAkSEAoIbWF4X3VzZXMYAyABKAUSFwoPZXhwaXJlc19pbl9kYXlzGAQgASgFIkMKGENyZWF0ZUFjY2Vzc0NvZGVSZXNwb25zZRInCgRjb2RlGAEgASgLMhkucGVyc3BlY3Rpdi52MS5BY2Nlc3NDb2RlIj8KFkxpc3RBY2Nlc3NDb2Rlc1JlcXVlc3QSEgoKcGFnZV90b2tlbhgBIAEoCRIRCglwYWdlX3NpemUYAiABKAUiXAoXTGlzdEFjY2Vzc0NvZGVzUmVzcG9uc2USKAoFY29kZXMYASADKAsyGS5wZXJzcGVjdGl2LnYxLkFjY2Vzc0NvZGUSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIicKF1Jldm9rZUFjY2Vzc0NvZGVSZXF1ZXN0EgwKBGNvZGUYASABKAkiQwoYUmV2b2tlQWNjZXNzQ29kZVJlc3BvbnNlEicKBGNvZGUYASABKAsyGS5wZXJzcGVjdGl2LnYxLkFjY2Vzc0NvZGUiqwEKDVdhaXRsaXN0RW50cnkSCgoCaWQYASABKAkSEgoKZW1haWxfaGludBgCIAEoCRIMCgRub3RlGAMgASgJEi4KCmNyZWF0ZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmludml0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgwKBGNvZGUYBiABKAkiUgoTTGlzdFdhaXRsaXN0UmVxdWVzdBIUCgx3YWl0aW5nX29ubHkYASABKAgSEgoKcGFnZV90b2tlbhgCIAEoCRIRCglwYWdlX3NpemUYAyABKAUiXgoUTGlzdFdhaXRsaXN0UmVzcG9uc2USLQoHZW50cmllcxgBIAMoCzIcLnBlcnNwZWN0aXYudjEuV2FpdGxpc3RFbnRyeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiJwoZSW52aXRlRnJvbVdhaXRsaXN0UmVxdWVzdBIKCgJpZBgBIAEoCSJJChpJbnZpdGVGcm9tV2FpdGxpc3RSZXNwb25zZRIrCgVlbnRyeRgBIAEoCzIcLnBlcnNwZWN0aXYudjEuV2FpdGxpc3RFbnRyeSJHChVDaGFuZ2VQYXNzd29yZFJlcXVlc3QSGAoQY3VycmVudF9wYXNzd29yZBgBIAEoCRIUCgxuZXdfcGFzc3dvcmQYAiABKAkiGAoWQ2hhbmdlUGFzc3dvcmRSZXNwb25zZSJIChlSZXF1ZXN0RW1haWxDaGFuZ2VSZXF1ZXN0EhEKCW5ld19lbWFpbBgBIAEoCRIYChBjdXJyZW50X3Bhc3N3b3JkGAIgASgJIhwKGlJlcXVlc3RFbWFpbENoYW5nZVJlc3BvbnNlIioKGUNvbmZpcm1FbWFpbENoYW5nZVJlcXVlc3QSDQoFdG9rZW4YASABKAkiHAoaQ29uZmlybUVtYWlsQ2hhbmdlUmVzcG9uc2UiGgoYU2lnbk91dEV2ZXJ5d2hlcmVSZXF1ZXN0IhsKGVNpZ25PdXRFdmVyeXdoZXJlUmVzcG9uc2UipgEKC1Nlc3Npb25JbmZvEhIKCnNlc3Npb25faWQYASABKAkSDgoGZGV2aWNlGAIgASgJEjAKDHNpZ25lZF9pbl9hdBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASMAoMbGFzdF91c2VkX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIPCgdjdXJyZW50GAUgASgIIhUKE0xpc3RTZXNzaW9uc1JlcXVlc3QiRAoUTGlzdFNlc3Npb25zUmVzcG9uc2USLAoIc2Vzc2lvbnMYASADKAsyGi5wZXJzcGVjdGl2LnYxLlNlc3Npb25JbmZvIioKFFJldm9rZVNlc3Npb25SZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkiFwoVUmV2b2tlU2Vzc2lvblJlc3BvbnNlMsMOCgtBdXRoU2VydmljZRJFCgZTaWduVXASHC5wZXJzcGVjdGl2LnYxLlNpZ25VcFJlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLlNpZ25VcFJlc3BvbnNlEkIKBUxvZ2luEhsucGVyc3BlY3Rpdi52MS5Mb2dpblJlcXVlc3QaHC5wZXJzcGVjdGl2LnYxLkxvZ2luUmVzcG9uc2USRQoGTG9nb3V0EhwucGVyc3BlY3Rpdi52MS5Mb2dvdXRSZXF1ZXN0Gh0ucGVyc3BlY3Rpdi52MS5Mb2dvdXRSZXNwb25zZRJICgdSZWZyZXNoEh0ucGVyc3BlY3Rpdi52MS5SZWZyZXNoUmVxdWVzdBoeLnBlcnNwZWN0aXYudjEuUmVmcmVzaFJlc3BvbnNlElQKC1ZlcmlmeUVtYWlsEiEucGVyc3BlY3Rpdi52MS5WZXJpZnlFbWFpbFJlcXVlc3QaIi5wZXJzcGVjdGl2LnYxLlZlcmlmeUVtYWlsUmVzcG9uc2USbwoUUmVxdWVzdFBhc3N3b3JkUmVzZXQSKi5wZXJzcGVjdGl2LnYxLlJlcXVlc3RQYXNzd29yZFJlc2V0UmVxdWVzdBorLnBlcnNwZWN0aXYudjEuUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXNwb25zZRJaCg1SZXNldFBhc3N3b3JkEiMucGVyc3BlY3Rpdi52MS5SZXNldFBhc3N3b3JkUmVxdWVzdBokLnBlcnNwZWN0aXYudjEuUmVzZXRQYXNzd29yZFJlc3BvbnNlEl0KDkNoYW5nZVBhc3N3b3JkEiQucGVyc3BlY3Rpdi52MS5DaGFuZ2VQYXNzd29yZFJlcXVlc3QaJS5wZXJzcGVjdGl2LnYxLkNoYW5nZVBhc3N3b3JkUmVzcG9uc2USaQoSUmVxdWVzdEVtYWlsQ2hhbmdlEigucGVyc3BlY3Rpdi52MS5SZXF1ZXN0RW1haWxDaGFuZ2VSZXF1ZXN0GikucGVyc3BlY3Rpdi52MS5SZXF1ZXN0RW1haWxDaGFuZ2VSZXNwb25zZRJpChJDb25maXJtRW1haWxDaGFuZ2USKC5wZXJzcGVjdGl2LnYxLkNvbmZpcm1FbWFpbENoYW5nZVJlcXVlc3QaKS5wZXJzcGVjdGl2LnYxLkNvbmZpcm1FbWFpbENoYW5nZVJlc3BvbnNlEmYKEVNpZ25PdXRFdmVyeXdoZXJlEicucGVyc3BlY3Rpdi52MS5TaWduT3V0RXZlcnl3aGVyZVJlcXVlc3QaKC5wZXJzcGVjdGl2LnYxLlNpZ25PdXRFdmVyeXdoZXJlUmVzcG9uc2USVwoMTGlzdFNlc3Npb25zEiIucGVyc3BlY3Rpdi52MS5MaXN0U2Vzc2lvbnNSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5MaXN0U2Vzc2lvbnNSZXNwb25zZRJaCg1SZXZva2VTZXNzaW9uEiMucGVyc3BlY3Rpdi52MS5SZXZva2VTZXNzaW9uUmVxdWVzdBokLnBlcnNwZWN0aXYudjEuUmV2b2tlU2Vzc2lvblJlc3BvbnNlEloKDUdldFNpZ25VcEluZm8SIy5wZXJzcGVjdGl2LnYxLkdldFNpZ25VcEluZm9SZXF1ZXN0GiQucGVyc3BlY3Rpdi52MS5HZXRTaWduVXBJbmZvUmVzcG9uc2USVwoMSm9pbldhaXRsaXN0EiIucGVyc3BlY3Rpdi52MS5Kb2luV2FpdGxpc3RSZXF1ZXN0GiMucGVyc3BlY3Rpdi52MS5Kb2luV2FpdGxpc3RSZXNwb25zZRJjChBDcmVhdGVBY2Nlc3NDb2RlEiYucGVyc3BlY3Rpdi52MS5DcmVhdGVBY2Nlc3NDb2RlUmVxdWVzdBonLnBlcnNwZWN0aXYudjEuQ3JlYXRlQWNjZXNzQ29kZVJlc3BvbnNlEmAKD0xpc3RBY2Nlc3NDb2RlcxIlLnBlcnNwZWN0aXYudjEuTGlzdEFjY2Vzc0NvZGVzUmVxdWVzdBomLnBlcnNwZWN0aXYudjEuTGlzdEFjY2Vzc0NvZGVzUmVzcG9uc2USYwoQUmV2b2tlQWNjZXNzQ29kZRImLnBlcnNwZWN0aXYudjEuUmV2b2tlQWNjZXNzQ29kZVJlcXVlc3QaJy5wZXJzcGVjdGl2LnYxLlJldm9rZUFjY2Vzc0NvZGVSZXNwb25zZRJXCgxMaXN0V2FpdGxpc3QSIi5wZXJzcGVjdGl2LnYxLkxpc3RXYWl0bGlzdFJlcXVlc3QaIy5wZXJzcGVjdGl2LnYxLkxpc3RXYWl0bGlzdFJlc3BvbnNlEmkKEkludml0ZUZyb21XYWl0bGlzdBIoLnBlcnNwZWN0aXYudjEuSW52aXRlRnJvbVdhaXRsaXN0UmVxdWVzdBopLnBlcnNwZWN0aXYudjEuSW52aXRlRnJvbVdhaXRsaXN0UmVzcG9uc2VCngEKEWNvbS5wZXJzcGVjdGl2LnYxQglBdXRoUHJvdG9QAVopcGVyc3BlY3Rpdi9nZW4vcGVyc3BlY3Rpdi92MTtwZXJzcGVjdGl2djGiAgNQWFiqAg1QZXJzcGVjdGl2LlYxygINUGVyc3BlY3RpdlxWMeICGVBlcnNwZWN0aXZcVjFcR1BCTWV0YWRhdGHqAg5QZXJzcGVjdGl2OjpWMWIGcHJvdG8z", [file_google_protobuf_timestamp, file_perspectiv_v1_enums]);
+  fileDesc("ChhwZXJzcGVjdGl2L3YxL2F1dGgucHJvdG8SDXBlcnNwZWN0aXYudjEihwEKC1Nlc3Npb25Vc2VyEg8KB3VzZXJfaWQYASABKAkSEAoIdXNlcm5hbWUYAiABKAkSIQoEcm9sZRgDIAEoDjITLnBlcnNwZWN0aXYudjEuUm9sZRIWCg5lbWFpbF92ZXJpZmllZBgEIAEoCBIaChJ0d29fZmFjdG9yX2VuYWJsZWQYBSABKAgifwoNU2lnblVwUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRIQCgh1c2VybmFtZRgDIAEoCRIVCg1hZ2VfY29uZmlybWVkGAQgASgIEhMKC2FjY2Vzc19jb2RlGAUgASgJEg8KB3dlYnNpdGUYBiABKAkingEKDlNpZ25VcFJlc3BvbnNlEg8KB3VzZXJfaWQYASABKAkSFAoMYWNjZXNzX3Rva2VuGAIgASgJEjsKF2FjY2Vzc190b2tlbl9leHBpcmVzX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgR1c2VyGAQgASgLMhoucGVyc3BlY3Rpdi52MS5TZXNzaW9uVXNlciIvCgxMb2dpblJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiABKAki7wEKDUxvZ2luUmVzcG9uc2USFAoMYWNjZXNzX3Rva2VuGAEgASgJEjsKF2FjY2Vzc190b2tlbl9leHBpcmVzX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgR1c2VyGAMgASgLMhoucGVyc3BlY3Rpdi52MS5TZXNzaW9uVXNlchIcChR0d29fZmFjdG9yX2NoYWxsZW5nZRgEIAEoCRJDCh90d29fZmFjdG9yX2NoYWxsZW5nZV9leHBpcmVzX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCIPCg1Mb2dvdXRSZXF1ZXN0IhAKDkxvZ291dFJlc3BvbnNlIhAKDlJlZnJlc2hSZXF1ZXN0Io4BCg9SZWZyZXNoUmVzcG9uc2USFAoMYWNjZXNzX3Rva2VuGAEgASgJEjsKF2FjY2Vzc190b2tlbl9leHBpcmVzX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgR1c2VyGAMgASgLMhoucGVyc3BlY3Rpdi52MS5TZXNzaW9uVXNlciIjChJWZXJpZnlFbWFpbFJlcXVlc3QSDQoFdG9rZW4YASABKAkiFQoTVmVyaWZ5RW1haWxSZXNwb25zZSIsChtSZXF1ZXN0UGFzc3dvcmRSZXNldFJlcXVlc3QSDQoFZW1haWwYASABKAkiHgocUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXNwb25zZSI7ChRSZXNldFBhc3N3b3JkUmVxdWVzdBINCgV0b2tlbhgBIAEoCRIUCgxuZXdfcGFzc3dvcmQYAiABKAkiFwoVUmVzZXRQYXNzd29yZFJlc3BvbnNlIhYKFEdldFNpZ25VcEluZm9SZXF1ZXN0IiwKFUdldFNpZ25VcEluZm9SZXNwb25zZRITCgtpbnZpdGVfb25seRgBIAEoCCJDChNKb2luV2FpdGxpc3RSZXF1ZXN0Eg0KBWVtYWlsGAEgASgJEgwKBG5vdGUYAiABKAkSDwoHd2Vic2l0ZRgDIAEoCSIWChRKb2luV2FpdGxpc3RSZXNwb25zZSK5AQoKQWNjZXNzQ29kZRIMCgRjb2RlGAEgASgJEgwKBG5vdGUYAiABKAkSEAoIbWF4X3VzZXMYAyABKAUSDAoEdXNlcxgEIAEoBRIuCgpjcmVhdGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpleHBpcmVzX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIPCgdyZXZva2VkGAcgASgIImAKF0NyZWF0ZUFjY2Vzc0NvZGVSZXF1ZXN0EgwKBGNvZGUYASABKAkSDAoEbm90ZRgCIAEoCRIQCghtYXhfdXNlcxgDIAEoBRIXCg9leHBpcmVzX2luX2RheXMYBCABKAUiQwoYQ3JlYXRlQWNjZXNzQ29kZVJlc3BvbnNlEicKBGNvZGUYASABKAsyGS5wZXJzcGVjdGl2LnYxLkFjY2Vzc0NvZGUiPwoWTGlzdEFjY2Vzc0NvZGVzUmVxdWVzdBISCgpwYWdlX3Rva2VuGAEgASgJEhEKCXBhZ2Vfc2l6ZRgCIAEoBSJcChdMaXN0QWNjZXNzQ29kZXNSZXNwb25zZRIoCgVjb2RlcxgBIAMoCzIZLnBlcnNwZWN0aXYudjEuQWNjZXNzQ29kZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiJwoXUmV2b2tlQWNjZXNzQ29kZVJlcXVlc3QSDAoEY29kZRgBIAEoCSJDChhSZXZva2VBY2Nlc3NDb2RlUmVzcG9uc2USJwoEY29kZRgBIAEoCzIZLnBlcnNwZWN0aXYudjEuQWNjZXNzQ29kZSKrAQoNV2FpdGxpc3RFbnRyeRIKCgJpZBgBIAEoCRISCgplbWFpbF9oaW50GAIgASgJEgwKBG5vdGUYAyABKAkSLgoKY3JlYXRlZF9hdBgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKaW52aXRlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDAoEY29kZRgGIAEoCSJSChNMaXN0V2FpdGxpc3RSZXF1ZXN0EhQKDHdhaXRpbmdfb25seRgBIAEoCBISCgpwYWdlX3Rva2VuGAIgASgJEhEKCXBhZ2Vfc2l6ZRgDIAEoBSJeChRMaXN0V2FpdGxpc3RSZXNwb25zZRItCgdlbnRyaWVzGAEgAygLMhwucGVyc3BlY3Rpdi52MS5XYWl0bGlzdEVudHJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSInChlJbnZpdGVGcm9tV2FpdGxpc3RSZXF1ZXN0EgoKAmlkGAEgASgJIkkKGkludml0ZUZyb21XYWl0bGlzdFJlc3BvbnNlEisKBWVudHJ5GAEgASgLMhwucGVyc3BlY3Rpdi52MS5XYWl0bGlzdEVudHJ5IkcKFUNoYW5nZVBhc3N3b3JkUmVxdWVzdBIYChBjdXJyZW50X3Bhc3N3b3JkGAEgASgJEhQKDG5ld19wYXNzd29yZBgCIAEoCSIYChZDaGFuZ2VQYXNzd29yZFJlc3BvbnNlIkgKGVJlcXVlc3RFbWFpbENoYW5nZVJlcXVlc3QSEQoJbmV3X2VtYWlsGAEgASgJEhgKEGN1cnJlbnRfcGFzc3dvcmQYAiABKAkiHAoaUmVxdWVzdEVtYWlsQ2hhbmdlUmVzcG9uc2UiKgoZQ29uZmlybUVtYWlsQ2hhbmdlUmVxdWVzdBINCgV0b2tlbhgBIAEoCSIcChpDb25maXJtRW1haWxDaGFuZ2VSZXNwb25zZSIaChhTaWduT3V0RXZlcnl3aGVyZVJlcXVlc3QiGwoZU2lnbk91dEV2ZXJ5d2hlcmVSZXNwb25zZSKmAQoLU2Vzc2lvbkluZm8SEgoKc2Vzc2lvbl9pZBgBIAEoCRIOCgZkZXZpY2UYAiABKAkSMAoMc2lnbmVkX2luX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3VzZWRfYXQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg8KB2N1cnJlbnQYBSABKAgiFQoTTGlzdFNlc3Npb25zUmVxdWVzdCJEChRMaXN0U2Vzc2lvbnNSZXNwb25zZRIsCghzZXNzaW9ucxgBIAMoCzIaLnBlcnNwZWN0aXYudjEuU2Vzc2lvbkluZm8iKgoUUmV2b2tlU2Vzc2lvblJlcXVlc3QSEgoKc2Vzc2lvbl9pZBgBIAEoCSIXChVSZXZva2VTZXNzaW9uUmVzcG9uc2UiQAodQ29tcGxldGVUd29GYWN0b3JMb2dpblJlcXVlc3QSEQoJY2hhbGxlbmdlGAEgASgJEgwKBGNvZGUYAiABKAki1gEKHkNvbXBsZXRlVHdvRmFjdG9yTG9naW5SZXNwb25zZRIUCgxhY2Nlc3NfdG9rZW4YASABKAkSOwoXYWNjZXNzX3Rva2VuX2V4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBHVzZXIYAyABKAsyGi5wZXJzcGVjdGl2LnYxLlNlc3Npb25Vc2VyEhoKEnVzZWRfcmVjb3ZlcnlfY29kZRgEIAEoCBIbChNyZWNvdmVyeV9jb2Rlc19sZWZ0GAUgASgFIhsKGUdldFR3b0ZhY3RvclN0YXR1c1JlcXVlc3QiegoaR2V0VHdvRmFjdG9yU3RhdHVzUmVzcG9uc2USDwoHZW5hYmxlZBgBIAEoCBIuCgplbmFibGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIbChNyZWNvdmVyeV9jb2Rlc19sZWZ0GAMgASgFIjYKGkJlZ2luVHdvRmFjdG9yU2V0dXBSZXF1ZXN0EhgKEGN1cnJlbnRfcGFzc3dvcmQYASABKAkiQgobQmVnaW5Ud29GYWN0b3JTZXR1cFJlc3BvbnNlEg4KBnNlY3JldBgBIAEoCRITCgtvdHBhdXRoX3VyaRgCIAEoCSIsChxDb25maXJtVHdvRmFjdG9yU2V0dXBSZXF1ZXN0EgwKBGNvZGUYASABKAkiNwodQ29uZmlybVR3b0ZhY3RvclNldHVwUmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAkiQQoXRGlzYWJsZVR3b0ZhY3RvclJlcXVlc3QSGAoQY3VycmVudF9wYXNzd29yZBgBIAEoCRIMCgRjb2RlGAIgASgJIhoKGERpc2FibGVUd29GYWN0b3JSZXNwb25zZSJICh5SZWdlbmVyYXRlUmVjb3ZlcnlDb2Rlc1JlcXVlc3QSGAoQY3VycmVudF9wYXNzd29yZBgBIAEoCRIMCgRjb2RlGAIgASgJIjkKH1JlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAky5hMKC0F1dGhTZXJ2aWNlEkUKBlNpZ25VcBIcLnBlcnNwZWN0aXYudjEuU2lnblVwUmVxdWVzdBodLnBlcnNwZWN0aXYudjEuU2lnblVwUmVzcG9uc2USQgoFTG9naW4SGy5wZXJzcGVjdGl2LnYxLkxvZ2luUmVxdWVzdBocLnBlcnNwZWN0aXYudjEuTG9naW5SZXNwb25zZRJFCgZMb2dvdXQSHC5wZXJzcGVjdGl2LnYxLkxvZ291dFJlcXVlc3QaHS5wZXJzcGVjdGl2LnYxLkxvZ291dFJlc3BvbnNlEkgKB1JlZnJlc2gSHS5wZXJzcGVjdGl2LnYxLlJlZnJlc2hSZXF1ZXN0Gh4ucGVyc3BlY3Rpdi52MS5SZWZyZXNoUmVzcG9uc2USVAoLVmVyaWZ5RW1haWwSIS5wZXJzcGVjdGl2LnYxLlZlcmlmeUVtYWlsUmVxdWVzdBoiLnBlcnNwZWN0aXYudjEuVmVyaWZ5RW1haWxSZXNwb25zZRJvChRSZXF1ZXN0UGFzc3dvcmRSZXNldBIqLnBlcnNwZWN0aXYudjEuUmVxdWVzdFBhc3N3b3JkUmVzZXRSZXF1ZXN0GisucGVyc3BlY3Rpdi52MS5SZXF1ZXN0UGFzc3dvcmRSZXNldFJlc3BvbnNlEloKDVJlc2V0UGFzc3dvcmQSIy5wZXJzcGVjdGl2LnYxLlJlc2V0UGFzc3dvcmRSZXF1ZXN0GiQucGVyc3BlY3Rpdi52MS5SZXNldFBhc3N3b3JkUmVzcG9uc2USXQoOQ2hhbmdlUGFzc3dvcmQSJC5wZXJzcGVjdGl2LnYxLkNoYW5nZVBhc3N3b3JkUmVxdWVzdBolLnBlcnNwZWN0aXYudjEuQ2hhbmdlUGFzc3dvcmRSZXNwb25zZRJpChJSZXF1ZXN0RW1haWxDaGFuZ2USKC5wZXJzcGVjdGl2LnYxLlJlcXVlc3RFbWFpbENoYW5nZVJlcXVlc3QaKS5wZXJzcGVjdGl2LnYxLlJlcXVlc3RFbWFpbENoYW5nZVJlc3BvbnNlEmkKEkNvbmZpcm1FbWFpbENoYW5nZRIoLnBlcnNwZWN0aXYudjEuQ29uZmlybUVtYWlsQ2hhbmdlUmVxdWVzdBopLnBlcnNwZWN0aXYudjEuQ29uZmlybUVtYWlsQ2hhbmdlUmVzcG9uc2USZgoRU2lnbk91dEV2ZXJ5d2hlcmUSJy5wZXJzcGVjdGl2LnYxLlNpZ25PdXRFdmVyeXdoZXJlUmVxdWVzdBooLnBlcnNwZWN0aXYudjEuU2lnbk91dEV2ZXJ5d2hlcmVSZXNwb25zZRJXCgxMaXN0U2Vzc2lvbnMSIi5wZXJzcGVjdGl2LnYxLkxpc3RTZXNzaW9uc1JlcXVlc3QaIy5wZXJzcGVjdGl2LnYxLkxpc3RTZXNzaW9uc1Jlc3BvbnNlEloKDVJldm9rZVNlc3Npb24SIy5wZXJzcGVjdGl2LnYxLlJldm9rZVNlc3Npb25SZXF1ZXN0GiQucGVyc3BlY3Rpdi52MS5SZXZva2VTZXNzaW9uUmVzcG9uc2USWgoNR2V0U2lnblVwSW5mbxIjLnBlcnNwZWN0aXYudjEuR2V0U2lnblVwSW5mb1JlcXVlc3QaJC5wZXJzcGVjdGl2LnYxLkdldFNpZ25VcEluZm9SZXNwb25zZRJXCgxKb2luV2FpdGxpc3QSIi5wZXJzcGVjdGl2LnYxLkpvaW5XYWl0bGlzdFJlcXVlc3QaIy5wZXJzcGVjdGl2LnYxLkpvaW5XYWl0bGlzdFJlc3BvbnNlEmMKEENyZWF0ZUFjY2Vzc0NvZGUSJi5wZXJzcGVjdGl2LnYxLkNyZWF0ZUFjY2Vzc0NvZGVSZXF1ZXN0GicucGVyc3BlY3Rpdi52MS5DcmVhdGVBY2Nlc3NDb2RlUmVzcG9uc2USYAoPTGlzdEFjY2Vzc0NvZGVzEiUucGVyc3BlY3Rpdi52MS5MaXN0QWNjZXNzQ29kZXNSZXF1ZXN0GiYucGVyc3BlY3Rpdi52MS5MaXN0QWNjZXNzQ29kZXNSZXNwb25zZRJjChBSZXZva2VBY2Nlc3NDb2RlEiYucGVyc3BlY3Rpdi52MS5SZXZva2VBY2Nlc3NDb2RlUmVxdWVzdBonLnBlcnNwZWN0aXYudjEuUmV2b2tlQWNjZXNzQ29kZVJlc3BvbnNlElcKDExpc3RXYWl0bGlzdBIiLnBlcnNwZWN0aXYudjEuTGlzdFdhaXRsaXN0UmVxdWVzdBojLnBlcnNwZWN0aXYudjEuTGlzdFdhaXRsaXN0UmVzcG9uc2USaQoSSW52aXRlRnJvbVdhaXRsaXN0EigucGVyc3BlY3Rpdi52MS5JbnZpdGVGcm9tV2FpdGxpc3RSZXF1ZXN0GikucGVyc3BlY3Rpdi52MS5JbnZpdGVGcm9tV2FpdGxpc3RSZXNwb25zZRJ1ChZDb21wbGV0ZVR3b0ZhY3RvckxvZ2luEiwucGVyc3BlY3Rpdi52MS5Db21wbGV0ZVR3b0ZhY3RvckxvZ2luUmVxdWVzdBotLnBlcnNwZWN0aXYudjEuQ29tcGxldGVUd29GYWN0b3JMb2dpblJlc3BvbnNlEmkKEkdldFR3b0ZhY3RvclN0YXR1cxIoLnBlcnNwZWN0aXYudjEuR2V0VHdvRmFjdG9yU3RhdHVzUmVxdWVzdBopLnBlcnNwZWN0aXYudjEuR2V0VHdvRmFjdG9yU3RhdHVzUmVzcG9uc2USbAoTQmVnaW5Ud29GYWN0b3JTZXR1cBIpLnBlcnNwZWN0aXYudjEuQmVnaW5Ud29GYWN0b3JTZXR1cFJlcXVlc3QaKi5wZXJzcGVjdGl2LnYxLkJlZ2luVHdvRmFjdG9yU2V0dXBSZXNwb25zZRJyChVDb25maXJtVHdvRmFjdG9yU2V0dXASKy5wZXJzcGVjdGl2LnYxLkNvbmZpcm1Ud29GYWN0b3JTZXR1cFJlcXVlc3QaLC5wZXJzcGVjdGl2LnYxLkNvbmZpcm1Ud29GYWN0b3JTZXR1cFJlc3BvbnNlEmMKEERpc2FibGVUd29GYWN0b3ISJi5wZXJzcGVjdGl2LnYxLkRpc2FibGVUd29GYWN0b3JSZXF1ZXN0GicucGVyc3BlY3Rpdi52MS5EaXNhYmxlVHdvRmFjdG9yUmVzcG9uc2USeAoXUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXMSLS5wZXJzcGVjdGl2LnYxLlJlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVxdWVzdBouLnBlcnNwZWN0aXYudjEuUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXNwb25zZUKeAQoRY29tLnBlcnNwZWN0aXYudjFCCUF1dGhQcm90b1ABWilwZXJzcGVjdGl2L2dlbi9wZXJzcGVjdGl2L3YxO3BlcnNwZWN0aXZ2MaICA1BYWKoCDVBlcnNwZWN0aXYuVjHKAg1QZXJzcGVjdGl2XFYx4gIZUGVyc3BlY3RpdlxWMVxHUEJNZXRhZGF0YeoCDlBlcnNwZWN0aXY6OlYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_perspectiv_v1_enums]);
 
 /**
  * SessionUser is the signed-in caller as the web app's session sees it.
@@ -41,6 +41,13 @@ export type SessionUser = Message<"perspectiv.v1.SessionUser"> & {
    * @generated from field: bool email_verified = 4;
    */
   emailVerified: boolean;
+
+  /**
+   * True while the account has two-factor sign-in on.
+   *
+   * @generated from field: bool two_factor_enabled = 5;
+   */
+  twoFactorEnabled: boolean;
 };
 
 /**
@@ -159,6 +166,10 @@ export const LoginRequestSchema: GenMessage<LoginRequest> = /*@__PURE__*/
   messageDesc(file_perspectiv_v1_auth, 3);
 
 /**
+ * LoginResponse is either a session or, for an account with two-factor
+ * sign-in on, a challenge. With a challenge the access token and user are
+ * empty and no refresh cookie is set; CompleteTwoFactorLogin finishes.
+ *
  * @generated from message perspectiv.v1.LoginResponse
  */
 export type LoginResponse = Message<"perspectiv.v1.LoginResponse"> & {
@@ -176,6 +187,19 @@ export type LoginResponse = Message<"perspectiv.v1.LoginResponse"> & {
    * @generated from field: perspectiv.v1.SessionUser user = 3;
    */
   user?: SessionUser | undefined;
+
+  /**
+   * Set when the password was right and a second factor is needed. Single
+   * use; it expires at two_factor_challenge_expires_at, about 5 minutes on.
+   *
+   * @generated from field: string two_factor_challenge = 4;
+   */
+  twoFactorChallenge: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp two_factor_challenge_expires_at = 5;
+   */
+  twoFactorChallengeExpiresAt?: Timestamp | undefined;
 };
 
 /**
@@ -977,6 +1001,274 @@ export const RevokeSessionResponseSchema: GenMessage<RevokeSessionResponse> = /*
   messageDesc(file_perspectiv_v1_auth, 43);
 
 /**
+ * @generated from message perspectiv.v1.CompleteTwoFactorLoginRequest
+ */
+export type CompleteTwoFactorLoginRequest = Message<"perspectiv.v1.CompleteTwoFactorLoginRequest"> & {
+  /**
+   * The challenge from LoginResponse.
+   *
+   * @generated from field: string challenge = 1;
+   */
+  challenge: string;
+
+  /**
+   * Six digits from the authenticator app, or one recovery code.
+   *
+   * @generated from field: string code = 2;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.CompleteTwoFactorLoginRequest.
+ * Use `create(CompleteTwoFactorLoginRequestSchema)` to create a new message.
+ */
+export const CompleteTwoFactorLoginRequestSchema: GenMessage<CompleteTwoFactorLoginRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 44);
+
+/**
+ * @generated from message perspectiv.v1.CompleteTwoFactorLoginResponse
+ */
+export type CompleteTwoFactorLoginResponse = Message<"perspectiv.v1.CompleteTwoFactorLoginResponse"> & {
+  /**
+   * @generated from field: string access_token = 1;
+   */
+  accessToken: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp access_token_expires_at = 2;
+   */
+  accessTokenExpiresAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: perspectiv.v1.SessionUser user = 3;
+   */
+  user?: SessionUser | undefined;
+
+  /**
+   * True when a recovery code was used; recovery_codes_left then says how
+   * many unused ones remain.
+   *
+   * @generated from field: bool used_recovery_code = 4;
+   */
+  usedRecoveryCode: boolean;
+
+  /**
+   * @generated from field: int32 recovery_codes_left = 5;
+   */
+  recoveryCodesLeft: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.CompleteTwoFactorLoginResponse.
+ * Use `create(CompleteTwoFactorLoginResponseSchema)` to create a new message.
+ */
+export const CompleteTwoFactorLoginResponseSchema: GenMessage<CompleteTwoFactorLoginResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 45);
+
+/**
+ * @generated from message perspectiv.v1.GetTwoFactorStatusRequest
+ */
+export type GetTwoFactorStatusRequest = Message<"perspectiv.v1.GetTwoFactorStatusRequest"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.GetTwoFactorStatusRequest.
+ * Use `create(GetTwoFactorStatusRequestSchema)` to create a new message.
+ */
+export const GetTwoFactorStatusRequestSchema: GenMessage<GetTwoFactorStatusRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 46);
+
+/**
+ * @generated from message perspectiv.v1.GetTwoFactorStatusResponse
+ */
+export type GetTwoFactorStatusResponse = Message<"perspectiv.v1.GetTwoFactorStatusResponse"> & {
+  /**
+   * @generated from field: bool enabled = 1;
+   */
+  enabled: boolean;
+
+  /**
+   * When it was turned on; unset while off.
+   *
+   * @generated from field: google.protobuf.Timestamp enabled_at = 2;
+   */
+  enabledAt?: Timestamp | undefined;
+
+  /**
+   * @generated from field: int32 recovery_codes_left = 3;
+   */
+  recoveryCodesLeft: number;
+};
+
+/**
+ * Describes the message perspectiv.v1.GetTwoFactorStatusResponse.
+ * Use `create(GetTwoFactorStatusResponseSchema)` to create a new message.
+ */
+export const GetTwoFactorStatusResponseSchema: GenMessage<GetTwoFactorStatusResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 47);
+
+/**
+ * @generated from message perspectiv.v1.BeginTwoFactorSetupRequest
+ */
+export type BeginTwoFactorSetupRequest = Message<"perspectiv.v1.BeginTwoFactorSetupRequest"> & {
+  /**
+   * @generated from field: string current_password = 1;
+   */
+  currentPassword: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.BeginTwoFactorSetupRequest.
+ * Use `create(BeginTwoFactorSetupRequestSchema)` to create a new message.
+ */
+export const BeginTwoFactorSetupRequestSchema: GenMessage<BeginTwoFactorSetupRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 48);
+
+/**
+ * @generated from message perspectiv.v1.BeginTwoFactorSetupResponse
+ */
+export type BeginTwoFactorSetupResponse = Message<"perspectiv.v1.BeginTwoFactorSetupResponse"> & {
+  /**
+   * The shared secret in base32, for typing into an app by hand.
+   *
+   * @generated from field: string secret = 1;
+   */
+  secret: string;
+
+  /**
+   * otpauth://totp/... for the QR code: SHA-1, 6 digits, 30-second steps.
+   *
+   * @generated from field: string otpauth_uri = 2;
+   */
+  otpauthUri: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.BeginTwoFactorSetupResponse.
+ * Use `create(BeginTwoFactorSetupResponseSchema)` to create a new message.
+ */
+export const BeginTwoFactorSetupResponseSchema: GenMessage<BeginTwoFactorSetupResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 49);
+
+/**
+ * @generated from message perspectiv.v1.ConfirmTwoFactorSetupRequest
+ */
+export type ConfirmTwoFactorSetupRequest = Message<"perspectiv.v1.ConfirmTwoFactorSetupRequest"> & {
+  /**
+   * Six digits from the app the secret was added to.
+   *
+   * @generated from field: string code = 1;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.ConfirmTwoFactorSetupRequest.
+ * Use `create(ConfirmTwoFactorSetupRequestSchema)` to create a new message.
+ */
+export const ConfirmTwoFactorSetupRequestSchema: GenMessage<ConfirmTwoFactorSetupRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 50);
+
+/**
+ * @generated from message perspectiv.v1.ConfirmTwoFactorSetupResponse
+ */
+export type ConfirmTwoFactorSetupResponse = Message<"perspectiv.v1.ConfirmTwoFactorSetupResponse"> & {
+  /**
+   * Ten single-use recovery codes. The server keeps only their hashes, so
+   * this is the only time they can be shown.
+   *
+   * @generated from field: repeated string recovery_codes = 1;
+   */
+  recoveryCodes: string[];
+};
+
+/**
+ * Describes the message perspectiv.v1.ConfirmTwoFactorSetupResponse.
+ * Use `create(ConfirmTwoFactorSetupResponseSchema)` to create a new message.
+ */
+export const ConfirmTwoFactorSetupResponseSchema: GenMessage<ConfirmTwoFactorSetupResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 51);
+
+/**
+ * @generated from message perspectiv.v1.DisableTwoFactorRequest
+ */
+export type DisableTwoFactorRequest = Message<"perspectiv.v1.DisableTwoFactorRequest"> & {
+  /**
+   * @generated from field: string current_password = 1;
+   */
+  currentPassword: string;
+
+  /**
+   * Six digits from the app, or one recovery code.
+   *
+   * @generated from field: string code = 2;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.DisableTwoFactorRequest.
+ * Use `create(DisableTwoFactorRequestSchema)` to create a new message.
+ */
+export const DisableTwoFactorRequestSchema: GenMessage<DisableTwoFactorRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 52);
+
+/**
+ * @generated from message perspectiv.v1.DisableTwoFactorResponse
+ */
+export type DisableTwoFactorResponse = Message<"perspectiv.v1.DisableTwoFactorResponse"> & {
+};
+
+/**
+ * Describes the message perspectiv.v1.DisableTwoFactorResponse.
+ * Use `create(DisableTwoFactorResponseSchema)` to create a new message.
+ */
+export const DisableTwoFactorResponseSchema: GenMessage<DisableTwoFactorResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 53);
+
+/**
+ * @generated from message perspectiv.v1.RegenerateRecoveryCodesRequest
+ */
+export type RegenerateRecoveryCodesRequest = Message<"perspectiv.v1.RegenerateRecoveryCodesRequest"> & {
+  /**
+   * @generated from field: string current_password = 1;
+   */
+  currentPassword: string;
+
+  /**
+   * Six digits from the app, or one recovery code.
+   *
+   * @generated from field: string code = 2;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message perspectiv.v1.RegenerateRecoveryCodesRequest.
+ * Use `create(RegenerateRecoveryCodesRequestSchema)` to create a new message.
+ */
+export const RegenerateRecoveryCodesRequestSchema: GenMessage<RegenerateRecoveryCodesRequest> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 54);
+
+/**
+ * @generated from message perspectiv.v1.RegenerateRecoveryCodesResponse
+ */
+export type RegenerateRecoveryCodesResponse = Message<"perspectiv.v1.RegenerateRecoveryCodesResponse"> & {
+  /**
+   * @generated from field: repeated string recovery_codes = 1;
+   */
+  recoveryCodes: string[];
+};
+
+/**
+ * Describes the message perspectiv.v1.RegenerateRecoveryCodesResponse.
+ * Use `create(RegenerateRecoveryCodesResponseSchema)` to create a new message.
+ */
+export const RegenerateRecoveryCodesResponseSchema: GenMessage<RegenerateRecoveryCodesResponse> = /*@__PURE__*/
+  messageDesc(file_perspectiv_v1_auth, 55);
+
+/**
  * AuthService signs users up and in. The access token is returned in the body
  * for the browser to hold in memory; the refresh token travels only as an
  * HttpOnly cookie and never appears in a message.
@@ -1175,6 +1467,73 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof InviteFromWaitlistRequestSchema;
     output: typeof InviteFromWaitlistResponseSchema;
+  },
+  /**
+   * Public. The second step of signing in to an account with two-factor
+   * sign-in on: the challenge Login returned and a code from the
+   * authenticator app or a recovery code. Answers like Login.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.CompleteTwoFactorLogin
+   */
+  completeTwoFactorLogin: {
+    methodKind: "unary";
+    input: typeof CompleteTwoFactorLoginRequestSchema;
+    output: typeof CompleteTwoFactorLoginResponseSchema;
+  },
+  /**
+   * Whether the caller has two-factor sign-in on, and how many unused
+   * recovery codes they have.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.GetTwoFactorStatus
+   */
+  getTwoFactorStatus: {
+    methodKind: "unary";
+    input: typeof GetTwoFactorStatusRequestSchema;
+    output: typeof GetTwoFactorStatusResponseSchema;
+  },
+  /**
+   * Starts turning two-factor sign-in on, given the current password: a new
+   * secret to add to an authenticator app. Nothing changes at sign-in until
+   * ConfirmTwoFactorSetup accepts a code from it.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.BeginTwoFactorSetup
+   */
+  beginTwoFactorSetup: {
+    methodKind: "unary";
+    input: typeof BeginTwoFactorSetupRequestSchema;
+    output: typeof BeginTwoFactorSetupResponseSchema;
+  },
+  /**
+   * Turns two-factor sign-in on once a current code from the app is right,
+   * and returns the ten recovery codes, shown this once.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.ConfirmTwoFactorSetup
+   */
+  confirmTwoFactorSetup: {
+    methodKind: "unary";
+    input: typeof ConfirmTwoFactorSetupRequestSchema;
+    output: typeof ConfirmTwoFactorSetupResponseSchema;
+  },
+  /**
+   * Turns two-factor sign-in off, given the password and a current code.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.DisableTwoFactor
+   */
+  disableTwoFactor: {
+    methodKind: "unary";
+    input: typeof DisableTwoFactorRequestSchema;
+    output: typeof DisableTwoFactorResponseSchema;
+  },
+  /**
+   * Replaces every recovery code with ten new ones, given the password and a
+   * current code.
+   *
+   * @generated from rpc perspectiv.v1.AuthService.RegenerateRecoveryCodes
+   */
+  regenerateRecoveryCodes: {
+    methodKind: "unary";
+    input: typeof RegenerateRecoveryCodesRequestSchema;
+    output: typeof RegenerateRecoveryCodesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_perspectiv_v1_auth, 0);

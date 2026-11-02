@@ -27,7 +27,8 @@ SELECT u.id,
         WHERE p.author_id = u.id AND p.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND p.deleted_at IS NULL)::integer AS stories,
        (SELECT count(*) FROM perspectives p
         WHERE p.author_id = u.id AND p.hidden_at IS NOT NULL AND p.deleted_at IS NULL)::integer AS hidden_stories,
-       (SELECT count(*) FROM reports r WHERE r.reporter_id = u.id)::integer AS reports_filed
+       (SELECT count(*) FROM reports r WHERE r.reporter_id = u.id)::integer AS reports_filed,
+       EXISTS (SELECT 1 FROM totp_secrets t WHERE t.user_id = u.id AND t.confirmed_at IS NOT NULL)::boolean AS two_factor_enabled
 FROM users u
 WHERE u.id = $1::uuid
 `
@@ -45,6 +46,7 @@ type AdminUserFactsRow struct {
 	Stories          int32
 	HiddenStories    int32
 	ReportsFiled     int32
+	TwoFactorEnabled bool
 }
 
 // What a moderator sees of one account.
@@ -64,6 +66,7 @@ func (q *Queries) AdminUserFacts(ctx context.Context, id uuid.UUID) (AdminUserFa
 		&i.Stories,
 		&i.HiddenStories,
 		&i.ReportsFiled,
+		&i.TwoFactorEnabled,
 	)
 	return i, err
 }

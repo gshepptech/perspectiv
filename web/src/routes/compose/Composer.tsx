@@ -32,6 +32,7 @@ import {
   type ComposeValues,
 } from "./composeForm";
 import { resumedNotice, useDraftsFor } from "./drafts";
+import { EmptyDraft } from "./EmptyDraft";
 import { genreLabel, genres } from "./genres";
 import { hourLabel, isLocalDate } from "./localDate";
 import { RecentDays } from "./RecentDays";
@@ -50,8 +51,12 @@ export type ComposerProps = {
   /** The saved draft or published perspective being edited; absent for a new one. */
   perspective?: Perspective;
   notice?: string;
+  /** The notice takes focus on open: the control that had it is gone (an emptied draft was deleted). */
+  focusNotice?: boolean;
   /** Called once the first autosave gives a new draft its id. */
   onDraftNamed: (perspectiveId: string) => void;
+  /** Called once an emptied draft is deleted, with where to start again. */
+  onDraftDeleted: (where: { placeId: string; localDate: string; hour: number | undefined }) => void | Promise<void>;
   /**
    * Writing their side of someone else's story ("That was me"): the day and
    * hour are that story's, fixed, because claims link stories in one arc.
@@ -64,7 +69,17 @@ export type ComposerProps = {
  * explicitly; a published perspective is edited in place through Update, with
  * its day and hour fixed.
  */
-export function Composer({ place, today, initial, perspective, notice, onDraftNamed, joining = false }: ComposerProps) {
+export function Composer({
+  place,
+  today,
+  initial,
+  perspective,
+  notice,
+  focusNotice = false,
+  onDraftNamed,
+  onDraftDeleted,
+  joining = false,
+}: ComposerProps) {
   const navigate = useNavigate();
   // An invite link sends its reader here with the inviter's code; publishing
   // with it tells the inviter, and lands on the arc, where the two stories sit
@@ -98,6 +113,10 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [shownNotice, setShownNotice] = useState(notice);
+  const noticeRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (focusNotice) noticeRef.current?.focus();
+  }, [focusNotice]);
   const written = hasText(useWatch({ control: form.control, name: "parts" }));
 
   // The draft this form saves into: a ref for the autosave, state for what
@@ -180,6 +199,16 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
     namedRef.current(newest.id);
   }, [drafts.data, form, today]);
   const otherDraft = newestDraft && newestDraft.id !== ownDraft && (ownDraft !== "" || written) ? newestDraft : undefined;
+
+  // A saved draft whose parts are all cleared still holds its old text on
+  // the server (autosave waits for text), so the writer is asked whether to
+  // delete it. "Keep writing" puts the question away until a part has had
+  // text and is emptied again.
+  const [emptyKept, setEmptyKept] = useState(false);
+  useEffect(() => {
+    if (written) setEmptyKept(false);
+  }, [written]);
+  const emptied = !published && ownDraft !== "" && !written && !emptyKept;
 
   async function openExisting(v: ComposeValues): Promise<boolean> {
     const hour = hourOf(v);
@@ -292,7 +321,7 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
             Empty, it takes back the grid gap after it rather than leave a double space. */}
         <div role="status" aria-label="Composer notice" className="empty:-mb-6">
           {shownNotice && (
-            <p className="flex gap-2 rounded-md border border-rule bg-surface p-3 text-sm text-ink">
+            <p ref={noticeRef} tabIndex={-1} className="flex gap-2 rounded-md border border-rule bg-surface p-3 text-sm text-ink">
               <Info aria-hidden size={16} className="mt-0.5 shrink-0 text-info" />
               <span>{shownNotice}</span>
             </p>
@@ -382,6 +411,24 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
               onRemove={parts.fields.length > 1 ? () => parts.remove(i) : undefined}
             />
           ))}
+          {/* Polite and always mounted, so the question is read as it appears while focus stays in the
+              part being cleared. Empty, it takes back the grid gap after it. */}
+          <div aria-live="polite" className="empty:-mb-4">
+            {emptied && (
+              <EmptyDraft
+                perspectiveId={ownDraft}
+                settle={autosave.flush}
+                onKeepWriting={() => {
+                  setEmptyKept(true);
+                  form.setFocus("parts.0.body");
+                }}
+                onDeleted={() => {
+                  const v = form.getValues();
+                  return onDraftDeleted({ placeId: place.id, localDate: v.localDate, hour: hourOf(v) });
+                }}
+              />
+            )}
+          </div>
           <div>
             <Button
               variant="secondary"

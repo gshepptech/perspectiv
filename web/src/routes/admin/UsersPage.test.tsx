@@ -58,6 +58,7 @@ describe("user lookup", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Look up a user" })).toBeInTheDocument();
     expect(within(dossier).getByRole("link", { name: "Public profile" })).toHaveAttribute("href", "/users/marlo");
     expect(within(dossier).getByRole("list", { name: "Standing" })).toHaveTextContent("Email verified");
+    expect(within(dossier).getByText("Two-factor sign-in").nextElementSibling).toHaveTextContent("Off");
     await waitFor(() => expect(api.callsTo("ModerationService/ListReports")[0]?.body).toMatchObject({ subjectUserId: "u-9" }));
     expect(api.callsTo("ModerationService/ListAuditLog")[0]?.body).toMatchObject({ subjectUserId: "u-9" });
   });

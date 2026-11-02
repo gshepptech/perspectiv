@@ -448,8 +448,9 @@ func (s *Service) UnblockUser(ctx context.Context, caller, target uuid.UUID) err
 // (drafts too), marks the arcs those sat in for the next rank run (which
 // dissolves their claims and recomputes lore and canon), erases the
 // account's email, username, bio, avatar and password hash, removes every
-// follow it made or received and every story it saved, and revokes its
-// sessions and refresh tokens. The avatar file is removed after the commit.
+// follow it made or received and every story it saved, deletes its
+// two-factor secret, recovery codes and open sign-in challenges, and revokes
+// its sessions and refresh tokens. The avatar file is removed after the commit.
 func (s *Service) DeleteAccount(ctx context.Context, caller uuid.UUID, password string) error {
 	u, err := s.q.GetUser(ctx, caller)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -513,6 +514,9 @@ func (s *Service) deleteAccountTx(ctx context.Context, q *dbq.Queries, caller uu
 		Username: deletedUsernamePrefix + tag,
 	}); err != nil {
 		return "", apiutil.Internal(fmt.Errorf("anonymize user: %w", err))
+	}
+	if err := q.DeleteTwoFactor(ctx, caller); err != nil {
+		return "", apiutil.Internal(fmt.Errorf("delete two-factor sign-in: %w", err))
 	}
 	if err := q.RevokeRefreshTokens(ctx, caller); err != nil {
 		return "", apiutil.Internal(fmt.Errorf("revoke refresh tokens: %w", err))

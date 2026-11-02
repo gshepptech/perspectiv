@@ -357,7 +357,9 @@ lore page.
   leads with the hour timeline and says so, instead of an empty canon.
 - **Standing alone:** stories in no lore (waiting for a link, or tales) are one
   section of story rows below the lores, each row carrying its standing as a
-  flair word.
+  flair word. Its intro MUST NOT say a tale can never link: a story still
+  unlinked a week after it was published is called a tale, and an accepted
+  claim still links it into a lore.
 - **Is this you?** At the top of the sidebar: the people described in the
   day's stories whom nobody has claimed, each quoted in Literata with "in
   otter's story" and a "That was me" link that opens the story with the
@@ -400,7 +402,9 @@ lore page.
   an account.", with "Sign in" and "Create an account" links that return
   to the story, instead of leaving for the sign-in page.
 - **Sidebar:** the four steps of how a day becomes canon, the number of
-  stories and lores, who may do what here in one sentence, and "Report place".
+  stories and lores, who may do what here in one sentence, a "Read more"
+  link to the guide (`/how-it-works`) closing "How this day works", and
+  "Report place".
   A day arc's hours sit in the feed, after the canon.
 - **Flairs** are words in `text-sm` with an icon where one exists; canon uses
   `accent`, pending uses `warning`, never colour alone.
@@ -758,6 +762,36 @@ day and hour, and the composer finds it wherever they come in:
   most recently opens, and the note says so: "You started more than one
   draft for this day, so the one you changed last is open. The others are
   under Your stories on the front page."
+
+**Clearing a draft.** Autosave waits while every part is empty ("Your
+draft saves once a part has text"), and the server refuses an empty draft,
+so a writer who clears a saved draft still has its old text stored, and it
+comes back the next time the draft resumes. The composer says so and
+offers to delete it:
+
+- When a saved draft (one with an id, never a published story) has every
+  part empty, an inline note appears under the parts, before "Add part":
+  a bordered `surface` box (`rule` border, no status colour, since nothing
+  has gone wrong) reading "This draft is empty. Delete it?" with two
+  buttons, a `danger` "Delete" and a `secondary` "Keep writing", each 44px
+  tall, in a row that wraps when it does not fit. The genre, title and
+  characters do not count as text, as they do not for autosave. The note
+  is a polite live region, so it is announced as it appears, and focus
+  stays in the part the writer was clearing.
+- "Keep writing" closes the note and moves focus to Part 1. The note
+  comes back only after a part has had text again and every part is
+  emptied again.
+- "Delete" waits for any save in flight, then deletes the draft
+  (`Delete`, the RPC the front page's draft rows use) and opens the
+  composer again on the same place, day and hour, as if opened there
+  fresh: the address drops the draft (`/compose?placeId=…&date=…&hour=…`,
+  keeping `return` and `invite`), the form is blank, and the notice at the
+  top reads "Your empty draft is deleted." and takes focus, since the
+  button that had it is gone. Should another draft of the writer's exist
+  for that day and hour, it resumes, as Resuming a draft says. While the
+  delete is in flight the button is pending; when it fails, a
+  `role="alert"` line in `error` under the buttons says "Not deleted. Try
+  again in a moment." and the note stays.
 - A draft whose parts are all empty is never saved: autosave waits until a
   part has text, and the save status line reads "Your draft saves once a
   part has text." until then. The server refuses an all-empty draft as well, so an
@@ -977,6 +1011,120 @@ other row has its own "Sign out" whose accessible name adds the device and
 when it signed in ("Sign out Chrome on macOS, signed in Oct 3, 2026"), so
 two rows for the same browser are told apart.
 
+## Settings: two-factor sign-in
+
+A block of "Sign-in and security", after "Change email" and before
+"Signed-in devices", with the `h3` "Two-factor sign-in" and the anchor
+`#two-factor` (the admin notice links to it). The copy calls it
+"two-factor sign-in" and the app "your authenticator app"; it never says
+TOTP, OTP, 2FA or MFA.
+
+- **Off.** One line, "Off. With it on, signing in asks for a code from an
+  authenticator app on your phone as well as your password.", and a
+  `secondary` button "Turn on two-factor sign-in…". It opens the steps in
+  place, below the line, not in a dialog: the steps are long, a QR code in
+  a dialog is cramped on a phone, and the reader may switch to their phone
+  and back.
+- **Step 1, password.** "Current password" (the same field and refusal
+  wording as Change password) and a primary "Continue". Cancel returns to
+  Off.
+- **Step 2, add to your app.** The line "Add Perspectiv to your
+  authenticator app" takes focus, then a numbered list of two items, so
+  the order is read out:
+  1. "Scan this code with your authenticator app." The QR code sits on a
+     `paper` square with a 16px quiet zone and a 1px `rule` border, 192px
+     wide on every screen, drawn as SVG in the page by `qrcode.react` from
+     the `otpauth://` URI the server returned; nothing is fetched to draw
+     it. Its modules are `ink` (`currentColor`) on the square's `paper`,
+     and the square sets `color-scheme: light`, so in the dark theme too
+     the code stays dark on light, as scanners expect. It is an `img` named "QR code for adding Perspectiv to your
+     authenticator app". Under it, "Can't scan it? Enter this key
+     instead:" and the key in `font-mono`, grouped in fours with spaces,
+     selectable, with a `ghost` "Copy key" button (status line "Key
+     copied."). The key is the whole secret, so it is shown only here.
+  2. "Enter the six-digit code the app shows." A field labelled "Code from
+     your app", `inputMode="numeric"`, `autocomplete="one-time-code"`,
+     six characters wide, then primary "Turn on". A wrong code says "That
+     code is not right. Check that your phone's clock is set
+     automatically." under the field.
+- **Step 3, recovery codes.** Shown once, right after it turns on, with
+  focus moved to its heading "Save your recovery codes". The line under it:
+  "Each code signs you in once if you lose your phone. This is the only
+  time we show them." The ten codes are a two-column list (one column under
+  400px) in `font-mono`, `text-base`, each code a list item. Below them,
+  `secondary` "Download as a text file" (saves
+  `perspectiv-recovery-codes.txt`: a heading line naming the account, the
+  date, then one code a line) and `ghost` "Copy codes". Then the primary
+  "I've saved my codes", which closes the step and shows On. Leaving the
+  page also closes it; the codes cannot be shown again, only replaced.
+- **On.** A `success` `ShieldCheck` icon and "On since Oct 3, 2026.", then
+  "8 recovery codes left." (with 3 or fewer the count is in `warning` and
+  adds "Make new ones soon."; at 0 it reads "No recovery codes left. Make
+  new ones."). Two
+  `secondary` buttons: "Make new recovery codes…" and "Turn off…". Each
+  opens a `Dialog` asking for "Current password" and "Code from your app or
+  a recovery code", with the description saying what happens ("Your old
+  codes stop working." / "Signing in will ask only for your password.").
+  A wrong password is said under the password field, a wrong code under
+  the code field. Making new codes then shows Step 3 with the new set.
+- **Lost your phone and your codes?** A closing `text-sm` `ink-muted`
+  paragraph on both Off and On: "Lost your phone and every recovery code?
+  Write to us from this account's email address. We check it is you
+  before we turn two-factor sign-in off, and we email you when we do."
+  The operator path behind it is in `deploy/k3s/README.md`.
+
+## Signing in: the second step
+
+When the password is right and the account has two-factor sign-in on, the
+sign-in page stays at `/login` and swaps the form for a second step; the
+address does not change and nothing is stored in the browser but the
+challenge, held in component state. Focus moves to the new heading.
+
+- Heading "Enter your code", then "Open your authenticator app and enter
+  the six-digit code for Perspectiv." One field, "Code from your app"
+  (numeric, `one-time-code`, so a phone offers the code), and primary
+  "Sign in".
+- Under the button, a text button "Use a recovery code" swaps the field
+  for "Recovery code" (`autocomplete="off"`, `font-mono`, help line "Like
+  abcd-efgh-jkmn-pqrs. Each code works once.", the line above it reading
+  "Enter one of the recovery codes you saved when you turned on two-factor
+  sign-in.") and itself for "Use the code from your app", keeping focus.
+  Both buttons are 44px tall.
+- "Start again" (a text button) returns to the email and password, which
+  keep the email.
+- A wrong code: "That code is not right." under the field, and the field
+  keeps focus. Too many: the `FormAlert` "Too many wrong codes. Two-factor
+  sign-in for this account is paused; try again later." A challenge that
+  timed out (about 5 minutes) or was ended by a password reset returns to
+  the password form with the `status` line "That sign-in timed out. Enter
+  your password again."
+- After a recovery code, the page the reader goes to is the one they were
+  headed for, and Settings shows how many codes are left; the email the
+  server sends says so too. Nothing blocks the way in.
+
+## Admins without two-factor sign-in
+
+v1 does not require admins to turn two-factor sign-in on, and there is no
+lockout or deadline: an admin without it keeps every admin page. It is
+asked for instead:
+
+- **The notice.** While the signed-in account is an admin without
+  two-factor sign-in, a band sits under the header on every page: full
+  shell width, `surface` fill, a 1px `rule` bottom border, a 16px
+  `warning` `ShieldAlert` icon, then "Your admin account has no two-factor
+  sign-in." and the link "Turn it on in Settings" (to
+  `/settings#two-factor`). It is a `region` named "Account security
+  notice", not an alert: it is there on load, not news. It has no close
+  button; it goes when two-factor sign-in is on, read from the session the
+  server returns, and comes back if it is turned off.
+- **The dossier** adds a fact "Two-factor sign-in", "On" or "Off", for
+  every account, after "Failed sign-ins, last 24 hours". For an admin
+  without it the word is "Off" in `warning`.
+- **The audit log** names an operator's reset from the command line as
+  "**The command line** reset a user's two-factor sign-in: *username*",
+  with the reason quoted below like any entry, and lists "Reset a user's
+  two-factor sign-in" in the action filter.
+
 ## Following writers
 
 - **Profile toggle.** Another member's profile carries a "Follow" toggle
@@ -1170,8 +1318,56 @@ light and dark themes.
 `/terms`, `/privacy` and `/guidelines` are public reading pages: a title, a
 "Last updated" line, prose at the reading measure with plain `h2` sections
 and bullet lists, and a closing row of links to the other two. The footer
-links all three on every page, and the sign-up terms box links them before
-the age-and-agreement checkbox, so a keyboard user meets them first.
+links all three on every page, after "How it works" and before
+"Appearance", and the sign-up terms box links them before the
+age-and-agreement checkbox, so a keyboard user meets them first.
+
+## How Perspectiv works (the guide)
+
+`/how-it-works` is a public reading page that explains the whole product
+to a first-time visitor. In two walkthroughs, newcomers could not work
+out day, story, lore, canon, claims, voting out or hours from the
+four-line summaries, so this page says each rule exactly, once, in the
+book's voice, and follows one worked example the whole way through.
+
+- **Shape.** One column at the reading measure, set like the legal pages:
+  the `h1` "How Perspectiv works" (`text-2xl`, `text-3xl` from `sm`), a
+  two-sentence lede in Literata `text-prose` `ink-muted`, then the front
+  page's facing-pages example (the same `figure`, wren and otter at
+  Moonbean Coffee), then the sections. No "Last updated" line, no cards,
+  boxes, fills or icons beyond the example's own.
+- **Sections**, each a serif `h2` at `text-xl` over prose in Literata
+  (`prose-body`), in this order: "A place and a day", "Writing your
+  story", "Characters and “that was me”", "How stories link into a lore",
+  "How canon is chosen", "Voting a story out", "Hours", "What readers can
+  do", and "Your privacy". The readers' section is a bulleted list; every
+  other section is two or three short paragraphs.
+- **The worked example.** Each section but the last two ends with one
+  paragraph that carries the example forward (wren titles the day and
+  writes two parts, otter writes his side and claims "the guy in the yellow raincoat", two more
+  people make the lore four, the day's writers upvote it into canon, what
+  a vote-out would take, and what an hour would have changed). It is set
+  off by a 2px `rule` left border and `pl-4`, in the same face and colour
+  as the prose, so it reads as an aside, not a warning or a quote.
+- **Rules said exactly**, from the code, never from the summaries: the
+  numbers come from the same constants the rest of the client uses (4
+  people for canon and for a vote-out, 10 parts of 300 words, 10
+  characters, a week before an unlinked story stands alone). Canon is
+  chosen by the people who wrote about the day and never by readers; only
+  they upvote, claim and post in a lore's thread. The page MUST NOT promise
+  anything the server does not do.
+- **Privacy** is one sentence: other people see only your username, and
+  your email address is never shown, with "privacy notice" a link to
+  `/privacy`.
+- **Ways in.** The footer's first link, "How it works", on every page; a
+  "Read more" link at the end of the front page's "How Perspectiv works"
+  list; a "Read more" link at the end of the day page's "How this day
+  works" section; and a "Read more" link at the end of a new member's
+  "How a day works" box. Each "Read more" is a `text-sm` `accent`
+  underlined link, 44px tall, whose accessible name is "Read more about
+  how Perspectiv works", so the visible words begin its name.
+- **Title:** "How Perspectiv works · Perspectiv". The sitemap's `pages`
+  file lists `/how-it-works`.
 
 ## Landing (the front door)
 
@@ -1226,7 +1422,8 @@ its place page.
   pinned to a place and a day; everyone who was there writes their own
   side; spot yourself in someone else's story and claim the character;
   linked stories become a lore, and the lore the people who were there
-  favour most becomes canon.
+  favour most becomes canon. A "Read more" link under the list opens the
+  guide, `/how-it-works`.
 - **Where people are writing.** Under how it works (for a member, under
   the search), up to six rows from the
   most remembered days anywhere, one per place, in a list split by
@@ -1280,6 +1477,7 @@ its place page.
   3. If someone else's story describes you, claim that character; your
      two stories link, and linked stories make a lore.
   4. The lore the day's writers favour most becomes its canon.
+  A "Read more" link under the list opens the guide, `/how-it-works`.
   While the member's published count is still loading the heading reads
   "Welcome, *username*" and neither block shows; "Welcome back" replaces
   it once a published story is found.

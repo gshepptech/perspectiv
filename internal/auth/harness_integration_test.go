@@ -28,6 +28,7 @@ import (
 	"perspectiv/internal/auth"
 	"perspectiv/internal/jobs"
 	"perspectiv/internal/testdb"
+	"perspectiv/pkg/crypto"
 )
 
 func TestMain(m *testing.M) { testdb.Main(m) }
@@ -93,7 +94,7 @@ func newEnvMode(t *testing.T, pool *pgxpool.Pool, mode auth.SignUpMode) *env {
 		t.Fatalf("jobs.NewClient: %v", err)
 	}
 	lim := auth.NewLimiter(pool)
-	svc, err := auth.NewService(pool, jobs.NewEnqueuer(river), lim, auth.Config{
+	svc, err := auth.NewService(pool, jobs.NewEnqueuer(river), lim, encryptorOn(t, pool), auth.Config{
 		JWTSecret:     jwtSecret,
 		PublicBaseURL: baseURL,
 		CookieSecure:  true,
@@ -136,6 +137,28 @@ func newEnvMode(t *testing.T, pool *pgxpool.Pool, mode auth.SignUpMode) *env {
 	srv := httptest.NewServer(api.NewRouter(api.RouterConfig{Log: log, Handlers: mounts}))
 	t.Cleanup(srv.Close)
 	return &env{t: t, pool: pool, svc: svc, srv: srv, logs: logs}
+}
+
+// encryptors holds one test key per database, so a server restarted on the
+// same database (newEnvOn) can still open the two-factor secrets the first
+// one sealed. No key is tracked in the repository; each is generated here.
+var encryptors sync.Map
+
+func encryptorOn(t *testing.T, pool *pgxpool.Pool) *crypto.Encryptor {
+	t.Helper()
+	if enc, ok := encryptors.Load(pool); ok {
+		return enc.(*crypto.Encryptor)
+	}
+	key, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatalf("crypto.GenerateKey: %v", err)
+	}
+	enc, err := crypto.NewEncryptor(key)
+	if err != nil {
+		t.Fatalf("crypto.NewEncryptor: %v", err)
+	}
+	actual, _ := encryptors.LoadOrStore(pool, enc)
+	return actual.(*crypto.Encryptor)
 }
 
 func (e *env) auth() perspectivv1connect.AuthServiceClient {

@@ -132,6 +132,12 @@ func TestDeleteAccount(t *testing.T) {
 	e.exec(`INSERT INTO refresh_tokens (session_id, token_hash, expires_at) VALUES ($1, 'h1', now() + interval '1 day')`, session)
 	e.exec(`INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2)`, bob, alice)
 	e.exec(`INSERT INTO saved_perspectives (user_id, perspective_id) VALUES ($1, $2), ($3, $4)`, alice, bobs, bob, mine)
+	// Two-factor sign-in, on for both: alice's goes with her account, bob's stays.
+	for _, u := range []uuid.UUID{alice, bob} {
+		e.exec(`INSERT INTO totp_secrets (user_id, key_id, algorithm, ciphertext, confirmed_at) VALUES ($1, 'k', 'a', '\x00', now())`, u)
+		e.exec(`INSERT INTO recovery_codes (user_id, code_hash) VALUES ($1, '\x01'), ($1, '\x02')`, u)
+		e.exec(`INSERT INTO two_factor_challenges (user_id, token_hash, expires_at) VALUES ($1, gen_random_uuid()::text::bytea, now() + interval '5 minutes')`, u)
+	}
 
 	if _, err := c.UpdateProfile(ctx, connect.NewRequest(&perspectivv1.UpdateProfileRequest{
 		Bio: "bio", Avatar: testPNG(t, 8, 8), AvatarContentType: "image/png",
@@ -192,6 +198,8 @@ func TestDeleteAccount(t *testing.T) {
 		t.Fatal("sessions or refresh tokens left live")
 	}
 
+	wantTwoFactorGone(t, e, alice, bob)
+
 	// The freed username and email can be taken again.
 	e.user("alice")
 
@@ -210,6 +218,19 @@ func TestDeleteAccount(t *testing.T) {
 	}
 	if b := own.Msg.GetAccount().GetBlocked(); len(b) != 1 || b[0].GetUsername() != user.DeletedUsername {
 		t.Fatalf("blocked list after delete = %v", b)
+	}
+}
+
+// wantTwoFactorGone fails unless gone keeps no two-factor secret, recovery
+// code or sign-in challenge while kept still has all three.
+func wantTwoFactorGone(t *testing.T, e *env, gone, kept uuid.UUID) {
+	t.Helper()
+	for _, table := range []string{"totp_secrets", "recovery_codes", "two_factor_challenges"} {
+		var left, others int
+		e.scan(`SELECT count(*) FILTER (WHERE user_id = $1), count(*) FILTER (WHERE user_id = $2) FROM `+table, []any{gone, kept}, &left, &others)
+		if left != 0 || others == 0 {
+			t.Fatalf("%s after delete: %d of the account's rows left, %d of another's", table, left, others)
+		}
 	}
 }
 

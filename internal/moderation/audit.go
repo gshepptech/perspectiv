@@ -230,6 +230,7 @@ func adminUserView(ctx context.Context, q *dbq.Queries, id uuid.UUID) (*perspect
 		JoinedAt: timestamppb.New(u.CreatedAt), Deleted: u.Deleted,
 		FailedSignIns_24H: u.FailedSignIns24h, Stories: u.Stories, HiddenStories: u.HiddenStories,
 		OpenReportsAgainst: against.Open, ReportsAgainst: against.Total, ReportsFiled: u.ReportsFiled,
+		TwoFactorEnabled: u.TwoFactorEnabled,
 	}
 	// A deleted account's address is a placeholder; there is nothing to hint.
 	if !u.Deleted {

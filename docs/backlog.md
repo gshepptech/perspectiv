@@ -51,6 +51,54 @@ Nothing in progress.
 
 ## Done
 
+- Two-factor sign-in with an authenticator app (RFC 6238: SHA-1, six
+  digits, 30-second steps, one step of drift, a used step refused as a
+  replay), implemented in `internal/auth/totp.go` (ADR 0004). Settings →
+  Sign-in and security turns it on behind the current password: a QR code
+  drawn in the page by `qrcode.react` 4.2.0 (pinned; no request), the key
+  for typing in, a confirming code, then ten single-use recovery codes
+  shown once, downloadable as text and stored only as SHA-256 hashes. The
+  secret is sealed through `pkg/crypto` in `(key_id, algorithm,
+  ciphertext)` under the new required `ENCRYPTION_KEYS` (`perspectiv
+  keygen`; dev.sh writes a dev key to `.env.dev.local`; the chart requires
+  it; the runbook covers rotation). Sign-in with it on returns a 5-minute,
+  single-use Postgres challenge and no session until a code or recovery
+  code completes it; wrong codes are counted in `two_factor_attempts` (5 in
+  15 minutes, 20 in a day). Turning off and new codes need the password and
+  a code; a password reset leaves it on and ends open challenges. Members
+  are emailed on on, off and recovery-code use. Admins see a notice until
+  it is on (not enforced in v1), the dossier shows it, export says whether
+  it is on, account deletion removes it, and an operator can reset it with
+  the audited `perspectiv admin reset-two-factor` (runbook in
+  `deploy/k3s/README.md`). The lost-device line in Settings says to write
+  in, which needs the contact address "Legal review and a contact address"
+  waits on. Verified by TestTOTPMatchesRFC6238Vectors and the totp unit
+  tests, the TwoFactor* and TestPasswordResetStillRequiresTwoFactor
+  integration tests, TestAdminResetTwoFactor, TestKeygen,
+  TestExportSaysWhetherTwoFactorIsOn, TestDeleteAccount, TestLookupUser,
+  the login and Settings two-factor vitest files, and `two-factor.spec.ts`.
+
+- A public guide, `/how-it-works` ("How Perspectiv works"), for the
+  first-time visitors in two walkthroughs who could not make sense of day,
+  story, lore, canon, claims, voting out and hours: one page in Folio's
+  book voice that follows the front page's Moonbean Coffee example through
+  a place and a day, writing, characters and "that was me", lores, canon
+  (chosen by the day's writers with 4 or more people, never by readers),
+  voting a story out, hours, what readers can do, and privacy in one line.
+  Its rules were checked against the code (vote, lore, rank and claim
+  services). The footer's "How it works", and a "Read more" link closing
+  the front page's how-it-works list, a new member's "How a day works" box
+  and the day page's "How this day works", lead to it; the sitemap's
+  `pages` file lists it. And clearing every part of a saved draft now asks
+  "This draft is empty. Delete it?" (Delete or Keep writing), because the
+  old text stayed stored and came back on resume; Delete removes it and
+  opens the composer clean on the same place, day and hour. Design text in
+  the design system's "How Perspectiv works (the guide)" and "Clearing a
+  draft". Verified by HowItWorksPage.test.tsx, the composer's "clearing a
+  draft" tests, the landing, arc and router tests, the 375px layout test,
+  TestSitemapFixedPages and TestPreview, and the guide in the axe scan in
+  both themes.
+
 - Security review of 062fb80, df98dae and 66be334 (no leaks in post links,
   open characters, drafts, the search split, thread counts, followed
   writers or the thread target): the Requests page no longer names a place

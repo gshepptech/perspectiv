@@ -73,7 +73,7 @@ export function Component() {
           <AccountSection account={me.data.account} />
           <ProfileSection profile={me.data.profile} />
           <UsernameSection profile={me.data.profile} account={me.data.account} />
-          <SecuritySection email={me.data.account.email} />
+          <SecuritySection email={me.data.account.email} username={me.data.profile.username} />
           <NotificationsSection />
           <FollowedWritersSection />
           <BlocksSection blocked={me.data.account.blocked} />

@@ -31,6 +31,21 @@ func (q *Queries) ActorStanding(ctx context.Context, id uuid.UUID) (ActorStandin
 	return i, err
 }
 
+const confirmTotp = `-- name: ConfirmTotp :exec
+UPDATE totp_secrets SET confirmed_at = now(), last_used_step = $1::bigint
+WHERE user_id = $2::uuid AND confirmed_at IS NULL
+`
+
+type ConfirmTotpParams struct {
+	Step   int64
+	UserID uuid.UUID
+}
+
+func (q *Queries) ConfirmTotp(ctx context.Context, arg ConfirmTotpParams) error {
+	_, err := q.db.Exec(ctx, confirmTotp, arg.Step, arg.UserID)
+	return err
+}
+
 const consumeEmailChangeToken = `-- name: ConsumeEmailChangeToken :one
 UPDATE email_tokens et
 SET used_at = now()
@@ -105,6 +120,46 @@ func (q *Queries) CountRecentFailedLogins(ctx context.Context, arg CountRecentFa
 	return column_1, err
 }
 
+const countRecentFailedTwoFactor = `-- name: CountRecentFailedTwoFactor :one
+SELECT count(*)::int
+FROM two_factor_attempts
+WHERE user_id = $1::uuid
+  AND NOT succeeded
+  AND attempted_at > now() - make_interval(mins => $2::int)
+`
+
+type CountRecentFailedTwoFactorParams struct {
+	UserID        uuid.UUID
+	WindowMinutes int32
+}
+
+func (q *Queries) CountRecentFailedTwoFactor(ctx context.Context, arg CountRecentFailedTwoFactorParams) (int32, error) {
+	row := q.db.QueryRow(ctx, countRecentFailedTwoFactor, arg.UserID, arg.WindowMinutes)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const countRecoveryCodesLeft = `-- name: CountRecoveryCodesLeft :one
+SELECT count(*)::int FROM recovery_codes WHERE user_id = $1::uuid AND used_at IS NULL
+`
+
+func (q *Queries) CountRecoveryCodesLeft(ctx context.Context, userID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, countRecoveryCodesLeft, userID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const deleteRecoveryCodes = `-- name: DeleteRecoveryCodes :exec
+DELETE FROM recovery_codes WHERE user_id = $1::uuid
+`
+
+func (q *Queries) DeleteRecoveryCodes(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteRecoveryCodes, userID)
+	return err
+}
+
 const deleteStaleRateWindows = `-- name: DeleteStaleRateWindows :exec
 DELETE FROM rate_limit_counters
 WHERE action = $1 AND subject = $2 AND window_start < $3
@@ -118,6 +173,26 @@ type DeleteStaleRateWindowsParams struct {
 
 func (q *Queries) DeleteStaleRateWindows(ctx context.Context, arg DeleteStaleRateWindowsParams) error {
 	_, err := q.db.Exec(ctx, deleteStaleRateWindows, arg.Action, arg.Subject, arg.CurrentWindow)
+	return err
+}
+
+const deleteTotp = `-- name: DeleteTotp :exec
+DELETE FROM totp_secrets WHERE user_id = $1::uuid
+`
+
+func (q *Queries) DeleteTotp(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteTotp, userID)
+	return err
+}
+
+const deleteTwoFactorChallenges = `-- name: DeleteTwoFactorChallenges :exec
+DELETE FROM two_factor_challenges WHERE user_id = $1::uuid
+`
+
+// Ends every challenge the account has open: a password change, a reset or
+// turning two-factor off makes a pending second step meaningless.
+func (q *Queries) DeleteTwoFactorChallenges(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteTwoFactorChallenges, userID)
 	return err
 }
 
@@ -200,19 +275,101 @@ func (q *Queries) GetRefreshTokenForUpdate(ctx context.Context, tokenHash []byte
 	return i, err
 }
 
+const getTotpForUpdate = `-- name: GetTotpForUpdate :one
+SELECT user_id, key_id, algorithm, ciphertext, created_at, confirmed_at, last_used_step
+FROM totp_secrets
+WHERE user_id = $1::uuid
+FOR UPDATE
+`
+
+// The account's TOTP row, locked so two codes checked at once are
+// serialised and the second sees the first one's last_used_step.
+func (q *Queries) GetTotpForUpdate(ctx context.Context, userID uuid.UUID) (TotpSecret, error) {
+	row := q.db.QueryRow(ctx, getTotpForUpdate, userID)
+	var i TotpSecret
+	err := row.Scan(
+		&i.UserID,
+		&i.KeyID,
+		&i.Algorithm,
+		&i.Ciphertext,
+		&i.CreatedAt,
+		&i.ConfirmedAt,
+		&i.LastUsedStep,
+	)
+	return i, err
+}
+
+const getTwoFactorChallengeForUpdate = `-- name: GetTwoFactorChallengeForUpdate :one
+SELECT c.id, c.user_id, u.username, u.email, u.role, u.email_verified_at
+FROM two_factor_challenges c
+JOIN users u ON u.id = c.user_id
+WHERE c.token_hash = $1
+  AND c.used_at IS NULL
+  AND c.expires_at > now()
+  AND u.deleted_at IS NULL
+FOR UPDATE OF c
+`
+
+type GetTwoFactorChallengeForUpdateRow struct {
+	ID              uuid.UUID
+	UserID          uuid.UUID
+	Username        string
+	Email           string
+	Role            string
+	EmailVerifiedAt *time.Time
+}
+
+// An unused, unexpired challenge and its live account, locked so it is
+// spent at most once.
+func (q *Queries) GetTwoFactorChallengeForUpdate(ctx context.Context, tokenHash []byte) (GetTwoFactorChallengeForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getTwoFactorChallengeForUpdate, tokenHash)
+	var i GetTwoFactorChallengeForUpdateRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Username,
+		&i.Email,
+		&i.Role,
+		&i.EmailVerifiedAt,
+	)
+	return i, err
+}
+
+const getTwoFactorStatus = `-- name: GetTwoFactorStatus :one
+SELECT t.confirmed_at,
+       (SELECT count(*) FROM recovery_codes r WHERE r.user_id = t.user_id AND r.used_at IS NULL)::int AS codes_left
+FROM totp_secrets t
+WHERE t.user_id = $1::uuid AND t.confirmed_at IS NOT NULL
+`
+
+type GetTwoFactorStatusRow struct {
+	ConfirmedAt *time.Time
+	CodesLeft   int32
+}
+
+// Whether two-factor sign-in is on and how many recovery codes are unused.
+func (q *Queries) GetTwoFactorStatus(ctx context.Context, userID uuid.UUID) (GetTwoFactorStatusRow, error) {
+	row := q.db.QueryRow(ctx, getTwoFactorStatus, userID)
+	var i GetTwoFactorStatusRow
+	err := row.Scan(&i.ConfirmedAt, &i.CodesLeft)
+	return i, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password_hash, username, role, email_verified_at
+SELECT id, email, password_hash, username, role, email_verified_at,
+       EXISTS (SELECT 1 FROM totp_secrets t WHERE t.user_id = users.id AND t.confirmed_at IS NOT NULL)::boolean AS two_factor_enabled
 FROM users
 WHERE lower(email) = lower($1) AND deleted_at IS NULL
 `
 
 type GetUserByEmailRow struct {
-	ID              uuid.UUID
-	Email           string
-	PasswordHash    string
-	Username        string
-	Role            string
-	EmailVerifiedAt *time.Time
+	ID               uuid.UUID
+	Email            string
+	PasswordHash     string
+	Username         string
+	Role             string
+	EmailVerifiedAt  *time.Time
+	TwoFactorEnabled bool
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -225,23 +382,26 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.Username,
 		&i.Role,
 		&i.EmailVerifiedAt,
+		&i.TwoFactorEnabled,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password_hash, username, role, email_verified_at
+SELECT id, email, password_hash, username, role, email_verified_at,
+       EXISTS (SELECT 1 FROM totp_secrets t WHERE t.user_id = users.id AND t.confirmed_at IS NOT NULL)::boolean AS two_factor_enabled
 FROM users
 WHERE id = $1 AND deleted_at IS NULL
 `
 
 type GetUserByIDRow struct {
-	ID              uuid.UUID
-	Email           string
-	PasswordHash    string
-	Username        string
-	Role            string
-	EmailVerifiedAt *time.Time
+	ID               uuid.UUID
+	Email            string
+	PasswordHash     string
+	Username         string
+	Role             string
+	EmailVerifiedAt  *time.Time
+	TwoFactorEnabled bool
 }
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error) {
@@ -254,6 +414,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 		&i.Username,
 		&i.Role,
 		&i.EmailVerifiedAt,
+		&i.TwoFactorEnabled,
 	)
 	return i, err
 }
@@ -391,6 +552,20 @@ func (q *Queries) InsertLoginAttempt(ctx context.Context, arg InsertLoginAttempt
 	return err
 }
 
+const insertRecoveryCode = `-- name: InsertRecoveryCode :exec
+INSERT INTO recovery_codes (user_id, code_hash) VALUES ($1::uuid, $2)
+`
+
+type InsertRecoveryCodeParams struct {
+	UserID   uuid.UUID
+	CodeHash []byte
+}
+
+func (q *Queries) InsertRecoveryCode(ctx context.Context, arg InsertRecoveryCodeParams) error {
+	_, err := q.db.Exec(ctx, insertRecoveryCode, arg.UserID, arg.CodeHash)
+	return err
+}
+
 const insertRefreshToken = `-- name: InsertRefreshToken :exec
 INSERT INTO refresh_tokens (session_id, parent_id, token_hash, expires_at)
 VALUES ($1, $2, $3, $4)
@@ -429,6 +604,36 @@ func (q *Queries) InsertSession(ctx context.Context, arg InsertSessionParams) (u
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
+}
+
+const insertTwoFactorAttempt = `-- name: InsertTwoFactorAttempt :exec
+INSERT INTO two_factor_attempts (user_id, succeeded) VALUES ($1::uuid, $2::boolean)
+`
+
+type InsertTwoFactorAttemptParams struct {
+	UserID    uuid.UUID
+	Succeeded bool
+}
+
+func (q *Queries) InsertTwoFactorAttempt(ctx context.Context, arg InsertTwoFactorAttemptParams) error {
+	_, err := q.db.Exec(ctx, insertTwoFactorAttempt, arg.UserID, arg.Succeeded)
+	return err
+}
+
+const insertTwoFactorChallenge = `-- name: InsertTwoFactorChallenge :exec
+INSERT INTO two_factor_challenges (user_id, token_hash, expires_at)
+VALUES ($1::uuid, $2, $3)
+`
+
+type InsertTwoFactorChallengeParams struct {
+	UserID    uuid.UUID
+	TokenHash []byte
+	ExpiresAt time.Time
+}
+
+func (q *Queries) InsertTwoFactorChallenge(ctx context.Context, arg InsertTwoFactorChallengeParams) error {
+	_, err := q.db.Exec(ctx, insertTwoFactorChallenge, arg.UserID, arg.TokenHash, arg.ExpiresAt)
+	return err
 }
 
 const insertUser = `-- name: InsertUser :one
@@ -616,6 +821,26 @@ func (q *Queries) ListWaitlist(ctx context.Context, arg ListWaitlistParams) ([]W
 	return items, nil
 }
 
+const lockActiveUserByUsername = `-- name: LockActiveUserByUsername :one
+SELECT id, email, username FROM users
+WHERE lower(username) = lower($1::text) AND deleted_at IS NULL
+FOR UPDATE
+`
+
+type LockActiveUserByUsernameRow struct {
+	ID       uuid.UUID
+	Email    string
+	Username string
+}
+
+// The live account with this username, locked for an operator's change.
+func (q *Queries) LockActiveUserByUsername(ctx context.Context, username string) (LockActiveUserByUsernameRow, error) {
+	row := q.db.QueryRow(ctx, lockActiveUserByUsername, username)
+	var i LockActiveUserByUsernameRow
+	err := row.Scan(&i.ID, &i.Email, &i.Username)
+	return i, err
+}
+
 const lockLoginAttempts = `-- name: LockLoginAttempts :exec
 SELECT pg_advisory_xact_lock(hashtextextended('perspectiv.login:' || $1::uuid::text, 0))
 `
@@ -624,6 +849,17 @@ SELECT pg_advisory_xact_lock(hashtextextended('perspectiv.login:' || $1::uuid::t
 // so a burst of parallel guesses cannot all read the same failure count.
 func (q *Queries) LockLoginAttempts(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, lockLoginAttempts, userID)
+	return err
+}
+
+const lockTwoFactorAttempts = `-- name: LockTwoFactorAttempts :exec
+SELECT pg_advisory_xact_lock(hashtextextended('perspectiv.two_factor:' || $1::uuid::text, 0))
+`
+
+// Serialises second-factor checks on one account for the rest of the
+// transaction, so parallel guesses cannot all read the same failure count.
+func (q *Queries) LockTwoFactorAttempts(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockTwoFactorAttempts, userID)
 	return err
 }
 
@@ -800,6 +1036,49 @@ func (q *Queries) PurgeSessions(ctx context.Context, arg PurgeSessionsParams) (i
 	return result.RowsAffected(), nil
 }
 
+const purgeTwoFactorAttempts = `-- name: PurgeTwoFactorAttempts :execrows
+DELETE FROM two_factor_attempts
+WHERE id IN (
+    SELECT id FROM two_factor_attempts WHERE attempted_at < $1::timestamptz
+    LIMIT $2::integer
+)
+`
+
+type PurgeTwoFactorAttemptsParams struct {
+	Before time.Time
+	Batch  int32
+}
+
+func (q *Queries) PurgeTwoFactorAttempts(ctx context.Context, arg PurgeTwoFactorAttemptsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeTwoFactorAttempts, arg.Before, arg.Batch)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const purgeTwoFactorChallenges = `-- name: PurgeTwoFactorChallenges :execrows
+DELETE FROM two_factor_challenges
+WHERE id IN (
+    SELECT id FROM two_factor_challenges WHERE expires_at < $1::timestamptz
+    LIMIT $2::integer
+)
+`
+
+type PurgeTwoFactorChallengesParams struct {
+	Before time.Time
+	Batch  int32
+}
+
+// Challenges that expired before the cutoff; a used one has expired too.
+func (q *Queries) PurgeTwoFactorChallenges(ctx context.Context, arg PurgeTwoFactorChallengesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeTwoFactorChallenges, arg.Before, arg.Batch)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const retireEmailTokens = `-- name: RetireEmailTokens :exec
 UPDATE email_tokens SET used_at = now()
 WHERE user_id = $1 AND purpose = $2 AND used_at IS NULL
@@ -920,6 +1199,20 @@ func (q *Queries) RevokeUserSessions(ctx context.Context, userID uuid.UUID) erro
 	return err
 }
 
+const setTotpLastUsedStep = `-- name: SetTotpLastUsedStep :exec
+UPDATE totp_secrets SET last_used_step = $1::bigint WHERE user_id = $2::uuid
+`
+
+type SetTotpLastUsedStepParams struct {
+	Step   int64
+	UserID uuid.UUID
+}
+
+func (q *Queries) SetTotpLastUsedStep(ctx context.Context, arg SetTotpLastUsedStepParams) error {
+	_, err := q.db.Exec(ctx, setTotpLastUsedStep, arg.Step, arg.UserID)
+	return err
+}
+
 const touchSession = `-- name: TouchSession :exec
 UPDATE sessions SET last_used_at = now() WHERE id = $1
 `
@@ -956,6 +1249,37 @@ type UpdatePasswordHashParams struct {
 func (q *Queries) UpdatePasswordHash(ctx context.Context, arg UpdatePasswordHashParams) error {
 	_, err := q.db.Exec(ctx, updatePasswordHash, arg.ID, arg.PasswordHash)
 	return err
+}
+
+const upsertPendingTotp = `-- name: UpsertPendingTotp :one
+INSERT INTO totp_secrets AS t (user_id, key_id, algorithm, ciphertext)
+VALUES ($1::uuid, $2::text, $3::text, $4)
+ON CONFLICT (user_id) DO UPDATE
+SET key_id = excluded.key_id, algorithm = excluded.algorithm, ciphertext = excluded.ciphertext,
+    created_at = now(), last_used_step = NULL
+WHERE t.confirmed_at IS NULL
+RETURNING t.user_id
+`
+
+type UpsertPendingTotpParams struct {
+	UserID     uuid.UUID
+	KeyID      string
+	Algorithm  string
+	Ciphertext []byte
+}
+
+// Starts (or restarts) setup with a new secret. A confirmed row is left
+// alone and no row is returned, so setup never replaces a secret in use.
+func (q *Queries) UpsertPendingTotp(ctx context.Context, arg UpsertPendingTotpParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, upsertPendingTotp,
+		arg.UserID,
+		arg.KeyID,
+		arg.Algorithm,
+		arg.Ciphertext,
+	)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
 }
 
 const useAccessCode = `-- name: UseAccessCode :one
@@ -1000,6 +1324,34 @@ func (q *Queries) UseMemberInvite(ctx context.Context, arg UseMemberInviteParams
 	var code string
 	err := row.Scan(&code)
 	return code, err
+}
+
+const useRecoveryCode = `-- name: UseRecoveryCode :one
+UPDATE recovery_codes SET used_at = now()
+WHERE user_id = $1::uuid AND code_hash = $2 AND used_at IS NULL
+RETURNING id
+`
+
+type UseRecoveryCodeParams struct {
+	UserID   uuid.UUID
+	CodeHash []byte
+}
+
+// Spends one unused recovery code; no row when the code is wrong or spent.
+func (q *Queries) UseRecoveryCode(ctx context.Context, arg UseRecoveryCodeParams) (int64, error) {
+	row := q.db.QueryRow(ctx, useRecoveryCode, arg.UserID, arg.CodeHash)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const useTwoFactorChallenge = `-- name: UseTwoFactorChallenge :exec
+UPDATE two_factor_challenges SET used_at = now() WHERE id = $1::uuid
+`
+
+func (q *Queries) UseTwoFactorChallenge(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, useTwoFactorChallenge, id)
+	return err
 }
 
 const writeStanding = `-- name: WriteStanding :one

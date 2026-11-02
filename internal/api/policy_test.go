@@ -94,6 +94,15 @@ func TestRoutePolicies(t *testing.T) {
 		// Both take the current password, so they share login's guessing limit.
 		"/perspectiv.v1.AuthService/ChangePassword":     api.LimitLogin,
 		"/perspectiv.v1.AuthService/RequestEmailChange": api.LimitLogin,
+		// Turning two-factor on, off, or making new recovery codes takes the
+		// current password too.
+		"/perspectiv.v1.AuthService/BeginTwoFactorSetup":     api.LimitLogin,
+		"/perspectiv.v1.AuthService/DisableTwoFactor":        api.LimitLogin,
+		"/perspectiv.v1.AuthService/RegenerateRecoveryCodes": api.LimitLogin,
+		// Every call that checks a second-factor code is bounded per address
+		// and per user, on top of the per-account two-factor lockout.
+		"/perspectiv.v1.AuthService/CompleteTwoFactorLogin": api.LimitTwoFactor,
+		"/perspectiv.v1.AuthService/ConfirmTwoFactorSetup":  api.LimitTwoFactor,
 		// Searching descriptions is public and scans text; it is bounded per
 		// address like the other public writes.
 		"/perspectiv.v1.PlaceService/SearchCharacters": api.LimitSearch,

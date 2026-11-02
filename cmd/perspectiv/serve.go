@@ -38,6 +38,7 @@ import (
 	"perspectiv/internal/react"
 	"perspectiv/internal/user"
 	"perspectiv/internal/vote"
+	"perspectiv/pkg/crypto"
 	"perspectiv/web"
 )
 
@@ -256,7 +257,11 @@ func build(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, log zerolog.Logge
 
 func (a *app) addAPI(cfg config, pool *pgxpool.Pool, m *metrics.Metrics, enq *jobs.Enqueuer, loreSvc *lore.Service, log zerolog.Logger) error {
 	limiter := auth.NewLimiter(pool)
-	authSvc, err := auth.NewService(pool, enq, limiter, auth.Config{
+	enc, err := crypto.NewEncryptor(cfg.EncryptionKeys)
+	if err != nil {
+		return err
+	}
+	authSvc, err := auth.NewService(pool, enq, limiter, enc, auth.Config{
 		JWTSecret:     cfg.JWTSecret,
 		PublicBaseURL: cfg.PublicBaseURL,
 		CookieSecure:  cfg.CookieSecure,

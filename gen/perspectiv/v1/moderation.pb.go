@@ -847,8 +847,10 @@ type AdminUserView struct {
 	OpenReportsAgainst int32                  `protobuf:"varint,13,opt,name=open_reports_against,json=openReportsAgainst,proto3" json:"open_reports_against,omitempty"`
 	ReportsAgainst     int32                  `protobuf:"varint,14,opt,name=reports_against,json=reportsAgainst,proto3" json:"reports_against,omitempty"`
 	ReportsFiled       int32                  `protobuf:"varint,15,opt,name=reports_filed,json=reportsFiled,proto3" json:"reports_filed,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// True while the account has two-factor sign-in on.
+	TwoFactorEnabled bool `protobuf:"varint,16,opt,name=two_factor_enabled,json=twoFactorEnabled,proto3" json:"two_factor_enabled,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AdminUserView) Reset() {
@@ -984,6 +986,13 @@ func (x *AdminUserView) GetReportsFiled() int32 {
 		return x.ReportsFiled
 	}
 	return 0
+}
+
+func (x *AdminUserView) GetTwoFactorEnabled() bool {
+	if x != nil {
+		return x.TwoFactorEnabled
+	}
+	return false
 }
 
 type LookupUserResponse struct {
@@ -1491,7 +1500,7 @@ const file_perspectiv_v1_moderation_proto_rawDesc = "" +
 	"\aentries\x18\x01 \x03(\v2\x19.perspectiv.v1.AuditEntryR\aentries\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\")\n" +
 	"\x11LookupUserRequest\x12\x14\n" +
-	"\x05query\x18\x01 \x01(\tR\x05query\"\xf8\x04\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\"\xa6\x05\n" +
 	"\rAdminUserView\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1d\n" +
@@ -1509,7 +1518,8 @@ const file_perspectiv_v1_moderation_proto_rawDesc = "" +
 	"\x0ehidden_stories\x18\f \x01(\x05R\rhiddenStories\x120\n" +
 	"\x14open_reports_against\x18\r \x01(\x05R\x12openReportsAgainst\x12'\n" +
 	"\x0freports_against\x18\x0e \x01(\x05R\x0ereportsAgainst\x12#\n" +
-	"\rreports_filed\x18\x0f \x01(\x05R\freportsFiled\"F\n" +
+	"\rreports_filed\x18\x0f \x01(\x05R\freportsFiled\x12,\n" +
+	"\x12two_factor_enabled\x18\x10 \x01(\bR\x10twoFactorEnabled\"F\n" +
 	"\x12LookupUserResponse\x120\n" +
 	"\x04user\x18\x01 \x01(\v2\x1c.perspectiv.v1.AdminUserViewR\x04user\"H\n" +
 	"\x15LiftSuspensionRequest\x12\x17\n" +

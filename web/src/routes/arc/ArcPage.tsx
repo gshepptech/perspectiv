@@ -19,6 +19,7 @@ import { cn } from "@/lib/cn";
 import { useSession, type Session } from "@/lib/session";
 import { useDocumentTitle } from "@/lib/title";
 import { composeHref } from "@/routes/compose/links";
+import { ReadMoreLink } from "@/routes/guide/ReadMore";
 
 import { dateLabel, hourLabel } from "./labels";
 import { OpenCharacters } from "./OpenCharacters";
@@ -303,7 +304,7 @@ function StandingAlone({ arcId, res, rights }: { arcId: string; res: GetArcRespo
     <Section
       id="arc-alone"
       title="Standing alone"
-      intro="Stories nobody has linked to. Waiting ones can still join a lore for a week after they are published; after that they stand alone as tales."
+      intro="Stories nobody has linked to yet. A story still unlinked a week after it was published is called a tale, and an accepted claim can still link it into a lore."
     >
       <Rows items={[...waiting, ...alone]} rights={rights} />
       <MoreButton label="Show more waiting stories" more={unlinked} />
@@ -357,6 +358,7 @@ function HowItWorks({ arc, res, rights }: { arc: Arc; res: GetArcResponse; right
           Anyone can read. Only people who wrote about this {span} can upvote, claim characters or post in a lore&apos;s thread.
         </p>
       )}
+      <ReadMoreLink className="mt-1" />
       {arc.place && (
         <div className="mt-3">
           <ReportDialog targetKind={ReportTargetKind.PLACE} targetId={arc.place.id} targetLabel={arc.place.name} triggerLabel="Report place" />

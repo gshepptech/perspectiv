@@ -19,6 +19,7 @@ import { emailSchema, passwordSchema } from "@/routes/auth/rules";
 
 import { DeviceList } from "./DeviceList";
 import { Saved, Section } from "./Section";
+import { TwoFactorSection } from "./TwoFactorSection";
 
 // A wrong current password comes back PermissionDenied; it is the reader's
 // typo, not a lack of rights, so it is worded as one and shown under the
@@ -246,13 +247,14 @@ function SignOutEverywhere() {
   );
 }
 
-/** Password, email and sessions: the parts of an account that keep it the reader's. */
-export function SecuritySection({ email }: { email: string }) {
+/** Password, email, two-factor sign-in and sessions: the parts of an account that keep it the reader's. */
+export function SecuritySection({ email, username }: { email: string; username: string }) {
   return (
     <Section title="Sign-in and security">
       <div className="grid gap-8">
         <ChangePassword />
         <ChangeEmail email={email} />
+        <TwoFactorSection username={username} />
         <SignOutEverywhere />
       </div>
     </Section>

@@ -25,6 +25,12 @@ export function Component() {
           expires, and an address count after a day.
         </li>
         <li>
+          <strong>Two-factor sign-in, if you turn it on:</strong> the key your authenticator app shares with us, stored
+          encrypted, and your recovery codes, stored only in a form that cannot be turned back into the codes. Both are deleted
+          when you turn two-factor sign-in off or delete your account. The times of codes entered are kept 30 days, like
+          sign-in attempts, and a sign-in left waiting for its code is deleted a day after it expires.
+        </li>
+        <li>
           <strong>The waitlist:</strong> if you join it, your email address and the note you leave, until you are invited.
         </li>
       </ul>

@@ -374,6 +374,12 @@ describe("how the day works, said truthfully", () => {
       "The lore the people who wrote here favour most, with 4 or more people, becomes the canon of this day.",
     );
     expect(screen.getByText(/Anyone can read\. Only people who wrote about this day can upvote, claim characters or post/)).toBeInTheDocument();
+    // The section ends with the way into the guide.
+    expect(
+      within(screen.getByRole("complementary", { name: "How this day works" })).getByRole("link", {
+        name: "Read more about how Perspectiv works",
+      }),
+    ).toHaveAttribute("href", "/how-it-works");
     expect(document.title).toBe("Closing night at Moonbean · Perspectiv");
   });
 

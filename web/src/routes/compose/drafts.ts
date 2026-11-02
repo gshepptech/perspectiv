@@ -10,6 +10,9 @@ export const RESUMED_NOTICE = "You started a draft for this day, so it is open a
 export const RESUMED_NEWEST_NOTICE =
   "You started more than one draft for this day, so the one you changed last is open. The others are under Your stories on the front page.";
 
+/** The note the composer opens with after an emptied draft is deleted. */
+export const DELETED_NOTICE = "Your empty draft is deleted.";
+
 /** The note shown when a draft is resumed: whether it was one of several. */
 export function resumedNotice(found: number): string {
   return found > 1 ? RESUMED_NEWEST_NOTICE : RESUMED_NOTICE;

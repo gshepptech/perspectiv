@@ -88,6 +88,24 @@ const (
 	// AuthServiceInviteFromWaitlistProcedure is the fully-qualified name of the AuthService's
 	// InviteFromWaitlist RPC.
 	AuthServiceInviteFromWaitlistProcedure = "/perspectiv.v1.AuthService/InviteFromWaitlist"
+	// AuthServiceCompleteTwoFactorLoginProcedure is the fully-qualified name of the AuthService's
+	// CompleteTwoFactorLogin RPC.
+	AuthServiceCompleteTwoFactorLoginProcedure = "/perspectiv.v1.AuthService/CompleteTwoFactorLogin"
+	// AuthServiceGetTwoFactorStatusProcedure is the fully-qualified name of the AuthService's
+	// GetTwoFactorStatus RPC.
+	AuthServiceGetTwoFactorStatusProcedure = "/perspectiv.v1.AuthService/GetTwoFactorStatus"
+	// AuthServiceBeginTwoFactorSetupProcedure is the fully-qualified name of the AuthService's
+	// BeginTwoFactorSetup RPC.
+	AuthServiceBeginTwoFactorSetupProcedure = "/perspectiv.v1.AuthService/BeginTwoFactorSetup"
+	// AuthServiceConfirmTwoFactorSetupProcedure is the fully-qualified name of the AuthService's
+	// ConfirmTwoFactorSetup RPC.
+	AuthServiceConfirmTwoFactorSetupProcedure = "/perspectiv.v1.AuthService/ConfirmTwoFactorSetup"
+	// AuthServiceDisableTwoFactorProcedure is the fully-qualified name of the AuthService's
+	// DisableTwoFactor RPC.
+	AuthServiceDisableTwoFactorProcedure = "/perspectiv.v1.AuthService/DisableTwoFactor"
+	// AuthServiceRegenerateRecoveryCodesProcedure is the fully-qualified name of the AuthService's
+	// RegenerateRecoveryCodes RPC.
+	AuthServiceRegenerateRecoveryCodesProcedure = "/perspectiv.v1.AuthService/RegenerateRecoveryCodes"
 )
 
 // AuthServiceClient is a client for the perspectiv.v1.AuthService service.
@@ -130,6 +148,25 @@ type AuthServiceClient interface {
 	ListWaitlist(context.Context, *connect.Request[v1.ListWaitlistRequest]) (*connect.Response[v1.ListWaitlistResponse], error)
 	// Admin. Issues a waiting person a single-use code and emails it.
 	InviteFromWaitlist(context.Context, *connect.Request[v1.InviteFromWaitlistRequest]) (*connect.Response[v1.InviteFromWaitlistResponse], error)
+	// Public. The second step of signing in to an account with two-factor
+	// sign-in on: the challenge Login returned and a code from the
+	// authenticator app or a recovery code. Answers like Login.
+	CompleteTwoFactorLogin(context.Context, *connect.Request[v1.CompleteTwoFactorLoginRequest]) (*connect.Response[v1.CompleteTwoFactorLoginResponse], error)
+	// Whether the caller has two-factor sign-in on, and how many unused
+	// recovery codes they have.
+	GetTwoFactorStatus(context.Context, *connect.Request[v1.GetTwoFactorStatusRequest]) (*connect.Response[v1.GetTwoFactorStatusResponse], error)
+	// Starts turning two-factor sign-in on, given the current password: a new
+	// secret to add to an authenticator app. Nothing changes at sign-in until
+	// ConfirmTwoFactorSetup accepts a code from it.
+	BeginTwoFactorSetup(context.Context, *connect.Request[v1.BeginTwoFactorSetupRequest]) (*connect.Response[v1.BeginTwoFactorSetupResponse], error)
+	// Turns two-factor sign-in on once a current code from the app is right,
+	// and returns the ten recovery codes, shown this once.
+	ConfirmTwoFactorSetup(context.Context, *connect.Request[v1.ConfirmTwoFactorSetupRequest]) (*connect.Response[v1.ConfirmTwoFactorSetupResponse], error)
+	// Turns two-factor sign-in off, given the password and a current code.
+	DisableTwoFactor(context.Context, *connect.Request[v1.DisableTwoFactorRequest]) (*connect.Response[v1.DisableTwoFactorResponse], error)
+	// Replaces every recovery code with ten new ones, given the password and a
+	// current code.
+	RegenerateRecoveryCodes(context.Context, *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error)
 }
 
 // NewAuthServiceClient constructs a client for the perspectiv.v1.AuthService service. By default,
@@ -263,31 +300,73 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("InviteFromWaitlist")),
 			connect.WithClientOptions(opts...),
 		),
+		completeTwoFactorLogin: connect.NewClient[v1.CompleteTwoFactorLoginRequest, v1.CompleteTwoFactorLoginResponse](
+			httpClient,
+			baseURL+AuthServiceCompleteTwoFactorLoginProcedure,
+			connect.WithSchema(authServiceMethods.ByName("CompleteTwoFactorLogin")),
+			connect.WithClientOptions(opts...),
+		),
+		getTwoFactorStatus: connect.NewClient[v1.GetTwoFactorStatusRequest, v1.GetTwoFactorStatusResponse](
+			httpClient,
+			baseURL+AuthServiceGetTwoFactorStatusProcedure,
+			connect.WithSchema(authServiceMethods.ByName("GetTwoFactorStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		beginTwoFactorSetup: connect.NewClient[v1.BeginTwoFactorSetupRequest, v1.BeginTwoFactorSetupResponse](
+			httpClient,
+			baseURL+AuthServiceBeginTwoFactorSetupProcedure,
+			connect.WithSchema(authServiceMethods.ByName("BeginTwoFactorSetup")),
+			connect.WithClientOptions(opts...),
+		),
+		confirmTwoFactorSetup: connect.NewClient[v1.ConfirmTwoFactorSetupRequest, v1.ConfirmTwoFactorSetupResponse](
+			httpClient,
+			baseURL+AuthServiceConfirmTwoFactorSetupProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ConfirmTwoFactorSetup")),
+			connect.WithClientOptions(opts...),
+		),
+		disableTwoFactor: connect.NewClient[v1.DisableTwoFactorRequest, v1.DisableTwoFactorResponse](
+			httpClient,
+			baseURL+AuthServiceDisableTwoFactorProcedure,
+			connect.WithSchema(authServiceMethods.ByName("DisableTwoFactor")),
+			connect.WithClientOptions(opts...),
+		),
+		regenerateRecoveryCodes: connect.NewClient[v1.RegenerateRecoveryCodesRequest, v1.RegenerateRecoveryCodesResponse](
+			httpClient,
+			baseURL+AuthServiceRegenerateRecoveryCodesProcedure,
+			connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	signUp               *connect.Client[v1.SignUpRequest, v1.SignUpResponse]
-	login                *connect.Client[v1.LoginRequest, v1.LoginResponse]
-	logout               *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
-	refresh              *connect.Client[v1.RefreshRequest, v1.RefreshResponse]
-	verifyEmail          *connect.Client[v1.VerifyEmailRequest, v1.VerifyEmailResponse]
-	requestPasswordReset *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
-	resetPassword        *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
-	changePassword       *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
-	requestEmailChange   *connect.Client[v1.RequestEmailChangeRequest, v1.RequestEmailChangeResponse]
-	confirmEmailChange   *connect.Client[v1.ConfirmEmailChangeRequest, v1.ConfirmEmailChangeResponse]
-	signOutEverywhere    *connect.Client[v1.SignOutEverywhereRequest, v1.SignOutEverywhereResponse]
-	listSessions         *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
-	revokeSession        *connect.Client[v1.RevokeSessionRequest, v1.RevokeSessionResponse]
-	getSignUpInfo        *connect.Client[v1.GetSignUpInfoRequest, v1.GetSignUpInfoResponse]
-	joinWaitlist         *connect.Client[v1.JoinWaitlistRequest, v1.JoinWaitlistResponse]
-	createAccessCode     *connect.Client[v1.CreateAccessCodeRequest, v1.CreateAccessCodeResponse]
-	listAccessCodes      *connect.Client[v1.ListAccessCodesRequest, v1.ListAccessCodesResponse]
-	revokeAccessCode     *connect.Client[v1.RevokeAccessCodeRequest, v1.RevokeAccessCodeResponse]
-	listWaitlist         *connect.Client[v1.ListWaitlistRequest, v1.ListWaitlistResponse]
-	inviteFromWaitlist   *connect.Client[v1.InviteFromWaitlistRequest, v1.InviteFromWaitlistResponse]
+	signUp                  *connect.Client[v1.SignUpRequest, v1.SignUpResponse]
+	login                   *connect.Client[v1.LoginRequest, v1.LoginResponse]
+	logout                  *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	refresh                 *connect.Client[v1.RefreshRequest, v1.RefreshResponse]
+	verifyEmail             *connect.Client[v1.VerifyEmailRequest, v1.VerifyEmailResponse]
+	requestPasswordReset    *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
+	resetPassword           *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
+	changePassword          *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	requestEmailChange      *connect.Client[v1.RequestEmailChangeRequest, v1.RequestEmailChangeResponse]
+	confirmEmailChange      *connect.Client[v1.ConfirmEmailChangeRequest, v1.ConfirmEmailChangeResponse]
+	signOutEverywhere       *connect.Client[v1.SignOutEverywhereRequest, v1.SignOutEverywhereResponse]
+	listSessions            *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	revokeSession           *connect.Client[v1.RevokeSessionRequest, v1.RevokeSessionResponse]
+	getSignUpInfo           *connect.Client[v1.GetSignUpInfoRequest, v1.GetSignUpInfoResponse]
+	joinWaitlist            *connect.Client[v1.JoinWaitlistRequest, v1.JoinWaitlistResponse]
+	createAccessCode        *connect.Client[v1.CreateAccessCodeRequest, v1.CreateAccessCodeResponse]
+	listAccessCodes         *connect.Client[v1.ListAccessCodesRequest, v1.ListAccessCodesResponse]
+	revokeAccessCode        *connect.Client[v1.RevokeAccessCodeRequest, v1.RevokeAccessCodeResponse]
+	listWaitlist            *connect.Client[v1.ListWaitlistRequest, v1.ListWaitlistResponse]
+	inviteFromWaitlist      *connect.Client[v1.InviteFromWaitlistRequest, v1.InviteFromWaitlistResponse]
+	completeTwoFactorLogin  *connect.Client[v1.CompleteTwoFactorLoginRequest, v1.CompleteTwoFactorLoginResponse]
+	getTwoFactorStatus      *connect.Client[v1.GetTwoFactorStatusRequest, v1.GetTwoFactorStatusResponse]
+	beginTwoFactorSetup     *connect.Client[v1.BeginTwoFactorSetupRequest, v1.BeginTwoFactorSetupResponse]
+	confirmTwoFactorSetup   *connect.Client[v1.ConfirmTwoFactorSetupRequest, v1.ConfirmTwoFactorSetupResponse]
+	disableTwoFactor        *connect.Client[v1.DisableTwoFactorRequest, v1.DisableTwoFactorResponse]
+	regenerateRecoveryCodes *connect.Client[v1.RegenerateRecoveryCodesRequest, v1.RegenerateRecoveryCodesResponse]
 }
 
 // SignUp calls perspectiv.v1.AuthService.SignUp.
@@ -390,6 +469,36 @@ func (c *authServiceClient) InviteFromWaitlist(ctx context.Context, req *connect
 	return c.inviteFromWaitlist.CallUnary(ctx, req)
 }
 
+// CompleteTwoFactorLogin calls perspectiv.v1.AuthService.CompleteTwoFactorLogin.
+func (c *authServiceClient) CompleteTwoFactorLogin(ctx context.Context, req *connect.Request[v1.CompleteTwoFactorLoginRequest]) (*connect.Response[v1.CompleteTwoFactorLoginResponse], error) {
+	return c.completeTwoFactorLogin.CallUnary(ctx, req)
+}
+
+// GetTwoFactorStatus calls perspectiv.v1.AuthService.GetTwoFactorStatus.
+func (c *authServiceClient) GetTwoFactorStatus(ctx context.Context, req *connect.Request[v1.GetTwoFactorStatusRequest]) (*connect.Response[v1.GetTwoFactorStatusResponse], error) {
+	return c.getTwoFactorStatus.CallUnary(ctx, req)
+}
+
+// BeginTwoFactorSetup calls perspectiv.v1.AuthService.BeginTwoFactorSetup.
+func (c *authServiceClient) BeginTwoFactorSetup(ctx context.Context, req *connect.Request[v1.BeginTwoFactorSetupRequest]) (*connect.Response[v1.BeginTwoFactorSetupResponse], error) {
+	return c.beginTwoFactorSetup.CallUnary(ctx, req)
+}
+
+// ConfirmTwoFactorSetup calls perspectiv.v1.AuthService.ConfirmTwoFactorSetup.
+func (c *authServiceClient) ConfirmTwoFactorSetup(ctx context.Context, req *connect.Request[v1.ConfirmTwoFactorSetupRequest]) (*connect.Response[v1.ConfirmTwoFactorSetupResponse], error) {
+	return c.confirmTwoFactorSetup.CallUnary(ctx, req)
+}
+
+// DisableTwoFactor calls perspectiv.v1.AuthService.DisableTwoFactor.
+func (c *authServiceClient) DisableTwoFactor(ctx context.Context, req *connect.Request[v1.DisableTwoFactorRequest]) (*connect.Response[v1.DisableTwoFactorResponse], error) {
+	return c.disableTwoFactor.CallUnary(ctx, req)
+}
+
+// RegenerateRecoveryCodes calls perspectiv.v1.AuthService.RegenerateRecoveryCodes.
+func (c *authServiceClient) RegenerateRecoveryCodes(ctx context.Context, req *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error) {
+	return c.regenerateRecoveryCodes.CallUnary(ctx, req)
+}
+
 // AuthServiceHandler is an implementation of the perspectiv.v1.AuthService service.
 type AuthServiceHandler interface {
 	SignUp(context.Context, *connect.Request[v1.SignUpRequest]) (*connect.Response[v1.SignUpResponse], error)
@@ -430,6 +539,25 @@ type AuthServiceHandler interface {
 	ListWaitlist(context.Context, *connect.Request[v1.ListWaitlistRequest]) (*connect.Response[v1.ListWaitlistResponse], error)
 	// Admin. Issues a waiting person a single-use code and emails it.
 	InviteFromWaitlist(context.Context, *connect.Request[v1.InviteFromWaitlistRequest]) (*connect.Response[v1.InviteFromWaitlistResponse], error)
+	// Public. The second step of signing in to an account with two-factor
+	// sign-in on: the challenge Login returned and a code from the
+	// authenticator app or a recovery code. Answers like Login.
+	CompleteTwoFactorLogin(context.Context, *connect.Request[v1.CompleteTwoFactorLoginRequest]) (*connect.Response[v1.CompleteTwoFactorLoginResponse], error)
+	// Whether the caller has two-factor sign-in on, and how many unused
+	// recovery codes they have.
+	GetTwoFactorStatus(context.Context, *connect.Request[v1.GetTwoFactorStatusRequest]) (*connect.Response[v1.GetTwoFactorStatusResponse], error)
+	// Starts turning two-factor sign-in on, given the current password: a new
+	// secret to add to an authenticator app. Nothing changes at sign-in until
+	// ConfirmTwoFactorSetup accepts a code from it.
+	BeginTwoFactorSetup(context.Context, *connect.Request[v1.BeginTwoFactorSetupRequest]) (*connect.Response[v1.BeginTwoFactorSetupResponse], error)
+	// Turns two-factor sign-in on once a current code from the app is right,
+	// and returns the ten recovery codes, shown this once.
+	ConfirmTwoFactorSetup(context.Context, *connect.Request[v1.ConfirmTwoFactorSetupRequest]) (*connect.Response[v1.ConfirmTwoFactorSetupResponse], error)
+	// Turns two-factor sign-in off, given the password and a current code.
+	DisableTwoFactor(context.Context, *connect.Request[v1.DisableTwoFactorRequest]) (*connect.Response[v1.DisableTwoFactorResponse], error)
+	// Replaces every recovery code with ten new ones, given the password and a
+	// current code.
+	RegenerateRecoveryCodes(context.Context, *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -559,6 +687,42 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("InviteFromWaitlist")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceCompleteTwoFactorLoginHandler := connect.NewUnaryHandler(
+		AuthServiceCompleteTwoFactorLoginProcedure,
+		svc.CompleteTwoFactorLogin,
+		connect.WithSchema(authServiceMethods.ByName("CompleteTwoFactorLogin")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceGetTwoFactorStatusHandler := connect.NewUnaryHandler(
+		AuthServiceGetTwoFactorStatusProcedure,
+		svc.GetTwoFactorStatus,
+		connect.WithSchema(authServiceMethods.ByName("GetTwoFactorStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceBeginTwoFactorSetupHandler := connect.NewUnaryHandler(
+		AuthServiceBeginTwoFactorSetupProcedure,
+		svc.BeginTwoFactorSetup,
+		connect.WithSchema(authServiceMethods.ByName("BeginTwoFactorSetup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceConfirmTwoFactorSetupHandler := connect.NewUnaryHandler(
+		AuthServiceConfirmTwoFactorSetupProcedure,
+		svc.ConfirmTwoFactorSetup,
+		connect.WithSchema(authServiceMethods.ByName("ConfirmTwoFactorSetup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceDisableTwoFactorHandler := connect.NewUnaryHandler(
+		AuthServiceDisableTwoFactorProcedure,
+		svc.DisableTwoFactor,
+		connect.WithSchema(authServiceMethods.ByName("DisableTwoFactor")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceRegenerateRecoveryCodesHandler := connect.NewUnaryHandler(
+		AuthServiceRegenerateRecoveryCodesProcedure,
+		svc.RegenerateRecoveryCodes,
+		connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/perspectiv.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceSignUpProcedure:
@@ -601,6 +765,18 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceListWaitlistHandler.ServeHTTP(w, r)
 		case AuthServiceInviteFromWaitlistProcedure:
 			authServiceInviteFromWaitlistHandler.ServeHTTP(w, r)
+		case AuthServiceCompleteTwoFactorLoginProcedure:
+			authServiceCompleteTwoFactorLoginHandler.ServeHTTP(w, r)
+		case AuthServiceGetTwoFactorStatusProcedure:
+			authServiceGetTwoFactorStatusHandler.ServeHTTP(w, r)
+		case AuthServiceBeginTwoFactorSetupProcedure:
+			authServiceBeginTwoFactorSetupHandler.ServeHTTP(w, r)
+		case AuthServiceConfirmTwoFactorSetupProcedure:
+			authServiceConfirmTwoFactorSetupHandler.ServeHTTP(w, r)
+		case AuthServiceDisableTwoFactorProcedure:
+			authServiceDisableTwoFactorHandler.ServeHTTP(w, r)
+		case AuthServiceRegenerateRecoveryCodesProcedure:
+			authServiceRegenerateRecoveryCodesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -688,4 +864,28 @@ func (UnimplementedAuthServiceHandler) ListWaitlist(context.Context, *connect.Re
 
 func (UnimplementedAuthServiceHandler) InviteFromWaitlist(context.Context, *connect.Request[v1.InviteFromWaitlistRequest]) (*connect.Response[v1.InviteFromWaitlistResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.InviteFromWaitlist is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) CompleteTwoFactorLogin(context.Context, *connect.Request[v1.CompleteTwoFactorLoginRequest]) (*connect.Response[v1.CompleteTwoFactorLoginResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.CompleteTwoFactorLogin is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) GetTwoFactorStatus(context.Context, *connect.Request[v1.GetTwoFactorStatusRequest]) (*connect.Response[v1.GetTwoFactorStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.GetTwoFactorStatus is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) BeginTwoFactorSetup(context.Context, *connect.Request[v1.BeginTwoFactorSetupRequest]) (*connect.Response[v1.BeginTwoFactorSetupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.BeginTwoFactorSetup is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ConfirmTwoFactorSetup(context.Context, *connect.Request[v1.ConfirmTwoFactorSetupRequest]) (*connect.Response[v1.ConfirmTwoFactorSetupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.ConfirmTwoFactorSetup is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) DisableTwoFactor(context.Context, *connect.Request[v1.DisableTwoFactorRequest]) (*connect.Response[v1.DisableTwoFactorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.DisableTwoFactor is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) RegenerateRecoveryCodes(context.Context, *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("perspectiv.v1.AuthService.RegenerateRecoveryCodes is not implemented"))
 }

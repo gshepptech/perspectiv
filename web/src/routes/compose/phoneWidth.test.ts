@@ -548,6 +548,7 @@ const cases: Case[] = [
   { path: "/terms", signedIn: false },
   { path: "/privacy", signedIn: false },
   { path: "/guidelines", signedIn: false },
+  { path: "/how-it-works", signedIn: false, text: "Your privacy" },
   // Account.
   { path: "/login", signedIn: false, label: "Email" },
   { path: "/signup", signedIn: false, label: "Username" },
@@ -603,6 +604,8 @@ describe("the newest screens' targets at 375 pixels", () => {
     { path: "/best/arts-and-entertainment", signedIn: false, text: longTitle, scope: "main" },
     { path: "/best/bowling", signedIn: false, text: "Kind of place not found", scope: "main" },
     { path: "/admin/reports", text: storeName, scope: "main", open: "What it said when reported" },
+    { path: "/how-it-works", signedIn: false, text: "Your privacy", scope: "main" },
+    { path: "/", signedIn: false, text: "Read more", scope: "section:has(> h2:text-is('How Perspectiv works'))" },
   ];
   it.each(screens)(
     "$path: no target in $scope is under 44 pixels tall, and nothing scrolls sideways",
@@ -631,4 +634,24 @@ describe("the newest screens' targets at 375 pixels", () => {
     },
     120_000,
   );
+
+  it("the composer's question about an emptied draft: 44-pixel buttons, nothing sideways", async () => {
+    const page = await phonePage(true);
+    // The writer's draft for the day (d-1) resumes; clearing its only part asks.
+    await page.goto(`${base}/compose?placeId=p-store`);
+    const part = page.getByLabel("Part 1");
+    await part.waitFor();
+    await part.fill("");
+    const question = page.getByText("This draft is empty. Delete it?");
+    await question.waitFor();
+    const heights = await page.locator("div:has(> p:text-is('This draft is empty. Delete it?'))").evaluate((box) =>
+      [...box.querySelectorAll("button")].map((b) => `${(b.textContent ?? "").trim()} ${b.getBoundingClientRect().height}`),
+    );
+    expect(heights).toHaveLength(2);
+    for (const h of heights) expect(Number(h.split(" ").at(-1)), h).toBeGreaterThanOrEqual(43.5);
+    const got = await overflow(page);
+    expect(got.offenders, got.offenders.join("\n")).toEqual([]);
+    expect(got.scrollWidth).toBe(PHONE.width);
+    await page.context().close();
+  }, 120_000);
 });

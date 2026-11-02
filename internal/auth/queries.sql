@@ -4,12 +4,14 @@ VALUES (sqlc.arg(email), sqlc.arg(password_hash), sqlc.arg(username), now(), sql
 RETURNING id;
 
 -- name: GetUserByEmail :one
-SELECT id, email, password_hash, username, role, email_verified_at
+SELECT id, email, password_hash, username, role, email_verified_at,
+       EXISTS (SELECT 1 FROM totp_secrets t WHERE t.user_id = users.id AND t.confirmed_at IS NOT NULL)::boolean AS two_factor_enabled
 FROM users
 WHERE lower(email) = lower(sqlc.arg(email)) AND deleted_at IS NULL;
 
 -- name: GetUserByID :one
-SELECT id, email, password_hash, username, role, email_verified_at
+SELECT id, email, password_hash, username, role, email_verified_at,
+       EXISTS (SELECT 1 FROM totp_secrets t WHERE t.user_id = users.id AND t.confirmed_at IS NOT NULL)::boolean AS two_factor_enabled
 FROM users
 WHERE id = $1 AND deleted_at IS NULL;
 
@@ -286,3 +288,114 @@ SELECT EXISTS (
     WHERE id = sqlc.arg(id)::uuid AND user_id = sqlc.arg(user_id)::uuid
       AND revoked_at IS NULL AND expires_at > now()
 )::boolean AS live;
+
+-- name: GetTotpForUpdate :one
+-- The account's TOTP row, locked so two codes checked at once are
+-- serialised and the second sees the first one's last_used_step.
+SELECT user_id, key_id, algorithm, ciphertext, created_at, confirmed_at, last_used_step
+FROM totp_secrets
+WHERE user_id = sqlc.arg(user_id)::uuid
+FOR UPDATE;
+
+-- name: GetTwoFactorStatus :one
+-- Whether two-factor sign-in is on and how many recovery codes are unused.
+SELECT t.confirmed_at,
+       (SELECT count(*) FROM recovery_codes r WHERE r.user_id = t.user_id AND r.used_at IS NULL)::int AS codes_left
+FROM totp_secrets t
+WHERE t.user_id = sqlc.arg(user_id)::uuid AND t.confirmed_at IS NOT NULL;
+
+-- name: UpsertPendingTotp :one
+-- Starts (or restarts) setup with a new secret. A confirmed row is left
+-- alone and no row is returned, so setup never replaces a secret in use.
+INSERT INTO totp_secrets AS t (user_id, key_id, algorithm, ciphertext)
+VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(key_id)::text, sqlc.arg(algorithm)::text, sqlc.arg(ciphertext))
+ON CONFLICT (user_id) DO UPDATE
+SET key_id = excluded.key_id, algorithm = excluded.algorithm, ciphertext = excluded.ciphertext,
+    created_at = now(), last_used_step = NULL
+WHERE t.confirmed_at IS NULL
+RETURNING t.user_id;
+
+-- name: ConfirmTotp :exec
+UPDATE totp_secrets SET confirmed_at = now(), last_used_step = sqlc.arg(step)::bigint
+WHERE user_id = sqlc.arg(user_id)::uuid AND confirmed_at IS NULL;
+
+-- name: SetTotpLastUsedStep :exec
+UPDATE totp_secrets SET last_used_step = sqlc.arg(step)::bigint WHERE user_id = sqlc.arg(user_id)::uuid;
+
+-- name: DeleteTotp :exec
+DELETE FROM totp_secrets WHERE user_id = sqlc.arg(user_id)::uuid;
+
+-- name: DeleteRecoveryCodes :exec
+DELETE FROM recovery_codes WHERE user_id = sqlc.arg(user_id)::uuid;
+
+-- name: InsertRecoveryCode :exec
+INSERT INTO recovery_codes (user_id, code_hash) VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(code_hash));
+
+-- name: UseRecoveryCode :one
+-- Spends one unused recovery code; no row when the code is wrong or spent.
+UPDATE recovery_codes SET used_at = now()
+WHERE user_id = sqlc.arg(user_id)::uuid AND code_hash = sqlc.arg(code_hash) AND used_at IS NULL
+RETURNING id;
+
+-- name: CountRecoveryCodesLeft :one
+SELECT count(*)::int FROM recovery_codes WHERE user_id = sqlc.arg(user_id)::uuid AND used_at IS NULL;
+
+-- name: InsertTwoFactorChallenge :exec
+INSERT INTO two_factor_challenges (user_id, token_hash, expires_at)
+VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(token_hash), sqlc.arg(expires_at));
+
+-- name: GetTwoFactorChallengeForUpdate :one
+-- An unused, unexpired challenge and its live account, locked so it is
+-- spent at most once.
+SELECT c.id, c.user_id, u.username, u.email, u.role, u.email_verified_at
+FROM two_factor_challenges c
+JOIN users u ON u.id = c.user_id
+WHERE c.token_hash = sqlc.arg(token_hash)
+  AND c.used_at IS NULL
+  AND c.expires_at > now()
+  AND u.deleted_at IS NULL
+FOR UPDATE OF c;
+
+-- name: UseTwoFactorChallenge :exec
+UPDATE two_factor_challenges SET used_at = now() WHERE id = sqlc.arg(id)::uuid;
+
+-- name: DeleteTwoFactorChallenges :exec
+-- Ends every challenge the account has open: a password change, a reset or
+-- turning two-factor off makes a pending second step meaningless.
+DELETE FROM two_factor_challenges WHERE user_id = sqlc.arg(user_id)::uuid;
+
+-- name: LockTwoFactorAttempts :exec
+-- Serialises second-factor checks on one account for the rest of the
+-- transaction, so parallel guesses cannot all read the same failure count.
+SELECT pg_advisory_xact_lock(hashtextextended('perspectiv.two_factor:' || sqlc.arg(user_id)::uuid::text, 0));
+
+-- name: CountRecentFailedTwoFactor :one
+SELECT count(*)::int
+FROM two_factor_attempts
+WHERE user_id = sqlc.arg(user_id)::uuid
+  AND NOT succeeded
+  AND attempted_at > now() - make_interval(mins => sqlc.arg(window_minutes)::int);
+
+-- name: InsertTwoFactorAttempt :exec
+INSERT INTO two_factor_attempts (user_id, succeeded) VALUES (sqlc.arg(user_id)::uuid, sqlc.arg(succeeded)::boolean);
+
+-- name: LockActiveUserByUsername :one
+-- The live account with this username, locked for an operator's change.
+SELECT id, email, username FROM users
+WHERE lower(username) = lower(sqlc.arg(username)::text) AND deleted_at IS NULL
+FOR UPDATE;
+
+-- name: PurgeTwoFactorAttempts :execrows
+DELETE FROM two_factor_attempts
+WHERE id IN (
+    SELECT id FROM two_factor_attempts WHERE attempted_at < sqlc.arg(before)::timestamptz
+    LIMIT sqlc.arg(batch)::integer
+);
+
+-- name: PurgeTwoFactorChallenges :execrows
+-- Challenges that expired before the cutoff; a used one has expired too.
+DELETE FROM two_factor_challenges
+WHERE id IN (
+    SELECT id FROM two_factor_challenges WHERE expires_at < sqlc.arg(before)::timestamptz
+    LIMIT sqlc.arg(batch)::integer
+);

@@ -77,6 +77,7 @@ func refreshCookieValue(header http.Header) string {
 func sessionUser(u SessionUser) *perspectivv1.SessionUser {
 	return &perspectivv1.SessionUser{
 		UserId: u.ID.String(), Username: u.Username, Role: u.Role, EmailVerified: u.EmailVerified,
+		TwoFactorEnabled: u.TwoFactorEnabled,
 	}
 }
 
@@ -102,14 +103,23 @@ func (h *Handler) SignUp(ctx context.Context, req *connect.Request[perspectivv1.
 }
 
 // Login returns the access token in the body and sets the refresh cookie.
+// For an account with two-factor sign-in on it returns only a challenge
+// and sets no cookie.
 func (h *Handler) Login(ctx context.Context, req *connect.Request[perspectivv1.LoginRequest]) (*connect.Response[perspectivv1.LoginResponse], error) {
 	if req.Msg.GetEmail() == "" || req.Msg.GetPassword() == "" {
 		return nil, apiutil.ToConnect(errBadCredentials)
 	}
-	t, err := h.svc.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword(), req.Header().Get("User-Agent"))
+	r, err := h.svc.Login(ctx, req.Msg.GetEmail(), req.Msg.GetPassword(), req.Header().Get("User-Agent"))
 	if err != nil {
 		return nil, apiutil.ToConnect(err)
 	}
+	if r.Tokens == nil {
+		return connect.NewResponse(&perspectivv1.LoginResponse{
+			TwoFactorChallenge:          r.Challenge,
+			TwoFactorChallengeExpiresAt: timestamppb.New(r.ChallengeExpiresAt),
+		}), nil
+	}
+	t := r.Tokens
 	res := connect.NewResponse(&perspectivv1.LoginResponse{
 		AccessToken:          t.AccessToken,
 		AccessTokenExpiresAt: timestamppb.New(t.AccessExpiresAt),

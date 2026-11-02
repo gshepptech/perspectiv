@@ -47,6 +47,25 @@ service AuthService {
   rpc ListWaitlist(ListWaitlistRequest) returns (ListWaitlistResponse);
   // Admin. Issues a waiting person a single-use code and emails it.
   rpc InviteFromWaitlist(InviteFromWaitlistRequest) returns (InviteFromWaitlistResponse);
+  // Public. The second step of signing in to an account with two-factor
+  // sign-in on: the challenge Login returned and a code from the
+  // authenticator app or a recovery code. Answers like Login.
+  rpc CompleteTwoFactorLogin(CompleteTwoFactorLoginRequest) returns (CompleteTwoFactorLoginResponse);
+  // Whether the caller has two-factor sign-in on, and how many unused
+  // recovery codes they have.
+  rpc GetTwoFactorStatus(GetTwoFactorStatusRequest) returns (GetTwoFactorStatusResponse);
+  // Starts turning two-factor sign-in on, given the current password: a new
+  // secret to add to an authenticator app. Nothing changes at sign-in until
+  // ConfirmTwoFactorSetup accepts a code from it.
+  rpc BeginTwoFactorSetup(BeginTwoFactorSetupRequest) returns (BeginTwoFactorSetupResponse);
+  // Turns two-factor sign-in on once a current code from the app is right,
+  // and returns the ten recovery codes, shown this once.
+  rpc ConfirmTwoFactorSetup(ConfirmTwoFactorSetupRequest) returns (ConfirmTwoFactorSetupResponse);
+  // Turns two-factor sign-in off, given the password and a current code.
+  rpc DisableTwoFactor(DisableTwoFactorRequest) returns (DisableTwoFactorResponse);
+  // Replaces every recovery code with ten new ones, given the password and a
+  // current code.
+  rpc RegenerateRecoveryCodes(RegenerateRecoveryCodesRequest) returns (RegenerateRecoveryCodesResponse);
 }
 
 // SessionUser is the signed-in caller as the web app's session sees it.
@@ -55,6 +74,8 @@ message SessionUser {
   string username = 2;
   Role role = 3;
   bool email_verified = 4;
+  // True while the account has two-factor sign-in on.
+  bool two_factor_enabled = 5;
 }
 
 message SignUpRequest {
@@ -86,10 +107,17 @@ message LoginRequest {
   string password = 2;
 }
 
+// LoginResponse is either a session or, for an account with two-factor
+// sign-in on, a challenge. With a challenge the access token and user are
+// empty and no refresh cookie is set; CompleteTwoFactorLogin finishes.
 message LoginResponse {
   string access_token = 1;
   google.protobuf.Timestamp access_token_expires_at = 2;
   SessionUser user = 3;
+  // Set when the password was right and a second factor is needed. Single
+  // use; it expires at two_factor_challenge_expires_at, about 5 minutes on.
+  string two_factor_challenge = 4;
+  google.protobuf.Timestamp two_factor_challenge_expires_at = 5;
 }
 
 message LogoutRequest {}
@@ -267,3 +295,69 @@ message RevokeSessionRequest {
 }
 
 message RevokeSessionResponse {}
+
+message CompleteTwoFactorLoginRequest {
+  // The challenge from LoginResponse.
+  string challenge = 1;
+  // Six digits from the authenticator app, or one recovery code.
+  string code = 2;
+}
+
+message CompleteTwoFactorLoginResponse {
+  string access_token = 1;
+  google.protobuf.Timestamp access_token_expires_at = 2;
+  SessionUser user = 3;
+  // True when a recovery code was used; recovery_codes_left then says how
+  // many unused ones remain.
+  bool used_recovery_code = 4;
+  int32 recovery_codes_left = 5;
+}
+
+message GetTwoFactorStatusRequest {}
+
+message GetTwoFactorStatusResponse {
+  bool enabled = 1;
+  // When it was turned on; unset while off.
+  google.protobuf.Timestamp enabled_at = 2;
+  int32 recovery_codes_left = 3;
+}
+
+message BeginTwoFactorSetupRequest {
+  string current_password = 1;
+}
+
+message BeginTwoFactorSetupResponse {
+  // The shared secret in base32, for typing into an app by hand.
+  string secret = 1;
+  // otpauth://totp/... for the QR code: SHA-1, 6 digits, 30-second steps.
+  string otpauth_uri = 2;
+}
+
+message ConfirmTwoFactorSetupRequest {
+  // Six digits from the app the secret was added to.
+  string code = 1;
+}
+
+message ConfirmTwoFactorSetupResponse {
+  // Ten single-use recovery codes. The server keeps only their hashes, so
+  // this is the only time they can be shown.
+  repeated string recovery_codes = 1;
+}
+
+message DisableTwoFactorRequest {
+  string current_password = 1;
+  // Six digits from the app, or one recovery code.
+  string code = 2;
+}
+
+message DisableTwoFactorResponse {}
+
+message RegenerateRecoveryCodesRequest {
+  string current_password = 1;
+  // Six digits from the app, or one recovery code.
+  string code = 2;
+}
+
+message RegenerateRecoveryCodesResponse {
+  repeated string recovery_codes = 1;
+}

@@ -199,6 +199,9 @@ enum AuditAction {
   AUDIT_ACTION_MAKE_VENUE = 14;
   // An admin merged a duplicate place with no stories into its twin.
   AUDIT_ACTION_MERGE_PLACE = 15;
+  // An operator removed a member's two-factor sign-in from the command line,
+  // after the member lost both their authenticator and their recovery codes.
+  AUDIT_ACTION_TWO_FACTOR_RESET = 16;
 }
 
 // AuditTargetKind is what an audit entry acted on.

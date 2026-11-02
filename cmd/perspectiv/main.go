@@ -3,7 +3,10 @@
 //
 //	perspectiv                       serve per ROLE (api, worker or all)
 //	perspectiv migrate               apply the goose and River migrations, then exit
+//	perspectiv keygen                print a new encryption key for ENCRYPTION_KEYS
 //	perspectiv admin grant <username> give an existing account the ADMIN role
+//	perspectiv admin reset-two-factor <username> <reason>
+//	                                 remove a member's two-factor sign-in
 //
 // It is the composition root: configuration is read here and nowhere else,
 // and every long-lived dependency is built here and passed down. Exit status
@@ -17,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -25,9 +29,13 @@ import (
 	"github.com/rs/zerolog"
 
 	"perspectiv/internal/api/logging"
+	"perspectiv/internal/api/metrics"
 	"perspectiv/internal/api/telemetry"
+	"perspectiv/internal/auth"
 	"perspectiv/internal/db"
+	"perspectiv/internal/jobs"
 	"perspectiv/internal/moderation"
+	"perspectiv/pkg/crypto"
 )
 
 const (
@@ -38,7 +46,7 @@ const (
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	code := run(ctx, os.Args[1:], os.Getenv, os.Stderr)
+	code := run(ctx, os.Args[1:], os.Getenv, os.Stdout, os.Stderr)
 	stop()
 	os.Exit(code)
 }
@@ -46,17 +54,25 @@ func main() {
 const usage = `usage:
   perspectiv                         serve per ROLE (api, worker or all; default all)
   perspectiv migrate                 apply pending migrations to DATABASE_URL and exit
+  perspectiv keygen                  print a new age secret key for ENCRYPTION_KEYS on stdout
   perspectiv admin grant <username>  give the account with this username the ADMIN role
+  perspectiv admin reset-two-factor <username> <reason>
+                                     turn off the account's two-factor sign-in and sign it
+                                     out everywhere, for a member who lost both their
+                                     authenticator and their recovery codes; reason (how
+                                     the owner was confirmed) goes in the audit log, and
+                                     the member is emailed. Needs PUBLIC_BASE_URL too.
 
-Environment: ROLE, DATABASE_URL, HTTP_ADDR, PUBLIC_BASE_URL, JWT_SECRET,
+Environment: ROLE, DATABASE_URL, HTTP_ADDR, PUBLIC_BASE_URL, JWT_SECRET, ENCRYPTION_KEYS,
 COOKIE_SECURE, MAIL_PROVIDER, SMTP_ADDR, RESEND_API_KEY, MAIL_FROM,
 RANK_INTERVAL, CANON_MIN_MEMBERS, EXPIRY_WINDOW, AVATAR_DIR, MIGRATE_ON_START,
 DB_MAX_CONNS, LOG_LEVEL, OTEL_EXPORTER_OTLP_ENDPOINT.
 `
 
 // run is the whole program; main only supplies the process's arguments,
-// environment and stderr, and ctx ends on SIGINT or SIGTERM.
-func run(ctx context.Context, args []string, getenv func(string) string, stderr io.Writer) int {
+// environment, stdout and stderr, and ctx ends on SIGINT or SIGTERM. Only
+// keygen writes to stdout, so its key can be captured alone.
+func run(ctx context.Context, args []string, getenv func(string) string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		cfg, err := loadConfig(getenv)
 		if err != nil {
@@ -75,8 +91,12 @@ func run(ctx context.Context, args []string, getenv func(string) string, stderr 
 			log.Info().Msg("migrations applied")
 			return exitOK
 		})
+	case args[0] == "keygen" && len(args) == 1:
+		return keygen(stdout, stderr)
 	case args[0] == "admin" && len(args) == 3 && args[1] == "grant":
 		return grantAdmin(ctx, args[1:], getenv, stderr)
+	case args[0] == "admin" && len(args) == 4 && args[1] == "reset-two-factor":
+		return resetTwoFactor(ctx, args[2:], getenv, stderr)
 	case len(args) == 1 && (args[0] == "help" || args[0] == "-h" || args[0] == "--help"):
 		say(stderr, usage)
 		return exitOK
@@ -99,6 +119,46 @@ func grantAdmin(ctx context.Context, args []string, getenv func(string) string, 
 			return exitFailure
 		}
 		log.Info().Str("username", username).Msg("admin role granted")
+		return exitOK
+	})
+}
+
+// keygen prints a new age secret key, the format ENCRYPTION_KEYS holds,
+// made by pkg/crypto. Production keys are made on a separate, audited host.
+func keygen(stdout, stderr io.Writer) int {
+	key, err := crypto.GenerateKey()
+	if err != nil {
+		say(stderr, fmt.Sprintf("perspectiv: %v\n", err))
+		return exitFailure
+	}
+	say(stdout, key+"\n")
+	return exitOK
+}
+
+// resetTwoFactor runs `admin reset-two-factor <username> <reason>`; args is
+// [username, reason].
+func resetTwoFactor(ctx context.Context, args []string, getenv func(string) string, stderr io.Writer) int {
+	if len(args) != 2 {
+		say(stderr, usage)
+		return exitUsage
+	}
+	username, reason := args[0], args[1]
+	base := getenv("PUBLIC_BASE_URL")
+	if u, err := url.Parse(base); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		say(stderr, "perspectiv: PUBLIC_BASE_URL must be an absolute http(s) URL; the member's email links to it\n")
+		return exitUsage
+	}
+	return withPool(ctx, getenv, stderr, func(pool *pgxpool.Pool, log zerolog.Logger) int {
+		inserter, err := jobs.NewClient(pool, log, metrics.New(metrics.NewRegistry()), nil, nil)
+		if err != nil {
+			log.Error().Err(err).Msg("job client")
+			return exitFailure
+		}
+		if err := auth.ResetTwoFactor(ctx, pool, jobs.NewEnqueuer(inserter), base, username, reason); err != nil {
+			log.Error().Err(err).Str("username", username).Msg("two-factor reset failed")
+			return exitFailure
+		}
+		log.Info().Str("event", "two_factor_reset_by_operator").Str("username", username).Msg("two-factor sign-in removed; sessions revoked; member emailed")
 		return exitOK
 	})
 }

@@ -395,7 +395,7 @@ func TestProductionConfig(t *testing.T) {
 		}
 	}
 	e := env(main)
-	for _, name := range []string{"JWT_SECRET", "POSTGRES_PASSWORD", "RESEND_API_KEY"} {
+	for _, name := range []string{"JWT_SECRET", "ENCRYPTION_KEYS", "POSTGRES_PASSWORD", "RESEND_API_KEY"} {
 		if got := str(e[name], "valueFrom", "secretKeyRef", "name"); got != "perspectiv-secrets" {
 			t.Errorf("%s secret = %q", name, got)
 		}
@@ -403,8 +403,10 @@ func TestProductionConfig(t *testing.T) {
 			t.Errorf("%s key = %q", name, got)
 		}
 	}
-	if got := get(e["JWT_SECRET"], "valueFrom", "secretKeyRef", "optional"); got == true {
-		t.Error("JWT_SECRET is optional; a pod must not start without it")
+	for _, name := range []string{"JWT_SECRET", "ENCRYPTION_KEYS"} {
+		if got := get(e[name], "valueFrom", "secretKeyRef", "optional"); got == true {
+			t.Errorf("%s is optional; a pod must not start without it", name)
+		}
 	}
 	dbURL := str(e["DATABASE_URL"], "value")
 	const wantURL = "postgres://perspectiv:$(POSTGRES_PASSWORD)@perspectiv-postgres:5432/perspectiv?sslmode=disable" //nolint:gosec // G101: an env reference, not a password

@@ -156,7 +156,8 @@ func validAuditAction(a perspectivv1.AuditAction) bool {
 		perspectivv1.AuditAction_AUDIT_ACTION_LIFT_SUSPENSION,
 		perspectivv1.AuditAction_AUDIT_ACTION_RESTORE,
 		perspectivv1.AuditAction_AUDIT_ACTION_MAKE_VENUE,
-		perspectivv1.AuditAction_AUDIT_ACTION_MERGE_PLACE:
+		perspectivv1.AuditAction_AUDIT_ACTION_MERGE_PLACE,
+		perspectivv1.AuditAction_AUDIT_ACTION_TWO_FACTOR_RESET:
 		return true
 	case perspectivv1.AuditAction_AUDIT_ACTION_UNSPECIFIED:
 	}

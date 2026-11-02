@@ -31,6 +31,13 @@ const (
 	// tells the old one. Data carries the link.
 	TemplateChangeEmail       = "change_email"
 	TemplateEmailChangeNotice = "email_change_notice"
+	// TemplateTwoFactorEnabled and TemplateTwoFactorDisabled tell a member
+	// their two-factor sign-in was turned on or off; TemplateRecoveryCodeUsed
+	// that a recovery code signed in, with the number left in Data["left"].
+	// Data carries the password-reset page's link, for when it was not them.
+	TemplateTwoFactorEnabled  = "two_factor_enabled"
+	TemplateTwoFactorDisabled = "two_factor_disabled"
+	TemplateRecoveryCodeUsed  = "recovery_code_used"
 )
 
 // ExpiryArgs schedules the PENDING to SOLO check for one perspective.

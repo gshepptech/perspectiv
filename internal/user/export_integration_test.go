@@ -122,3 +122,49 @@ func TestExportMyData(t *testing.T) {
 		t.Fatalf("signed out: err = %v, want Unauthenticated", err)
 	}
 }
+
+// The export says whether two-factor sign-in is on, and never carries its
+// secret or a recovery code; a setup never confirmed with a code is off.
+func TestExportSaysWhetherTwoFactorIsOn(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	on, pending, off := e.user("with_2fa"), e.user("half_set"), e.user("no_2fa")
+	e.exec(`INSERT INTO totp_secrets (user_id, key_id, algorithm, ciphertext, confirmed_at)
+		VALUES ($1, 'age1:feedface', 'age-x25519-v1', '\xdeadbeefcafe', now())`, on)
+	e.exec(`INSERT INTO recovery_codes (user_id, code_hash) VALUES ($1, '\xabcdef0123')`, on)
+	e.exec(`INSERT INTO totp_secrets (user_id, key_id, algorithm, ciphertext) VALUES ($1, 'k', 'a', '\x00')`, pending)
+	tests := []struct {
+		name string
+		user uuid.UUID
+		want bool
+	}{
+		{name: "on", user: on, want: true},
+		{name: "set up but not confirmed", user: pending, want: false},
+		{name: "never set up", user: off, want: false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := e.client(tc.user).ExportMyData(context.Background(), connect.NewRequest(&perspectivv1.ExportMyDataRequest{}))
+			if err != nil {
+				t.Fatalf("ExportMyData: %v", err)
+			}
+			doc := res.Msg.GetJson()
+			var got struct {
+				Account struct {
+					TwoFactorEnabled *bool `json:"two_factor_enabled"`
+				} `json:"account"`
+			}
+			if err := json.Unmarshal([]byte(doc), &got); err != nil {
+				t.Fatalf("export is not JSON: %v", err)
+			}
+			if got.Account.TwoFactorEnabled == nil || *got.Account.TwoFactorEnabled != tc.want {
+				t.Fatalf("two_factor_enabled = %v, want %v", got.Account.TwoFactorEnabled, tc.want)
+			}
+			for _, leak := range []string{"feedface", "deadbeef", "abcdef0123", "ciphertext", "recovery", "secret"} {
+				if strings.Contains(doc, leak) {
+					t.Fatalf("the export carries %q from the two-factor secret or codes", leak)
+				}
+			}
+		})
+	}
+}

@@ -160,6 +160,8 @@ message AdminUserView {
   int32 open_reports_against = 13;
   int32 reports_against = 14;
   int32 reports_filed = 15;
+  // True while the account has two-factor sign-in on.
+  bool two_factor_enabled = 16;
 }
 
 message LookupUserResponse {

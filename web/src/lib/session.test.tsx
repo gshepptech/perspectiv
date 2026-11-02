@@ -38,7 +38,7 @@ describe("refreshSession", () => {
     release();
     const [a, b, c] = await all;
     expect(api.calls.filter((c) => c.procedure === "AuthService/Refresh")).toHaveLength(1);
-    expect(a).toEqual({ userId: expect.any(String), username: "ada", role: Role.ADMIN, emailVerified: true });
+    expect(a).toEqual({ userId: expect.any(String), username: "ada", role: Role.ADMIN, emailVerified: true, twoFactorEnabled: false });
     expect(b).toBe(a);
     expect(c).toBe(a);
     expect(getAccessToken()).toBe("tok-1");

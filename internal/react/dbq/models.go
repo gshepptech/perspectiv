@@ -256,6 +256,14 @@ type React struct {
 	CreatedAt     time.Time
 }
 
+type RecoveryCode struct {
+	ID        int64
+	UserID    uuid.UUID
+	CodeHash  []byte
+	CreatedAt time.Time
+	UsedAt    *time.Time
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	SessionID uuid.UUID
@@ -304,6 +312,32 @@ type Session struct {
 	ExpiresAt  time.Time
 	RevokedAt  *time.Time
 	Device     string
+}
+
+type TotpSecret struct {
+	UserID       uuid.UUID
+	KeyID        string
+	Algorithm    string
+	Ciphertext   []byte
+	CreatedAt    time.Time
+	ConfirmedAt  *time.Time
+	LastUsedStep *int64
+}
+
+type TwoFactorAttempt struct {
+	ID          int64
+	UserID      uuid.UUID
+	Succeeded   bool
+	AttemptedAt time.Time
+}
+
+type TwoFactorChallenge struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	TokenHash []byte
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	UsedAt    *time.Time
 }
 
 type User struct {

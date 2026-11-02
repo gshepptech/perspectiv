@@ -23,7 +23,7 @@ type Page = {
 
 /**
  * The route table. Reading (landing, place, arc, a perspective, a lore and
- * its book) is public; every writing or account surface needs a signed-in
+ * its book, the guide and the legal pages) is public; every writing or account surface needs a signed-in
  * user. The server enforces the same split on every RPC: this guard is
  * usability, not authorization.
  */
@@ -55,6 +55,7 @@ export const pages: readonly Page[] = [
   { path: "/terms", module: "legal/TermsPage" },
   { path: "/privacy", module: "legal/PrivacyPage" },
   { path: "/guidelines", module: "legal/GuidelinesPage" },
+  { path: "/how-it-works", module: "guide/HowItWorksPage" },
   { path: "/appearance", module: "appearance/AppearancePage" },
   { path: "/inbox", module: "inbox/InboxPage", signedIn: true },
 ];

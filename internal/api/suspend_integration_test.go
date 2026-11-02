@@ -25,6 +25,7 @@ import (
 	"perspectiv/internal/auth"
 	"perspectiv/internal/jobs"
 	"perspectiv/internal/testdb"
+	"perspectiv/pkg/crypto"
 )
 
 func TestMain(m *testing.M) { testdb.Main(m) }
@@ -50,7 +51,15 @@ func newGateServer(t *testing.T) *gateServer {
 		t.Fatalf("jobs.NewClient: %v", err)
 	}
 	lim := auth.NewLimiter(pool)
-	svc, err := auth.NewService(pool, jobs.NewEnqueuer(river), lim, auth.Config{
+	key, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatalf("crypto.GenerateKey: %v", err)
+	}
+	enc, err := crypto.NewEncryptor(key)
+	if err != nil {
+		t.Fatalf("crypto.NewEncryptor: %v", err)
+	}
+	svc, err := auth.NewService(pool, jobs.NewEnqueuer(river), lim, enc, auth.Config{
 		JWTSecret:     "integration-secret-0123456789abcdef",
 		PublicBaseURL: "https://perspectiv.example",
 		CookieSecure:  true,

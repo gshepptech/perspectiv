@@ -123,6 +123,38 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 			wantText:    []string{"If it was not, reset your password now: that also cancels the change.", baseURL + "/forgot-password"},
 		},
 		{
+			name: "two-factor turned on points at a password reset in case it was not them",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateTwoFactorEnabled, Data: map[string]string{
+				"link": baseURL + "/forgot-password",
+			}},
+			wantSubject: "Two-factor sign-in is on",
+			wantText:    []string{"If you did not turn it on, reset your password now.", baseURL + "/forgot-password"},
+		},
+		{
+			name: "two-factor turned off",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateTwoFactorDisabled, Data: map[string]string{
+				"link": baseURL + "/forgot-password",
+			}},
+			wantSubject: "Two-factor sign-in is off",
+			wantText:    []string{"signing in asks only for your password", baseURL + "/forgot-password"},
+		},
+		{
+			name: "a recovery code used says how many are left",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateRecoveryCodeUsed, Data: map[string]string{
+				"link": baseURL + "/forgot-password", "left": "9",
+			}},
+			wantSubject: "A recovery code was used to sign in",
+			wantText:    []string{"9 recovery codes are left.", baseURL + "/forgot-password"},
+		},
+		{
+			name: "the last recovery code used says to make new ones",
+			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateRecoveryCodeUsed, Data: map[string]string{
+				"link": baseURL + "/forgot-password", "left": "0",
+			}},
+			wantSubject: "A recovery code was used to sign in",
+			wantText:    []string{"That was the last one: make new codes in Settings now."},
+		},
+		{
 			name: "claim received names the claimant and the arc (FR-037)",
 			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
 				"user_id": recipientID, "kind": "NOTIFICATION_KIND_CLAIM_RECEIVED", "actor": "sam", "arc_title": "Rainy Tuesday", "path": "/claims",

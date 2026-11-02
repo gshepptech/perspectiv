@@ -74,6 +74,11 @@ unencrypted (sslmode=disable).
     secretKeyRef:
       name: {{ include "perspectiv.secret" . }}
       key: JWT_SECRET
+- name: ENCRYPTION_KEYS
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "perspectiv.secret" . }}
+      key: ENCRYPTION_KEYS
 - name: RESEND_API_KEY
   valueFrom:
     secretKeyRef:

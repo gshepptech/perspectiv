@@ -2,6 +2,7 @@ import { BookMarked, Link2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
+import { ReadMoreLink } from "@/routes/guide/ReadMore";
 
 /**
  * An illustrated example of the product working, for someone who has never
@@ -64,7 +65,7 @@ function Page({ author, className, children }: { author: string; className: stri
   );
 }
 
-/** How Perspectiv works, said as four numbered lines under the example. */
+/** How Perspectiv works, said as four numbered lines under the example, then the way into the guide. */
 export function HowItWorks() {
   return (
     <section aria-labelledby="landing-how" className="min-w-0">
@@ -77,6 +78,7 @@ export function HowItWorks() {
         <li>Spot yourself in someone else’s story and claim the character.</li>
         <li>Linked stories become a lore, and the lore the people who were there favour most becomes canon.</li>
       </ol>
+      <ReadMoreLink className="mt-2" />
     </section>
   );
 }

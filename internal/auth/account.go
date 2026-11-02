@@ -106,6 +106,10 @@ func (s *Service) ChangePassword(ctx context.Context, caller apiutil.Caller, cur
 		if err := retireTokens(ctx, q, u.ID, purposePasswordReset, purposeChangeEmail); err != nil {
 			return err
 		}
+		// A challenge open from the old password must not finish signing in.
+		if err := q.DeleteTwoFactorChallenges(ctx, u.ID); err != nil {
+			return internal("end two-factor challenges", err)
+		}
 		return revokeOthers(ctx, q, u.ID, caller.SessionID)
 	})
 	if err != nil {
@@ -286,8 +290,12 @@ func (s *Service) SignOutEverywhere(ctx context.Context, caller apiutil.Caller) 
 		if err := q.RevokeUserRefreshTokens(ctx, caller.UserID); err != nil {
 			return internal("revoke refresh tokens", err)
 		}
-		// Signing everyone out also cancels an email change someone else
-		// may have started from a session.
+		// Signing everyone out also ends a sign-in waiting on its second
+		// step, and cancels an email change someone else may have started
+		// from a session.
+		if err := q.DeleteTwoFactorChallenges(ctx, caller.UserID); err != nil {
+			return internal("end two-factor challenges", err)
+		}
 		return retireTokens(ctx, q, caller.UserID, purposeChangeEmail)
 	})
 	if err != nil {

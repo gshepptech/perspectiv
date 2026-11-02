@@ -71,13 +71,13 @@ func TestPreview(t *testing.T) {
 	insert(t, pool, `INSERT INTO perspectives (arc_id, author_id, genre, status, lore_status, published_at)
 		VALUES ($1, $2, 'GENRE_DRAMA', 'PERSPECTIVE_STATUS_PUBLISHED', 'LORE_STATUS_PENDING', now()) RETURNING id`, hiddenArc, cal)
 
-	// The sitemap lists the same readable pages: the store's category, the
+	// The sitemap lists the same readable pages: the guide, the store's category, the
 	// store and every place above it, the day, and the visible story; never
 	// the hidden place or its category, the hidden story or the draft.
 	checkSitemap(t, sitemap{
 		places: p.places.Sitemap, days: arcs.Sitemap, stories: p.perspectives.Sitemap, categories: p.places.CategorySitemap,
 	}, map[string][]string{
-		"pages":   {"/best/shopping"},
+		"pages":   {"/how-it-works", "/best/shopping"},
 		"places":  {"/places/" + store.String(), "/places/" + city.String(), "/places/" + state.String()},
 		"days":    {"/arcs/" + arcID.String()},
 		"stories": {"/perspectives/" + visible.String()},

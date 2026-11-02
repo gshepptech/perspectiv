@@ -144,6 +144,10 @@ func (s *Service) ResetPassword(ctx context.Context, token, newPassword string) 
 			{"mark email verified", func() error { return q.MarkEmailVerified(ctx, id) }},
 			{"revoke sessions", func() error { return q.RevokeUserSessions(ctx, id) }},
 			{"revoke refresh tokens", func() error { return q.RevokeUserRefreshTokens(ctx, id) }},
+			// A reset ends a sign-in waiting on its second step; it never
+			// touches two-factor sign-in itself, so the next sign-in after
+			// the reset still asks for a code.
+			{"end two-factor challenges", func() error { return q.DeleteTwoFactorChallenges(ctx, id) }},
 		}
 		for _, st := range steps {
 			if err := st.run(); err != nil {

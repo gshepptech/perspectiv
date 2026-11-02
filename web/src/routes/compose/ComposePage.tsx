@@ -1,7 +1,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 
 import type { Place } from "@/gen/perspectiv/v1/place_pb";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
@@ -9,8 +9,8 @@ import { clients } from "@/lib/connect";
 import { useDocumentTitle } from "@/lib/title";
 
 import { blankValues, valuesFromPerspective } from "./composeForm";
-import { Composer } from "./Composer";
-import { resumedNotice, useDraftsFor } from "./drafts";
+import { Composer, type ComposerProps } from "./Composer";
+import { DELETED_NOTICE, resumedNotice, useDraftsFor } from "./drafts";
 import { rememberAfterPublish } from "./links";
 import { isLocalDate, parseHour, todayIn } from "./localDate";
 import { PlacePicker } from "./PlacePicker";
@@ -53,7 +53,7 @@ function LoadFailed({ error }: { error: unknown }) {
   );
 }
 
-type Shared = { notice?: string; onDraftNamed: (id: string) => void; joining?: boolean };
+type Shared = Pick<ComposerProps, "notice" | "onDraftNamed" | "onDraftDeleted" | "joining">;
 
 function placeToday(place: Place): string {
   // A place always carries its IANA zone; an empty one falls back to the
@@ -61,7 +61,19 @@ function placeToday(place: Place): string {
   return todayIn(place.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
 }
 
-function NewForPlace({ placeId, date, hour, ...shared }: Shared & { placeId: string; date?: string; hour?: number }) {
+function NewForPlace({
+  placeId,
+  date,
+  hour,
+  deleted = false,
+  ...shared
+}: Shared & {
+  placeId: string;
+  date?: string;
+  hour?: number;
+  /** Opened again right after an emptied draft was deleted here. */
+  deleted?: boolean;
+}) {
   const place = useQuery({
     queryKey: ["place", "getPlace", placeId],
     queryFn: () => clients.place.getPlace({ placeId }),
@@ -102,10 +114,20 @@ function NewForPlace({ placeId, date, hour, ...shared }: Shared & { placeId: str
         perspective={resumed}
         {...shared}
         notice={shared.notice ?? resumedNotice((found ?? draft.data)?.length ?? 1)}
+        focusNotice={deleted}
       />
     );
   }
-  return <Composer place={p} today={today} initial={blankValues(localDate, hour)} {...shared} />;
+  return (
+    <Composer
+      place={p}
+      today={today}
+      initial={blankValues(localDate, hour)}
+      {...shared}
+      notice={deleted ? DELETED_NOTICE : shared.notice}
+      focusNotice={deleted}
+    />
+  );
 }
 
 function Existing({ perspectiveId, ...shared }: Shared & { perspectiveId: string }) {
@@ -155,6 +177,7 @@ export function Component() {
   useDocumentTitle("Write a story");
   const [params, setParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const perspectiveId = params.get("perspectiveId") ?? "";
   const placeId = params.get("placeId") ?? "";
   const dateParam = params.get("date");
@@ -173,6 +196,12 @@ export function Component() {
   const [adopted, setAdopted] = useState<{ id: string; key: string } | null>(null);
   const opened = perspectiveId ? `perspective:${perspectiveId}` : placeId ? `place:${placeId}` : "pick";
   const key = adopted && adopted.id === perspectiveId ? adopted.key : opened;
+  // Deleting an emptied draft opens the composer again from scratch, even
+  // when the address it lands on opened this one: each delete is a new
+  // instance, and only the one it opens says the draft is gone.
+  const [restarts, setRestarts] = useState(0);
+  const [deletedAt, setDeletedAt] = useState("");
+  const instance = `${key}#${restarts}`;
 
   const notice = (location.state as { notice?: string } | null)?.notice === "existing" ? EXISTING_NOTICE : undefined;
   const shared: Shared = {
@@ -189,18 +218,35 @@ export function Component() {
         { replace: true },
       );
     },
+    onDraftDeleted: async (where) => {
+      // The address drops the deleted draft and names where it was, keeping
+      // return and invite, so a reload opens the same place, day and hour.
+      const next = new URLSearchParams(params);
+      next.delete("perspectiveId");
+      next.set("placeId", where.placeId);
+      if (isLocalDate(where.localDate)) next.set("date", where.localDate);
+      else next.delete("date");
+      if (where.hour === undefined) next.delete("hour");
+      else next.set("hour", String(where.hour));
+      await navigate({ search: `?${next.toString()}` }, { replace: true });
+      const restarted = restarts + 1;
+      setAdopted(null);
+      setRestarts(restarted);
+      setDeletedAt(`place:${where.placeId}#${restarted}`);
+    },
   };
 
   if (key.startsWith("perspective:")) {
-    return <Existing key={key} perspectiveId={key.slice("perspective:".length)} {...shared} />;
+    return <Existing key={instance} perspectiveId={key.slice("perspective:".length)} {...shared} />;
   }
   if (key.startsWith("place:")) {
     return (
       <NewForPlace
-        key={key}
+        key={instance}
         placeId={key.slice("place:".length)}
         date={isLocalDate(dateParam) ? dateParam : undefined}
         hour={hour}
+        deleted={instance === deletedAt}
         {...shared}
       />
     );

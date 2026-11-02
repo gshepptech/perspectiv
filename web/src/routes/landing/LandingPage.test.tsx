@@ -280,6 +280,8 @@ describe("landing page (AC-006, OT-036)", () => {
     // The explainer sits right under the call to action, so no link points at it.
     expect(within(how).getByRole("heading", { level: 2, name: "How a day works" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "How a day works" })).toBeNull();
+    // The box ends with the way into the guide.
+    expect(within(how).getByRole("link", { name: "Read more about how Perspectiv works" })).toHaveAttribute("href", "/how-it-works");
   });
 
   it("does not ask a member who has published to start, and welcomes them back", async () => {
@@ -430,6 +432,12 @@ describe("landing page (AC-006, OT-036)", () => {
     expect(within(how).getAllByRole("listitem")).toHaveLength(4);
     expect(how).toHaveTextContent("the lore the people who were there favour most becomes canon");
     expect(how).not.toHaveTextContent(/readers/);
+    // The list ends with the way into the guide.
+    const more = within(screen.getByRole("region", { name: "How Perspectiv works" })).getByRole("link", {
+      name: "Read more about how Perspectiv works",
+    });
+    expect(more).toHaveTextContent(/^Read more$/);
+    expect(more).toHaveAttribute("href", "/how-it-works");
     expect(screen.getByText("Anyone can read. Sign up to write your side.")).toBeInTheDocument();
   });
 

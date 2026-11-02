@@ -118,7 +118,8 @@ func TestEnumValues(t *testing.T) {
 			want: []string{"AUDIT_ACTION_UNSPECIFIED", "AUDIT_ACTION_HIDE_PERSPECTIVE", "AUDIT_ACTION_HIDE_PLACE", "AUDIT_ACTION_SUSPEND_USER",
 				"AUDIT_ACTION_DISMISS", "AUDIT_ACTION_HIDE_LORE_POST", "AUDIT_ACTION_CLEAR_LORE_NAME", "AUDIT_ACTION_ADMIN_GRANT",
 				"AUDIT_ACTION_ACCESS_CODE_CREATE", "AUDIT_ACTION_ACCESS_CODE_REVOKE", "AUDIT_ACTION_WAITLIST_INVITE", "AUDIT_ACTION_USER_LOOKUP",
-				"AUDIT_ACTION_LIFT_SUSPENSION", "AUDIT_ACTION_RESTORE", "AUDIT_ACTION_MAKE_VENUE", "AUDIT_ACTION_MERGE_PLACE"},
+				"AUDIT_ACTION_LIFT_SUSPENSION", "AUDIT_ACTION_RESTORE", "AUDIT_ACTION_MAKE_VENUE", "AUDIT_ACTION_MERGE_PLACE",
+				"AUDIT_ACTION_TWO_FACTOR_RESET"},
 		},
 		{
 			name: "audit target kind",
@@ -165,10 +166,15 @@ func TestEnumValues(t *testing.T) {
 // profile's Thread posts tab, SavePerspective and
 // ListSaved the stories a user saved to read later, and
 // ListStoriedCategories the "Browse by kind of place" links.
+// CompleteTwoFactorLogin is a sign-in's second step, and GetTwoFactorStatus,
+// BeginTwoFactorSetup, ConfirmTwoFactorSetup, DisableTwoFactor and
+// RegenerateRecoveryCodes are two-factor sign-in in Settings.
 var services = map[string][]string{
 	"AuthService": {"SignUp", "Login", "Logout", "Refresh", "VerifyEmail", "RequestPasswordReset", "ResetPassword",
 		"ChangePassword", "RequestEmailChange", "ConfirmEmailChange", "SignOutEverywhere", "ListSessions", "RevokeSession",
-		"GetSignUpInfo", "JoinWaitlist", "CreateAccessCode", "ListAccessCodes", "RevokeAccessCode", "ListWaitlist", "InviteFromWaitlist"},
+		"GetSignUpInfo", "JoinWaitlist", "CreateAccessCode", "ListAccessCodes", "RevokeAccessCode", "ListWaitlist", "InviteFromWaitlist",
+		"CompleteTwoFactorLogin", "GetTwoFactorStatus", "BeginTwoFactorSetup", "ConfirmTwoFactorSetup", "DisableTwoFactor",
+		"RegenerateRecoveryCodes"},
 	"UserService": {"GetProfile", "UpdateProfile", "ChangeUsername", "BlockUser", "UnblockUser", "DeleteAccount", "ExportMyData",
 		"FollowUser", "ListFollowedWriters", "ListUserPosts"},
 	"PlaceService": {"SearchPlaces", "GetPlace", "ListChildren", "CreatePlace", "GetEpic", "FollowPlace", "ListFollowing", "SearchCharacters",

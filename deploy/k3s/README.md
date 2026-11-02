@@ -108,9 +108,35 @@ connection URL needs no escaping.
 kubectl create namespace perspectiv
 kubectl -n perspectiv create secret generic perspectiv-secrets \
   --from-literal=JWT_SECRET="$(openssl rand -hex 32)" \
+  --from-literal=ENCRYPTION_KEYS="$(docker run --rm perspectiv:"$VERSION" keygen)" \
   --from-literal=POSTGRES_PASSWORD="$(openssl rand -hex 24)" \
   --from-literal=RESEND_API_KEY="<resend api key>"
 ```
+
+`ENCRYPTION_KEYS` encrypts members' two-factor secrets at rest. The image's
+`perspectiv keygen` prints a new key (an age X25519 secret key); run it on
+the host you build on rather than the VM, keep a copy offline, and never
+store it in the database. Every pod reads it from this Secret: the chart
+marks it required, so a pod without it does not start, and a server whose
+value is not a key exits at once naming `ENCRYPTION_KEYS`; two-factor
+sign-in is never silently off. If the key is lost, every account with
+two-factor sign-in on is refused at its second step until an operator
+resets it (below).
+
+To rotate the key, make a new one and put it on the first line, with the
+old one on the line under it, then restart the pods:
+
+```sh
+kubectl -n perspectiv patch secret perspectiv-secrets --type merge -p \
+  "{\"stringData\":{\"ENCRYPTION_KEYS\":\"$(docker run --rm perspectiv:"$VERSION" keygen)\n<old key>\"}}"
+kubectl -n perspectiv rollout restart deploy/perspectiv-api deploy/perspectiv-worker
+```
+
+New secrets are sealed with the first key, and each stored secret is opened
+with the key its row names, so both keys work while members turn two-factor
+sign-in on, off and on again. The old key may go once no row carries its id
+(`SELECT key_id, count(*) FROM totp_secrets GROUP BY key_id`); a row still on
+it is re-sealed only when its member sets two-factor sign-in up again.
 
 Postgres sets its password from this Secret only when the data volume is first
 initialised. Changing `POSTGRES_PASSWORD` later needs an `ALTER ROLE
@@ -207,6 +233,31 @@ kubectl -n perspectiv scale deploy/perspectiv-api deploy/perspectiv-worker --rep
 Run this restore against a scratch namespace before launch and after any
 change to the schema tooling; ADR 0003 makes the restore drill a launch
 condition.
+
+## Resetting a member's two-factor sign-in
+
+A member who lost both their authenticator app and every recovery code
+cannot sign in, and no web page can help them: anything a page offered
+would also help someone who has only their password. Recovery is an
+operator task, audited:
+
+1. They write from the email address on the account, saying which account
+   and that they lost both. Reply to that address, never to another, and
+   confirm one detail only the owner would know (for example a story title
+   they wrote, or roughly when they joined). If anything does not match,
+   stop.
+2. Run, with the reason saying how the owner was confirmed:
+
+   ```sh
+   kubectl -n perspectiv exec deploy/perspectiv-api -- \
+     /perspectiv admin reset-two-factor <username> "owner confirmed by email from account address and story title"
+   ```
+
+   It turns two-factor sign-in off, signs the account out on every device,
+   writes a "reset two-factor sign-in" entry to the audit log with the
+   reason, and emails the member that two-factor sign-in is off.
+3. Tell them to sign in with their password and turn two-factor sign-in on
+   again in Settings.
 
 ## 8. Uninstall
 

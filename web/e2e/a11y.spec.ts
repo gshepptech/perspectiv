@@ -8,9 +8,9 @@
  * The lore's thread (a post, an upvote and a reply), Saved, Appearance, a
  * profile's Follow toggle and its Thread posts tab, the lore read as a book
  * (contents, a chapter, a chapter's last part, the title page with its "Continue"
- * offer, the closing page), and the report queue with its disclosure open
- * are scanned in both themes, forced through the root's data-theme as the
- * Appearance page forces them.
+ * offer, the closing page), the report queue with its disclosure open, and
+ * the signed-out guide to how Perspectiv works are scanned in both themes,
+ * forced through the root's data-theme as the Appearance page forces them.
  * The scan fails on any serious or critical WCAG 2.1 A or AA violation and
  * lists every one, route by route.
  */
@@ -217,6 +217,9 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
     await anon.goto(path);
     findings.push(...(await scan(anon, path)));
   }
+  // The guide, as a first-time visitor meets it from the footer.
+  await anon.goto("/how-it-works");
+  findings.push(...(await scanBothThemes(anon, "/how-it-works", anon.getByRole("heading", { level: 2, name: "Your privacy" }))));
 
   expect(findings, `axe found serious or critical WCAG 2.1 A/AA violations:\n${report(findings)}`).toEqual([]);
 });

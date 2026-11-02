@@ -42,7 +42,8 @@ func (e *Enqueuer) EmailTx(ctx context.Context, tx pgx.Tx, a EmailArgs) error {
 	}
 	switch a.Template {
 	case TemplateVerifyEmail, TemplatePasswordReset, TemplateNotification, TemplateBetaInvite, TemplateDigest,
-		TemplateChangeEmail, TemplateEmailChangeNotice:
+		TemplateChangeEmail, TemplateEmailChangeNotice, TemplateTwoFactorEnabled, TemplateTwoFactorDisabled,
+		TemplateRecoveryCodeUsed:
 	default:
 		return fmt.Errorf("enqueue email: unknown template %q", a.Template)
 	}

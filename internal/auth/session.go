@@ -139,7 +139,7 @@ func (s *Service) rotateRefresh(ctx context.Context, q *dbq.Queries, row dbq.Get
 		return Tokens{}, internal("touch session", err)
 	}
 	return s.rotate(ctx, q, SessionUser{
-		ID: u.ID, Username: u.Username, Role: role, EmailVerified: u.EmailVerifiedAt != nil,
+		ID: u.ID, Username: u.Username, Role: role, EmailVerified: u.EmailVerifiedAt != nil, TwoFactorEnabled: u.TwoFactorEnabled,
 	}, row.SessionID, &row.ID, row.SessionExpiresAt)
 }
 

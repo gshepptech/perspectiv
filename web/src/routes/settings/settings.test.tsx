@@ -55,6 +55,7 @@ function settings(handlers: Handlers = {}) {
       "NotifyService/GetPreferences": allOn,
       "AuthService/ListSessions": () => ok({ sessions: [laptop] }),
       "UserService/ListFollowedWriters": () => ok({ writers: [] }),
+      "AuthService/GetTwoFactorStatus": () => ok({ enabled: false, recoveryCodesLeft: 0 }),
       ...handlers,
     },
     { signedIn: true },

@@ -29,8 +29,10 @@ type SessionUser struct {
 	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
 	Role          Role                   `protobuf:"varint,3,opt,name=role,proto3,enum=perspectiv.v1.Role" json:"role,omitempty"`
 	EmailVerified bool                   `protobuf:"varint,4,opt,name=email_verified,json=emailVerified,proto3" json:"email_verified,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// True while the account has two-factor sign-in on.
+	TwoFactorEnabled bool `protobuf:"varint,5,opt,name=two_factor_enabled,json=twoFactorEnabled,proto3" json:"two_factor_enabled,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SessionUser) Reset() {
@@ -87,6 +89,13 @@ func (x *SessionUser) GetRole() Role {
 func (x *SessionUser) GetEmailVerified() bool {
 	if x != nil {
 		return x.EmailVerified
+	}
+	return false
+}
+
+func (x *SessionUser) GetTwoFactorEnabled() bool {
+	if x != nil {
+		return x.TwoFactorEnabled
 	}
 	return false
 }
@@ -303,13 +312,20 @@ func (x *LoginRequest) GetPassword() string {
 	return ""
 }
 
+// LoginResponse is either a session or, for an account with two-factor
+// sign-in on, a challenge. With a challenge the access token and user are
+// empty and no refresh cookie is set; CompleteTwoFactorLogin finishes.
 type LoginResponse struct {
 	state                protoimpl.MessageState `protogen:"open.v1"`
 	AccessToken          string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
 	AccessTokenExpiresAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=access_token_expires_at,json=accessTokenExpiresAt,proto3" json:"access_token_expires_at,omitempty"`
 	User                 *SessionUser           `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Set when the password was right and a second factor is needed. Single
+	// use; it expires at two_factor_challenge_expires_at, about 5 minutes on.
+	TwoFactorChallenge          string                 `protobuf:"bytes,4,opt,name=two_factor_challenge,json=twoFactorChallenge,proto3" json:"two_factor_challenge,omitempty"`
+	TwoFactorChallengeExpiresAt *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=two_factor_challenge_expires_at,json=twoFactorChallengeExpiresAt,proto3" json:"two_factor_challenge_expires_at,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *LoginResponse) Reset() {
@@ -359,6 +375,20 @@ func (x *LoginResponse) GetAccessTokenExpiresAt() *timestamppb.Timestamp {
 func (x *LoginResponse) GetUser() *SessionUser {
 	if x != nil {
 		return x.User
+	}
+	return nil
+}
+
+func (x *LoginResponse) GetTwoFactorChallenge() string {
+	if x != nil {
+		return x.TwoFactorChallenge
+	}
+	return ""
+}
+
+func (x *LoginResponse) GetTwoFactorChallengeExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.TwoFactorChallengeExpiresAt
 	}
 	return nil
 }
@@ -2219,16 +2249,621 @@ func (*RevokeSessionResponse) Descriptor() ([]byte, []int) {
 	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{43}
 }
 
+type CompleteTwoFactorLoginRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The challenge from LoginResponse.
+	Challenge string `protobuf:"bytes,1,opt,name=challenge,proto3" json:"challenge,omitempty"`
+	// Six digits from the authenticator app, or one recovery code.
+	Code          string `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompleteTwoFactorLoginRequest) Reset() {
+	*x = CompleteTwoFactorLoginRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteTwoFactorLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteTwoFactorLoginRequest) ProtoMessage() {}
+
+func (x *CompleteTwoFactorLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteTwoFactorLoginRequest.ProtoReflect.Descriptor instead.
+func (*CompleteTwoFactorLoginRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *CompleteTwoFactorLoginRequest) GetChallenge() string {
+	if x != nil {
+		return x.Challenge
+	}
+	return ""
+}
+
+func (x *CompleteTwoFactorLoginRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type CompleteTwoFactorLoginResponse struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken          string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	AccessTokenExpiresAt *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=access_token_expires_at,json=accessTokenExpiresAt,proto3" json:"access_token_expires_at,omitempty"`
+	User                 *SessionUser           `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	// True when a recovery code was used; recovery_codes_left then says how
+	// many unused ones remain.
+	UsedRecoveryCode  bool  `protobuf:"varint,4,opt,name=used_recovery_code,json=usedRecoveryCode,proto3" json:"used_recovery_code,omitempty"`
+	RecoveryCodesLeft int32 `protobuf:"varint,5,opt,name=recovery_codes_left,json=recoveryCodesLeft,proto3" json:"recovery_codes_left,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CompleteTwoFactorLoginResponse) Reset() {
+	*x = CompleteTwoFactorLoginResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteTwoFactorLoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteTwoFactorLoginResponse) ProtoMessage() {}
+
+func (x *CompleteTwoFactorLoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompleteTwoFactorLoginResponse.ProtoReflect.Descriptor instead.
+func (*CompleteTwoFactorLoginResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *CompleteTwoFactorLoginResponse) GetAccessToken() string {
+	if x != nil {
+		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *CompleteTwoFactorLoginResponse) GetAccessTokenExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AccessTokenExpiresAt
+	}
+	return nil
+}
+
+func (x *CompleteTwoFactorLoginResponse) GetUser() *SessionUser {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+func (x *CompleteTwoFactorLoginResponse) GetUsedRecoveryCode() bool {
+	if x != nil {
+		return x.UsedRecoveryCode
+	}
+	return false
+}
+
+func (x *CompleteTwoFactorLoginResponse) GetRecoveryCodesLeft() int32 {
+	if x != nil {
+		return x.RecoveryCodesLeft
+	}
+	return 0
+}
+
+type GetTwoFactorStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTwoFactorStatusRequest) Reset() {
+	*x = GetTwoFactorStatusRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTwoFactorStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTwoFactorStatusRequest) ProtoMessage() {}
+
+func (x *GetTwoFactorStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTwoFactorStatusRequest.ProtoReflect.Descriptor instead.
+func (*GetTwoFactorStatusRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{46}
+}
+
+type GetTwoFactorStatusResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Enabled bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// When it was turned on; unset while off.
+	EnabledAt         *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=enabled_at,json=enabledAt,proto3" json:"enabled_at,omitempty"`
+	RecoveryCodesLeft int32                  `protobuf:"varint,3,opt,name=recovery_codes_left,json=recoveryCodesLeft,proto3" json:"recovery_codes_left,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetTwoFactorStatusResponse) Reset() {
+	*x = GetTwoFactorStatusResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTwoFactorStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTwoFactorStatusResponse) ProtoMessage() {}
+
+func (x *GetTwoFactorStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTwoFactorStatusResponse.ProtoReflect.Descriptor instead.
+func (*GetTwoFactorStatusResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *GetTwoFactorStatusResponse) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *GetTwoFactorStatusResponse) GetEnabledAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EnabledAt
+	}
+	return nil
+}
+
+func (x *GetTwoFactorStatusResponse) GetRecoveryCodesLeft() int32 {
+	if x != nil {
+		return x.RecoveryCodesLeft
+	}
+	return 0
+}
+
+type BeginTwoFactorSetupRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	CurrentPassword string                 `protobuf:"bytes,1,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *BeginTwoFactorSetupRequest) Reset() {
+	*x = BeginTwoFactorSetupRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginTwoFactorSetupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginTwoFactorSetupRequest) ProtoMessage() {}
+
+func (x *BeginTwoFactorSetupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginTwoFactorSetupRequest.ProtoReflect.Descriptor instead.
+func (*BeginTwoFactorSetupRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *BeginTwoFactorSetupRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
+	}
+	return ""
+}
+
+type BeginTwoFactorSetupResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The shared secret in base32, for typing into an app by hand.
+	Secret string `protobuf:"bytes,1,opt,name=secret,proto3" json:"secret,omitempty"`
+	// otpauth://totp/... for the QR code: SHA-1, 6 digits, 30-second steps.
+	OtpauthUri    string `protobuf:"bytes,2,opt,name=otpauth_uri,json=otpauthUri,proto3" json:"otpauth_uri,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BeginTwoFactorSetupResponse) Reset() {
+	*x = BeginTwoFactorSetupResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginTwoFactorSetupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginTwoFactorSetupResponse) ProtoMessage() {}
+
+func (x *BeginTwoFactorSetupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BeginTwoFactorSetupResponse.ProtoReflect.Descriptor instead.
+func (*BeginTwoFactorSetupResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *BeginTwoFactorSetupResponse) GetSecret() string {
+	if x != nil {
+		return x.Secret
+	}
+	return ""
+}
+
+func (x *BeginTwoFactorSetupResponse) GetOtpauthUri() string {
+	if x != nil {
+		return x.OtpauthUri
+	}
+	return ""
+}
+
+type ConfirmTwoFactorSetupRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Six digits from the app the secret was added to.
+	Code          string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmTwoFactorSetupRequest) Reset() {
+	*x = ConfirmTwoFactorSetupRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmTwoFactorSetupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmTwoFactorSetupRequest) ProtoMessage() {}
+
+func (x *ConfirmTwoFactorSetupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmTwoFactorSetupRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmTwoFactorSetupRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *ConfirmTwoFactorSetupRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type ConfirmTwoFactorSetupResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Ten single-use recovery codes. The server keeps only their hashes, so
+	// this is the only time they can be shown.
+	RecoveryCodes []string `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes,proto3" json:"recovery_codes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmTwoFactorSetupResponse) Reset() {
+	*x = ConfirmTwoFactorSetupResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmTwoFactorSetupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmTwoFactorSetupResponse) ProtoMessage() {}
+
+func (x *ConfirmTwoFactorSetupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmTwoFactorSetupResponse.ProtoReflect.Descriptor instead.
+func (*ConfirmTwoFactorSetupResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *ConfirmTwoFactorSetupResponse) GetRecoveryCodes() []string {
+	if x != nil {
+		return x.RecoveryCodes
+	}
+	return nil
+}
+
+type DisableTwoFactorRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	CurrentPassword string                 `protobuf:"bytes,1,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	// Six digits from the app, or one recovery code.
+	Code          string `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisableTwoFactorRequest) Reset() {
+	*x = DisableTwoFactorRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisableTwoFactorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisableTwoFactorRequest) ProtoMessage() {}
+
+func (x *DisableTwoFactorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisableTwoFactorRequest.ProtoReflect.Descriptor instead.
+func (*DisableTwoFactorRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *DisableTwoFactorRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
+	}
+	return ""
+}
+
+func (x *DisableTwoFactorRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type DisableTwoFactorResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DisableTwoFactorResponse) Reset() {
+	*x = DisableTwoFactorResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisableTwoFactorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisableTwoFactorResponse) ProtoMessage() {}
+
+func (x *DisableTwoFactorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DisableTwoFactorResponse.ProtoReflect.Descriptor instead.
+func (*DisableTwoFactorResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{53}
+}
+
+type RegenerateRecoveryCodesRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	CurrentPassword string                 `protobuf:"bytes,1,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	// Six digits from the app, or one recovery code.
+	Code          string `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegenerateRecoveryCodesRequest) Reset() {
+	*x = RegenerateRecoveryCodesRequest{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegenerateRecoveryCodesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegenerateRecoveryCodesRequest) ProtoMessage() {}
+
+func (x *RegenerateRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegenerateRecoveryCodesRequest.ProtoReflect.Descriptor instead.
+func (*RegenerateRecoveryCodesRequest) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *RegenerateRecoveryCodesRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
+	}
+	return ""
+}
+
+func (x *RegenerateRecoveryCodesRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
+}
+
+type RegenerateRecoveryCodesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes,proto3" json:"recovery_codes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegenerateRecoveryCodesResponse) Reset() {
+	*x = RegenerateRecoveryCodesResponse{}
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegenerateRecoveryCodesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegenerateRecoveryCodesResponse) ProtoMessage() {}
+
+func (x *RegenerateRecoveryCodesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_perspectiv_v1_auth_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegenerateRecoveryCodesResponse.ProtoReflect.Descriptor instead.
+func (*RegenerateRecoveryCodesResponse) Descriptor() ([]byte, []int) {
+	return file_perspectiv_v1_auth_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *RegenerateRecoveryCodesResponse) GetRecoveryCodes() []string {
+	if x != nil {
+		return x.RecoveryCodes
+	}
+	return nil
+}
+
 var File_perspectiv_v1_auth_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\n" +
-	"\x18perspectiv/v1/auth.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\"\x92\x01\n" +
+	"\x18perspectiv/v1/auth.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\"\xc0\x01\n" +
 	"\vSessionUser\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12'\n" +
 	"\x04role\x18\x03 \x01(\x0e2\x13.perspectiv.v1.RoleR\x04role\x12%\n" +
-	"\x0eemail_verified\x18\x04 \x01(\bR\remailVerified\"\xbd\x01\n" +
+	"\x0eemail_verified\x18\x04 \x01(\bR\remailVerified\x12,\n" +
+	"\x12two_factor_enabled\x18\x05 \x01(\bR\x10twoFactorEnabled\"\xbd\x01\n" +
 	"\rSignUpRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x1a\n" +
@@ -2244,11 +2879,13 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\x04user\x18\x04 \x01(\v2\x1a.perspectiv.v1.SessionUserR\x04user\"@\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xb5\x01\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xc9\x02\n" +
 	"\rLoginResponse\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12Q\n" +
 	"\x17access_token_expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14accessTokenExpiresAt\x12.\n" +
-	"\x04user\x18\x03 \x01(\v2\x1a.perspectiv.v1.SessionUserR\x04user\"\x0f\n" +
+	"\x04user\x18\x03 \x01(\v2\x1a.perspectiv.v1.SessionUserR\x04user\x120\n" +
+	"\x14two_factor_challenge\x18\x04 \x01(\tR\x12twoFactorChallenge\x12`\n" +
+	"\x1ftwo_factor_challenge_expires_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x1btwoFactorChallengeExpiresAt\"\x0f\n" +
 	"\rLogoutRequest\"\x10\n" +
 	"\x0eLogoutResponse\"\x10\n" +
 	"\x0eRefreshRequest\"\xb7\x01\n" +
@@ -2354,7 +2991,41 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\x14RevokeSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
-	"\x15RevokeSessionResponse2\xc3\x0e\n" +
+	"\x15RevokeSessionResponse\"Q\n" +
+	"\x1dCompleteTwoFactorLoginRequest\x12\x1c\n" +
+	"\tchallenge\x18\x01 \x01(\tR\tchallenge\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\"\xa4\x02\n" +
+	"\x1eCompleteTwoFactorLoginResponse\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12Q\n" +
+	"\x17access_token_expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x14accessTokenExpiresAt\x12.\n" +
+	"\x04user\x18\x03 \x01(\v2\x1a.perspectiv.v1.SessionUserR\x04user\x12,\n" +
+	"\x12used_recovery_code\x18\x04 \x01(\bR\x10usedRecoveryCode\x12.\n" +
+	"\x13recovery_codes_left\x18\x05 \x01(\x05R\x11recoveryCodesLeft\"\x1b\n" +
+	"\x19GetTwoFactorStatusRequest\"\xa1\x01\n" +
+	"\x1aGetTwoFactorStatusResponse\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x129\n" +
+	"\n" +
+	"enabled_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tenabledAt\x12.\n" +
+	"\x13recovery_codes_left\x18\x03 \x01(\x05R\x11recoveryCodesLeft\"G\n" +
+	"\x1aBeginTwoFactorSetupRequest\x12)\n" +
+	"\x10current_password\x18\x01 \x01(\tR\x0fcurrentPassword\"V\n" +
+	"\x1bBeginTwoFactorSetupResponse\x12\x16\n" +
+	"\x06secret\x18\x01 \x01(\tR\x06secret\x12\x1f\n" +
+	"\votpauth_uri\x18\x02 \x01(\tR\n" +
+	"otpauthUri\"2\n" +
+	"\x1cConfirmTwoFactorSetupRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"F\n" +
+	"\x1dConfirmTwoFactorSetupResponse\x12%\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"X\n" +
+	"\x17DisableTwoFactorRequest\x12)\n" +
+	"\x10current_password\x18\x01 \x01(\tR\x0fcurrentPassword\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\"\x1a\n" +
+	"\x18DisableTwoFactorResponse\"_\n" +
+	"\x1eRegenerateRecoveryCodesRequest\x12)\n" +
+	"\x10current_password\x18\x01 \x01(\tR\x0fcurrentPassword\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\"H\n" +
+	"\x1fRegenerateRecoveryCodesResponse\x12%\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes2\xe6\x13\n" +
 	"\vAuthService\x12E\n" +
 	"\x06SignUp\x12\x1c.perspectiv.v1.SignUpRequest\x1a\x1d.perspectiv.v1.SignUpResponse\x12B\n" +
 	"\x05Login\x12\x1b.perspectiv.v1.LoginRequest\x1a\x1c.perspectiv.v1.LoginResponse\x12E\n" +
@@ -2375,7 +3046,13 @@ const file_perspectiv_v1_auth_proto_rawDesc = "" +
 	"\x0fListAccessCodes\x12%.perspectiv.v1.ListAccessCodesRequest\x1a&.perspectiv.v1.ListAccessCodesResponse\x12c\n" +
 	"\x10RevokeAccessCode\x12&.perspectiv.v1.RevokeAccessCodeRequest\x1a'.perspectiv.v1.RevokeAccessCodeResponse\x12W\n" +
 	"\fListWaitlist\x12\".perspectiv.v1.ListWaitlistRequest\x1a#.perspectiv.v1.ListWaitlistResponse\x12i\n" +
-	"\x12InviteFromWaitlist\x12(.perspectiv.v1.InviteFromWaitlistRequest\x1a).perspectiv.v1.InviteFromWaitlistResponseB\x9e\x01\n" +
+	"\x12InviteFromWaitlist\x12(.perspectiv.v1.InviteFromWaitlistRequest\x1a).perspectiv.v1.InviteFromWaitlistResponse\x12u\n" +
+	"\x16CompleteTwoFactorLogin\x12,.perspectiv.v1.CompleteTwoFactorLoginRequest\x1a-.perspectiv.v1.CompleteTwoFactorLoginResponse\x12i\n" +
+	"\x12GetTwoFactorStatus\x12(.perspectiv.v1.GetTwoFactorStatusRequest\x1a).perspectiv.v1.GetTwoFactorStatusResponse\x12l\n" +
+	"\x13BeginTwoFactorSetup\x12).perspectiv.v1.BeginTwoFactorSetupRequest\x1a*.perspectiv.v1.BeginTwoFactorSetupResponse\x12r\n" +
+	"\x15ConfirmTwoFactorSetup\x12+.perspectiv.v1.ConfirmTwoFactorSetupRequest\x1a,.perspectiv.v1.ConfirmTwoFactorSetupResponse\x12c\n" +
+	"\x10DisableTwoFactor\x12&.perspectiv.v1.DisableTwoFactorRequest\x1a'.perspectiv.v1.DisableTwoFactorResponse\x12x\n" +
+	"\x17RegenerateRecoveryCodes\x12-.perspectiv.v1.RegenerateRecoveryCodesRequest\x1a..perspectiv.v1.RegenerateRecoveryCodesResponseB\x9e\x01\n" +
 	"\x11com.perspectiv.v1B\tAuthProtoP\x01Z)perspectiv/gen/perspectiv/v1;perspectivv1\xa2\x02\x03PXX\xaa\x02\rPerspectiv.V1\xca\x02\rPerspectiv\\V1\xe2\x02\x19Perspectiv\\V1\\GPBMetadata\xea\x02\x0ePerspectiv::V1b\x06proto3"
 
 var (
@@ -2390,120 +3067,148 @@ func file_perspectiv_v1_auth_proto_rawDescGZIP() []byte {
 	return file_perspectiv_v1_auth_proto_rawDescData
 }
 
-var file_perspectiv_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_perspectiv_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 56)
 var file_perspectiv_v1_auth_proto_goTypes = []any{
-	(*SessionUser)(nil),                  // 0: perspectiv.v1.SessionUser
-	(*SignUpRequest)(nil),                // 1: perspectiv.v1.SignUpRequest
-	(*SignUpResponse)(nil),               // 2: perspectiv.v1.SignUpResponse
-	(*LoginRequest)(nil),                 // 3: perspectiv.v1.LoginRequest
-	(*LoginResponse)(nil),                // 4: perspectiv.v1.LoginResponse
-	(*LogoutRequest)(nil),                // 5: perspectiv.v1.LogoutRequest
-	(*LogoutResponse)(nil),               // 6: perspectiv.v1.LogoutResponse
-	(*RefreshRequest)(nil),               // 7: perspectiv.v1.RefreshRequest
-	(*RefreshResponse)(nil),              // 8: perspectiv.v1.RefreshResponse
-	(*VerifyEmailRequest)(nil),           // 9: perspectiv.v1.VerifyEmailRequest
-	(*VerifyEmailResponse)(nil),          // 10: perspectiv.v1.VerifyEmailResponse
-	(*RequestPasswordResetRequest)(nil),  // 11: perspectiv.v1.RequestPasswordResetRequest
-	(*RequestPasswordResetResponse)(nil), // 12: perspectiv.v1.RequestPasswordResetResponse
-	(*ResetPasswordRequest)(nil),         // 13: perspectiv.v1.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),        // 14: perspectiv.v1.ResetPasswordResponse
-	(*GetSignUpInfoRequest)(nil),         // 15: perspectiv.v1.GetSignUpInfoRequest
-	(*GetSignUpInfoResponse)(nil),        // 16: perspectiv.v1.GetSignUpInfoResponse
-	(*JoinWaitlistRequest)(nil),          // 17: perspectiv.v1.JoinWaitlistRequest
-	(*JoinWaitlistResponse)(nil),         // 18: perspectiv.v1.JoinWaitlistResponse
-	(*AccessCode)(nil),                   // 19: perspectiv.v1.AccessCode
-	(*CreateAccessCodeRequest)(nil),      // 20: perspectiv.v1.CreateAccessCodeRequest
-	(*CreateAccessCodeResponse)(nil),     // 21: perspectiv.v1.CreateAccessCodeResponse
-	(*ListAccessCodesRequest)(nil),       // 22: perspectiv.v1.ListAccessCodesRequest
-	(*ListAccessCodesResponse)(nil),      // 23: perspectiv.v1.ListAccessCodesResponse
-	(*RevokeAccessCodeRequest)(nil),      // 24: perspectiv.v1.RevokeAccessCodeRequest
-	(*RevokeAccessCodeResponse)(nil),     // 25: perspectiv.v1.RevokeAccessCodeResponse
-	(*WaitlistEntry)(nil),                // 26: perspectiv.v1.WaitlistEntry
-	(*ListWaitlistRequest)(nil),          // 27: perspectiv.v1.ListWaitlistRequest
-	(*ListWaitlistResponse)(nil),         // 28: perspectiv.v1.ListWaitlistResponse
-	(*InviteFromWaitlistRequest)(nil),    // 29: perspectiv.v1.InviteFromWaitlistRequest
-	(*InviteFromWaitlistResponse)(nil),   // 30: perspectiv.v1.InviteFromWaitlistResponse
-	(*ChangePasswordRequest)(nil),        // 31: perspectiv.v1.ChangePasswordRequest
-	(*ChangePasswordResponse)(nil),       // 32: perspectiv.v1.ChangePasswordResponse
-	(*RequestEmailChangeRequest)(nil),    // 33: perspectiv.v1.RequestEmailChangeRequest
-	(*RequestEmailChangeResponse)(nil),   // 34: perspectiv.v1.RequestEmailChangeResponse
-	(*ConfirmEmailChangeRequest)(nil),    // 35: perspectiv.v1.ConfirmEmailChangeRequest
-	(*ConfirmEmailChangeResponse)(nil),   // 36: perspectiv.v1.ConfirmEmailChangeResponse
-	(*SignOutEverywhereRequest)(nil),     // 37: perspectiv.v1.SignOutEverywhereRequest
-	(*SignOutEverywhereResponse)(nil),    // 38: perspectiv.v1.SignOutEverywhereResponse
-	(*SessionInfo)(nil),                  // 39: perspectiv.v1.SessionInfo
-	(*ListSessionsRequest)(nil),          // 40: perspectiv.v1.ListSessionsRequest
-	(*ListSessionsResponse)(nil),         // 41: perspectiv.v1.ListSessionsResponse
-	(*RevokeSessionRequest)(nil),         // 42: perspectiv.v1.RevokeSessionRequest
-	(*RevokeSessionResponse)(nil),        // 43: perspectiv.v1.RevokeSessionResponse
-	(Role)(0),                            // 44: perspectiv.v1.Role
-	(*timestamppb.Timestamp)(nil),        // 45: google.protobuf.Timestamp
+	(*SessionUser)(nil),                     // 0: perspectiv.v1.SessionUser
+	(*SignUpRequest)(nil),                   // 1: perspectiv.v1.SignUpRequest
+	(*SignUpResponse)(nil),                  // 2: perspectiv.v1.SignUpResponse
+	(*LoginRequest)(nil),                    // 3: perspectiv.v1.LoginRequest
+	(*LoginResponse)(nil),                   // 4: perspectiv.v1.LoginResponse
+	(*LogoutRequest)(nil),                   // 5: perspectiv.v1.LogoutRequest
+	(*LogoutResponse)(nil),                  // 6: perspectiv.v1.LogoutResponse
+	(*RefreshRequest)(nil),                  // 7: perspectiv.v1.RefreshRequest
+	(*RefreshResponse)(nil),                 // 8: perspectiv.v1.RefreshResponse
+	(*VerifyEmailRequest)(nil),              // 9: perspectiv.v1.VerifyEmailRequest
+	(*VerifyEmailResponse)(nil),             // 10: perspectiv.v1.VerifyEmailResponse
+	(*RequestPasswordResetRequest)(nil),     // 11: perspectiv.v1.RequestPasswordResetRequest
+	(*RequestPasswordResetResponse)(nil),    // 12: perspectiv.v1.RequestPasswordResetResponse
+	(*ResetPasswordRequest)(nil),            // 13: perspectiv.v1.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),           // 14: perspectiv.v1.ResetPasswordResponse
+	(*GetSignUpInfoRequest)(nil),            // 15: perspectiv.v1.GetSignUpInfoRequest
+	(*GetSignUpInfoResponse)(nil),           // 16: perspectiv.v1.GetSignUpInfoResponse
+	(*JoinWaitlistRequest)(nil),             // 17: perspectiv.v1.JoinWaitlistRequest
+	(*JoinWaitlistResponse)(nil),            // 18: perspectiv.v1.JoinWaitlistResponse
+	(*AccessCode)(nil),                      // 19: perspectiv.v1.AccessCode
+	(*CreateAccessCodeRequest)(nil),         // 20: perspectiv.v1.CreateAccessCodeRequest
+	(*CreateAccessCodeResponse)(nil),        // 21: perspectiv.v1.CreateAccessCodeResponse
+	(*ListAccessCodesRequest)(nil),          // 22: perspectiv.v1.ListAccessCodesRequest
+	(*ListAccessCodesResponse)(nil),         // 23: perspectiv.v1.ListAccessCodesResponse
+	(*RevokeAccessCodeRequest)(nil),         // 24: perspectiv.v1.RevokeAccessCodeRequest
+	(*RevokeAccessCodeResponse)(nil),        // 25: perspectiv.v1.RevokeAccessCodeResponse
+	(*WaitlistEntry)(nil),                   // 26: perspectiv.v1.WaitlistEntry
+	(*ListWaitlistRequest)(nil),             // 27: perspectiv.v1.ListWaitlistRequest
+	(*ListWaitlistResponse)(nil),            // 28: perspectiv.v1.ListWaitlistResponse
+	(*InviteFromWaitlistRequest)(nil),       // 29: perspectiv.v1.InviteFromWaitlistRequest
+	(*InviteFromWaitlistResponse)(nil),      // 30: perspectiv.v1.InviteFromWaitlistResponse
+	(*ChangePasswordRequest)(nil),           // 31: perspectiv.v1.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil),          // 32: perspectiv.v1.ChangePasswordResponse
+	(*RequestEmailChangeRequest)(nil),       // 33: perspectiv.v1.RequestEmailChangeRequest
+	(*RequestEmailChangeResponse)(nil),      // 34: perspectiv.v1.RequestEmailChangeResponse
+	(*ConfirmEmailChangeRequest)(nil),       // 35: perspectiv.v1.ConfirmEmailChangeRequest
+	(*ConfirmEmailChangeResponse)(nil),      // 36: perspectiv.v1.ConfirmEmailChangeResponse
+	(*SignOutEverywhereRequest)(nil),        // 37: perspectiv.v1.SignOutEverywhereRequest
+	(*SignOutEverywhereResponse)(nil),       // 38: perspectiv.v1.SignOutEverywhereResponse
+	(*SessionInfo)(nil),                     // 39: perspectiv.v1.SessionInfo
+	(*ListSessionsRequest)(nil),             // 40: perspectiv.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),            // 41: perspectiv.v1.ListSessionsResponse
+	(*RevokeSessionRequest)(nil),            // 42: perspectiv.v1.RevokeSessionRequest
+	(*RevokeSessionResponse)(nil),           // 43: perspectiv.v1.RevokeSessionResponse
+	(*CompleteTwoFactorLoginRequest)(nil),   // 44: perspectiv.v1.CompleteTwoFactorLoginRequest
+	(*CompleteTwoFactorLoginResponse)(nil),  // 45: perspectiv.v1.CompleteTwoFactorLoginResponse
+	(*GetTwoFactorStatusRequest)(nil),       // 46: perspectiv.v1.GetTwoFactorStatusRequest
+	(*GetTwoFactorStatusResponse)(nil),      // 47: perspectiv.v1.GetTwoFactorStatusResponse
+	(*BeginTwoFactorSetupRequest)(nil),      // 48: perspectiv.v1.BeginTwoFactorSetupRequest
+	(*BeginTwoFactorSetupResponse)(nil),     // 49: perspectiv.v1.BeginTwoFactorSetupResponse
+	(*ConfirmTwoFactorSetupRequest)(nil),    // 50: perspectiv.v1.ConfirmTwoFactorSetupRequest
+	(*ConfirmTwoFactorSetupResponse)(nil),   // 51: perspectiv.v1.ConfirmTwoFactorSetupResponse
+	(*DisableTwoFactorRequest)(nil),         // 52: perspectiv.v1.DisableTwoFactorRequest
+	(*DisableTwoFactorResponse)(nil),        // 53: perspectiv.v1.DisableTwoFactorResponse
+	(*RegenerateRecoveryCodesRequest)(nil),  // 54: perspectiv.v1.RegenerateRecoveryCodesRequest
+	(*RegenerateRecoveryCodesResponse)(nil), // 55: perspectiv.v1.RegenerateRecoveryCodesResponse
+	(Role)(0),                               // 56: perspectiv.v1.Role
+	(*timestamppb.Timestamp)(nil),           // 57: google.protobuf.Timestamp
 }
 var file_perspectiv_v1_auth_proto_depIdxs = []int32{
-	44, // 0: perspectiv.v1.SessionUser.role:type_name -> perspectiv.v1.Role
-	45, // 1: perspectiv.v1.SignUpResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	56, // 0: perspectiv.v1.SessionUser.role:type_name -> perspectiv.v1.Role
+	57, // 1: perspectiv.v1.SignUpResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: perspectiv.v1.SignUpResponse.user:type_name -> perspectiv.v1.SessionUser
-	45, // 3: perspectiv.v1.LoginResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	57, // 3: perspectiv.v1.LoginResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 4: perspectiv.v1.LoginResponse.user:type_name -> perspectiv.v1.SessionUser
-	45, // 5: perspectiv.v1.RefreshResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
-	0,  // 6: perspectiv.v1.RefreshResponse.user:type_name -> perspectiv.v1.SessionUser
-	45, // 7: perspectiv.v1.AccessCode.created_at:type_name -> google.protobuf.Timestamp
-	45, // 8: perspectiv.v1.AccessCode.expires_at:type_name -> google.protobuf.Timestamp
-	19, // 9: perspectiv.v1.CreateAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
-	19, // 10: perspectiv.v1.ListAccessCodesResponse.codes:type_name -> perspectiv.v1.AccessCode
-	19, // 11: perspectiv.v1.RevokeAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
-	45, // 12: perspectiv.v1.WaitlistEntry.created_at:type_name -> google.protobuf.Timestamp
-	45, // 13: perspectiv.v1.WaitlistEntry.invited_at:type_name -> google.protobuf.Timestamp
-	26, // 14: perspectiv.v1.ListWaitlistResponse.entries:type_name -> perspectiv.v1.WaitlistEntry
-	26, // 15: perspectiv.v1.InviteFromWaitlistResponse.entry:type_name -> perspectiv.v1.WaitlistEntry
-	45, // 16: perspectiv.v1.SessionInfo.signed_in_at:type_name -> google.protobuf.Timestamp
-	45, // 17: perspectiv.v1.SessionInfo.last_used_at:type_name -> google.protobuf.Timestamp
-	39, // 18: perspectiv.v1.ListSessionsResponse.sessions:type_name -> perspectiv.v1.SessionInfo
-	1,  // 19: perspectiv.v1.AuthService.SignUp:input_type -> perspectiv.v1.SignUpRequest
-	3,  // 20: perspectiv.v1.AuthService.Login:input_type -> perspectiv.v1.LoginRequest
-	5,  // 21: perspectiv.v1.AuthService.Logout:input_type -> perspectiv.v1.LogoutRequest
-	7,  // 22: perspectiv.v1.AuthService.Refresh:input_type -> perspectiv.v1.RefreshRequest
-	9,  // 23: perspectiv.v1.AuthService.VerifyEmail:input_type -> perspectiv.v1.VerifyEmailRequest
-	11, // 24: perspectiv.v1.AuthService.RequestPasswordReset:input_type -> perspectiv.v1.RequestPasswordResetRequest
-	13, // 25: perspectiv.v1.AuthService.ResetPassword:input_type -> perspectiv.v1.ResetPasswordRequest
-	31, // 26: perspectiv.v1.AuthService.ChangePassword:input_type -> perspectiv.v1.ChangePasswordRequest
-	33, // 27: perspectiv.v1.AuthService.RequestEmailChange:input_type -> perspectiv.v1.RequestEmailChangeRequest
-	35, // 28: perspectiv.v1.AuthService.ConfirmEmailChange:input_type -> perspectiv.v1.ConfirmEmailChangeRequest
-	37, // 29: perspectiv.v1.AuthService.SignOutEverywhere:input_type -> perspectiv.v1.SignOutEverywhereRequest
-	40, // 30: perspectiv.v1.AuthService.ListSessions:input_type -> perspectiv.v1.ListSessionsRequest
-	42, // 31: perspectiv.v1.AuthService.RevokeSession:input_type -> perspectiv.v1.RevokeSessionRequest
-	15, // 32: perspectiv.v1.AuthService.GetSignUpInfo:input_type -> perspectiv.v1.GetSignUpInfoRequest
-	17, // 33: perspectiv.v1.AuthService.JoinWaitlist:input_type -> perspectiv.v1.JoinWaitlistRequest
-	20, // 34: perspectiv.v1.AuthService.CreateAccessCode:input_type -> perspectiv.v1.CreateAccessCodeRequest
-	22, // 35: perspectiv.v1.AuthService.ListAccessCodes:input_type -> perspectiv.v1.ListAccessCodesRequest
-	24, // 36: perspectiv.v1.AuthService.RevokeAccessCode:input_type -> perspectiv.v1.RevokeAccessCodeRequest
-	27, // 37: perspectiv.v1.AuthService.ListWaitlist:input_type -> perspectiv.v1.ListWaitlistRequest
-	29, // 38: perspectiv.v1.AuthService.InviteFromWaitlist:input_type -> perspectiv.v1.InviteFromWaitlistRequest
-	2,  // 39: perspectiv.v1.AuthService.SignUp:output_type -> perspectiv.v1.SignUpResponse
-	4,  // 40: perspectiv.v1.AuthService.Login:output_type -> perspectiv.v1.LoginResponse
-	6,  // 41: perspectiv.v1.AuthService.Logout:output_type -> perspectiv.v1.LogoutResponse
-	8,  // 42: perspectiv.v1.AuthService.Refresh:output_type -> perspectiv.v1.RefreshResponse
-	10, // 43: perspectiv.v1.AuthService.VerifyEmail:output_type -> perspectiv.v1.VerifyEmailResponse
-	12, // 44: perspectiv.v1.AuthService.RequestPasswordReset:output_type -> perspectiv.v1.RequestPasswordResetResponse
-	14, // 45: perspectiv.v1.AuthService.ResetPassword:output_type -> perspectiv.v1.ResetPasswordResponse
-	32, // 46: perspectiv.v1.AuthService.ChangePassword:output_type -> perspectiv.v1.ChangePasswordResponse
-	34, // 47: perspectiv.v1.AuthService.RequestEmailChange:output_type -> perspectiv.v1.RequestEmailChangeResponse
-	36, // 48: perspectiv.v1.AuthService.ConfirmEmailChange:output_type -> perspectiv.v1.ConfirmEmailChangeResponse
-	38, // 49: perspectiv.v1.AuthService.SignOutEverywhere:output_type -> perspectiv.v1.SignOutEverywhereResponse
-	41, // 50: perspectiv.v1.AuthService.ListSessions:output_type -> perspectiv.v1.ListSessionsResponse
-	43, // 51: perspectiv.v1.AuthService.RevokeSession:output_type -> perspectiv.v1.RevokeSessionResponse
-	16, // 52: perspectiv.v1.AuthService.GetSignUpInfo:output_type -> perspectiv.v1.GetSignUpInfoResponse
-	18, // 53: perspectiv.v1.AuthService.JoinWaitlist:output_type -> perspectiv.v1.JoinWaitlistResponse
-	21, // 54: perspectiv.v1.AuthService.CreateAccessCode:output_type -> perspectiv.v1.CreateAccessCodeResponse
-	23, // 55: perspectiv.v1.AuthService.ListAccessCodes:output_type -> perspectiv.v1.ListAccessCodesResponse
-	25, // 56: perspectiv.v1.AuthService.RevokeAccessCode:output_type -> perspectiv.v1.RevokeAccessCodeResponse
-	28, // 57: perspectiv.v1.AuthService.ListWaitlist:output_type -> perspectiv.v1.ListWaitlistResponse
-	30, // 58: perspectiv.v1.AuthService.InviteFromWaitlist:output_type -> perspectiv.v1.InviteFromWaitlistResponse
-	39, // [39:59] is the sub-list for method output_type
-	19, // [19:39] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	57, // 5: perspectiv.v1.LoginResponse.two_factor_challenge_expires_at:type_name -> google.protobuf.Timestamp
+	57, // 6: perspectiv.v1.RefreshResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 7: perspectiv.v1.RefreshResponse.user:type_name -> perspectiv.v1.SessionUser
+	57, // 8: perspectiv.v1.AccessCode.created_at:type_name -> google.protobuf.Timestamp
+	57, // 9: perspectiv.v1.AccessCode.expires_at:type_name -> google.protobuf.Timestamp
+	19, // 10: perspectiv.v1.CreateAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
+	19, // 11: perspectiv.v1.ListAccessCodesResponse.codes:type_name -> perspectiv.v1.AccessCode
+	19, // 12: perspectiv.v1.RevokeAccessCodeResponse.code:type_name -> perspectiv.v1.AccessCode
+	57, // 13: perspectiv.v1.WaitlistEntry.created_at:type_name -> google.protobuf.Timestamp
+	57, // 14: perspectiv.v1.WaitlistEntry.invited_at:type_name -> google.protobuf.Timestamp
+	26, // 15: perspectiv.v1.ListWaitlistResponse.entries:type_name -> perspectiv.v1.WaitlistEntry
+	26, // 16: perspectiv.v1.InviteFromWaitlistResponse.entry:type_name -> perspectiv.v1.WaitlistEntry
+	57, // 17: perspectiv.v1.SessionInfo.signed_in_at:type_name -> google.protobuf.Timestamp
+	57, // 18: perspectiv.v1.SessionInfo.last_used_at:type_name -> google.protobuf.Timestamp
+	39, // 19: perspectiv.v1.ListSessionsResponse.sessions:type_name -> perspectiv.v1.SessionInfo
+	57, // 20: perspectiv.v1.CompleteTwoFactorLoginResponse.access_token_expires_at:type_name -> google.protobuf.Timestamp
+	0,  // 21: perspectiv.v1.CompleteTwoFactorLoginResponse.user:type_name -> perspectiv.v1.SessionUser
+	57, // 22: perspectiv.v1.GetTwoFactorStatusResponse.enabled_at:type_name -> google.protobuf.Timestamp
+	1,  // 23: perspectiv.v1.AuthService.SignUp:input_type -> perspectiv.v1.SignUpRequest
+	3,  // 24: perspectiv.v1.AuthService.Login:input_type -> perspectiv.v1.LoginRequest
+	5,  // 25: perspectiv.v1.AuthService.Logout:input_type -> perspectiv.v1.LogoutRequest
+	7,  // 26: perspectiv.v1.AuthService.Refresh:input_type -> perspectiv.v1.RefreshRequest
+	9,  // 27: perspectiv.v1.AuthService.VerifyEmail:input_type -> perspectiv.v1.VerifyEmailRequest
+	11, // 28: perspectiv.v1.AuthService.RequestPasswordReset:input_type -> perspectiv.v1.RequestPasswordResetRequest
+	13, // 29: perspectiv.v1.AuthService.ResetPassword:input_type -> perspectiv.v1.ResetPasswordRequest
+	31, // 30: perspectiv.v1.AuthService.ChangePassword:input_type -> perspectiv.v1.ChangePasswordRequest
+	33, // 31: perspectiv.v1.AuthService.RequestEmailChange:input_type -> perspectiv.v1.RequestEmailChangeRequest
+	35, // 32: perspectiv.v1.AuthService.ConfirmEmailChange:input_type -> perspectiv.v1.ConfirmEmailChangeRequest
+	37, // 33: perspectiv.v1.AuthService.SignOutEverywhere:input_type -> perspectiv.v1.SignOutEverywhereRequest
+	40, // 34: perspectiv.v1.AuthService.ListSessions:input_type -> perspectiv.v1.ListSessionsRequest
+	42, // 35: perspectiv.v1.AuthService.RevokeSession:input_type -> perspectiv.v1.RevokeSessionRequest
+	15, // 36: perspectiv.v1.AuthService.GetSignUpInfo:input_type -> perspectiv.v1.GetSignUpInfoRequest
+	17, // 37: perspectiv.v1.AuthService.JoinWaitlist:input_type -> perspectiv.v1.JoinWaitlistRequest
+	20, // 38: perspectiv.v1.AuthService.CreateAccessCode:input_type -> perspectiv.v1.CreateAccessCodeRequest
+	22, // 39: perspectiv.v1.AuthService.ListAccessCodes:input_type -> perspectiv.v1.ListAccessCodesRequest
+	24, // 40: perspectiv.v1.AuthService.RevokeAccessCode:input_type -> perspectiv.v1.RevokeAccessCodeRequest
+	27, // 41: perspectiv.v1.AuthService.ListWaitlist:input_type -> perspectiv.v1.ListWaitlistRequest
+	29, // 42: perspectiv.v1.AuthService.InviteFromWaitlist:input_type -> perspectiv.v1.InviteFromWaitlistRequest
+	44, // 43: perspectiv.v1.AuthService.CompleteTwoFactorLogin:input_type -> perspectiv.v1.CompleteTwoFactorLoginRequest
+	46, // 44: perspectiv.v1.AuthService.GetTwoFactorStatus:input_type -> perspectiv.v1.GetTwoFactorStatusRequest
+	48, // 45: perspectiv.v1.AuthService.BeginTwoFactorSetup:input_type -> perspectiv.v1.BeginTwoFactorSetupRequest
+	50, // 46: perspectiv.v1.AuthService.ConfirmTwoFactorSetup:input_type -> perspectiv.v1.ConfirmTwoFactorSetupRequest
+	52, // 47: perspectiv.v1.AuthService.DisableTwoFactor:input_type -> perspectiv.v1.DisableTwoFactorRequest
+	54, // 48: perspectiv.v1.AuthService.RegenerateRecoveryCodes:input_type -> perspectiv.v1.RegenerateRecoveryCodesRequest
+	2,  // 49: perspectiv.v1.AuthService.SignUp:output_type -> perspectiv.v1.SignUpResponse
+	4,  // 50: perspectiv.v1.AuthService.Login:output_type -> perspectiv.v1.LoginResponse
+	6,  // 51: perspectiv.v1.AuthService.Logout:output_type -> perspectiv.v1.LogoutResponse
+	8,  // 52: perspectiv.v1.AuthService.Refresh:output_type -> perspectiv.v1.RefreshResponse
+	10, // 53: perspectiv.v1.AuthService.VerifyEmail:output_type -> perspectiv.v1.VerifyEmailResponse
+	12, // 54: perspectiv.v1.AuthService.RequestPasswordReset:output_type -> perspectiv.v1.RequestPasswordResetResponse
+	14, // 55: perspectiv.v1.AuthService.ResetPassword:output_type -> perspectiv.v1.ResetPasswordResponse
+	32, // 56: perspectiv.v1.AuthService.ChangePassword:output_type -> perspectiv.v1.ChangePasswordResponse
+	34, // 57: perspectiv.v1.AuthService.RequestEmailChange:output_type -> perspectiv.v1.RequestEmailChangeResponse
+	36, // 58: perspectiv.v1.AuthService.ConfirmEmailChange:output_type -> perspectiv.v1.ConfirmEmailChangeResponse
+	38, // 59: perspectiv.v1.AuthService.SignOutEverywhere:output_type -> perspectiv.v1.SignOutEverywhereResponse
+	41, // 60: perspectiv.v1.AuthService.ListSessions:output_type -> perspectiv.v1.ListSessionsResponse
+	43, // 61: perspectiv.v1.AuthService.RevokeSession:output_type -> perspectiv.v1.RevokeSessionResponse
+	16, // 62: perspectiv.v1.AuthService.GetSignUpInfo:output_type -> perspectiv.v1.GetSignUpInfoResponse
+	18, // 63: perspectiv.v1.AuthService.JoinWaitlist:output_type -> perspectiv.v1.JoinWaitlistResponse
+	21, // 64: perspectiv.v1.AuthService.CreateAccessCode:output_type -> perspectiv.v1.CreateAccessCodeResponse
+	23, // 65: perspectiv.v1.AuthService.ListAccessCodes:output_type -> perspectiv.v1.ListAccessCodesResponse
+	25, // 66: perspectiv.v1.AuthService.RevokeAccessCode:output_type -> perspectiv.v1.RevokeAccessCodeResponse
+	28, // 67: perspectiv.v1.AuthService.ListWaitlist:output_type -> perspectiv.v1.ListWaitlistResponse
+	30, // 68: perspectiv.v1.AuthService.InviteFromWaitlist:output_type -> perspectiv.v1.InviteFromWaitlistResponse
+	45, // 69: perspectiv.v1.AuthService.CompleteTwoFactorLogin:output_type -> perspectiv.v1.CompleteTwoFactorLoginResponse
+	47, // 70: perspectiv.v1.AuthService.GetTwoFactorStatus:output_type -> perspectiv.v1.GetTwoFactorStatusResponse
+	49, // 71: perspectiv.v1.AuthService.BeginTwoFactorSetup:output_type -> perspectiv.v1.BeginTwoFactorSetupResponse
+	51, // 72: perspectiv.v1.AuthService.ConfirmTwoFactorSetup:output_type -> perspectiv.v1.ConfirmTwoFactorSetupResponse
+	53, // 73: perspectiv.v1.AuthService.DisableTwoFactor:output_type -> perspectiv.v1.DisableTwoFactorResponse
+	55, // 74: perspectiv.v1.AuthService.RegenerateRecoveryCodes:output_type -> perspectiv.v1.RegenerateRecoveryCodesResponse
+	49, // [49:75] is the sub-list for method output_type
+	23, // [23:49] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_perspectiv_v1_auth_proto_init() }
@@ -2518,7 +3223,7 @@ func file_perspectiv_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_perspectiv_v1_auth_proto_rawDesc), len(file_perspectiv_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   44,
+			NumMessages:   56,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

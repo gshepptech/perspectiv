@@ -70,6 +70,24 @@ load_env() {
 	set +a
 }
 
+# ensure_encryption_key gives the dev server an age key for data encrypted
+# at rest (two-factor secrets). No key is tracked in the repository, so when
+# .env.dev.local has none, dev-up generates one with the server's own
+# `perspectiv keygen` (pkg/crypto) into that gitignored file, and every later
+# run reuses it.
+ensure_encryption_key() {
+	[[ -n "${ENCRYPTION_KEYS:-}" ]] && return 0
+	local key tmp
+	key="$(cd "$ROOT" && go run ./cmd/perspectiv keygen)" && [[ "$key" == AGE-SECRET-KEY-* ]] ||
+		die "could not generate ENCRYPTION_KEYS with perspectiv keygen; set it in .env.dev.local"
+	tmp="$(mktemp)"
+	grep -v '^ENCRYPTION_KEYS=' "$ROOT/.env.dev.local" >"$tmp" || true
+	printf 'ENCRYPTION_KEYS=%s\n' "$key" >>"$tmp"
+	mv "$tmp" "$ROOT/.env.dev.local"
+	export ENCRYPTION_KEYS="$key"
+	echo "generated ENCRYPTION_KEYS into .env.dev.local" >&2
+}
+
 hint() {
 	case "$1" in
 	docker) echo "install Docker Desktop, OrbStack or Docker Engine 27+" ;;
@@ -211,6 +229,7 @@ cmd_up() {
 	if alive server || alive web; then
 		die "the dev loop is already running; make dev-down first"
 	fi
+	ensure_encryption_key
 	mkdir -p "$DEV_DIR" "$ROOT/$AVATAR_DIR"
 	rm -f "$PID_FILE"
 	rotate_logs

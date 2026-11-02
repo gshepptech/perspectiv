@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"perspectiv/internal/auth"
+	"perspectiv/pkg/crypto"
 )
 
 // Roles the ROLE setting selects.
@@ -33,10 +34,13 @@ type config struct {
 	DatabaseURL string
 	// DBMaxConns caps this process's pool. pgx's own default is one per
 	// CPU (at least four), which a load test filled at 20 readers.
-	DBMaxConns      int
-	HTTPAddr        string
-	PublicBaseURL   string
-	JWTSecret       string
+	DBMaxConns    int
+	HTTPAddr      string
+	PublicBaseURL string
+	JWTSecret     string
+	// EncryptionKeys are the age secret keys that encrypt data at rest (the
+	// two-factor secrets), one per line, the current one first.
+	EncryptionKeys  string
 	CookieSecure    bool
 	MailProvider    string
 	SMTPAddr        string
@@ -70,19 +74,20 @@ func (c config) runsWorkers() bool { return c.Role == roleWorker || c.Role == ro
 func loadConfig(getenv func(string) string) (config, error) {
 	var errs []error
 	c := config{
-		Role:          orDefault(getenv("ROLE"), roleAll),
-		DatabaseURL:   getenv("DATABASE_URL"),
-		HTTPAddr:      orDefault(getenv("HTTP_ADDR"), ":8080"),
-		PublicBaseURL: getenv("PUBLIC_BASE_URL"),
-		JWTSecret:     getenv("JWT_SECRET"),
-		MailProvider:  getenv("MAIL_PROVIDER"),
-		SMTPAddr:      orDefault(getenv("SMTP_ADDR"), "localhost:1025"),
-		ResendAPIKey:  getenv("RESEND_API_KEY"),
-		MailFrom:      getenv("MAIL_FROM"),
-		AvatarDir:     getenv("AVATAR_DIR"),
-		LogLevel:      getenv("LOG_LEVEL"),
-		OTLPEndpoint:  getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
-		SignUpMode:    orDefault(getenv("SIGNUP_MODE"), string(auth.SignUpInvite)),
+		Role:           orDefault(getenv("ROLE"), roleAll),
+		DatabaseURL:    getenv("DATABASE_URL"),
+		HTTPAddr:       orDefault(getenv("HTTP_ADDR"), ":8080"),
+		PublicBaseURL:  getenv("PUBLIC_BASE_URL"),
+		JWTSecret:      getenv("JWT_SECRET"),
+		EncryptionKeys: getenv("ENCRYPTION_KEYS"),
+		MailProvider:   getenv("MAIL_PROVIDER"),
+		SMTPAddr:       orDefault(getenv("SMTP_ADDR"), "localhost:1025"),
+		ResendAPIKey:   getenv("RESEND_API_KEY"),
+		MailFrom:       getenv("MAIL_FROM"),
+		AvatarDir:      getenv("AVATAR_DIR"),
+		LogLevel:       getenv("LOG_LEVEL"),
+		OTLPEndpoint:   getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+		SignUpMode:     orDefault(getenv("SIGNUP_MODE"), string(auth.SignUpInvite)),
 	}
 	c.CookieSecure = parseBool(getenv, "COOKIE_SECURE", true, &errs)
 	c.MigrateOnStart = parseBool(getenv, "MIGRATE_ON_START", false, &errs)
@@ -119,11 +124,16 @@ func loadConfig(getenv func(string) string) (config, error) {
 	return c, errors.Join(errs...)
 }
 
-// validateAPI checks what only the API needs.
+// validateAPI checks what only the API needs. The encryption keys are
+// parsed here so a bad key stops the process before it serves; the message
+// never quotes the key.
 func (c config) validateAPI() []error {
 	var errs []error
 	if c.AvatarDir == "" {
 		errs = append(errs, errors.New("AVATAR_DIR is required where the API runs"))
+	}
+	if _, err := crypto.NewEncryptor(c.EncryptionKeys); err != nil {
+		errs = append(errs, errors.New("ENCRYPTION_KEYS must hold at least one age secret key (AGE-SECRET-KEY-1...) where the API runs"))
 	}
 	return errs
 }

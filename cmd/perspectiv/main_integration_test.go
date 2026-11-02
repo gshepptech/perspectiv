@@ -122,7 +122,7 @@ func startServer(t *testing.T, pool *pgxpool.Pool, role string) *server {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &server{base: "http://" + addr, stderr: &syncBuffer{}}
 	done := make(chan int, 1)
-	go func() { done <- run(ctx, nil, env(e), s.stderr) }()
+	go func() { done <- run(ctx, nil, env(e), io.Discard, s.stderr) }()
 	t.Cleanup(func() {
 		cancel()
 		select {
@@ -320,7 +320,7 @@ func TestServeMigrateOnStart(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var stderr syncBuffer
 	done := make(chan int, 1)
-	go func() { done <- run(ctx, nil, env(e), &stderr) }()
+	go func() { done <- run(ctx, nil, env(e), io.Discard, &stderr) }()
 	defer func() {
 		cancel()
 		if code := <-done; code != exitOK {
@@ -342,7 +342,7 @@ func TestMigrateSubcommand(t *testing.T) {
 	e := map[string]string{"DATABASE_URL": pool.Config().ConnString(), "LOG_LEVEL": "info"}
 	for i := range 2 {
 		var stderr bytes.Buffer
-		if code := run(context.Background(), []string{"migrate"}, env(e), &stderr); code != exitOK {
+		if code := run(context.Background(), []string{"migrate"}, env(e), io.Discard, &stderr); code != exitOK {
 			t.Fatalf("migrate run %d exit = %d; stderr:\n%s", i+1, code, stderr.String())
 		}
 	}
@@ -369,7 +369,7 @@ func TestAdminGrant(t *testing.T) {
 	e := map[string]string{"DATABASE_URL": pool.Config().ConnString()}
 
 	var stderr bytes.Buffer
-	if code := run(ctx, []string{"admin", "grant", "Founder"}, env(e), &stderr); code != exitOK {
+	if code := run(ctx, []string{"admin", "grant", "Founder"}, env(e), io.Discard, &stderr); code != exitOK {
 		t.Fatalf("grant exit = %d; stderr:\n%s", code, stderr.String())
 	}
 	var role string
@@ -385,7 +385,7 @@ func TestAdminGrant(t *testing.T) {
 	}
 
 	stderr.Reset()
-	code := run(ctx, []string{"admin", "grant", "nobody_here"}, env(e), &stderr)
+	code := run(ctx, []string{"admin", "grant", "nobody_here"}, env(e), io.Discard, &stderr)
 	if code == exitOK {
 		t.Fatal("grant to an unknown username exited 0")
 	}
@@ -398,5 +398,75 @@ func TestAdminGrant(t *testing.T) {
 	}
 	if total != 1 {
 		t.Errorf("audit rows after failed grant = %d, want 1", total)
+	}
+}
+
+// perspectiv admin reset-two-factor <username> <reason> is the audited way
+// back in for a member who lost their authenticator and every recovery code:
+// it removes the account's two-factor sign-in, signs it out everywhere,
+// writes a TWO_FACTOR_RESET audit row with the reason and no actor, and
+// queues the "two-factor sign-in is off" email. An account without
+// two-factor sign-in, or an unknown one, exits non-zero and changes nothing.
+func TestAdminResetTwoFactor(t *testing.T) {
+	t.Parallel()
+	pool := testdb.New(t)
+	ctx := context.Background()
+	var id string
+	if err := pool.QueryRow(ctx, `INSERT INTO users (email, email_verified_at, password_hash, username, age_confirmed_at)
+		VALUES ('lost@example.test', now(), 'x', 'Lost_Phone', now()) RETURNING id::text`).Scan(&id); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	for _, q := range []string{
+		`INSERT INTO totp_secrets (user_id, key_id, algorithm, ciphertext, confirmed_at) VALUES ($1, 'k', 'a', '\x00', now())`,
+		`INSERT INTO recovery_codes (user_id, code_hash) VALUES ($1, '\x01')`,
+		`INSERT INTO sessions (user_id, expires_at, device) VALUES ($1, now() + interval '1 day', '')`,
+	} {
+		if _, err := pool.Exec(ctx, q, id); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	e := map[string]string{"DATABASE_URL": pool.Config().ConnString(), "PUBLIC_BASE_URL": "https://perspectiv.example"}
+	count := func(query string) int {
+		t.Helper()
+		var n int
+		if err := pool.QueryRow(ctx, query, id).Scan(&n); err != nil {
+			t.Fatalf("%s: %v", query, err)
+		}
+		return n
+	}
+
+	var stderr bytes.Buffer
+	if code := run(ctx, []string{"admin", "reset-two-factor", "lost_phone", "owner confirmed by email"}, env(e), io.Discard, &stderr); code != exitOK {
+		t.Fatalf("reset exit = %d; stderr:\n%s", code, stderr.String())
+	}
+	checks := []struct {
+		name, query string
+		want        int
+	}{
+		{"secret removed", `SELECT count(*) FROM totp_secrets WHERE user_id = $1`, 0},
+		{"recovery codes removed", `SELECT count(*) FROM recovery_codes WHERE user_id = $1`, 0},
+		{"signed out everywhere", `SELECT count(*) FROM sessions WHERE user_id = $1 AND revoked_at IS NULL`, 0},
+		{"audited with the reason and no actor", `SELECT count(*) FROM moderation_audit WHERE action = 'AUDIT_ACTION_TWO_FACTOR_RESET'
+			AND target_id = $1 AND actor_id IS NULL AND reason = 'owner confirmed by email'`, 1},
+		{"member emailed", `SELECT count(*) FROM river_job WHERE kind = 'email' AND args->>'To' = (SELECT email FROM users WHERE id = $1)
+			AND args->>'Template' = 'two_factor_disabled'`, 1},
+	}
+	for _, c := range checks {
+		if got := count(c.query); got != c.want {
+			t.Errorf("%s: %d, want %d", c.name, got, c.want)
+		}
+	}
+
+	for _, args := range [][]string{
+		{"admin", "reset-two-factor", "lost_phone", "again"},
+		{"admin", "reset-two-factor", "nobody_here", "owner confirmed"},
+	} {
+		stderr.Reset()
+		if code := run(ctx, args, env(e), io.Discard, &stderr); code == exitOK {
+			t.Errorf("%v exited 0", args)
+		}
+	}
+	if got := count(`SELECT count(*) FROM moderation_audit WHERE target_id = $1 OR target_id IS NULL`); got != 1 {
+		t.Errorf("audit rows after refused resets = %d, want 1", got)
 	}
 }

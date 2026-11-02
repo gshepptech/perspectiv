@@ -26,6 +26,7 @@ import (
 	"perspectiv/internal/auth/dbq"
 	"perspectiv/internal/jobs"
 	"perspectiv/internal/user"
+	"perspectiv/pkg/crypto"
 )
 
 // Login lockout: LockoutFailures wrong passwords for one account inside the
@@ -91,17 +92,26 @@ type Service struct {
 	lim       *Limiter
 	passwords Passwords
 	tokens    tokenIssuer
-	cfg       Config
-	log       zerolog.Logger
+	// enc seals and opens two-factor secrets; nothing else in auth is
+	// encrypted at rest.
+	enc *crypto.Encryptor
+	// now is the clock two-factor codes are checked against.
+	now func() time.Time
+	cfg Config
+	log zerolog.Logger
 	// dummyHash is verified against when the email has no account, so an
 	// unknown email takes as long to refuse as a wrong password.
 	dummyHash string
 }
 
-// NewService builds the service. All arguments are required.
-func NewService(pool *pgxpool.Pool, enq *jobs.Enqueuer, lim *Limiter, cfg Config, log zerolog.Logger) (*Service, error) {
+// NewService builds the service. All arguments are required; enc holds the
+// keys two-factor secrets are encrypted under.
+func NewService(pool *pgxpool.Pool, enq *jobs.Enqueuer, lim *Limiter, enc *crypto.Encryptor, cfg Config, log zerolog.Logger) (*Service, error) {
 	if err := cfg.validate(); err != nil {
 		return nil, err
+	}
+	if enc == nil {
+		return nil, errors.New("auth: an encryptor is required for two-factor secrets")
 	}
 	pw := NewPasswords(cfg.BcryptCost)
 	dummy, err := pw.dummyHash()
@@ -115,6 +125,8 @@ func NewService(pool *pgxpool.Pool, enq *jobs.Enqueuer, lim *Limiter, cfg Config
 		lim:       lim,
 		passwords: pw,
 		tokens:    tokenIssuer{secret: []byte(cfg.JWTSecret), now: time.Now},
+		enc:       enc,
+		now:       time.Now,
 		cfg:       cfg,
 		log:       log.With().Str("component", "auth").Logger(),
 		dummyHash: dummy,
@@ -256,6 +268,8 @@ type SessionUser struct {
 	Username      string
 	Role          perspectivv1.Role
 	EmailVerified bool
+	// TwoFactorEnabled is whether the account has two-factor sign-in on.
+	TwoFactorEnabled bool
 }
 
 // Tokens is a signed-in session's credentials: the access token for the
@@ -273,24 +287,34 @@ var (
 	errLockedOut      = apiutil.ResourceExhausted("too many failed sign-in attempts; try again in 15 minutes")
 )
 
+// LoginResult is a right password's outcome: a session, or for an account
+// with two-factor sign-in on, a challenge for CompleteTwoFactorLogin.
+type LoginResult struct {
+	Tokens             *Tokens
+	Challenge          string
+	ChallengeExpiresAt time.Time
+}
+
 // Login checks the password under the account lockout and starts a session,
-// labelled with the browser and system userAgent names.
+// labelled with the browser and system userAgent names. An account with
+// two-factor sign-in on gets a challenge instead and no session, so a right
+// password alone never signs in to it.
 // Every attempt on an existing account is recorded in login_attempts.
-func (s *Service) Login(ctx context.Context, email, password, userAgent string) (Tokens, error) {
+func (s *Service) Login(ctx context.Context, email, password, userAgent string) (LoginResult, error) {
 	u, err := s.q.GetUserByEmail(ctx, strings.TrimSpace(email))
 	if errors.Is(err, pgx.ErrNoRows) {
 		_, _ = s.passwords.VerifyPassword(s.dummyHash, password)
 		s.log.Warn().Str("event", "login_failed").Str("reason", "unknown_email").Msg("login refused")
-		return Tokens{}, errBadCredentials
+		return LoginResult{}, errBadCredentials
 	}
 	if err != nil {
-		return Tokens{}, internal("get user", err)
+		return LoginResult{}, internal("get user", err)
 	}
 	role, err := roleFromDB(u.Role)
 	if err != nil {
-		return Tokens{}, apiutil.Internal(err)
+		return LoginResult{}, apiutil.Internal(err)
 	}
-	var out Tokens
+	var out LoginResult
 	var refused error
 	err = s.inTx(ctx, func(q *dbq.Queries, _ pgx.Tx) error {
 		if err := q.LockLoginAttempts(ctx, u.ID); err != nil {
@@ -317,21 +341,36 @@ func (s *Service) Login(ctx context.Context, email, password, userAgent string) 
 			refused = errBadCredentials
 			return nil
 		}
-		out, err = s.startSession(ctx, q, deviceLabel(userAgent), SessionUser{
+		// Read under the lock rather than from the row above, so a member
+		// who just turned two-factor on is asked for it.
+		_, err = q.GetTwoFactorStatus(ctx, u.ID)
+		switch {
+		case err == nil:
+			out.Challenge, out.ChallengeExpiresAt, err = startChallenge(ctx, q, u.ID, s.now())
+			return err
+		case !errors.Is(err, pgx.ErrNoRows):
+			return internal("read two-factor status", err)
+		}
+		tokens, err := s.startSession(ctx, q, deviceLabel(userAgent), SessionUser{
 			ID: u.ID, Username: u.Username, Role: role, EmailVerified: u.EmailVerifiedAt != nil,
 		})
+		out.Tokens = &tokens
 		return err
 	})
 	if err != nil {
-		return Tokens{}, err
+		return LoginResult{}, err
 	}
 	switch {
 	case errors.Is(refused, errLockedOut):
 		s.log.Warn().Str("event", "login_locked").Str("sub", u.ID.String()).Msg("login refused by lockout")
-		return Tokens{}, refused
+		return LoginResult{}, refused
 	case errors.Is(refused, errBadCredentials):
 		s.log.Warn().Str("event", "login_failed").Str("reason", "wrong_password").Str("sub", u.ID.String()).Msg("login refused")
-		return Tokens{}, refused
+		return LoginResult{}, refused
+	}
+	if out.Challenge != "" {
+		s.log.Info().Str("event", "login_two_factor_required").Str("sub", u.ID.String()).Msg("password accepted; second factor needed")
+		return out, nil
 	}
 	s.log.Info().Str("event", "login_succeeded").Str("sub", u.ID.String()).Msg("signed in")
 	return out, nil

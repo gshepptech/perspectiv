@@ -134,6 +134,7 @@ step "secret and chart"
 kubectl create namespace "$NS"
 kubectl -n "$NS" create secret generic perspectiv-secrets \
 	--from-literal=JWT_SECRET="$(openssl rand -hex 32)" \
+	--from-literal=ENCRYPTION_KEYS="$(docker run --rm "$IMAGE_REPO:$IMAGE_TAG" keygen)" \
 	--from-literal=POSTGRES_PASSWORD="$(openssl rand -hex 24)"
 CHART_ARGS=(
 	--namespace "$NS"

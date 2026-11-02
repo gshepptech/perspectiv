@@ -54,6 +54,9 @@ const (
 	// keystrokes, so its budget is far above description search's.
 	LimitPlaceSearch = "place_search"
 	LimitExport      = "export"
+	// LimitTwoFactor bounds the calls that check a second-factor code; the
+	// per-account two-factor lockout is separate.
+	LimitTwoFactor = "two_factor"
 )
 
 // Routes maps every Connect procedure to its policy. A procedure missing here
@@ -82,6 +85,16 @@ var Routes = map[string]Policy{
 	"/perspectiv.v1.AuthService/VerifyEmail":          {Access: Public},
 	"/perspectiv.v1.AuthService/RequestPasswordReset": {Access: Public},
 	"/perspectiv.v1.AuthService/ResetPassword":        {Access: Public},
+	// The second step of a sign-in: a challenge from a right password and a
+	// code. Its own limit bounds code guessing per address; the per-account
+	// two-factor lockout is the real guard.
+	"/perspectiv.v1.AuthService/CompleteTwoFactorLogin": {Access: Public, RateLimit: LimitTwoFactor},
+	"/perspectiv.v1.AuthService/GetTwoFactorStatus":     {Access: User},
+	// These take the current password, so they share login's guessing limit.
+	"/perspectiv.v1.AuthService/BeginTwoFactorSetup":     {Access: User, RateLimit: LimitLogin},
+	"/perspectiv.v1.AuthService/DisableTwoFactor":        {Access: User, RateLimit: LimitLogin},
+	"/perspectiv.v1.AuthService/RegenerateRecoveryCodes": {Access: User, RateLimit: LimitLogin},
+	"/perspectiv.v1.AuthService/ConfirmTwoFactorSetup":   {Access: User, RateLimit: LimitTwoFactor},
 
 	"/perspectiv.v1.UserService/GetProfile":          {Access: Public},
 	"/perspectiv.v1.UserService/UpdateProfile":       {Access: User, Verified: true},

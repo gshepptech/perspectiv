@@ -19,6 +19,8 @@ import { clearSession, useSession } from "@/lib/session";
 import { useWaitingRequests } from "@/routes/claims/waiting";
 import { useUnreadCount } from "@/routes/inbox/unread";
 
+import { AdminSecurityNotice } from "./AdminSecurityNotice";
+
 // On a phone the word sits under the icon, so every item keeps a visible
 // label at 375px; from sm it sits beside the icon.
 const navItem = "inline-flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 px-2 text-xs font-medium sm:flex-row sm:gap-1.5 sm:text-sm";
@@ -204,6 +206,7 @@ export function RootLayout() {
           </nav>
         </div>
       </header>
+      <AdminSecurityNotice />
       <main
         id="main"
         tabIndex={-1}
@@ -216,6 +219,9 @@ export function RootLayout() {
         <div className="mx-auto flex w-full max-w-shell flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-2 text-sm text-ink-muted">
           <p>Perspectiv. Stories from the people who were there.</p>
           <nav aria-label="About this site" className="flex flex-wrap gap-x-4">
+            <Link to="/how-it-works" className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">
+              How it works
+            </Link>
             <Link to="/terms" className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">
               Terms
             </Link>

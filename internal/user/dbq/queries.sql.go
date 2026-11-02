@@ -175,6 +175,19 @@ func (q *Queries) DeleteSavesOf(ctx context.Context, userID uuid.UUID) error {
 	return err
 }
 
+const deleteTwoFactor = `-- name: DeleteTwoFactor :exec
+WITH secrets AS (DELETE FROM totp_secrets WHERE totp_secrets.user_id = $1::uuid),
+     codes AS (DELETE FROM recovery_codes WHERE recovery_codes.user_id = $1::uuid)
+DELETE FROM two_factor_challenges WHERE two_factor_challenges.user_id = $1::uuid
+`
+
+// Removes the account's two-factor secret, its recovery codes and any open
+// sign-in challenge: a deleted account keeps no credential.
+func (q *Queries) DeleteTwoFactor(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteTwoFactor, userID)
+	return err
+}
+
 const exportAccount = `-- name: ExportAccount :one
 SELECT jsonb_build_object(
   'exported_at', now(),
@@ -183,7 +196,9 @@ SELECT jsonb_build_object(
       'id', u.id, 'email', u.email, 'username', u.username, 'bio', u.bio,
       'created_at', u.created_at, 'email_verified_at', u.email_verified_at,
       'age_confirmed_at', u.age_confirmed_at, 'username_changed_at', u.username_changed_at,
-      'joined_with', u.joined_with, 'has_avatar', u.avatar_path IS NOT NULL)
+      'joined_with', u.joined_with, 'has_avatar', u.avatar_path IS NOT NULL,
+      -- Whether two-factor sign-in is on; never its secret or recovery codes.
+      'two_factor_enabled', EXISTS (SELECT 1 FROM totp_secrets t WHERE t.user_id = u.id AND t.confirmed_at IS NOT NULL))
     FROM users u WHERE u.id = $1::uuid),
   'perspectives', coalesce((
     SELECT jsonb_agg(jsonb_build_object(

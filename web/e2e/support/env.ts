@@ -127,6 +127,9 @@ export function stack(): Stack {
   const mailpitURL = (env.MAILPIT_URL ?? "http://localhost:8025").replace(/\/+$/, "");
   const smtpAddr = env.SMTP_ADDR ?? "localhost:1025";
   const jwtSecret = env.JWT_SECRET ?? "";
+  // make dev-up generates the dev loop's key into .env.dev.local.
+  const encryptionKeys = env.ENCRYPTION_KEYS ?? "";
+  if (!encryptionKeys) throw new Error("ENCRYPTION_KEYS is not set; run make dev-up once so it is generated into .env.dev.local");
   const binDir = join(workDir, "bin");
   return {
     baseURL,
@@ -148,6 +151,7 @@ export function stack(): Stack {
       // Emailed links must open the suite's own web server.
       PUBLIC_BASE_URL: baseURL,
       JWT_SECRET: jwtSecret,
+      ENCRYPTION_KEYS: encryptionKeys,
       COOKIE_SECURE: "false",
       MAIL_PROVIDER: "smtp",
       SMTP_ADDR: smtpAddr,
