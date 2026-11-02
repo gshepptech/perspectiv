@@ -368,6 +368,74 @@ answer, and nothing deeper than one step of indent.
 - **A post hidden by a moderator** is gone for readers, and so are the
   replies under it.
 
+## Lore as a book
+
+The founder's picture of the app is a novel, and of an entry "a page in a
+book". A lore read as a book is that picture: the lore's stories bound in
+the lore page's order, one chapter each, read a page at a time. It is a
+reading surface, so the principles, the measure and the motion rules above
+hold on every page of it; the actions, the claim and react controls and the
+thread stay on the lore page.
+
+- **Entry.** Under the lore page's counts, a "Read as a book" link
+  (lucide `BookOpenText`, 44px tall) opens `/lores/:id/book`, a public
+  route.
+- **Pages, in order:** the title page, the contents, every chapter a part
+  at a time, then the closing page. The address names the page:
+  `/lores/:id/book` is the title page, `?at=contents` the contents,
+  `?chapter=2&part=3` a chapter's part (a missing part is part 1; a
+  chapter or part past the end opens the last), and `?at=end` the closing
+  page. Each turn pushes a history entry, so Back returns to the previous
+  page and a shared address opens where it was copied.
+- **Title page.** Centred in the measure: the lore's name in the serif face
+  (`text-3xl` from `sm`), or "Unnamed lore" while its members have not
+  named it; the day and place on one `ink-muted` line as on the lore page;
+  then "Written by" and the writers of its chapters as profile links. A
+  returning reader gets a primary "Continue where you left off" link with
+  the place under it in `text-sm` ("Chapter 2, part 3 of 4").
+- **Contents.** "Contents", then an ordered list of the chapters, each one
+  row link at least 44px tall: "Chapter 2" in `text-sm` `ink-muted`, the
+  writer's name in the serif face, and its part count. The lore page's "Who
+  was who" follows the list.
+- **A chapter** is the story page's Reader with the measure, the part
+  headings and the 150ms cross-fade unchanged. Its title is "Chapter 2:
+  otter" and its byline the writer and genre. A chapter always pages by part:
+  the lore page already shows every story whole, so the book offers no
+  "Read all parts on one page" toggle. The label between the part controls
+  reads "Chapter 2, part 3 of 4".
+- **A chapter's end.** Under its last part, a "Chapters" navigation holds
+  "Previous chapter" (the contents, for chapter 1) and "Next chapter" ("The
+  end", for the last), each naming the chapter's writer, each a 44px
+  secondary-styled link to that chapter's first part.
+- **Closing page.** "The end", one line naming the lore, and two links:
+  "Back to the lore" and "Read its thread", which opens the lore page at
+  `#thread` and moves focus to the thread's heading.
+- **Turning pages.** The title, contents and closing pages carry the same
+  previous and next row a chapter does, as links ("Previous page", "Next
+  page"), with the position between them. `ArrowLeft` and `ArrowRight` turn
+  pages everywhere in the book while focus is not in a field, across
+  chapter boundaries too: forward from a chapter's last part opens the next
+  chapter's first, back from a first part opens the previous chapter's
+  last. The book owns the keys on every page (the Reader's own arrow
+  keys are off there), and a key pressed while the previous turn is still
+  landing waits for it, so every press turns exactly one page.
+- **Focus and announcement.** After a turn, focus moves to the new page's
+  heading: a part's "Part N" heading within a chapter, otherwise the page's
+  level-one heading. One visually hidden polite `status` line, outside the
+  page that changes, names the new place: "Title page", "Contents",
+  "Chapter 2, part 3 of 4" or "The end".
+- **Remembered place.** The reader's chapter and part are kept per lore on
+  the device in `localStorage`, read and written inside try/catch, by the
+  story's id, so a chapter that moves still resolves. The place MUST NOT be
+  sent to the server. Reaching the closing page forgets it; a blocked store
+  only means no "Continue" offer.
+- **Stories that cannot be read.** A deleted or hidden story is left out
+  of the book exactly as the lore page leaves it out: it gets no chapter
+  and its writer is not listed. With none readable, the contents say "None
+  of this lore's stories can be read right now."
+- **Document title:** the lore's title as the lore page sets it, then ",
+  as a book".
+
 ## Place page: admin tools
 
 For admins only, the place page's sidebar ends with a dashed "Admin" box:

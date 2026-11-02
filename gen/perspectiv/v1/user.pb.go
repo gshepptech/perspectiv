@@ -97,8 +97,8 @@ type Profile struct {
 	// is published and neither deleted, hidden nor filed at or below a hidden
 	// place. story_count is how many readable stories the user has.
 	StoryCount int32 `protobuf:"varint,10,opt,name=story_count,json=storyCount,proto3" json:"story_count,omitempty"`
-	// Upvotes on the user's readable stories from accounts that are not
-	// deleted.
+	// Every upvote on the user's readable stories, counted as a story page
+	// counts them, so the total is the sum of those pages' counts.
 	UpvotesReceived int32 `protobuf:"varint,11,opt,name=upvotes_received,json=upvotesReceived,proto3" json:"upvotes_received,omitempty"`
 	// The distinct other people, accounts not deleted, linked to the user by
 	// an accepted claim between two readable stories, whichever of the two

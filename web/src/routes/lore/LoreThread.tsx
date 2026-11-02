@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useLocation } from "react-router";
 
 import type { ArcSpan } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
@@ -54,9 +55,16 @@ export function LoreThread({ loreId, canPost, span = "day" }: { loreId: string; 
     written.gone(id);
     heading.current?.focus();
   };
+  // "Read its thread" at the end of the lore's book links here as #thread:
+  // focusing the heading brings the thread into view and starts a screen
+  // reader there.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash === "#thread") heading.current?.focus();
+  }, [hash]);
 
   return (
-    <section ref={section} aria-labelledby={headingId} className="mt-10 border-t border-rule pt-8">
+    <section ref={section} id="thread" aria-labelledby={headingId} className="mt-10 border-t border-rule pt-8">
       <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl">
         Thread
       </h2>

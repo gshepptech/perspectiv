@@ -17,6 +17,21 @@ export type ReaderProps = {
   whole?: boolean;
   /** Offers the "Read all parts on one page" toggle; left out for a story short enough to show whole anyway. */
   onWholeChange?: (whole: boolean) => void;
+  /** The position label between the part controls; "Part 3 of 7" when left out. */
+  position?: string;
+  /**
+   * Whether the position label announces itself (`aria-live`). A caller that
+   * remounts the reader between pages, as the lore's book does between
+   * chapters, announces from a status line of its own instead, since a live
+   * region that has just mounted is not read.
+   */
+  announcePosition?: boolean;
+  /**
+   * Whether ArrowLeft and ArrowRight turn the parts. False when the caller
+   * turns every page with the arrow keys itself, as the lore's book does
+   * across chapters: two listeners would each act on the key.
+   */
+  arrowKeys?: boolean;
 };
 
 const FADE_MS = 150;
@@ -75,7 +90,7 @@ function paragraphs(body: string): string[][] {
  * Keys typed into a field, or into a widget that uses arrow keys itself
  * (tabs, menus, listboxes), belong to that widget and never page the reader.
  */
-function ownsArrowKeys(target: EventTarget | null): boolean {
+export function ownsArrowKeys(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
   if (target.closest("input, textarea, select, [contenteditable='true']")) return true;
@@ -115,7 +130,18 @@ function prefersReducedMotion(): boolean {
  * reader checks prefers-reduced-motion itself and does not animate at all
  * when it is set.
  */
-export function Reader({ title, byline, parts, part, onPartChange, whole = false, onWholeChange }: ReaderProps) {
+export function Reader({
+  title,
+  byline,
+  parts,
+  part,
+  onPartChange,
+  whole = false,
+  onWholeChange,
+  position,
+  announcePosition = true,
+  arrowKeys = true,
+}: ReaderProps) {
   const total = parts.length;
   const current = Math.min(Math.max(part, 1), Math.max(total, 1));
   const body = parts[current - 1] ?? "";
@@ -143,7 +169,7 @@ export function Reader({ title, byline, parts, part, onPartChange, whole = false
   }, [current, whole]);
 
   useEffect(() => {
-    if (whole) return;
+    if (whole || !arrowKeys) return;
     function onKeyDown(e: KeyboardEvent) {
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
@@ -155,12 +181,13 @@ export function Reader({ title, byline, parts, part, onPartChange, whole = false
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [current, total, onPartChange, whole]);
+  }, [current, total, onPartChange, whole, arrowKeys]);
 
   return (
     <article className="mx-auto w-full max-w-measure min-w-0" aria-labelledby="reader-title">
       <header className="border-b border-rule pb-4">
-        <h1 id="reader-title" className="text-2xl wrap-anywhere sm:text-3xl">
+        {/* tabIndex -1: a caller that turns to a new story (the lore's book) moves focus here. */}
+        <h1 id="reader-title" tabIndex={-1} className="text-2xl wrap-anywhere sm:text-3xl">
           {title}
         </h1>
         {byline && <div className="mt-2 text-sm text-ink-muted">{byline}</div>}
@@ -207,8 +234,8 @@ export function Reader({ title, byline, parts, part, onPartChange, whole = false
               <ChevronLeft aria-hidden size={16} />
               <span className="hidden sm:inline">Previous</span>
             </Button>
-            <span aria-live="polite" className="text-sm text-ink-muted">
-              Part {current} of {total}
+            <span aria-live={announcePosition ? "polite" : undefined} className="text-sm text-ink-muted">
+              {position ?? `Part ${current} of ${total}`}
             </span>
             <Button variant="secondary" disabled={current >= total} onClick={() => onPartChange(current + 1)} aria-label="Next part">
               <span className="hidden sm:inline">Next</span>

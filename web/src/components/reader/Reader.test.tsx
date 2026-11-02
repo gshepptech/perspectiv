@@ -92,6 +92,27 @@ describe("Reader pages one part at a time (OT-033)", () => {
     expect(status).toHaveAttribute("aria-live", "polite");
   });
 
+  const positions = [
+    { name: "announces a position its caller names", announce: true, live: "polite" },
+    { name: "leaves a position its caller announces itself silent", announce: false, live: null },
+  ];
+  for (const c of positions) {
+    it(c.name, () => {
+      render(<Reader title="Chapter 2: otter" parts={parts} part={2} onPartChange={() => {}} position="Chapter 2, part 2 of 3" announcePosition={c.announce} />);
+      expect(screen.getByText("Chapter 2, part 2 of 3").getAttribute("aria-live")).toBe(c.live);
+    });
+  }
+
+  it("leaves the arrow keys to a caller that turns pages itself", async () => {
+    const onPartChange = vi.fn();
+    render(<Reader title="Chapter 1: wren" parts={parts} part={2} onPartChange={onPartChange} arrowKeys={false} />);
+    await userEvent.keyboard("{ArrowRight}{ArrowLeft}");
+    expect(onPartChange).not.toHaveBeenCalled();
+    // The buttons still turn the part.
+    await userEvent.click(screen.getByRole("button", { name: "Next part" }));
+    expect(onPartChange).toHaveBeenCalledWith(3);
+  });
+
   it("pages with labelled previous and next buttons, disabled at the ends", async () => {
     const user = userEvent.setup();
     render(<Harness />);

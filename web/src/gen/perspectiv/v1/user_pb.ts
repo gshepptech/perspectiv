@@ -111,8 +111,8 @@ export type Profile = Message<"perspectiv.v1.Profile"> & {
   storyCount: number;
 
   /**
-   * Upvotes on the user's readable stories from accounts that are not
-   * deleted.
+   * Every upvote on the user's readable stories, counted as a story page
+   * counts them, so the total is the sum of those pages' counts.
    *
    * @generated from field: int32 upvotes_received = 11;
    */

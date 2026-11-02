@@ -537,6 +537,13 @@ const cases: Case[] = [
   { path: "/arcs/a-day", text: "23:00" },
   { path: "/perspectives/pub-1", label: "Heart, 9999" },
   { path: "/lores/lore-canon", text: label },
+  // The lore as a book: title page, contents, a chapter's last part with
+  // its chapter links, the last chapter's end, and the closing page.
+  { path: "/lores/lore-canon/book", text: "Written by" },
+  { path: "/lores/lore-canon/book?at=contents", text: "Chapter 6" },
+  { path: "/lores/lore-canon/book?chapter=2&part=3", text: "Next chapter" },
+  { path: "/lores/lore-canon/book?chapter=6&part=3", text: "The end" },
+  { path: "/lores/lore-canon/book?at=end", text: "Read its thread" },
   { path: `/users/${username}`, text: longTitle },
   { path: "/terms", signedIn: false },
   { path: "/privacy", signedIn: false },
@@ -577,13 +584,17 @@ describe("every route at 375 pixels (OT-037, AC-034)", () => {
  * Every control on the newest screens is a 44-pixel target (Folio,
  * Interaction), measured in the browser at 375 pixels with Larger story
  * text: the thread, Writers you follow, Saved, Appearance, a profile's
- * Follow, tabs and Thread posts, the best days at a kind of place and the
- * report queue with its disclosure open. A link set inline in a sentence is
- * exempt, as WCAG's target size is.
+ * Follow, tabs and Thread posts, the best days at a kind of place, the
+ * report queue with its disclosure open and the pages of a lore's book. A
+ * link set inline in a sentence is exempt, as WCAG's target size is.
  */
 describe("the newest screens' targets at 375 pixels", () => {
   const screens: (Case & { scope: string; open?: string })[] = [
     { path: "/lores/lore-canon", text: "Show 4 more replies", scope: "section:has(> h2:text-is('Thread'))" },
+    { path: "/lores/lore-canon/book", text: "Written by", scope: "main" },
+    { path: "/lores/lore-canon/book?at=contents", text: "Chapter 6", scope: "main" },
+    { path: "/lores/lore-canon/book?chapter=2&part=3", text: "Next chapter", scope: "main" },
+    { path: "/lores/lore-canon/book?at=end", text: "Read its thread", scope: "main" },
     { path: "/settings", text: "Mobile/15E148", scope: "section:has(> h2:text-is('Writers you follow'))" },
     { path: "/saved", text: longTitle, scope: "main" },
     { path: "/appearance", label: "Larger", scope: "main" },

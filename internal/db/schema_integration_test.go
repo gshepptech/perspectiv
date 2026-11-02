@@ -669,6 +669,13 @@ func TestHotQueriesAreIndexBacked(t *testing.T) {
 			args: []any{"PLACE_CATEGORY_FOOD_AND_DRINK"},
 		},
 		{
+			name: "a writer's thread posts page after a cursor",
+			query: `SELECT id FROM lore_posts WHERE author_id = $1 AND deleted_at IS NULL AND hidden_at IS NULL
+				AND (created_at, id) < ($2, $3) ORDER BY created_at DESC, id DESC LIMIT 21`,
+			args:   []any{uuid.New(), "2026-10-11T00:00:00Z", uuid.New()},
+			noSort: true,
+		},
+		{
 			name:  "rank job work queue",
 			query: `SELECT id FROM arcs WHERE lore_dirty_at IS NOT NULL ORDER BY lore_dirty_at LIMIT 100`,
 		},

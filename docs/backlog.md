@@ -51,6 +51,36 @@ Nothing in progress.
 
 ## Done
 
+- A lore reads as a book (Folio, Lore as a book). "Read as a book" on
+  the lore page opens `/lores/:id/book`, a public route: a title page (the
+  lore's name or "Unnamed lore", the day and place, its writers), the
+  contents (one chapter per readable story in the lore page's order,
+  titled by its writer, then Who was who), every chapter paged by part in
+  the story page's Reader, Previous and Next chapter at a chapter's end,
+  and a closing page linking to the lore and its thread (`#thread`, which
+  focuses the thread's heading). The address carries the page
+  (`?at=contents`, `?chapter=2&part=3`, `?at=end`), the arrow keys turn
+  pages across chapters, focus moves to the new page's heading and one
+  status line announces "Chapter 2, part 3 of 4". The place is kept per
+  lore in `localStorage` by story id, inside try/catch, and offered back
+  as "Continue where you left off". No new read: GetLore and the member
+  stories' Get, from the lore page's cache entries; a hidden or deleted
+  story is left out as the lore page leaves it out. Verified by the
+  bookPages table tests (addresses, turns across boundaries, stored
+  place, blocked storage), the LoreBookPage vitest cases (one presses
+  three keys before any turn renders: the router commits in a transition,
+  so the book owns the arrow keys and a key waits for the turn in flight),
+  Reader cases for the caller's position label and arrow-key switch, the
+  route contract, the 375-pixel
+  overflow and target checks on five book pages, the axe scan of five
+  book pages in both themes and the lore journey's step into chapter 2.
+- Security review of ecf01fa found no leak in the folded visibility
+  checks, ListUserPosts or the track record. Its one cost finding is fixed:
+  ListUserPosts reads a partial index of live posts (migration 38) and
+  checks the author's account once before any post, so an author's deleted
+  posts, or a deleted account's posts, cannot make each public page walk
+  them. Verified by EXPLAIN (one-time filter, partial index scan) and a
+  no-sort case in TestHotQueriesAreIndexBacked.
 - A profile shows a track record and a Thread posts tab. GetProfile
   carries four counts of what a reader can open, read in one statement
   with the badges (ProfileStats): readable stories, every upvote on them

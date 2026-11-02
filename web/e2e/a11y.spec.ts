@@ -6,8 +6,10 @@
  * The second writer is the find-yourself spec's Gil, signed in with his
  * password in a session of his own (see a11yAccounts for why).
  * The lore's thread (a post, an upvote and a reply), Saved, Appearance, a
- * profile's Follow toggle and its Thread posts tab, and the report queue
- * with its disclosure open are scanned in both themes, forced through the root's data-theme as the
+ * profile's Follow toggle and its Thread posts tab, the lore read as a book
+ * (contents, a chapter, a chapter's end, the title page with its "Continue"
+ * offer, the closing page), and the report queue with its disclosure open
+ * are scanned in both themes, forced through the root's data-theme as the
  * Appearance page forces them.
  * The scan fails on any serious or critical WCAG 2.1 A or AA violation and
  * lists every one, route by route.
@@ -138,6 +140,21 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
   await expect(reportDialog.getByRole("status")).toBeVisible();
   await gil.page.keyboard.press("Escape");
   findings.push(...(await scanBothThemes(gil.page, `${lore} (thread, as a member)`, gilsReply)));
+
+  // The lore as a book. Reading a chapter first leaves a place to continue
+  // from, so the title page is scanned with its "Continue" offer.
+  const book: [string, (p: Page) => Locator][] = [
+    [`${lore}/book?at=contents`, (p) => p.getByRole("list", { name: "Chapters" })],
+    [`${lore}/book?chapter=1&part=1`, (p) => p.getByRole("heading", { level: 1, name: /^Chapter 1: / })],
+    // Past the last part opens the last: the chapter's end, with its chapter links.
+    [`${lore}/book?chapter=2&part=9`, (p) => p.getByRole("navigation", { name: "Chapters" })],
+    [`${lore}/book`, (p) => p.getByRole("link", { name: "Continue where you left off" })],
+    [`${lore}/book?at=end`, (p) => p.getByRole("link", { name: "Read its thread" })],
+  ];
+  for (const [path, ready] of book) {
+    await visit(ivy.page, ivyAcct, path);
+    findings.push(...(await scanBothThemes(ivy.page, path, ready(ivy.page))));
+  }
 
   // Ivy saves Gil's story and follows him, so Saved, his profile and
   // Settings' "Writers you follow" have something in them.

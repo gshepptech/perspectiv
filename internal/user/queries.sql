@@ -222,9 +222,9 @@ SELECT (SELECT count(*) FILTER (WHERE l.status = 'LORE_STANDING_CANON')
 
 -- name: ListUserPosts :many
 -- One writer's lore thread posts that a reader of the lore page sees,
--- newest first, keyset-paged on (created_at, id) and served by
--- lore_posts_author_created_idx. Left out: a deleted or hidden post, every
--- post of a deleted account, a reply under a hidden top-level post, and a
+-- newest first, keyset-paged on (created_at, id) and served by the partial
+-- lore_posts_author_live_idx. Left out: a deleted or hidden post, every
+-- post of a deleted account (checked once, before any post is read), a reply under a hidden top-level post, and a
 -- post in a lore whose arc is at or below a hidden place. opening is the
 -- first 241 characters with whitespace folded; postExcerpt cuts it at a
 -- word.
@@ -233,13 +233,12 @@ SELECT lp.id, lp.lore_id, coalesce(l.name, '')::text AS lore_name,
        left(regexp_replace(btrim(lp.body), '\s+', ' ', 'g'), 241)::text AS opening,
        (lp.reply_to_id IS NOT NULL)::boolean AS reply, lp.created_at
 FROM lore_posts lp
-JOIN users u ON u.id = lp.author_id
 JOIN lores l ON l.id = lp.lore_id
 JOIN arcs a ON a.id = l.arc_id
 JOIN places pl ON pl.id = a.place_id
 LEFT JOIN lore_posts top ON top.id = lp.reply_to_id
 WHERE lp.author_id = sqlc.arg(author_id)::uuid
-  AND u.deleted_at IS NULL
+  AND EXISTS (SELECT 1 FROM users u WHERE u.id = sqlc.arg(author_id)::uuid AND u.deleted_at IS NULL)
   AND lp.deleted_at IS NULL AND lp.hidden_at IS NULL
   AND top.hidden_at IS NULL
   AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)

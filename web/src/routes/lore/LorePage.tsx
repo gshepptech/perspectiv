@@ -1,7 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BookOpen, Crown } from "lucide-react";
+import { ArrowLeft, BookOpen, BookOpenText, Crown } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 import { PerspectiveActions, type ViewerRights } from "@/components/actions/PerspectiveActions";
@@ -16,14 +16,13 @@ import { clients } from "@/lib/connect";
 import { useSession } from "@/lib/session";
 import { useDocumentTitle } from "@/lib/title";
 
+import { loreTabTitle, readableStories, UNNAMED } from "./loreText";
 import { LoreThread } from "./LoreThread";
 import { NameLore } from "./NameLore";
+import { WhoWasWho } from "./WhoWasWho";
 
 /** Members a lore needs before it can be canon (CANON_MIN_MEMBERS). */
 const CANON_MIN_MEMBERS = 4;
-
-/** What a lore its members have not named is called wherever a name is required. */
-const UNNAMED = "Unnamed lore";
 
 function Missing() {
   return (
@@ -32,31 +31,6 @@ function Missing() {
         Lore not found
       </h1>
       <p className="mt-3 text-ink-muted">It may have been removed, or the link is wrong.</p>
-    </section>
-  );
-}
-
-/** "otter was the guy in the yellow raincoat in wren's story", for every link inside the lore. */
-function Cast({ stories, memberIds }: { stories: Perspective[]; memberIds: Set<string> }) {
-  const lines = stories.flatMap((p) =>
-    p.characters
-      .filter((c) => c.claimedBy && memberIds.has(c.claimedBy.userId))
-      .map((c) => ({ id: c.id, who: c.claimedBy?.username ?? "", label: c.label, author: p.author?.username ?? "" })),
-  );
-  if (lines.length === 0) return null;
-  return (
-    <section aria-labelledby="lore-cast" className="mt-8">
-      <h2 id="lore-cast" className="text-xl">
-        Who was who
-      </h2>
-      <ul className="mt-3 grid gap-2">
-        {lines.map((l) => (
-          <li key={l.id} className="min-w-0 wrap-anywhere text-ink">
-            <AuthorLink username={l.who} /> was <span className="font-serif">“{l.label}”</span> in{" "}
-            <AuthorLink username={l.author} />’s story
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
@@ -140,12 +114,8 @@ export function Component() {
   const stories = useQueries({
     queries: (lore?.members ?? []).map((m) => perspectiveQuery(m.perspectiveId)),
   });
-  // An unnamed lore is never titled with its day's own title, which is the
-  // day page's title.
   const titleDay = arc.data?.arc?.title || stories.find((q) => q.data)?.data?.arcTitle || "";
-  useDocumentTitle(
-    loreQuery.isError ? "Lore not found" : lore ? lore.name || (titleDay ? `${UNNAMED} in ${titleDay}` : UNNAMED) : undefined,
-  );
+  useDocumentTitle(loreQuery.isError ? "Lore not found" : lore ? loreTabTitle(lore.name, titleDay) : undefined);
 
   if (loreQuery.isPending) {
     return (
@@ -164,7 +134,7 @@ export function Component() {
   }
   if (!lore) return <Missing />;
 
-  const loaded = stories.map((s) => s.data).filter((p): p is Perspective => !!p && !p.deleted && !p.hidden);
+  const loaded = readableStories(stories);
   const first = loaded[0];
   const viewer = arc.data?.viewer;
   const participant = !!session && !!viewer?.perspectiveId;
@@ -203,6 +173,15 @@ export function Component() {
           {lore.memberCount} {lore.memberCount === 1 ? "member" : "members"} · {lore.upvotes}{" "}
           {lore.upvotes === 1 ? "upvote" : "upvotes"}
         </p>
+        <p className="mt-1">
+          <Link
+            to={`/lores/${encodeURIComponent(lore.id)}/book`}
+            className="inline-flex min-h-11 items-center gap-1 text-accent underline underline-offset-4"
+          >
+            <BookOpenText aria-hidden size={16} />
+            Read as a book
+          </Link>
+        </p>
         {member && (
           <div className="mt-3">
             <NameLore loreId={lore.id} current={lore.name} />
@@ -221,7 +200,7 @@ export function Component() {
         )}
       </header>
 
-      <Cast stories={loaded} memberIds={memberIds} />
+      <WhoWasWho stories={loaded} memberIds={memberIds} />
 
       <section aria-labelledby="lore-stories" className="mt-8">
         <h2 id="lore-stories" className="text-xl">

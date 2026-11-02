@@ -3,9 +3,10 @@
  * same day, link up by claiming each other's characters, become canon when
  * the rank job runs, and then vote one of themselves out of the lore. The
  * three left then talk it over in the lore's thread: a post, a reply that
- * reaches its author's inbox, an upvote and both sort orders.
+ * reaches its author's inbox, an upvote and both sort orders. Last, a
+ * signed-out reader opens the lore as a book and turns into chapter 2.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { loreAccounts } from "./support/accounts.ts";
 import { canonWaitMs } from "./support/env.ts";
@@ -168,11 +169,39 @@ test("NFR-004 four accounts publish, claim, accept, reach canon within 60 second
     await expect(contenders.getByRole("link", { name: u.username, exact: true })).toBeVisible();
   }
 
-  await talkInTheThread(arc, ana, ben, cal);
+  const lorePath = await talkInTheThread(arc, ana, ben, cal);
+  await readAsABook(anon, lorePath);
 });
 
-/** Ben posts in the lore's thread, Cal replies, Ana upvotes, and the thread is read Top and New. */
-async function talkInTheThread(arc: string, ana: Writer, ben: Writer, cal: Writer) {
+/**
+ * A signed-out reader opens the lore as a book from its page, turns from the
+ * title page to the contents and into chapter 1, then with the arrow key
+ * through chapter 1's parts and on into chapter 2.
+ */
+async function readAsABook(page: Page, lorePath: string) {
+  await page.goto(lorePath);
+  await page.getByRole("link", { name: "Read as a book" }).click();
+  await expect(page.getByRole("list", { name: "Writers" })).toBeVisible();
+  await page.getByRole("link", { name: "Next page" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Contents" })).toBeFocused();
+  await page.getByRole("list", { name: "Chapters" }).getByRole("link").first().click();
+  await expect(page.getByRole("heading", { level: 1, name: /^Chapter 1: / })).toBeFocused();
+  const label = await page.getByRole("navigation", { name: "Pages" }).getByText(/^Chapter 1, part 1 of \d+$/).textContent();
+  const parts = Number(/of (\d+)$/.exec(label ?? "")?.[1] ?? 0);
+  expect(parts).toBeGreaterThan(0);
+  for (let part = 1; part <= parts; part++) {
+    await page.keyboard.press("ArrowRight");
+    await expect(page).toHaveURL(part < parts ? new RegExp(`[?]chapter=1&part=${part + 1}$`) : /[?]chapter=2&part=1$/);
+  }
+  await expect(page.getByRole("heading", { level: 1, name: /^Chapter 2: / })).toBeFocused();
+  await expect(page.getByRole("status").filter({ hasText: /^Chapter 2, part 1 of \d+$/ })).toBeAttached();
+}
+
+/**
+ * Ben posts in the lore's thread, Cal replies, Ana upvotes, and the thread is
+ * read Top and New. Returns the lore page's path.
+ */
+async function talkInTheThread(arc: string, ana: Writer, ben: Writer, cal: Writer): Promise<string> {
   await visit(ben.page, ben.account, arc);
   await ben.page
     .getByRole("region", { name: "Contenders" })
@@ -218,4 +247,5 @@ async function talkInTheThread(arc: string, ana: Writer, ben: Writer, cal: Write
     await visit(ben.page, ben.account, "/inbox");
     await expect(ben.page.getByText(`${cal.account.username} replied to your post`)).toBeVisible({ timeout: 2_000 });
   }).toPass({ timeout: 30_000, intervals: [1_000] });
+  return lorePath;
 }

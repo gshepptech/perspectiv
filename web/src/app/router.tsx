@@ -22,9 +22,10 @@ type Page = {
 };
 
 /**
- * The route table. Reading (landing, place, arc, a perspective) is public;
- * every writing or account surface needs a signed-in user. The server enforces
- * the same split on every RPC: this guard is usability, not authorization.
+ * The route table. Reading (landing, place, arc, a perspective, a lore and
+ * its book) is public; every writing or account surface needs a signed-in
+ * user. The server enforces the same split on every RPC: this guard is
+ * usability, not authorization.
  */
 export const pages: readonly Page[] = [
   { path: "/", module: "landing/LandingPage" },
@@ -33,6 +34,7 @@ export const pages: readonly Page[] = [
   { path: "/perspectives/:perspectiveId", module: "read/ReadPage" },
   { path: "/arcs/:arcId", module: "arc/ArcPage" },
   { path: "/lores/:loreId", module: "lore/LorePage" },
+  { path: "/lores/:loreId/book", module: "lore/LoreBookPage" },
   { path: "/users/:username", module: "profile/ProfilePage" },
   { path: "/i/:code", module: "invite/InvitePage" },
   { path: "/compose", module: "compose/ComposePage", signedIn: true },
