@@ -75,6 +75,31 @@ func repeat(s string, n int) []string {
 
 // A label is put on one line and refused when it holds a character that
 // hides itself; see TestCharacterLabelsReadAsOneLine for save and publish.
+// A draft is stored only once some part holds a word; blank parts beside a
+// written one are fine.
+func TestAnyText(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		parts []string
+		want  bool
+	}{
+		{name: "no parts", parts: nil, want: false},
+		{name: "one empty part", parts: []string{""}, want: false},
+		{name: "only whitespace", parts: []string{" \n\t", "  "}, want: false},
+		{name: "one word", parts: []string{"bubbles"}, want: true},
+		{name: "blank part beside a written one", parts: []string{"", "We came for the market."}, want: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := anyText(tc.parts); got != tc.want {
+				t.Fatalf("anyText(%q) = %v, want %v", tc.parts, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestCheckCharacters(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

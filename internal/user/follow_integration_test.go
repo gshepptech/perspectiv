@@ -242,3 +242,55 @@ func TestListFollowedWriters(t *testing.T) {
 	_, err = e.client(uuid.Nil).ListFollowedWriters(ctx, connect.NewRequest(&perspectivv1.ListFollowedWritersRequest{}))
 	wantCode(t, err, connect.CodeUnauthenticated)
 }
+
+// ListFollowedWriters counts each writer's readable stories from the last
+// seven days, the front page's "Writers you follow": a draft, a story older
+// than a week, a hidden one and one at a hidden place are not news.
+func TestListFollowedWritersNewThisWeek(t *testing.T) {
+	t.Parallel()
+	e := newEnv(t)
+	ctx := context.Background()
+	fan := e.user("fan")
+	busy, drafty, stale, hider, hidden := e.user("busy"), e.user("drafty"), e.user("stale"), e.user("hider"), e.user("hidden_hal")
+	for _, w := range []uuid.UUID{busy, drafty, stale, hider, hidden} {
+		e.exec(`INSERT INTO user_follows (follower_id, followee_id) VALUES ($1, $2)`, fan, w)
+	}
+	arc := e.dayArc(e.store(), busy)
+	e.published(arc, busy)
+	e.published(e.dayArc(e.store(), busy), busy)
+	e.draft(drafty)
+	e.exec(`UPDATE perspectives SET published_at = now() - interval '8 days' WHERE id = $1`, e.published(arc, stale))
+	e.exec(`UPDATE perspectives SET hidden_at = now() WHERE id = $1`, e.published(arc, hider))
+	away := e.store()
+	e.published(e.dayArc(away, hidden), hidden)
+	e.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, away)
+
+	res, err := e.client(fan).ListFollowedWriters(ctx, connect.NewRequest(&perspectivv1.ListFollowedWritersRequest{}))
+	if err != nil {
+		t.Fatalf("ListFollowedWriters: %v", err)
+	}
+	got := map[string]int32{}
+	for _, w := range res.Msg.GetWriters() {
+		got[w.GetUsername()] = w.GetNewThisWeek()
+	}
+	tests := []struct {
+		name   string
+		writer string
+		want   int32
+	}{
+		{name: "two stories this week", writer: "busy", want: 2},
+		{name: "a draft is not news", writer: "drafty", want: 0},
+		{name: "a story older than a week", writer: "stale", want: 0},
+		{name: "a hidden story", writer: "hider", want: 0},
+		{name: "a story at a hidden place", writer: "hidden_hal", want: 0},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			n, ok := got[tc.writer]
+			if !ok || n != tc.want {
+				t.Fatalf("%s new this week = %d (listed %v), want %d", tc.writer, n, ok, tc.want)
+			}
+		})
+	}
+}

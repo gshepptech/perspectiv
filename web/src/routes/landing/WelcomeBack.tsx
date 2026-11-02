@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { PenLine } from "lucide-react";
-import { useRef } from "react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/Button";
@@ -28,29 +27,18 @@ function useHasPublished(): boolean | undefined {
  * how a day works, said briefly enough to read before they start.
  */
 function FirstStory() {
-  const how = useRef<HTMLHeadingElement>(null);
   return (
     <div className="mt-5 grid min-w-0 gap-6">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <div>
         <Button asChild>
           <Link to="/compose">
             <PenLine aria-hidden size={18} />
             Write about a place you were at
           </Link>
         </Button>
-        <a
-          href="#welcome-how"
-          className={linkClass}
-          onClick={(e) => {
-            e.preventDefault();
-            how.current?.focus();
-          }}
-        >
-          How a day works
-        </a>
       </div>
       <section aria-labelledby="welcome-how" className="max-w-measure min-w-0 rounded-md border border-rule bg-surface p-4">
-        <h2 id="welcome-how" ref={how} tabIndex={-1} className="font-sans text-base font-medium">
+        <h2 id="welcome-how" className="text-lg">
           How a day works
         </h2>
         <ol className="mt-2 grid list-decimal gap-1.5 pl-5 text-ink">

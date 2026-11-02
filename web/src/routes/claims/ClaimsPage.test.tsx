@@ -20,6 +20,8 @@ function claim(over: Record<string, unknown> = {}) {
     claimantPerspectiveId: "p-theirs",
     status: "CLAIM_STATUS_PENDING",
     createdAt: "2026-10-14T18:00:00Z",
+    placeName: "UCF Stadium",
+    localDate: "2026-10-03",
     ...over,
   };
 }
@@ -35,7 +37,7 @@ function listClaims(pages: Record<string, Record<string, unknown>[][]>): ApiHand
 }
 
 describe("claims inbox", () => {
-  it("lists claims on the author's characters with usernames only, and links both perspectives", async () => {
+  it("lists claims on the author's characters with usernames only, and names the story each is about", async () => {
     const api = installApi({
       "LoreService/ListClaims": listClaims({ CLAIM_DIRECTION_INCOMING: [[claim({ claimantExcerpt: "I wore the green scarf." })]] }),
     });
@@ -43,7 +45,11 @@ describe("claims inbox", () => {
     const item = await screen.findByRole("listitem", { name: /marlo/ });
     expect(item).toHaveTextContent("marlo says they are “the clerk with the green scarf”");
     expect(item).toHaveTextContent("Pending");
-    expect(within(item).getByRole("link", { name: "Your perspective" })).toHaveAttribute("href", "/perspectives/p-mine");
+    expect(within(item).getByRole("link", { name: "About your story at UCF Stadium, October 3, 2026" })).toHaveAttribute(
+      "href",
+      "/perspectives/p-mine",
+    );
+    expect(within(item).queryByRole("link", { name: "Your perspective" })).toBeNull();
     expect(within(item).getByRole("link", { name: "Read their story" })).toHaveAttribute("href", "/perspectives/p-theirs");
     expect(api.callsTo("LoreService/ListClaims")[0]?.body).toMatchObject({ direction: "CLAIM_DIRECTION_INCOMING" });
   });
@@ -101,6 +107,53 @@ describe("claims inbox", () => {
     expect(within(item).queryByRole("button", { name: "Accept" })).toBeNull();
     // The button went with the decision; focus lands on what replaced it.
     await waitFor(() => expect(linked).toHaveFocus());
+  });
+
+  it("names an hour's story by its hour", async () => {
+    installApi({ "LoreService/ListClaims": listClaims({ CLAIM_DIRECTION_INCOMING: [[claim({ hour: 21 })]] }) });
+    renderRoute("/claims");
+    const item = await screen.findByRole("listitem", { name: /marlo/ });
+    expect(within(item).getByRole("link", { name: "About your story at UCF Stadium, October 3, 2026, 21:00" })).toBeInTheDocument();
+  });
+
+  it("after accepting, offers the claimant's characters still open to the reader, each with That was me", async () => {
+    const user = userEvent.setup();
+    let status = "CLAIM_STATUS_PENDING";
+    const character = (id: string, label: string, over: Record<string, unknown> = {}) => ({ id, position: 1, label, ...over });
+    installApi({
+      "LoreService/ListClaims": () => ok({ claims: [claim({ status })] }),
+      "LoreService/ResolveClaim": () => {
+        status = "CLAIM_STATUS_ACCEPTED";
+        return ok({ status });
+      },
+      "PerspectiveService/Get": (body) =>
+        body.perspectiveId === "p-theirs"
+          ? ok({
+              perspective: {
+                id: "p-theirs",
+                arcId: "arc-1",
+                characters: [
+                  character("c-open", "the woman with the clipboard"),
+                  character("c-taken", "the usher", { hasAcceptedClaim: true }),
+                  character("c-asked", "the drummer", { hasPendingClaim: true }),
+                  character("c-refused", "the mascot", { myClaim: "CLAIM_STATUS_REJECTED" }),
+                ],
+              },
+            })
+          : ok({ perspective: { id: "p-mine", arcId: "arc-1", loreId: "lore-9" } }),
+    });
+    renderRoute("/claims");
+    const item = await screen.findByRole("listitem", { name: /marlo/ });
+    expect(within(item).queryByText("Are you in marlo's story too?")).toBeNull();
+    await user.click(within(item).getByRole("button", { name: "Accept" }));
+    const open = await within(item).findByRole("list", { name: "Are you in marlo's story too?" });
+    const rows = within(open).getAllByRole("listitem");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveTextContent("“the woman with the clipboard”");
+    expect(within(open).getByRole("link", { name: "That was me: the woman with the clipboard" })).toHaveAttribute(
+      "href",
+      "/perspectives/p-theirs?claim=c-open",
+    );
   });
 
   it("points at the day while the lore is not known yet", async () => {
@@ -193,6 +246,11 @@ describe("claims inbox", () => {
     const item = await screen.findByRole("listitem", { name: /juniper/ });
     expect(item).toHaveTextContent("You said you are “the clerk with the green scarf” in juniper's perspective");
     expect(item).toHaveTextContent("Accepted");
+    expect(within(item).getByRole("link", { name: "About juniper's story at UCF Stadium, October 3, 2026" })).toHaveAttribute(
+      "href",
+      "/perspectives/p-mine",
+    );
+    expect(within(item).getByRole("link", { name: "Your story of that day" })).toHaveAttribute("href", "/perspectives/p-theirs");
     expect(within(item).queryByRole("button")).toBeNull();
     expect(api.callsTo("LoreService/ListClaims").at(-1)?.body).toMatchObject({ direction: "CLAIM_DIRECTION_OUTGOING" });
   });

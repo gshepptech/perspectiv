@@ -43,8 +43,14 @@ type Claim struct {
 	// and ending in "…" when cut. Empty when that story is not readable:
 	// deleted, hidden, unpublished, or filed at or below a hidden place.
 	ClaimantExcerpt string `protobuf:"bytes,12,opt,name=claimant_excerpt,json=claimantExcerpt,proto3" json:"claimant_excerpt,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Where and when the story declaring the character is set: its place's
+	// name, the place-local day (YYYY-MM-DD) and the hour (unset for a day),
+	// so a request can name the story it is about.
+	PlaceName     string `protobuf:"bytes,13,opt,name=place_name,json=placeName,proto3" json:"place_name,omitempty"`
+	LocalDate     string `protobuf:"bytes,14,opt,name=local_date,json=localDate,proto3" json:"local_date,omitempty"`
+	Hour          *int32 `protobuf:"varint,15,opt,name=hour,proto3,oneof" json:"hour,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Claim) Reset() {
@@ -159,6 +165,27 @@ func (x *Claim) GetClaimantExcerpt() string {
 		return x.ClaimantExcerpt
 	}
 	return ""
+}
+
+func (x *Claim) GetPlaceName() string {
+	if x != nil {
+		return x.PlaceName
+	}
+	return ""
+}
+
+func (x *Claim) GetLocalDate() string {
+	if x != nil {
+		return x.LocalDate
+	}
+	return ""
+}
+
+func (x *Claim) GetHour() int32 {
+	if x != nil && x.Hour != nil {
+		return *x.Hour
+	}
+	return 0
 }
 
 // Encounter is an accepted claim seen as a link between two perspectives.
@@ -293,7 +320,10 @@ type Lore struct {
 	// Empty until a member names the lore; readers then see it as its title.
 	Name string `protobuf:"bytes,10,opt,name=name,proto3" json:"name,omitempty"`
 	// Who set the current name; unset when there is none.
-	NamedBy       *UserRef `protobuf:"bytes,11,opt,name=named_by,json=namedBy,proto3" json:"named_by,omitempty"`
+	NamedBy *UserRef `protobuf:"bytes,11,opt,name=named_by,json=namedBy,proto3" json:"named_by,omitempty"`
+	// Posts a reader of the thread sees, replies included: never a deleted or
+	// hidden post, a post by a deleted account, or a reply under a hidden post.
+	PostCount     int32 `protobuf:"varint,12,opt,name=post_count,json=postCount,proto3" json:"post_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -403,6 +433,13 @@ func (x *Lore) GetNamedBy() *UserRef {
 		return x.NamedBy
 	}
 	return nil
+}
+
+func (x *Lore) GetPostCount() int32 {
+	if x != nil {
+		return x.PostCount
+	}
+	return 0
 }
 
 type ClaimCharacterRequest struct {
@@ -1697,7 +1734,7 @@ var File_perspectiv_v1_lore_proto protoreflect.FileDescriptor
 
 const file_perspectiv_v1_lore_proto_rawDesc = "" +
 	"\n" +
-	"\x18perspectiv/v1/lore.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x18perspectiv/v1/user.proto\"\x94\x04\n" +
+	"\x18perspectiv/v1/lore.proto\x12\rperspectiv.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x19perspectiv/v1/enums.proto\x1a\x18perspectiv/v1/user.proto\"\xf4\x04\n" +
 	"\x05Claim\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06arc_id\x18\x02 \x01(\tR\x05arcId\x12!\n" +
@@ -1713,7 +1750,13 @@ const file_perspectiv_v1_lore_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12;\n" +
 	"\vresolved_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"resolvedAt\x12)\n" +
-	"\x10claimant_excerpt\x18\f \x01(\tR\x0fclaimantExcerpt\"\x85\x01\n" +
+	"\x10claimant_excerpt\x18\f \x01(\tR\x0fclaimantExcerpt\x12\x1d\n" +
+	"\n" +
+	"place_name\x18\r \x01(\tR\tplaceName\x12\x1d\n" +
+	"\n" +
+	"local_date\x18\x0e \x01(\tR\tlocalDate\x12\x17\n" +
+	"\x04hour\x18\x0f \x01(\x05H\x00R\x04hour\x88\x01\x01B\a\n" +
+	"\x05_hour\"\x85\x01\n" +
 	"\tEncounter\x12\x19\n" +
 	"\bclaim_id\x18\x01 \x01(\tR\aclaimId\x12%\n" +
 	"\x0eperspective_id\x18\x02 \x01(\tR\rperspectiveId\x126\n" +
@@ -1721,7 +1764,7 @@ const file_perspectiv_v1_lore_proto_rawDesc = "" +
 	"\n" +
 	"LoreMember\x12%\n" +
 	"\x0eperspective_id\x18\x01 \x01(\tR\rperspectiveId\x12*\n" +
-	"\x04user\x18\x02 \x01(\v2\x16.perspectiv.v1.UserRefR\x04user\"\xb5\x03\n" +
+	"\x04user\x18\x02 \x01(\v2\x16.perspectiv.v1.UserRefR\x04user\"\xd4\x03\n" +
 	"\x04Lore\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x15\n" +
 	"\x06arc_id\x18\x02 \x01(\tR\x05arcId\x127\n" +
@@ -1738,7 +1781,9 @@ const file_perspectiv_v1_lore_proto_rawDesc = "" +
 	"encounters\x12\x12\n" +
 	"\x04name\x18\n" +
 	" \x01(\tR\x04name\x121\n" +
-	"\bnamed_by\x18\v \x01(\v2\x16.perspectiv.v1.UserRefR\anamedBy\":\n" +
+	"\bnamed_by\x18\v \x01(\v2\x16.perspectiv.v1.UserRefR\anamedBy\x12\x1d\n" +
+	"\n" +
+	"post_count\x18\f \x01(\x05R\tpostCount\":\n" +
 	"\x15ClaimCharacterRequest\x12!\n" +
 	"\fcharacter_id\x18\x01 \x01(\tR\vcharacterId\"g\n" +
 	"\x16ClaimCharacterResponse\x12\x19\n" +
@@ -1950,6 +1995,7 @@ func file_perspectiv_v1_lore_proto_init() {
 	}
 	file_perspectiv_v1_enums_proto_init()
 	file_perspectiv_v1_user_proto_init()
+	file_perspectiv_v1_lore_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

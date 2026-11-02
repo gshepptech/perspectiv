@@ -69,7 +69,8 @@ const (
 
 // PerspectiveServiceClient is a client for the perspectiv.v1.PerspectiveService service.
 type PerspectiveServiceClient interface {
-	// Creates or replaces the caller's draft (autosave).
+	// Creates or replaces the caller's draft (autosave). InvalidArgument when
+	// no part holds any text: an empty draft is never stored.
 	SaveDraft(context.Context, *connect.Request[v1.SaveDraftRequest]) (*connect.Response[v1.SaveDraftResponse], error)
 	// Publishes into the arc for the place, day and optional hour, creating the
 	// arc in the same transaction when absent.
@@ -254,7 +255,8 @@ func (c *perspectiveServiceClient) ListSaved(ctx context.Context, req *connect.R
 
 // PerspectiveServiceHandler is an implementation of the perspectiv.v1.PerspectiveService service.
 type PerspectiveServiceHandler interface {
-	// Creates or replaces the caller's draft (autosave).
+	// Creates or replaces the caller's draft (autosave). InvalidArgument when
+	// no part holds any text: an empty draft is never stored.
 	SaveDraft(context.Context, *connect.Request[v1.SaveDraftRequest]) (*connect.Response[v1.SaveDraftResponse], error)
 	// Publishes into the arc for the place, day and optional hour, creating the
 	// arc in the same transaction when absent.

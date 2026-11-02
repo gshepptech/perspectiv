@@ -38,6 +38,19 @@ describe("Button", () => {
     expect(link.className).toContain("border-control");
   });
 
+  it("sits flush with the text column only while it starts its row", () => {
+    render(
+      <>
+        <Button variant="ghost" size="sm" flush>
+          Save
+        </Button>
+        <Button variant="ghost">Report</Button>
+      </>,
+    );
+    expect(screen.getByRole("button", { name: "Save" }).className).toMatch(/(^|\s)first:-ms-3(\s|$)/);
+    expect(screen.getByRole("button", { name: "Report" }).className).not.toMatch(/-ms-/);
+  });
+
   it("merges caller classes over variant classes", () => {
     render(<Button className="px-8">Go</Button>);
     const cls = screen.getByRole("button").className;

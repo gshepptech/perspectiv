@@ -86,7 +86,7 @@ describe("composer date picker", () => {
     expect(new Date().getDate()).toBe(15);
     await openComposer();
     expect(screen.getByLabelText("Day of your visit")).toHaveValue("2026-10-16");
-    expect(screen.getByText(/today in Corner Books is/i)).toHaveTextContent("October 16, 2026");
+    expect(screen.getByText(/today at Corner Books is/i)).toHaveTextContent("October 16, 2026");
   });
 
   it("files a perspective under the day the author picks, not the publish day (OT-014, AC-016)", async () => {
@@ -176,6 +176,28 @@ describe("composer autosave (FR-044)", () => {
     });
     expect(api.callsTo("PerspectiveService/SaveDraft")[0]?.body).not.toHaveProperty("perspectiveId");
     expect(await screen.findByRole("status", { name: "Save status" })).toHaveTextContent("Draft saved");
+  });
+
+  it("never saves a draft whose parts are all empty, and says it waits for text", async () => {
+    const user = userEvent.setup();
+    const api = await openComposer("/compose?placeId=p-ny&date=2026-10-01", {
+      "PerspectiveService/SaveDraft": (body) => draftReply("d-1", body),
+    });
+    const status = screen.getByRole("status", { name: "Save status" });
+    expect(status).toHaveTextContent("Your draft saves once a part has text.");
+    // Changing the day, the genre or the title alone saves nothing.
+    const date = screen.getByLabelText("Day of your visit");
+    await user.clear(date);
+    await user.type(date, "2026-09-26");
+    await pickGenre(user, "Comedy");
+    // Text typed and then removed again before the pause saves nothing either.
+    const part = screen.getByRole("textbox", { name: "Part 1" });
+    await user.type(part, "Bubbles");
+    await user.clear(part);
+    await user.type(part, "   ");
+    await new Promise((r) => setTimeout(r, AUTOSAVE_DEBOUNCE_MS + 300));
+    expect(api.callsTo("PerspectiveService/SaveDraft")).toHaveLength(0);
+    expect(status).toHaveTextContent("Your draft saves once a part has text.");
   });
 
   it("keeps saving into the same draft once the first save names it", async () => {
@@ -335,6 +357,174 @@ describe("composer: resuming a draft", () => {
     });
     expect(api.callsTo("PerspectiveService/ListMine")[0]?.body).not.toHaveProperty("hour");
     expect(screen.queryByText(/open again/)).toBeNull();
+  });
+});
+
+describe("composer: finding the draft as the day and hour change", () => {
+  const sep26 = {
+    id: "d-sep26",
+    status: "PERSPECTIVE_STATUS_DRAFT",
+    place: { id: nyStore.id, kind: nyStore.kind, name: nyStore.name },
+    localDate: "2026-09-26",
+    genre: "GENRE_COMEDY",
+    parts: [{ position: 1, body: "Bubbles the size of cars." }],
+  };
+  // ListMine answers the writer's drafts for the day asked about.
+  const draftsOn =
+    (byDate: Record<string, unknown[]>): ApiHandler =>
+    (body) =>
+      ok({ perspectives: body.status === "PERSPECTIVE_STATUS_DRAFT" ? (byDate[body.localDate as string] ?? []) : [] });
+
+  it("opens the writer's draft in place when the day changes to one they started, and saves no other", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: LATE_EVENING_LA });
+    const user = userEvent.setup();
+    const api = await openComposer("/compose?placeId=p-ny", {
+      "PerspectiveService/ListMine": draftsOn({ "2026-09-26": [sep26] }),
+      "PerspectiveService/SaveDraft": (body) => draftReply("d-new", body),
+    });
+    // The composer opened on today, where there is no draft.
+    expect(screen.getByRole("textbox", { name: "Part 1" })).toHaveValue("");
+    const date = screen.getByLabelText("Day of your visit");
+    fireEvent.change(date, { target: { value: "2026-09-26" } });
+
+    expect(await screen.findByDisplayValue("Bubbles the size of cars.")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Composer notice" })).toHaveTextContent(
+      "You started a draft for this day, so it is open again.",
+    );
+    expect(api.callsTo("PerspectiveService/ListMine").map((c) => c.body.localDate)).toContain("2026-09-26");
+    // Loading the draft is not an edit: nothing is saved, and no second draft is made.
+    await new Promise((r) => setTimeout(r, AUTOSAVE_DEBOUNCE_MS + 300));
+    expect(api.callsTo("PerspectiveService/SaveDraft")).toHaveLength(0);
+    // The next edit saves into the draft found.
+    await user.type(screen.getByRole("textbox", { name: "Part 1" }), " Again.");
+    await waitFor(() => expect(api.callsTo("PerspectiveService/SaveDraft")).toHaveLength(1), { timeout: AUTOSAVE_DEBOUNCE_MS + 2000 });
+    expect(api.callsTo("PerspectiveService/SaveDraft")[0]?.body).toMatchObject({
+      perspectiveId: "d-sep26",
+      localDate: "2026-09-26",
+      parts: ["Bubbles the size of cars. Again."],
+    });
+  });
+
+  it("resumes the draft changed most recently when there are several, and says so", async () => {
+    const older = { ...sep26, id: "d-older", parts: [{ position: 1, body: "An older start." }] };
+    await openComposer("/compose?placeId=p-ny&date=2026-10-01", {
+      "PerspectiveService/ListMine": draftsOn({ "2026-09-26": [sep26, older] }),
+    });
+    fireEvent.change(screen.getByLabelText("Day of your visit"), { target: { value: "2026-09-26" } });
+    expect(await screen.findByDisplayValue("Bubbles the size of cars.")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: "Composer notice" })).toHaveTextContent(
+      "You started more than one draft for this day, so the one you changed last is open. The others are under Your perspectives on the front page.",
+    );
+  });
+
+  it("says so on load too when the address opens a day with several drafts", async () => {
+    const older = { ...sep26, id: "d-older", parts: [{ position: 1, body: "An older start." }] };
+    await openComposer("/compose?placeId=p-ny&date=2026-09-26", {
+      "PerspectiveService/ListMine": draftsOn({ "2026-09-26": [sep26, older] }),
+    });
+    expect(screen.getByRole("textbox", { name: "Part 1" })).toHaveValue("Bubbles the size of cars.");
+    expect(screen.getByText(/You started more than one draft for this day/)).toBeInTheDocument();
+  });
+
+  it("looks again when the hour changes", async () => {
+    const user = userEvent.setup();
+    const atTwo = { ...sep26, id: "d-two", localDate: "2026-10-01", hour: 14, parts: [{ position: 1, body: "At two." }] };
+    const api = await openComposer("/compose?placeId=p-ny&date=2026-10-01", {
+      "PerspectiveService/ListMine": (body) =>
+        ok({ perspectives: body.status === "PERSPECTIVE_STATUS_DRAFT" && body.hour === 14 ? [atTwo] : [] }),
+    });
+    await user.click(screen.getByRole("combobox", { name: "Hour" }));
+    await user.click(await screen.findByRole("option", { name: "14:00" }));
+    expect(await screen.findByDisplayValue("At two.")).toBeInTheDocument();
+    expect(api.callsTo("PerspectiveService/ListMine").at(-1)?.body).toMatchObject({ localDate: "2026-10-01", hour: 14 });
+  });
+
+  it("replaces nothing already written, and offers the other draft instead", async () => {
+    const user = userEvent.setup();
+    const api = await openComposer("/compose?placeId=p-ny&date=2026-10-01", {
+      "PerspectiveService/ListMine": draftsOn({ "2026-09-26": [sep26] }),
+      "PerspectiveService/SaveDraft": (body) => draftReply("d-mine", body),
+    });
+    await user.type(screen.getByRole("textbox", { name: "Part 1" }), "Something new");
+    fireEvent.change(screen.getByLabelText("Day of your visit"), { target: { value: "2026-09-26" } });
+    const note = await screen.findByText(/You already have a draft for this day/);
+    expect(within(note).getByRole("link", { name: "Open that draft" })).toHaveAttribute("href", "/compose?perspectiveId=d-sep26");
+    expect(screen.getByRole("textbox", { name: "Part 1" })).toHaveValue("Something new");
+    // Their own text keeps saving as its own draft.
+    await waitFor(() => expect(api.callsTo("PerspectiveService/SaveDraft").length).toBeGreaterThan(0), {
+      timeout: AUTOSAVE_DEBOUNCE_MS + 2000,
+    });
+    expect(api.callsTo("PerspectiveService/SaveDraft").at(-1)?.body).not.toMatchObject({ perspectiveId: "d-sep26" });
+  });
+});
+
+describe("composer: days already written about", () => {
+  const epic = {
+    place: nyStore,
+    arcs: [
+      {
+        arcId: "arc-oct3",
+        title: "Fourth quarter, sixty thousand people",
+        place: { id: nyStore.id, kind: nyStore.kind, name: nyStore.name },
+        localDate: "2026-10-03",
+        perspectiveCount: 14,
+      },
+      {
+        arcId: "arc-under",
+        title: "At the shop under this place",
+        place: { id: "p-other", kind: "PLACE_KIND_STORE", name: "Another shop" },
+        localDate: "2026-10-02",
+        perspectiveCount: 3,
+      },
+      {
+        arcId: "arc-sep30-14",
+        title: "The fire drill · 14:00",
+        place: { id: nyStore.id, kind: nyStore.kind, name: nyStore.name },
+        localDate: "2026-09-30",
+        hour: 14,
+        perspectiveCount: 1,
+      },
+      {
+        arcId: "arc-2025",
+        title: "Last year's flood",
+        place: { id: nyStore.id, kind: nyStore.kind, name: nyStore.name },
+        localDate: "2025-08-01",
+        perspectiveCount: 2,
+      },
+    ],
+  };
+
+  it("offers the place's recent days with stories, and choosing one sets the day and hour", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: LATE_EVENING_LA });
+    const user = userEvent.setup();
+    const api = await openComposer("/compose?placeId=p-ny", { "PlaceService/GetEpic": () => ok(epic) });
+    const list = await screen.findByRole("list", { name: "Days already written about here" });
+    const choices = within(list).getAllByRole("button");
+    // Only days filed at this place itself; the year only when it is not this one.
+    expect(choices.map((b) => b.textContent)).toEqual([
+      "Oct 3 · Fourth quarter, sixty thousand people · 14 stories",
+      "Sep 30 · The fire drill · 14:00 · 1 story",
+      "Aug 1, 2025 · Last year's flood · 2 stories",
+    ]);
+    expect(api.callsTo("PlaceService/GetEpic")[0]?.body).toMatchObject({ placeId: "p-ny", tab: "EPIC_TAB_NEWEST" });
+    for (const b of choices) expect(b).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(choices[1]!);
+    expect(screen.getByLabelText("Day of your visit")).toHaveValue("2026-09-30");
+    expect(screen.getByRole("combobox", { name: "Hour" })).toHaveTextContent("14:00");
+    expect(choices[1]).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(choices[0]!);
+    expect(screen.getByLabelText("Day of your visit")).toHaveValue("2026-10-03");
+    expect(screen.getByRole("combobox", { name: "Hour" })).toHaveTextContent("Whole day");
+    expect(choices[0]).toHaveAttribute("aria-pressed", "true");
+    expect(choices[1]).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("offers nothing when the place has no days yet", async () => {
+    await openComposer("/compose?placeId=p-ny", { "PlaceService/GetEpic": () => ok({ place: nyStore, arcs: [] }) });
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Part 1" })).toBeInTheDocument());
+    expect(screen.queryByRole("list", { name: "Days already written about here" })).toBeNull();
   });
 });
 

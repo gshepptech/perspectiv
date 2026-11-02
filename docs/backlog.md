@@ -51,6 +51,84 @@ Nothing in progress.
 
 ## Done
 
+- Walkthrough fixes: thread posts have addresses, requests name their
+  story, Saved unsaves in place, and the front page shows followed
+  writers. Design text first (`docs/design-system.md` § Lore page: thread,
+  § Inbox and requests, § Saving stories, § Landing). Every thread post is
+  `id="post-<id>"`; the profile's Thread posts rows and the inbox's reply
+  notification (which now carries `post_id`, migration 39) link to
+  `/lores/:id#post-<id>`, and the lore page's `useThreadTarget` waits for
+  the lore, its stories and the thread, reads further Top pages (up to 10)
+  to find the post, then scrolls to it, focuses it and outlines it for two
+  seconds, or falls back to the thread's heading with a note. `#thread`
+  lands the same way, and the header links "Thread · N posts" (GetLore's
+  new `post_count`). Requests say "About your story at UCF Stadium,
+  October 3, 2026" (ListClaims carries the place and day) and, after
+  Accept, list the claimant's characters still open to the reader with
+  "That was me". Each Saved row carries the Save toggle; unsaving keeps
+  the row as "Removed." with Undo until the page is left, focus staying
+  on the button. ListFollowing's new count leaves out the reader's own
+  stories, and ListFollowedWriters counts each writer's stories this week
+  for "Writers you follow" on the front page. Verified by integration
+  tests (post count, claim place and day, own stories left out, writer
+  counts, reply payload), vitest, and an e2e step that opens a reply
+  notification and lands on the reply.
+- Composer walkthrough fixes: a draft is found wherever the writer comes
+  in, and the composer offers the days already written about. Design text
+  first (`docs/design-system.md` § Composer: day and hour, § Composer:
+  joining the day, § Sign-up during the beta, § Landing). Choosing a
+  place and then the day used to start a second, empty draft beside the
+  real one, and the day page's "Write your perspective" then reopened the
+  empty one. Now the composer looks the writer's drafts up again whenever
+  the day or hour changes in the form; a form with nothing written opens
+  the newest draft in place, and one with text keeps it and offers "Open
+  that draft". A draft with no text in any part is never saved: autosave
+  waits ("Your draft saves once a part has text.") and SaveDraft refuses
+  it with InvalidArgument. Several drafts for one day resume the one
+  changed last, and the note says so. Draft rows under "Your
+  perspectives" end with "Continue". Under the day and hour, "Days
+  already written about here" offers the place's newest days from its
+  Newest epic as one-tap choices that set the day and hour; the help line
+  reads "Today at *place* is". The verified-email page offers "Write
+  about a place you were at" before "Start reading". Verified by vitest
+  cases (in-place resume with no save, several drafts, the hour lookup,
+  text kept with the other draft offered, empty drafts never saved, the
+  day choices, the Continue link, the verified page's links), Go unit and
+  integration cases for the refusal, a Playwright step replaying the
+  walkthrough (a past day's draft, Write, the place, the day: the text
+  reopens and one draft row remains), and the composer driven at 375 and
+  1280 with no sideways scroll.
+
+- Folio visual pass from a 72-screenshot audit. Design text first:
+  `docs/design-system.md` § Landing is rewritten so the front door is a
+  book's title page in Folio's own voice (the founder's "App starts out
+  looking like a novel book" overrides the old "Exceptions to Folio, here
+  only"): one centred column, the example as two facing pages split by a
+  `rule` gutter, how it works as a numbered list, "Where people are
+  writing" as divided day rows, kinds and states as run-in lists, the
+  search without a shadow, "Browse by state". New sections Reacts (quiet,
+  borderless, greyscale until used, zero counts hidden), Lore page: stories
+  (plain articles, serif headings), Flairs and tags (words with an icon, no
+  pill), Composer: day and hour (44px, top-aligned); additions to Type
+  (one serif heading style, `hyphens-manual` on two-line previews),
+  Palette (Lamplight `rule` raised to `#46413B`, still well under
+  `control`), Pagination (italic serif "Part 1", centred position in a
+  `1fr auto 1fr` grid), Components (`flush` ghost buttons), Lore as a book
+  (centred chapter opening, a page frame that keeps the page-turn row in
+  place), Arc page (breadcrumb as the place page's), Place page header
+  (primary "Write about this place", Follow and Report one size), Place
+  page sidebar (shorter placeholder), Profile (badges as flairs, one
+  hairline under the tabs) and New members (the duplicate "How a day
+  works" link dropped). Inbox and Settings keep `max-w-2xl`: Folio caps
+  interface pages at the shell width and names no narrower one for them,
+  so they were left as they are. Verified by new and updated vitest cases
+  (react quietness and names, Button `flush`, the part heading and the
+  centred pager, the chapter heading's name, plain lore articles, the
+  landing's facing pages, numbered list and copy), the palette test, the
+  375-pixel overflow and target checks, the axe scan in both themes, the
+  Playwright suite, and before and after screenshots at 1280 and 390 in
+  both themes, in which the book's page-turn row sits at the same height
+  on every page whose text fits.
 - A lore reads as a book (Folio, Lore as a book). "Read as a book" on
   the lore page opens `/lores/:id/book`, a public route: a title page (the
   lore's name or "Unnamed lore", the day and place, its writers), the

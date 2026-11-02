@@ -2,10 +2,19 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 
 export type ReaderProps = {
   /** The article's heading: what the reader is reading. */
   title: string;
+  /**
+   * A chapter number set over the title ("Chapter 2"), which centres the
+   * header as a chapter opening (Folio, Lore as a book). The heading's name
+   * stays "Chapter 2: <title>".
+   */
+  chapter?: string;
+  /** Extra classes for the article, such as the book's page frame. */
+  className?: string;
   /** Shown under the title: author, place, day. */
   byline?: ReactNode;
   /** Part bodies in order; part N is parts[N - 1]. */
@@ -35,6 +44,9 @@ export type ReaderProps = {
 };
 
 const FADE_MS = 150;
+
+/** A part's heading: a book's part number in the serif italic, not a form label (Folio, Pagination). */
+const PART_HEADING = "font-serif text-base font-normal text-ink-muted italic";
 
 /** A story under this many words in all is shown whole: paging it is more tapping than reading. */
 export const SHORT_STORY_WORDS = 600;
@@ -132,6 +144,8 @@ function prefersReducedMotion(): boolean {
  */
 export function Reader({
   title,
+  chapter,
+  className,
   byline,
   parts,
   part,
@@ -194,13 +208,21 @@ export function Reader({
   }, [total, onPartChange, whole, arrowKeys]);
 
   return (
-    <article className="mx-auto w-full max-w-measure min-w-0" aria-labelledby="reader-title">
-      <header className="border-b border-rule pb-4">
+    <article className={cn("mx-auto flex w-full max-w-measure min-w-0 flex-col", className)} aria-labelledby="reader-title">
+      <header className={cn("border-b border-rule pb-4", chapter && "pt-10 text-center sm:pt-16")}>
         {/* tabIndex -1: a caller that turns to a new story (the lore's book) moves focus here. */}
-        <h1 id="reader-title" tabIndex={-1} className="text-2xl wrap-anywhere sm:text-3xl">
-          {title}
-        </h1>
-        {byline && <div className="mt-2 text-sm text-ink-muted">{byline}</div>}
+        {chapter ? (
+          // Named outright: the two lines are blocks, which some readers join as "Chapter 2 : otter".
+          <h1 id="reader-title" tabIndex={-1} aria-label={`${chapter}: ${title}`}>
+            <span className="block font-sans text-sm font-normal text-ink-muted">{chapter}</span>
+            <span className="mt-2 block text-3xl leading-tight wrap-anywhere">{title}</span>
+          </h1>
+        ) : (
+          <h1 id="reader-title" tabIndex={-1} className="text-2xl wrap-anywhere sm:text-3xl">
+            {title}
+          </h1>
+        )}
+        {byline && <div className={cn("mt-2 text-sm text-ink-muted", chapter && "flex justify-center")}>{byline}</div>}
         {onWholeChange && (
           <Button variant="ghost" size="sm" className="mt-2 min-h-11 px-2" aria-pressed={whole} onClick={() => onWholeChange(!whole)}>
             <span
@@ -222,7 +244,7 @@ export function Reader({
                     wholeHeadings.current[i] = el;
                   }}
                   tabIndex={-1}
-                  className="font-sans text-sm font-medium tracking-wide text-ink-muted uppercase"
+                  className={PART_HEADING}
                 >
                   Part {i + 1}
                 </h2>
@@ -234,20 +256,33 @@ export function Reader({
       ) : (
         <>
           <div ref={pageRef} className="py-6">
-            <h2 ref={headingRef} tabIndex={-1} className="font-sans text-sm font-medium tracking-wide text-ink-muted uppercase">
+            <h2 ref={headingRef} tabIndex={-1} className={PART_HEADING}>
               Part {current}
             </h2>
             <Body text={body} />
           </div>
-          <nav aria-label="Pages" className="flex items-center justify-between gap-2 border-t border-rule pt-4">
-            <Button variant="secondary" disabled={current <= 1} onClick={() => onPartChange(current - 1)} aria-label="Previous part">
+          {/* mt-auto: in a page frame (the book's) the row sits at the frame's foot. */}
+          <nav aria-label="Pages" className="mt-auto grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-t border-rule pt-4">
+            <Button
+              variant="secondary"
+              className="justify-self-start"
+              disabled={current <= 1}
+              onClick={() => onPartChange(current - 1)}
+              aria-label="Previous part"
+            >
               <ChevronLeft aria-hidden size={16} />
               <span className="hidden sm:inline">Previous</span>
             </Button>
-            <span aria-live={announcePosition ? "polite" : undefined} className="text-sm text-ink-muted">
+            <span aria-live={announcePosition ? "polite" : undefined} className="text-center text-sm text-ink-muted">
               {position ?? `Part ${current} of ${total}`}
             </span>
-            <Button variant="secondary" disabled={current >= total} onClick={() => onPartChange(current + 1)} aria-label="Next part">
+            <Button
+              variant="secondary"
+              className="justify-self-end"
+              disabled={current >= total}
+              onClick={() => onPartChange(current + 1)}
+              aria-label="Next part"
+            >
               <span className="hidden sm:inline">Next</span>
               <ChevronRight aria-hidden size={16} />
             </Button>

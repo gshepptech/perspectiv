@@ -1,7 +1,7 @@
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BookOpen, BookOpenText, Crown } from "lucide-react";
+import { ArrowLeft, BookOpen, BookOpenText, Crown, MessagesSquare, Swords } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 import { PerspectiveActions, type ViewerRights } from "@/components/actions/PerspectiveActions";
@@ -19,6 +19,7 @@ import { useDocumentTitle } from "@/lib/title";
 import { loreTabTitle, readableStories, UNNAMED } from "./loreText";
 import { LoreThread } from "./LoreThread";
 import { NameLore } from "./NameLore";
+import { useThreadTarget } from "./useThreadTarget";
 import { WhoWasWho } from "./WhoWasWho";
 
 /** Members a lore needs before it can be canon (CANON_MIN_MEMBERS). */
@@ -49,9 +50,9 @@ function Story({ p, rights }: { p: Perspective; rights: ViewerRights }) {
     hidden: p.hidden,
   });
   return (
-    <article aria-labelledby={`story-${p.id}`} className="min-w-0 rounded-xl border border-rule bg-paper p-5 shadow-sm">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 id={`story-${p.id}`} className="font-sans text-base font-medium">
+    <article aria-labelledby={`story-${p.id}`} className="min-w-0 border-t border-rule pt-8 first:border-t-0 first:pt-0">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 id={`story-${p.id}`} className="min-w-0 text-xl wrap-break-word">
           {p.author ? <AuthorLink username={p.author.username} /> : "Someone"}
           {"'s perspective"}
         </h3>
@@ -76,7 +77,7 @@ function Story({ p, rights }: { p: Perspective; rights: ViewerRights }) {
 function Standing({ lore, span }: { lore: Lore; span: ArcSpan }) {
   if (lore.standing === LoreStanding.CANON) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent">
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-accent">
         <Crown aria-hidden size={16} />
         {span === "hour" ? "Canon of this hour" : "Canon of the day"}
       </span>
@@ -84,7 +85,8 @@ function Standing({ lore, span }: { lore: Lore; span: ArcSpan }) {
   }
   const short = CANON_MIN_MEMBERS - lore.memberCount;
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-rule px-3 py-1 text-sm text-ink-muted">
+    <span className="inline-flex items-start gap-1 text-sm text-ink-muted">
+      <Swords aria-hidden size={16} className="mt-0.5 shrink-0" />
       Contender{short > 0 ? ` · ${short} more ${short === 1 ? "member" : "members"} to be eligible for canon` : ""}
     </span>
   );
@@ -116,6 +118,8 @@ export function Component() {
   });
   const titleDay = arc.data?.arc?.title || stories.find((q) => q.data)?.data?.arcTitle || "";
   useDocumentTitle(loreQuery.isError ? "Lore not found" : lore ? loreTabTitle(lore.name, titleDay) : undefined);
+  // #thread and #post-<id> land once everything above the thread has rendered.
+  const target = useThreadTarget(lore?.id ?? "", !!lore && !arc.isPending && stories.every((q) => !q.isPending));
 
   if (loreQuery.isPending) {
     return (
@@ -173,13 +177,17 @@ export function Component() {
           {lore.memberCount} {lore.memberCount === 1 ? "member" : "members"} · {lore.upvotes}{" "}
           {lore.upvotes === 1 ? "upvote" : "upvotes"}
         </p>
-        <p className="mt-1">
+        <p className="mt-1 flex flex-wrap gap-x-6">
           <Link
             to={`/lores/${encodeURIComponent(lore.id)}/book`}
             className="inline-flex min-h-11 items-center gap-1 text-accent underline underline-offset-4"
           >
             <BookOpenText aria-hidden size={16} />
             Read as a book
+          </Link>
+          <Link to="#thread" className="inline-flex min-h-11 items-center gap-1 text-accent underline underline-offset-4">
+            <MessagesSquare aria-hidden size={16} />
+            Thread · {lore.postCount === 0 ? "no posts yet" : `${lore.postCount} ${lore.postCount === 1 ? "post" : "posts"}`}
           </Link>
         </p>
         {member && (
@@ -195,6 +203,7 @@ export function Component() {
               targetId={lore.id}
               targetLabel={`the lore name “${lore.name}”`}
               triggerLabel="Report this name"
+              flush
             />
           </div>
         )}
@@ -206,14 +215,14 @@ export function Component() {
         <h2 id="lore-stories" className="text-xl">
           The stories
         </h2>
-        <div className="mt-4 grid gap-6">
+        <div className="mt-6 grid gap-10">
           {loaded.map((p) => (
             <Story key={p.id} p={p} rights={rights} />
           ))}
         </div>
       </section>
 
-      <LoreThread loreId={lore.id} canPost={participant} span={span} />
+      <LoreThread loreId={lore.id} canPost={participant} span={span} missedPost={target.missed} />
     </article>
   );
 }

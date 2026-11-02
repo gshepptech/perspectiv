@@ -622,7 +622,8 @@ func TestDraftThenPublish(t *testing.T) {
 	}
 }
 
-// Drafts enforce the same part, word and character limits as publish.
+// Drafts enforce the same part, word and character limits as publish, and
+// a draft with no text in any part is never stored.
 func TestDraftLimits(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
@@ -632,12 +633,14 @@ func TestDraftLimits(t *testing.T) {
 		req  *perspectivv1.SaveDraftRequest
 		want connect.Code
 	}{
-		{name: "empty draft saves", req: &perspectivv1.SaveDraftRequest{}},
+		{name: "a draft with one written part saves", req: &perspectivv1.SaveDraftRequest{Parts: []string{"", "half a thought"}}},
+		{name: "a draft with no parts is refused", req: &perspectivv1.SaveDraftRequest{}, want: connect.CodeInvalidArgument},
+		{name: "a draft of blank parts is refused", req: &perspectivv1.SaveDraftRequest{Parts: []string{"", "  \n"}}, want: connect.CodeInvalidArgument},
 		{name: "301 words", req: &perspectivv1.SaveDraftRequest{Parts: []string{words(301)}}, want: connect.CodeInvalidArgument},
 		{name: "eleven parts", req: &perspectivv1.SaveDraftRequest{Parts: make([]string, 11)}, want: connect.CodeInvalidArgument},
-		{name: "bad date", req: &perspectivv1.SaveDraftRequest{LocalDate: "tomorrow"}, want: connect.CodeInvalidArgument},
-		{name: "bad place", req: &perspectivv1.SaveDraftRequest{PlaceId: "nope"}, want: connect.CodeInvalidArgument},
-		{name: "unknown place", req: &perspectivv1.SaveDraftRequest{PlaceId: uuid.NewString()}, want: connect.CodeNotFound},
+		{name: "bad date", req: &perspectivv1.SaveDraftRequest{LocalDate: "tomorrow", Parts: []string{"x"}}, want: connect.CodeInvalidArgument},
+		{name: "bad place", req: &perspectivv1.SaveDraftRequest{PlaceId: "nope", Parts: []string{"x"}}, want: connect.CodeInvalidArgument},
+		{name: "unknown place", req: &perspectivv1.SaveDraftRequest{PlaceId: uuid.NewString(), Parts: []string{"x"}}, want: connect.CodeNotFound},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

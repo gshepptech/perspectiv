@@ -121,8 +121,14 @@ describe("landing page (AC-006, OT-036)", () => {
       { refresh: () => sessionReply({ token: "tok", username: "wren" }) },
     );
     const yours = await screen.findByRole("region", { name: "Your perspectives" });
-    const draft = await within(yours).findByRole("link", { name: /Frost on the fountain/ });
+    const draft = await within(yours).findByRole("link", { name: /^Frost on the fountain/ });
     expect(draft).toHaveAttribute("href", "/compose?perspectiveId=d-1");
+    // A draft row ends with Continue where a published row has Edit.
+    expect(within(yours).getByRole("link", { name: "Continue Frost on the fountain" })).toHaveAttribute(
+      "href",
+      "/compose?perspectiveId=d-1",
+    );
+    expect(within(yours).queryByRole("link", { name: "Continue The night the lights went out" })).toBeNull();
     expect(within(yours).getByText(/Draft/)).toBeInTheDocument();
     expect(within(yours).getByRole("link", { name: /^The night the lights went out/ })).toHaveAttribute("href", "/perspectives/p-2");
     expect(within(yours).getByRole("link", { name: "Edit The night the lights went out" })).toHaveAttribute(
@@ -157,7 +163,10 @@ describe("landing page (AC-006, OT-036)", () => {
     );
     const yours = await screen.findByRole("region", { name: "Your perspectives" });
     const titles = await waitFor(() => {
-      const links = within(yours).getAllByRole("link");
+      // Each row's title link; the rows' Continue links are not titles.
+      const links = within(yours)
+        .getAllByRole("link")
+        .filter((l) => !l.textContent?.startsWith("Continue"));
       expect(links).toHaveLength(4);
       return links.map((l) => l.querySelector(".font-serif")?.textContent);
     });
@@ -212,7 +221,9 @@ describe("landing page (AC-006, OT-036)", () => {
     // Only the superseded draft offers Delete, and nothing is deleted unasked.
     expect(within(yours).getAllByRole("button", { name: /^Delete draft/ })).toHaveLength(1);
     expect(calls("PerspectiveService/Delete")).toEqual([]);
-    expect(within(yours).getByRole("link", { name: /Frost on the fountain/ })).not.toHaveTextContent("already published");
+    expect(within(yours).getByRole("link", { name: /^Frost on the fountain/ })).not.toHaveTextContent("already published");
+    // A draft that can never be published offers Delete, not Continue.
+    expect(within(dead).queryByRole("link", { name: /^Continue/ })).toBeNull();
 
     await user.click(within(dead).getByRole("button", { name: "Delete draft The night the lights went out" }));
     await waitFor(() => expect(within(yours).queryByRole("link", { name: /already published/ })).toBeNull());
@@ -245,7 +256,6 @@ describe("landing page (AC-006, OT-036)", () => {
   });
 
   it("welcomes a member who has not published yet, asks them to write, and shows how a day works", async () => {
-    const user = userEvent.setup();
     const { calls } = renderApp(
       "/",
       {
@@ -263,8 +273,9 @@ describe("landing page (AC-006, OT-036)", () => {
     const how = screen.getByRole("region", { name: "How a day works" });
     expect(within(how).getAllByRole("listitem")).toHaveLength(4);
     expect(how).toHaveTextContent("Everyone who was there writes their own side.");
-    await user.click(screen.getByRole("link", { name: "How a day works" }));
-    expect(within(how).getByRole("heading", { name: "How a day works" })).toHaveFocus();
+    // The explainer sits right under the call to action, so no link points at it.
+    expect(within(how).getByRole("heading", { level: 2, name: "How a day works" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "How a day works" })).toBeNull();
   });
 
   it("does not ask a member who has published to start, and welcomes them back", async () => {
@@ -394,6 +405,7 @@ describe("landing page (AC-006, OT-036)", () => {
   it("lets a reader drill down from the states", async () => {
     landing();
     const browse = await screen.findByRole("navigation", { name: "Browse by state" });
+    expect(within(browse).getByRole("heading", { level: 2 })).toHaveTextContent(/^Browse by state$/);
     expect(within(browse).getByRole("link", { name: "Illinois" })).toHaveAttribute("href", "/places/st-il");
   });
 
@@ -404,8 +416,13 @@ describe("landing page (AC-006, OT-036)", () => {
     expect(within(example).getByText(/The power went out halfway through open mic/)).toBeInTheDocument();
     expect(within(example).getByText(/I don’t sing/)).toBeInTheDocument();
     expect(within(example).getByText(/that was me/)).toBeInTheDocument();
+    // Two facing pages split by a hairline gutter, not cards (Folio, Landing).
+    expect(example.querySelector(".shadow-sm, .rounded-xl, .rounded-2xl")).toBeNull();
     const how = screen.getByRole("list", { name: "How Perspectiv works" });
+    expect(how.tagName).toBe("OL");
     expect(within(how).getAllByRole("listitem")).toHaveLength(4);
+    expect(how).toHaveTextContent("the lore the people who were there favour most becomes canon");
+    expect(how).not.toHaveTextContent(/readers/);
     expect(screen.getByText("Anyone can read. Sign up to write your side.")).toBeInTheDocument();
   });
 

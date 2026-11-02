@@ -40,6 +40,8 @@ message Notification {
   repeated string unclaimed_characters = 12;
   // How many more unclaimed characters the story has beyond those listed.
   int32 more_unclaimed_characters = 13;
+  // THREAD_REPLY only: the reply, so the inbox opens the lore at it.
+  string post_id = 14;
 }
 
 // Preference is the two toggles for one notification kind. Both default on.

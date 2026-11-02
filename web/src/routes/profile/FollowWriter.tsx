@@ -51,6 +51,8 @@ export function FollowWriter({
       {!own && (
         <Button
           variant={following ? "secondary" : "ghost"}
+          // Flush only while ghost: the secondary border must not hang outside the column.
+          flush={!following}
           aria-pressed={following}
           aria-label={`${following ? "Following" : "Follow"} ${username}`}
           pending={follow.isPending}

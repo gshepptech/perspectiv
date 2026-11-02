@@ -456,3 +456,49 @@ func TestThreadHideAndRestore(t *testing.T) {
 		t.Fatalf("restored branch = %v", posts)
 	}
 }
+
+// GetLore counts the thread's posts as a reader sees them, for the lore
+// page's "Thread · N posts" link: replies count, while a deleted or hidden
+// post, and the replies under a hidden one, do not. Each step builds on the
+// thread the one before left.
+func TestGetLoreCountsThreadPosts(t *testing.T) {
+	t.Parallel()
+	th := newThread(t)
+	var top, reply, other string
+	steps := []struct {
+		name string
+		act  func(t *testing.T)
+		want int32
+	}{
+		{name: "an empty thread", act: func(*testing.T) {}, want: 0},
+		{name: "a post", act: func(*testing.T) { top = th.mustAdd(th.ana.user, "Who else saw the fryer go up?", "").GetId() }, want: 1},
+		{name: "two replies under it", act: func(*testing.T) {
+			reply = th.mustAdd(th.ben.user, "I did.", top).GetId()
+			th.mustAdd(th.cal.user, "Me too.", top)
+		}, want: 3},
+		{name: "the post deleted stands as [deleted] and is not counted", act: func(t *testing.T) {
+			if err := th.remove(th.ana.user, top); err != nil {
+				t.Fatalf("delete: %v", err)
+			}
+		}, want: 2},
+		{name: "a hidden reply", act: func(*testing.T) { th.exec(`UPDATE lore_posts SET hidden_at = now() WHERE id = $1`, reply) }, want: 1},
+		{name: "a hidden post takes its replies with it", act: func(*testing.T) {
+			other = th.mustAdd(th.cal.user, "Was it the grease trap?", "").GetId()
+			th.mustAdd(th.ben.user, "No, the vent.", other)
+			th.exec(`UPDATE lore_posts SET hidden_at = now() WHERE id = $1`, other)
+		}, want: 1},
+	}
+	for _, step := range steps {
+		// The steps share one thread, so they run in order.
+		t.Run(step.name, func(t *testing.T) {
+			step.act(t)
+			res, err := th.client.GetLore(context.Background(), asUser(uuid.Nil, &perspectivv1.GetLoreRequest{LoreId: th.lore}))
+			if err != nil {
+				t.Fatalf("GetLore: %v", err)
+			}
+			if got := res.Msg.GetLore().GetPostCount(); got != step.want {
+				t.Fatalf("post count = %d, want %d", got, step.want)
+			}
+		})
+	}
+}

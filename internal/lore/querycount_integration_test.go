@@ -86,7 +86,9 @@ func TestLoreReads_QueryCount(t *testing.T) {
 				_, err := svc.GetLore(ctx, loreID)
 				return err
 			},
-			want: []string{"GetLore", "ListLoreMembers", "ListLoreEncounters"},
+			// CountThreadPosts is the header's "Thread · N posts" link; no
+			// thread read carries a total to borrow it from.
+			want: []string{"GetLore", "ListLoreMembers", "ListLoreEncounters", "CountThreadPosts"},
 		},
 		{
 			name: "ListLorePosts signed out",

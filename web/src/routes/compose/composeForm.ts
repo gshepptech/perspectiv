@@ -17,6 +17,15 @@ export function wordCount(text: string): number {
   return trimmed ? trimmed.split(/\s+/).length : 0;
 }
 
+/**
+ * Whether any part holds a word. A draft with none is never saved: the
+ * server refuses it, and an empty draft beside a real one would be the
+ * newest, so the one that reopens.
+ */
+export function hasText(parts: readonly ({ body?: string } | undefined)[] | undefined): boolean {
+  return (parts ?? []).some((p) => wordCount(p?.body ?? "") > 0);
+}
+
 /** The hour field holds "day" for the day arc or "0" to "23" for an hour arc. */
 export const DAY = "day";
 

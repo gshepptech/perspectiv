@@ -384,8 +384,9 @@ func resolveThreadReply(ctx context.Context, q *dbq.Queries, a jobs.NotifyArgs) 
 		actor:      actor,
 		showActor:  true,
 		candidates: []uuid.UUID{f.AnsweredAuthorID},
-		path:       "/lores/" + f.LoreID.String(),
-		payload:    Payload{ActorID: actor, ArcID: ref(f.ArcID), LoreID: ref(f.LoreID)},
+		// The lore page scrolls to and focuses the post its anchor names.
+		path:    "/lores/" + f.LoreID.String() + "#post-" + a.LorePostID.String(),
+		payload: Payload{ActorID: actor, ArcID: ref(f.ArcID), LoreID: ref(f.LoreID), PostID: ref(a.LorePostID)},
 	}, true, nil
 }
 

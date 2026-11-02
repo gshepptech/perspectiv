@@ -175,6 +175,9 @@ message FollowedWriter {
   // Relative URL of the avatar image; empty when none is set.
   string avatar_url = 3;
   google.protobuf.Timestamp followed_at = 4;
+  // Readable stories the writer published in the last seven days, counted
+  // up to 100: what the front page's "Writers you follow" shows.
+  int32 new_this_week = 5;
 }
 
 message ListFollowedWritersResponse {

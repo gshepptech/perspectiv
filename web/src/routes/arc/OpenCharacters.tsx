@@ -74,7 +74,7 @@ export function OpenCharacters({
   }
   return (
     <section aria-labelledby="arc-open" className="min-w-0 rounded-md border border-rule bg-paper p-4 text-sm">
-      <h2 id="arc-open" className="font-sans text-base font-medium">
+      <h2 id="arc-open" className="text-lg">
         Is this you?
       </h2>
       <p className="mt-1 text-ink-muted">People described in these stories that nobody has claimed yet.</p>

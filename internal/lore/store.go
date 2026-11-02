@@ -91,7 +91,27 @@ func claimFromRow(r dbq.ListIncomingClaimsRow) (*perspectivv1.Claim, error) {
 		Status:                status,
 		CreatedAt:             timestampFromDB(r.CreatedAt),
 		ResolvedAt:            timestampFromDB(r.ResolvedAt),
+		PlaceName:             r.PlaceName,
+		LocalDate:             dateFromDB(r.LocalDate),
+		Hour:                  hourFromDB(r.Hour),
 	}, nil
+}
+
+// dateFromDB is a place-local day as YYYY-MM-DD, or "" when unset.
+func dateFromDB(d pgtype.Date) string {
+	if !d.Valid {
+		return ""
+	}
+	return d.Time.Format(time.DateOnly)
+}
+
+// hourFromDB is an hour arc's hour, or nil for a day arc.
+func hourFromDB(h pgtype.Int2) *int32 {
+	if !h.Valid {
+		return nil
+	}
+	v := int32(h.Int16)
+	return &v
 }
 
 // claimExcerptLen is how many characters of the claimant's story a claim

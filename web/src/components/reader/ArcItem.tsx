@@ -24,7 +24,7 @@ export function ArcItem({ arc, withCity = false, markNew = false }: { arc: EpicA
       {markNew && arc.newThisWeek && (
         <span className="ml-2 inline-block rounded border border-accent px-1.5 align-middle text-xs font-medium text-accent">New</span>
       )}
-      {arc.excerpt && <p className="line-clamp-2 font-serif wrap-anywhere text-ink">{arc.excerpt}</p>}
+      {arc.excerpt && <p className="line-clamp-2 font-serif wrap-anywhere hyphens-manual text-ink">{arc.excerpt}</p>}
       <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
         {arc.canonLoreId && (
           <span className="inline-flex items-center gap-1 font-medium text-ink">

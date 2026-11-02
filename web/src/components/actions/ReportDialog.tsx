@@ -43,10 +43,12 @@ type Props = {
   /** What is being reported, as the dialog title names it: "otter's perspective", "Moonbean Coffee". */
   targetLabel: string;
   triggerLabel?: string;
+  /** The trigger starts its row of the text column (Folio, Flush ghost buttons). */
+  flush?: boolean;
 };
 
 /** Reports a perspective, place, user, thread post or lore name to the moderators, with a reason from the fixed set. */
-export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel = "Report" }: Props) {
+export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel = "Report", flush = false }: Props) {
   const { gate } = useWriteGate();
   const [open, setOpen] = useState(false);
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { reason: "", details: "" } });
@@ -74,7 +76,7 @@ export function ReportDialog({ targetKind, targetId, targetLabel, triggerLabel =
       }}
     >
       <DialogTrigger asChild>
-        <Button aria-label={`${triggerLabel}: ${targetLabel}`} variant="ghost" size="sm" className="min-h-11 text-ink-muted">
+        <Button aria-label={`${triggerLabel}: ${targetLabel}`} variant="ghost" size="sm" flush={flush} className="min-h-11 text-ink-muted">
           <Flag aria-hidden size={16} />
           {triggerLabel}
         </Button>

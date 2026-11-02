@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
@@ -22,8 +23,9 @@ function opening(p: Perspective): string {
  * where and when first, then the day's title, then the story's own opening,
  * so stories whose days share a title still differ. `withAuthor` ends the
  * first line with the writer, for a list that holds many writers.
+ * `children` sit under the link, inside the row (the Saved page's toggle).
  */
-export function StoryLinkRow({ p, withAuthor = false }: { p: Perspective; withAuthor?: boolean }) {
+export function StoryLinkRow({ p, withAuthor = false, children }: { p: Perspective; withAuthor?: boolean; children?: ReactNode }) {
   const title = storyTitle(p);
   const by = withAuthor && p.author ? `by ${p.author.username}` : "";
   const where = [p.place?.name, formatDayBeside(p.arcTitle, p.localDate, p.hour), by].filter(Boolean).join(" · ");
@@ -34,9 +36,10 @@ export function StoryLinkRow({ p, withAuthor = false }: { p: Perspective; withAu
       <Link to={`/perspectives/${encodeURIComponent(p.id)}`} className="group flex min-h-11 min-w-0 flex-col justify-center gap-0.5">
         <span className="text-sm font-medium wrap-anywhere text-ink">{where}</span>
         <span className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 group-hover:underline">{title}</span>
-        {start && <span className="line-clamp-2 font-serif wrap-anywhere text-ink-muted">{start}</span>}
+        {start && <span className="line-clamp-2 font-serif wrap-anywhere hyphens-manual text-ink-muted">{start}</span>}
         {standing && <span className="text-sm text-ink-muted">{standing}</span>}
       </Link>
+      {children}
     </li>
   );
 }

@@ -1124,8 +1124,11 @@ type FollowedWriter struct {
 	UserId   string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Username string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
 	// Relative URL of the avatar image; empty when none is set.
-	AvatarUrl     string                 `protobuf:"bytes,3,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
-	FollowedAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=followed_at,json=followedAt,proto3" json:"followed_at,omitempty"`
+	AvatarUrl  string                 `protobuf:"bytes,3,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
+	FollowedAt *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=followed_at,json=followedAt,proto3" json:"followed_at,omitempty"`
+	// Readable stories the writer published in the last seven days, counted
+	// up to 100: what the front page's "Writers you follow" shows.
+	NewThisWeek   int32 `protobuf:"varint,5,opt,name=new_this_week,json=newThisWeek,proto3" json:"new_this_week,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1186,6 +1189,13 @@ func (x *FollowedWriter) GetFollowedAt() *timestamppb.Timestamp {
 		return x.FollowedAt
 	}
 	return nil
+}
+
+func (x *FollowedWriter) GetNewThisWeek() int32 {
+	if x != nil {
+		return x.NewThisWeek
+	}
+	return 0
 }
 
 type ListFollowedWritersResponse struct {
@@ -1552,14 +1562,15 @@ const file_perspectiv_v1_user_proto_rawDesc = "" +
 	"\x02on\x18\x02 \x01(\bR\x02on\"2\n" +
 	"\x12FollowUserResponse\x12\x1c\n" +
 	"\tfollowing\x18\x01 \x01(\bR\tfollowing\"\x1c\n" +
-	"\x1aListFollowedWritersRequest\"\xa1\x01\n" +
+	"\x1aListFollowedWritersRequest\"\xc5\x01\n" +
 	"\x0eFollowedWriter\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1d\n" +
 	"\n" +
 	"avatar_url\x18\x03 \x01(\tR\tavatarUrl\x12;\n" +
 	"\vfollowed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"followedAt\"V\n" +
+	"followedAt\x12\"\n" +
+	"\rnew_this_week\x18\x05 \x01(\x05R\vnewThisWeek\"V\n" +
 	"\x1bListFollowedWritersResponse\x127\n" +
 	"\awriters\x18\x01 \x03(\v2\x1d.perspectiv.v1.FollowedWriterR\awriters\"k\n" +
 	"\x14ListUserPostsRequest\x12\x17\n" +

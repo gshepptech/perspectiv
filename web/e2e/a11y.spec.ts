@@ -171,7 +171,8 @@ test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violatio
   // Ivy's profile on its Thread posts tab, which lists her post above.
   await visit(ivy.page, ivyAcct, `/users/${ivyAcct.username}?tab=posts`);
   const posts = ivy.page.getByRole("list", { name: "Thread posts" });
-  await expect(posts.getByRole("link").first()).toHaveAttribute("href", lore as string);
+  // Each row opens the lore at the post itself.
+  await expect(posts.getByRole("link").first()).toHaveAttribute("href", new RegExp(`^${lore as string}#post-[0-9a-f-]+$`));
   await expect(ivy.page.getByRole("tab", { name: "Thread posts" })).toHaveAttribute("aria-selected", "true");
   findings.push(...(await scanBothThemes(ivy.page, `/users/${ivyAcct.username}?tab=posts`, posts)));
   await visit(ivy.page, ivyAcct, "/appearance");

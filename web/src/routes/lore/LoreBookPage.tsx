@@ -32,10 +32,12 @@ import { WhoWasWho } from "./WhoWasWho";
 /** The level-one heading of the title, contents and closing pages; a chapter's is the Reader's. */
 const HEADING_ID = "book-heading";
 
-/** A chapter's title: its number and its writer. */
-function chapterTitle(n: number, p: Perspective | undefined): string {
-  return `Chapter ${n}: ${p?.author?.username ?? "Someone"}`;
-}
+/**
+ * Every page of the book sits in a frame at least this tall, with its
+ * page-turn row at the frame's foot, so the row stays put from page to page
+ * (Folio, Lore as a book).
+ */
+const PAGE_FRAME = "min-h-[calc(100dvh-12rem)]";
 
 function bodiesOf(p: Perspective): string[] {
   return p.parts.toSorted((a, b) => a.position - b.position).map((part) => part.body);
@@ -54,14 +56,20 @@ function Missing() {
 
 const linkClass = "inline-flex min-h-11 items-center gap-1 text-sm text-accent underline underline-offset-4";
 
-/** The quiet row above the pages before the end: back to the lore, and the contents from a chapter. */
-function TopBar({ loreId, contents }: { loreId: string; contents: boolean }) {
+/**
+ * The quiet row above every page: back to the lore, and the contents from a
+ * chapter. The closing page carries its own way back, so there the row is
+ * empty but keeps its height and the page frame starts where it always does.
+ */
+function TopBar({ loreId, contents, empty }: { loreId: string; contents: boolean; empty: boolean }) {
   return (
-    <p className="mx-auto mb-4 flex max-w-measure flex-wrap items-center gap-x-4">
-      <Link to={`/lores/${encodeURIComponent(loreId)}`} className={linkClass}>
-        <ArrowLeft aria-hidden size={16} />
-        Back to the lore
-      </Link>
+    <p className="mx-auto mb-4 flex min-h-11 max-w-measure flex-wrap items-center gap-x-4">
+      {!empty && (
+        <Link to={`/lores/${encodeURIComponent(loreId)}`} className={linkClass}>
+          <ArrowLeft aria-hidden size={16} />
+          Back to the lore
+        </Link>
+      )}
       {contents && (
         <Link to={{ search: searchOf({ kind: "contents" }) }} className={linkClass}>
           Contents
@@ -78,30 +86,30 @@ function TopBar({ loreId, contents }: { loreId: string; contents: boolean }) {
  */
 function PageTurn({ previous, next, position }: { previous: BookPage | null; next: BookPage | null; position: string }) {
   return (
-    <nav aria-label="Pages" className="mt-8 flex items-center justify-between gap-2 border-t border-rule pt-4">
+    <nav aria-label="Pages" className="mt-8 grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-t border-rule pt-4">
       {previous ? (
-        <Button variant="secondary" asChild>
+        <Button variant="secondary" asChild className="justify-self-start">
           <Link to={{ search: searchOf(previous) }} aria-label="Previous page">
             <ChevronLeft aria-hidden size={16} />
             <span className="hidden sm:inline">Previous</span>
           </Link>
         </Button>
       ) : (
-        <Button variant="secondary" disabled aria-label="Previous page">
+        <Button variant="secondary" disabled aria-label="Previous page" className="justify-self-start">
           <ChevronLeft aria-hidden size={16} />
           <span className="hidden sm:inline">Previous</span>
         </Button>
       )}
-      <span className="text-sm text-ink-muted">{position}</span>
+      <span className="text-center text-sm text-ink-muted">{position}</span>
       {next ? (
-        <Button variant="secondary" asChild>
+        <Button variant="secondary" asChild className="justify-self-end">
           <Link to={{ search: searchOf(next) }} aria-label="Next page">
             <span className="hidden sm:inline">Next</span>
             <ChevronRight aria-hidden size={16} />
           </Link>
         </Button>
       ) : (
-        <Button variant="secondary" disabled aria-label="Next page">
+        <Button variant="secondary" disabled aria-label="Next page" className="justify-self-end">
           <span className="hidden sm:inline">Next</span>
           <ChevronRight aria-hidden size={16} />
         </Button>
@@ -389,9 +397,11 @@ export function Component() {
         <>
           <Reader
             key={page.chapter}
-            title={chapterTitle(page.chapter, p)}
+            chapter={`Chapter ${page.chapter}`}
+            title={p?.author?.username ?? "Someone"}
+            className={PAGE_FRAME}
             byline={
-              <p className="flex flex-wrap items-center gap-x-3">
+              <p className="flex flex-wrap items-center justify-center gap-x-3">
                 {p?.author && (
                   <span className="inline-flex min-h-11 items-center gap-1">
                     by <AuthorLink username={p.author.username} className="inline-flex min-h-11 items-center" />
@@ -416,16 +426,19 @@ export function Component() {
 
   return (
     <div className="min-w-0">
-      {/* The closing page carries its own way back to the lore. */}
-      {page.kind !== "end" && <TopBar loreId={lore.id} contents={page.kind === "chapter"} />}
+      <TopBar loreId={lore.id} contents={page.kind === "chapter"} empty={page.kind === "end"} />
       {/* One status line outside the page that changes, so every turn is announced. */}
       <p role="status" className="sr-only">
         {position}
       </p>
-      {content}
-      {page.kind !== "chapter" && (
-        <div className="mx-auto max-w-measure">
-          <PageTurn previous={previousPage(page, parts)} next={nextPage(page, parts)} position={position} />
+      {page.kind === "chapter" ? (
+        content
+      ) : (
+        <div className={`mx-auto flex max-w-measure flex-col ${PAGE_FRAME}`}>
+          <div className="min-w-0">{content}</div>
+          <div className="mt-auto">
+            <PageTurn previous={previousPage(page, parts)} next={nextPage(page, parts)} position={position} />
+          </div>
         </div>
       )}
     </div>

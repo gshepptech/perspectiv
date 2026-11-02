@@ -7,11 +7,13 @@ import { Link } from "react-router";
 
 import { invalidateAfterWrite, perspectiveQuery } from "@/components/actions/queries";
 import { CANON_MIN_MEMBERS } from "@/components/actions/rights";
+import { formatDay } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/Dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ClaimDirection, ClaimStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Claim } from "@/gen/perspectiv/v1/lore_pb";
+import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 import { useShowMore } from "@/lib/showMore";
 import { useDocumentTitle } from "@/lib/title";
@@ -79,8 +81,48 @@ function Linked({ claim, lineRef }: { claim: Claim; lineRef: RefObject<HTMLParag
           Invite who else was there
         </Link>
       </p>
+      <TheirCharacters claim={claim} />
     </div>
   );
+}
+
+/**
+ * Once linked, the claimant's own characters the reader may still claim:
+ * nobody has a pending or accepted claim on them, and the reader has not
+ * claimed them before. "That was me" opens their story with the claim
+ * dialog up on that character.
+ */
+function TheirCharacters({ claim }: { claim: Claim }) {
+  const headingId = useId();
+  const story = useQuery(perspectiveQuery(claim.claimantPerspectiveId));
+  const open = (story.data?.characters ?? []).filter(
+    (c) => !c.hasAcceptedClaim && !c.hasPendingClaim && c.myClaim === ClaimStatus.UNSPECIFIED,
+  );
+  if (open.length === 0) return null;
+  const theirStory = `/perspectives/${encodeURIComponent(claim.claimantPerspectiveId)}`;
+  return (
+    <div className="mt-1 grid gap-1">
+      <p id={headingId} className="text-sm text-ink-muted [overflow-wrap:anywhere]">
+        Are you in {claim.claimant?.username ?? "their"}&apos;s story too?
+      </p>
+      <ul aria-labelledby={headingId} className="grid gap-1">
+        {open.map((c) => (
+          <li key={c.id} className="flex min-w-0 flex-wrap items-center gap-x-3">
+            <span className="min-w-0 font-serif [overflow-wrap:anywhere]">“{c.label}”</span>
+            <Link to={`${theirStory}?claim=${encodeURIComponent(c.id)}`} aria-label={`That was me: ${c.label}`} className={linkClass}>
+              That was me
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** "UCF Stadium, October 3, 2026": where and when the claim's story is set. */
+function storyAt(claim: Claim): string {
+  const where = [claim.placeName, claim.localDate ? formatDay(claim.localDate, claim.hour) : ""].filter(Boolean).join(", ");
+  return where ? ` at ${where}` : "";
 }
 
 /**
@@ -165,12 +207,12 @@ function ClaimItem({ claim, incoming }: { claim: Claim; incoming: boolean }) {
         {claim.createdAt && (
           <span className="text-sm text-ink-muted">{dateFormat.format(timestampDate(claim.createdAt))}</span>
         )}
-        <Link to={`/perspectives/${encodeURIComponent(claim.perspectiveId)}`} className={linkClass}>
-          {incoming ? "Your perspective" : `${author}'s perspective`}
+        <Link to={`/perspectives/${encodeURIComponent(claim.perspectiveId)}`} className={cn(linkClass, "[overflow-wrap:anywhere]")}>
+          About {incoming ? "your" : `${author}'s`} story{storyAt(claim)}
         </Link>
         {!incoming && (
           <Link to={`/perspectives/${encodeURIComponent(claim.claimantPerspectiveId)}`} className={linkClass}>
-            Your perspective
+            Your story of that day
           </Link>
         )}
       </div>

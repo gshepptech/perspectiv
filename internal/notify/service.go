@@ -56,6 +56,8 @@ type Payload struct {
 	ClaimID       *uuid.UUID `json:"claim_id,omitempty"`
 	LoreID        *uuid.UUID `json:"lore_id,omitempty"`
 	ReportID      *uuid.UUID `json:"report_id,omitempty"`
+	// PostID is the thread reply a THREAD_REPLY is about.
+	PostID *uuid.UUID `json:"post_id,omitempty"`
 }
 
 // InboxPage is one page of the inbox.

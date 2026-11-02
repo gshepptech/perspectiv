@@ -413,7 +413,7 @@ export function Component() {
           <PlaceKindLabel place={place} />
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button asChild variant="secondary">
+          <Button asChild>
             <Link to={`/compose?placeId=${encodeURIComponent(place.id)}`}>
               <PenLine aria-hidden size={16} />
               Write about this place
@@ -422,7 +422,7 @@ export function Component() {
           <FollowButton placeId={place.id} following={place.following} />
           {/* A city, town or mall holds smaller places; a store holds none. */}
           {place.kind !== PlaceKind.STORE && place.kind !== PlaceKind.STATE && (
-            <Button asChild variant="ghost">
+            <Button asChild variant="ghost" size="sm" className="min-h-11">
               <Link to={`/compose?in=${encodeURIComponent(place.id)}`}>
                 <Plus aria-hidden size={16} />
                 Add a place here

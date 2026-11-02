@@ -1,7 +1,7 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Crown } from "lucide-react";
+import { Crown, Users } from "lucide-react";
 import type { RefObject } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
@@ -52,14 +52,15 @@ function Header({ profile }: { profile: Profile }) {
           <p className="mt-1 text-sm text-ink-muted">Joined {joinedFormat.format(timestampDate(profile.joinedAt))}</p>
         )}
         {(profile.canonCount > 0 || profile.loreCount > 0) && (
-          <p className="mt-2 flex flex-wrap gap-2 text-sm">
+          <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-sm">
             {profile.canonCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-3 py-0.5 font-medium text-accent">
-                <Crown aria-hidden size={14} />
+              <span className="inline-flex items-center gap-1 font-medium text-accent">
+                <Crown aria-hidden size={16} />
                 In {profile.canonCount} {profile.canonCount === 1 ? "canon" : "canons"}
               </span>
             )}
-            <span className="inline-flex items-center rounded-full border border-rule px-3 py-0.5 text-ink-muted">
+            <span className="inline-flex items-center gap-1 text-ink-muted">
+              <Users aria-hidden size={16} />
               In {profile.loreCount} {profile.loreCount === 1 ? "lore" : "lores"}
             </span>
           </p>
@@ -163,7 +164,8 @@ function WritingList({
   const items = pages.flatMap((page) => page.perspectives);
   if (items.length === 0) return <p className="text-ink-muted">{username} has not published a perspective yet.</p>;
   return (
-    <ul ref={listRef} aria-label="Stories" className="divide-y divide-rule border-y border-rule">
+    // The tab row's hairline is the rule above the first row (Folio, Profile).
+    <ul ref={listRef} aria-label="Stories" className="divide-y divide-rule border-b border-rule">
       {items.map((p) => (
         <StoryLinkRow key={p.id} p={p} />
       ))}

@@ -345,7 +345,8 @@ func (s *Service) Following(ctx context.Context, caller, placeID uuid.UUID) (boo
 }
 
 // ListFollowing returns the visible places the caller follows, most
-// recently followed first. A place hidden since it was followed is left out.
+// recently followed first, each with the stories others published there
+// this week. A place hidden since it was followed is left out.
 func (s *Service) ListFollowing(ctx context.Context, caller uuid.UUID) ([]Place, error) {
 	ids, err := s.store.FollowedPlaceIDs(ctx, caller, maxFollowing)
 	if err != nil {
@@ -362,7 +363,7 @@ func (s *Service) ListFollowing(ctx context.Context, caller uuid.UUID) ([]Place,
 		}
 		out = append(out, p)
 	}
-	recent, err := s.store.RecentStories(ctx, ids, time.Now().Add(-newStoryWindow))
+	recent, err := s.store.RecentStories(ctx, caller, ids, time.Now().Add(-newStoryWindow))
 	if err != nil {
 		return nil, apiutil.Internal(err)
 	}

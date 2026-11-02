@@ -3,8 +3,9 @@
  * same day, link up by claiming each other's characters, become canon when
  * the rank job runs, and then vote one of themselves out of the lore. The
  * three left then talk it over in the lore's thread: a post, a reply that
- * reaches its author's inbox, an upvote and both sort orders. Last, a
- * signed-out reader opens the lore as a book and turns into chapter 2.
+ * reaches its author's inbox and opens on the reply, an upvote and both sort
+ * orders. Last, a signed-out reader opens the lore as a book and turns into
+ * chapter 2.
  */
 import { expect, test, type Page } from "@playwright/test";
 
@@ -247,5 +248,12 @@ async function talkInTheThread(arc: string, ana: Writer, ben: Writer, cal: Write
     await visit(ben.page, ben.account, "/inbox");
     await expect(ben.page.getByText(`${cal.account.username} replied to your post`)).toBeVisible({ timeout: 2_000 });
   }).toPass({ timeout: 30_000, intervals: [1_000] });
+
+  // Opening that notification lands on Cal's reply itself, focused.
+  await ben.page.getByRole("link", { name: new RegExp(`${cal.account.username} replied to your post`) }).click();
+  const calsReply = ben.page.getByRole("article", { name: `${cal.account.username}'s post` });
+  await expect(calsReply).toBeFocused();
+  await expect(calsReply).toContainText("Not mine. I was by the window.");
+  expect(new URL(ben.page.url()).hash).toBe(`#${await calsReply.getAttribute("id")}`);
   return lorePath;
 }

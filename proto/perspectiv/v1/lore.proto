@@ -58,6 +58,12 @@ message Claim {
   // and ending in "…" when cut. Empty when that story is not readable:
   // deleted, hidden, unpublished, or filed at or below a hidden place.
   string claimant_excerpt = 12;
+  // Where and when the story declaring the character is set: its place's
+  // name, the place-local day (YYYY-MM-DD) and the hour (unset for a day),
+  // so a request can name the story it is about.
+  string place_name = 13;
+  string local_date = 14;
+  optional int32 hour = 15;
 }
 
 // Encounter is an accepted claim seen as a link between two perspectives.
@@ -91,6 +97,9 @@ message Lore {
   string name = 10;
   // Who set the current name; unset when there is none.
   UserRef named_by = 11;
+  // Posts a reader of the thread sees, replies included: never a deleted or
+  // hidden post, a post by a deleted account, or a reply under a hidden post.
+  int32 post_count = 12;
 }
 
 message ClaimCharacterRequest {

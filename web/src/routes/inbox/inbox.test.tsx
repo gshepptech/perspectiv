@@ -232,15 +232,18 @@ describe("a new story by a followed writer", () => {
 });
 
 describe("a reply to your thread post", () => {
-  it("names who replied and the arc, opens the lore's page, and has its own settings label", () => {
+  it("names who replied and the arc, opens the lore's page at the reply, and has its own settings label", () => {
     const n = create(NotificationSchema, {
       kind: NotificationKind.THREAD_REPLY,
       actor: { userId: "u-1", username: "otter" },
       arcTitle: "Fourth quarter",
       arcId: "arc-1",
       loreId: "lore-1",
+      postId: "lr-9",
     });
-    expect(describeNotification(n)).toEqual({ text: "otter replied to your post in the thread of Fourth quarter.", to: "/lores/lore-1" });
+    expect(describeNotification(n)).toEqual({ text: "otter replied to your post in the thread of Fourth quarter.", to: "/lores/lore-1#post-lr-9" });
+    // An older notification that names no reply opens the lore at its top.
+    expect(describeNotification(create(NotificationSchema, { ...n, postId: "" })).to).toBe("/lores/lore-1");
     expect(notificationKinds.at(-1)).toEqual({ kind: NotificationKind.THREAD_REPLY, label: "Someone replies to your post in a lore's thread" });
   });
 });

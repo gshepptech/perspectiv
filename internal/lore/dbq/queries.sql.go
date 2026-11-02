@@ -137,6 +137,30 @@ func (q *Queries) CanPostToLore(ctx context.Context, arg CanPostToLoreParams) (b
 	return can_post, err
 }
 
+const countThreadPosts = `-- name: CountThreadPosts :one
+SELECT (
+    (SELECT count(*) FROM lore_posts t JOIN users tu ON tu.id = t.author_id
+     WHERE t.lore_id = $1::uuid AND t.reply_to_id IS NULL
+       AND t.deleted_at IS NULL AND t.hidden_at IS NULL AND tu.deleted_at IS NULL)
+  + (SELECT count(*) FROM lore_posts t
+     JOIN lore_posts r ON r.reply_to_id = t.id
+     JOIN users ru ON ru.id = r.author_id
+     WHERE t.lore_id = $1::uuid AND t.reply_to_id IS NULL AND t.hidden_at IS NULL
+       AND r.deleted_at IS NULL AND r.hidden_at IS NULL AND ru.deleted_at IS NULL)
+)::integer AS posts
+`
+
+// The posts a reader of the lore's thread sees, replies included: neither
+// deleted nor hidden, by a live account, and a reply only while its
+// top-level post is not hidden. Top-level posts come through
+// lore_posts_top_idx and replies through lore_posts_replies_idx.
+func (q *Queries) CountThreadPosts(ctx context.Context, loreID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, countThreadPosts, loreID)
+	var posts int32
+	err := row.Scan(&posts)
+	return posts, err
+}
+
 const deleteArcMembers = `-- name: DeleteArcMembers :exec
 DELETE FROM lore_members m
 USING lores l
@@ -668,6 +692,7 @@ SELECT c.id, p.arc_id, c.character_id, ch.label, ch.perspective_id,
        p.author_id, au.username AS author_username,
        c.claimant_user_id, cu.username AS claimant_username,
        c.claimant_perspective_id, c.status, c.created_at, c.resolved_at,
+       coalesce(pl.name, '')::text AS place_name, ar.local_date, ar.hour,
        COALESCE((SELECT left(regexp_replace(btrim(pp.body), '\s+', ' ', 'g'), 241) FROM perspective_parts pp
                  JOIN perspectives cp ON cp.id = pp.perspective_id
                  JOIN arcs ca ON ca.id = cp.arc_id
@@ -682,6 +707,8 @@ JOIN characters ch ON ch.id = c.character_id
 JOIN perspectives p ON p.id = ch.perspective_id
 JOIN users au ON au.id = p.author_id
 JOIN users cu ON cu.id = c.claimant_user_id
+LEFT JOIN arcs ar ON ar.id = p.arc_id
+LEFT JOIN places pl ON pl.id = ar.place_id
 WHERE p.author_id = $1::uuid
   AND ($2::text IS NULL OR c.status = $2::text)
   AND (NOT $3::boolean
@@ -713,6 +740,9 @@ type ListIncomingClaimsRow struct {
 	Status                string
 	CreatedAt             pgtype.Timestamptz
 	ResolvedAt            pgtype.Timestamptz
+	PlaceName             string
+	LocalDate             pgtype.Date
+	Hour                  pgtype.Int2
 	ClaimantOpening       string
 }
 
@@ -720,7 +750,9 @@ type ListIncomingClaimsRow struct {
 // paged on (created_at, id). claimant_opening is the first 241 characters of
 // the claimant's story, whitespace folded, while anyone may read it (published, neither deleted
 // nor hidden, not filed at or below a hidden place), else ”; claimExcerpt
-// cuts it at a word. ListOutgoingClaims returns the same columns.
+// cuts it at a word. place_name, local_date and hour say where and when the
+// story declaring the character is set. ListOutgoingClaims returns the same
+// columns.
 func (q *Queries) ListIncomingClaims(ctx context.Context, arg ListIncomingClaimsParams) ([]ListIncomingClaimsRow, error) {
 	rows, err := q.db.Query(ctx, listIncomingClaims,
 		arg.UserID,
@@ -751,6 +783,9 @@ func (q *Queries) ListIncomingClaims(ctx context.Context, arg ListIncomingClaims
 			&i.Status,
 			&i.CreatedAt,
 			&i.ResolvedAt,
+			&i.PlaceName,
+			&i.LocalDate,
+			&i.Hour,
 			&i.ClaimantOpening,
 		); err != nil {
 			return nil, err
@@ -846,6 +881,7 @@ SELECT c.id, p.arc_id, c.character_id, ch.label, ch.perspective_id,
        p.author_id, au.username AS author_username,
        c.claimant_user_id, cu.username AS claimant_username,
        c.claimant_perspective_id, c.status, c.created_at, c.resolved_at,
+       coalesce(pl.name, '')::text AS place_name, ar.local_date, ar.hour,
        COALESCE((SELECT left(regexp_replace(btrim(pp.body), '\s+', ' ', 'g'), 241) FROM perspective_parts pp
                  JOIN perspectives cp ON cp.id = pp.perspective_id
                  JOIN arcs ca ON ca.id = cp.arc_id
@@ -860,6 +896,8 @@ JOIN characters ch ON ch.id = c.character_id
 JOIN perspectives p ON p.id = ch.perspective_id
 JOIN users au ON au.id = p.author_id
 JOIN users cu ON cu.id = c.claimant_user_id
+LEFT JOIN arcs ar ON ar.id = p.arc_id
+LEFT JOIN places pl ON pl.id = ar.place_id
 WHERE c.claimant_user_id = $1::uuid
   AND ($2::text IS NULL OR c.status = $2::text)
   AND (NOT $3::boolean
@@ -891,6 +929,9 @@ type ListOutgoingClaimsRow struct {
 	Status                string
 	CreatedAt             pgtype.Timestamptz
 	ResolvedAt            pgtype.Timestamptz
+	PlaceName             string
+	LocalDate             pgtype.Date
+	Hour                  pgtype.Int2
 	ClaimantOpening       string
 }
 
@@ -925,6 +966,9 @@ func (q *Queries) ListOutgoingClaims(ctx context.Context, arg ListOutgoingClaims
 			&i.Status,
 			&i.CreatedAt,
 			&i.ResolvedAt,
+			&i.PlaceName,
+			&i.LocalDate,
+			&i.Hour,
 			&i.ClaimantOpening,
 		); err != nil {
 			return nil, err

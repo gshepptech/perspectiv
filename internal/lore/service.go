@@ -457,6 +457,11 @@ func (s *Service) GetLore(ctx context.Context, loreID uuid.UUID) (*perspectivv1.
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("list encounters: %w", err))
 	}
+	// The page's "Thread · 3 posts" link; thread pages do not repeat it.
+	posts, err := q.CountThreadPosts(ctx, loreID)
+	if err != nil {
+		return nil, apiutil.Internal(fmt.Errorf("count thread posts: %w", err))
+	}
 	out := &perspectivv1.Lore{
 		Id:          row.ID.String(),
 		ArcId:       row.ArcID.String(),
@@ -466,6 +471,7 @@ func (s *Service) GetLore(ctx context.Context, loreID uuid.UUID) (*perspectivv1.
 		RankScore:   row.RankScore,
 		ComputedAt:  timestampFromDB(row.ComputedAt),
 		Name:        row.Name,
+		PostCount:   posts,
 	}
 	if row.NamedBy.Valid && row.NamedByUsername != "" {
 		out.NamedBy = &perspectivv1.UserRef{UserId: row.NamedBy.UUID.String(), Username: row.NamedByUsername}

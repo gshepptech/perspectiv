@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -182,9 +182,11 @@ describe("profile tabs", () => {
     expect(calls("UserService/ListUserPosts")).toEqual([]);
 
     await user.click(screen.getByRole("tab", { name: "Thread posts" }));
-    expect(screen.getByRole("tab", { name: "Thread posts" })).toHaveAttribute("aria-selected", "true");
+    // The tab follows the address, which the router updates in a transition.
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Thread posts" })).toHaveAttribute("aria-selected", "true"));
     const list = await screen.findByRole("list", { name: "Thread posts" });
-    expect(within(list).getByRole("link")).toHaveAttribute("href", "/lores/lore-1");
+    // The row opens the lore at the post itself.
+    expect(within(list).getByRole("link")).toHaveAttribute("href", "/lores/lore-1#post-1");
     expect(router.state.location.search).toBe("?tab=posts");
     expect(calls("UserService/ListUserPosts")).toEqual([{ userId: "u-1", pageSize: 20 }]);
 
@@ -234,7 +236,7 @@ describe("profile tabs", () => {
 
     await user.click(screen.getByRole("button", { name: "Show more" }));
     const third = await within(list).findByRole("link", { name: /Unnamed lore/ });
-    expect(third).toHaveAttribute("href", "/lores/lore-3");
+    expect(third).toHaveAttribute("href", "/lores/lore-3#post-3");
     // The hour is in the title, so it is not said twice.
     expect(third).toHaveTextContent("Saturday night · 21:00 · Prairie Books · January 14, 2026Post 3 text");
     expect(third.closest("li")).toHaveFocus();

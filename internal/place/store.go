@@ -404,9 +404,11 @@ func (s *Store) FollowedPlaceIDs(ctx context.Context, userID uuid.UUID, limit in
 }
 
 // RecentStories counts, for each place, readable stories at it or below
-// published since the cutoff.
-func (s *Store) RecentStories(ctx context.Context, ids []uuid.UUID, since time.Time) (map[uuid.UUID]int32, error) {
-	rows, err := s.q.RecentStoriesUnder(ctx, dbq.RecentStoriesUnderParams{Ids: ids, Since: pgtype.Timestamptz{Time: since, Valid: true}})
+// published since the cutoff by anyone but reader.
+func (s *Store) RecentStories(ctx context.Context, reader uuid.UUID, ids []uuid.UUID, since time.Time) (map[uuid.UUID]int32, error) {
+	rows, err := s.q.RecentStoriesUnder(ctx, dbq.RecentStoriesUnderParams{
+		Ids: ids, Since: pgtype.Timestamptz{Time: since, Valid: true}, ReaderID: reader,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("recent stories: %w", err)
 	}

@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 
-import { PerspectiveStatus } from "@/gen/perspectiv/v1/enums_pb";
 import type { Place } from "@/gen/perspectiv/v1/place_pb";
 import type { Perspective } from "@/gen/perspectiv/v1/perspective_pb";
 import { clients } from "@/lib/connect";
@@ -11,14 +10,13 @@ import { useDocumentTitle } from "@/lib/title";
 
 import { blankValues, valuesFromPerspective } from "./composeForm";
 import { Composer } from "./Composer";
+import { resumedNotice, useDraftsFor } from "./drafts";
 import { rememberAfterPublish } from "./links";
 import { isLocalDate, parseHour, todayIn } from "./localDate";
 import { PlacePicker } from "./PlacePicker";
 
 const EXISTING_NOTICE =
   "You already published a perspective here, so it is open for editing. Each person writes one story per day.";
-
-const RESUMED_NOTICE = "You started a draft for this day, so it is open again.";
 
 // Composer data is read fresh on every visit: initial form values must never
 // come from a cached copy that predates the author's last save.
@@ -63,23 +61,6 @@ function placeToday(place: Place): string {
   return todayIn(place.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
 }
 
-/**
- * The writer's newest draft for this place, day and hour, if they have one:
- * opening the composer there again resumes it rather than starting a second
- * draft of the same day.
- */
-function useDraftFor(placeId: string, localDate: string | undefined, hour: number | undefined) {
-  return useQuery({
-    queryKey: ["perspective", "listMine", { status: PerspectiveStatus.DRAFT, placeId, localDate, hour }],
-    queryFn: async () => {
-      const res = await clients.perspective.listMine({ status: PerspectiveStatus.DRAFT, placeId, localDate, hour, pageSize: 1 });
-      return res.perspectives[0] ?? null;
-    },
-    enabled: localDate !== undefined,
-    ...fresh,
-  });
-}
-
 function NewForPlace({ placeId, date, hour, ...shared }: Shared & { placeId: string; date?: string; hour?: number }) {
   const place = useQuery({
     queryKey: ["place", "getPlace", placeId],
@@ -88,8 +69,17 @@ function NewForPlace({ placeId, date, hour, ...shared }: Shared & { placeId: str
   });
   const today = place.data?.place ? placeToday(place.data.place) : undefined;
   const localDate = date ?? today;
-  const draft = useDraftFor(placeId, localDate, hour);
-  const resumed = draft.data ?? null;
+  // The writer's newest draft for this place, day and hour, if they have
+  // one: opening the composer there again resumes it rather than starting a
+  // second draft of the same day.
+  const draft = useDraftsFor(placeId, localDate, hour);
+  // The first answer decides what opens. The composer looks up the same
+  // drafts again as its day and hour change, sharing this query; a later
+  // answer (once the composer has saved a draft of its own, say) must not
+  // swap the form out from under the writer.
+  const [found, setFound] = useState<Perspective[] | null>(null);
+  if (found === null && draft.data) setFound(draft.data);
+  const resumed = (found ?? draft.data)?.[0] ?? null;
   // The address names the resumed draft, so a reload reopens it. The
   // callback changes on every render of the page, so it is read through a
   // ref and the effect runs once per draft found.
@@ -100,8 +90,8 @@ function NewForPlace({ placeId, date, hour, ...shared }: Shared & { placeId: str
     if (resumedId) named.current(resumedId);
   }, [resumedId]);
   if (place.isError) return <LoadFailed error={place.error} />;
-  if (draft.isError) return <LoadFailed error={draft.error} />;
-  if (!place.data?.place || today === undefined || localDate === undefined || draft.isPending) return <Loading />;
+  if (found === null && draft.isError) return <LoadFailed error={draft.error} />;
+  if (!place.data?.place || today === undefined || localDate === undefined || (found === null && draft.isPending)) return <Loading />;
   const p = place.data.place;
   if (resumed) {
     return (
@@ -111,7 +101,7 @@ function NewForPlace({ placeId, date, hour, ...shared }: Shared & { placeId: str
         initial={valuesFromPerspective(resumed, today)}
         perspective={resumed}
         {...shared}
-        notice={shared.notice ?? RESUMED_NOTICE}
+        notice={shared.notice ?? resumedNotice((found ?? draft.data)?.length ?? 1)}
       />
     );
   }

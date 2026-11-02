@@ -708,7 +708,8 @@ LIMIT @lim::integer;
 
 -- name: RecentStoriesUnder :many
 -- For each given place, readable stories at it or below published since the
--- cutoff, counted up to 100: what a follower has not seen yet this week.
+-- cutoff by anyone but the reader, counted up to 100: what a follower has
+-- not seen yet this week. The reader's own stories are not news to them.
 SELECT f.id::uuid AS place_id, rc.recent
 FROM unnest(@ids::uuid[]) AS f(id)
 CROSS JOIN LATERAL (
@@ -718,6 +719,7 @@ CROSS JOIN LATERAL (
           AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
           AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND v.published_at > @since::timestamptz
+          AND v.author_id <> @reader_id::uuid
         LIMIT 100) x
 ) rc;
 

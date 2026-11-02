@@ -1,6 +1,6 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { useMutation } from "@tanstack/react-query";
-import { Pencil, Reply } from "lucide-react";
+import { Pencil, Reply, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { ReportDialog } from "@/components/actions/ReportDialog";
@@ -8,14 +8,22 @@ import { AuthorLink } from "@/components/reader/AuthorLink";
 import { Button } from "@/components/ui/Button";
 import { ReportTargetKind } from "@/gen/perspectiv/v1/enums_pb";
 import type { LorePost } from "@/gen/perspectiv/v1/lore_pb";
+import { cn } from "@/lib/cn";
 import { clients } from "@/lib/connect";
 
 import { DeletePostDialog } from "./DeletePostDialog";
 import { PostForm } from "./PostForm";
-import { useInvalidateThread } from "./threadQueries";
+import { postAnchor, useInvalidateThread } from "./threadQueries";
 import { ThreadVote } from "./ThreadVote";
 
 const when = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+/**
+ * A post is a link target (`#post-<id>`): useThreadTarget focuses it and
+ * sets data-highlight for two seconds, drawn as a still outline so reduced
+ * motion changes nothing.
+ */
+const anchorClass = "rounded-sm outline-offset-4 data-highlight:outline-2 data-highlight:outline-accent data-highlight:outline-solid";
 
 type Props = {
   post: LorePost;
@@ -39,7 +47,7 @@ type Props = {
 export function ThreadPost({ post, loreId, canPost, viewerId, onReplied, onEdited, onGone }: Props) {
   if (post.deleted) {
     return (
-      <article aria-label="Deleted post" data-post-id={post.id}>
+      <article id={postAnchor(post.id)} tabIndex={-1} aria-label="Deleted post" data-post-id={post.id} className={anchorClass}>
         <p className="text-ink-muted italic">[deleted]</p>
       </article>
     );
@@ -86,10 +94,15 @@ function LivePost({ post, loreId, canPost, viewerId, onReplied, onEdited, onGone
   });
 
   return (
-    <article aria-label={`${name}'s post`} data-post-id={post.id} className="min-w-0">
+    <article id={postAnchor(post.id)} tabIndex={-1} aria-label={`${name}'s post`} data-post-id={post.id} className={cn("min-w-0", anchorClass)}>
       <p className="flex flex-wrap items-baseline gap-x-2 text-sm text-ink-muted">
         {post.author && <AuthorLink username={post.author.username} className="inline-flex min-h-11 items-center" />}
-        {post.byMember && <span className="rounded-full bg-accent/10 px-2 text-xs font-medium text-accent">In this lore</span>}
+        {post.byMember && (
+          <span className="inline-flex items-center gap-1 self-center font-medium text-ink">
+            <Users aria-hidden size={16} className="text-ink-muted" />
+            In this lore
+          </span>
+        )}
         {post.createdAt && <time dateTime={timestampDate(post.createdAt).toISOString()}>{when.format(timestampDate(post.createdAt))}</time>}
         {post.editedAt && (
           <span title={`Edited ${when.format(timestampDate(post.editedAt))}`}>

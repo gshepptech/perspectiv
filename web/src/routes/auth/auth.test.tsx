@@ -242,6 +242,25 @@ describe("VerifyEmailPage", () => {
     expect(screen.getByRole("link", { name: "Continue where you were" })).toHaveAttribute("href", "/arcs/a-1");
   });
 
+  it("offers writing first, then reading, to a signed-in member with nowhere kept", async () => {
+    renderRoute("/verify-email?token=abc123", { "AuthService/VerifyEmail": () => ok(), ...inbox }, { signedIn: true });
+    await screen.findByRole("heading", { name: "Your email is verified" });
+    const links = within(screen.getByRole("main")).getAllByRole("link");
+    expect(links.map((l) => [l.textContent, l.getAttribute("href")])).toEqual([
+      ["Write about a place you were at", "/compose"],
+      ["Start reading", "/"],
+    ]);
+  });
+
+  it("offers writing through sign-in when this tab is signed out", async () => {
+    renderRoute("/verify-email?token=abc123", { "AuthService/VerifyEmail": () => ok() });
+    await screen.findByRole("heading", { name: "Your email is verified" });
+    expect(within(screen.getByRole("main")).getByRole("link", { name: "Sign in to write about a place you were at" })).toHaveAttribute(
+      "href",
+      "/login?next=%2Fcompose",
+    );
+  });
+
   it("ignores a kept path that is off-site", async () => {
     localStorage.setItem("perspectiv.afterVerify", JSON.stringify({ to: "//evil.example/", at: Date.now() }));
     renderRoute("/verify-email?token=abc123", { "AuthService/VerifyEmail": () => ok() });

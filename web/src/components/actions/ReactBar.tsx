@@ -12,9 +12,11 @@ import { perspectiveKey, useInvalidateAfterWrite } from "./queries";
 import { useWriteGate } from "./useWriteGate";
 
 /**
- * One toggle per emoji in the fixed set, each with its count. Any signed-in
- * reader may react; holding an emoji is shown by an accent border and
- * aria-pressed, never by opacity. A signed-out reader is `blocked`: pressing
+ * One quiet, borderless toggle per emoji in the fixed set (Folio, Reacts).
+ * An emoji the reader has not used is greyscale and faded and a zero count is
+ * not drawn; the reader's own react is in colour with a bold count and an
+ * accent underline, plus aria-pressed, never opacity alone. The accessible
+ * name always carries the count. A signed-out reader is `blocked`: pressing
  * an emoji reveals why (the panel `controls` names) instead of reacting or
  * leaving the page.
  */
@@ -41,7 +43,7 @@ export function ReactBar({
   const byEmoji = new Map(counts.map((c) => [c.emoji, c]));
   return (
     <div className="flex flex-col gap-1">
-      <div role="group" aria-label="Reacts" className="flex flex-wrap gap-2">
+      <div role="group" aria-label="Reacts" className="flex flex-wrap gap-1">
         {emojis.map(({ value, glyph, name }) => {
           const count = byEmoji.get(value)?.count ?? 0;
           const mine = byEmoji.get(value)?.mine ?? false;
@@ -59,15 +61,19 @@ export function ReactBar({
                 else if (!react.isPending && gate()) react.mutate({ emoji: value, on: !mine });
               }}
               className={cn(
-                "inline-flex min-h-11 items-center gap-1 rounded-full border px-2.5 text-sm",
+                "group inline-flex min-h-11 min-w-11 items-center justify-center gap-1 rounded-md border-b-2 px-2 text-sm first:-ms-2 hover:bg-surface",
                 "aria-disabled:opacity-60",
-                mine ? "border-accent bg-surface text-ink" : "border-control text-ink-muted hover:border-ink hover:text-ink",
+                mine ? "border-accent text-ink" : "border-transparent text-ink-muted",
               )}
             >
-              <span aria-hidden>{glyph}</span>
-              <span aria-hidden className={cn(mine && "font-bold")}>
-                {count}
+              <span aria-hidden className={cn(!mine && "opacity-70 grayscale group-hover:opacity-100 group-hover:grayscale-0")}>
+                {glyph}
               </span>
+              {count > 0 && (
+                <span aria-hidden className={cn(mine && "font-bold")}>
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}

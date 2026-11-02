@@ -33,7 +33,8 @@ export function MorePlacesNote({ className }: { className?: string }) {
 
 /**
  * The place search field, labelled "Search places". `large` is the front
- * page's 56px rounded call to action; otherwise it is an ordinary field.
+ * page's 56px call to action, Folio's field at a larger size; otherwise it is
+ * an ordinary field.
  */
 export function PlaceSearchField({
   value,
@@ -66,7 +67,7 @@ export function PlaceSearchField({
           placeholder="A store, mall, town or city"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={large ? "min-h-14 rounded-full pr-5 pl-13 text-lg shadow-sm" : "pl-10"}
+          className={large ? "min-h-14 pr-4 pl-13 text-lg" : "pl-10"}
         />
       </div>
     </form>

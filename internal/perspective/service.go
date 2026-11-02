@@ -61,7 +61,8 @@ func NewService(pool *pgxpool.Pool, arcs *arc.Service, lore *lore.Service, enq E
 }
 
 // DraftInput is an autosaved draft. ID is uuid.Nil for a new draft. Every
-// other field may be unset while the author is still writing.
+// other field may be unset while the author is still writing, except that at
+// least one part holds text.
 type DraftInput struct {
 	ID         uuid.UUID
 	PlaceID    *uuid.UUID
@@ -105,8 +106,10 @@ type UpdateInput struct {
 var errNotFound = apiutil.NotFound("perspective not found")
 
 // SaveDraft creates or replaces the caller's draft and returns it. Drafts
-// hold the same part, word and character limits as a publish, but may be
-// empty. A published perspective is edited through Update instead.
+// hold the same part, word and character limits as a publish, and may leave
+// the place, day, genre and some parts unset, but the handler refuses one
+// with no text in any part. A published perspective is edited through
+// Update instead.
 func (s *Service) SaveDraft(ctx context.Context, caller uuid.UUID, in DraftInput) (*perspectivv1.Perspective, error) {
 	id, err := s.inTx(ctx, func(tx pgx.Tx) (uuid.UUID, error) {
 		q := dbq.New(tx)

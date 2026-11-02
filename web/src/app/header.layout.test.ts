@@ -66,10 +66,12 @@ beforeAll(async () => {
   browser = await chromium.launch();
 }, 120_000);
 
+// Closing a real browser and a Vite server outlasts the default 10 s hook
+// timeout on a busy machine, as launching them does.
 afterAll(async () => {
   await browser?.close();
   await server?.close();
-});
+}, 60_000);
 
 async function memberPage(viewport: { width: number; height: number }, unread: number): Promise<Page> {
   const ctx = await browser.newContext({ viewport });

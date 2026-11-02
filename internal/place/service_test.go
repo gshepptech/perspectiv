@@ -943,8 +943,9 @@ func TestSearchCountsSkipHiddenPlaces(t *testing.T) {
 }
 
 // TestFollowingNewThisWeek covers "what's new" for followed places: each
-// counts the readable stories published at it and below in the last week,
-// and the places with new stories come first.
+// counts the readable stories others published at it and below in the last
+// week, and the places with new stories come first. The follower's own
+// stories are not news to them.
 func TestFollowingNewThisWeek(t *testing.T) {
 	t.Parallel()
 	h := newHierarchy(t)
@@ -967,6 +968,12 @@ func TestFollowingNewThisWeek(t *testing.T) {
 	story(h.city, now.Add(-10*24*time.Hour)) // too old
 	hidden := story(h.city, now.Add(-3*24*time.Hour))
 	h.exec(`UPDATE perspectives SET hidden_at = now() WHERE id = $1`, hidden)
+	// The follower's own stories, at the city and below it: never counted.
+	for i, at := range []uuid.UUID{h.city, h.store} {
+		day := now.AddDate(0, 0, -30-i).Format(time.DateOnly) // a day of its own; published now
+		mine := h.arc(at, day, "Mine "+uuid.NewString()[:4], me, now)
+		h.perspective(mine, me, perspectivv1.Genre_GENRE_DRAMA, perspectivv1.LoreStatus_LORE_STATUS_SOLO, now.Add(-time.Hour), "mine")
+	}
 
 	res, err := c.ListFollowing(ctx, as(me, &perspectivv1.ListFollowingRequest{}))
 	if err != nil {

@@ -8,7 +8,7 @@ import { EpicTab } from "@/gen/perspectiv/v1/enums_pb";
 import type { EpicArc } from "@/gen/perspectiv/v1/place_pb";
 import { clients } from "@/lib/connect";
 
-/** Cards shown; the listing is read a little deeper so repeat places can be skipped. */
+/** Rows shown; the listing is read a little deeper so repeat places can be skipped. */
 const SHOWN = 6;
 const READ = 30;
 
@@ -26,28 +26,26 @@ function onePerPlace(arcs: EpicArc[]): EpicArc[] {
   return out;
 }
 
-function PlaceCard({ a }: { a: EpicArc }) {
+/** One place as a day row, set as the place page's (Folio, Landing): the whole row opens the place. */
+function PlaceRow({ a }: { a: EpicArc }) {
   const where = [a.place?.name, a.city].filter(Boolean).join(", ");
   return (
     <li className="min-w-0">
-      <Link
-        to={`/places/${a.place?.id ?? ""}`}
-        className="flex h-full min-w-0 flex-col rounded-xl border border-rule bg-paper p-4 shadow-sm hover:border-accent"
-      >
-        <span className="font-sans text-base font-medium wrap-anywhere text-ink">{where}</span>
-        <span className="mt-0.5 text-sm text-ink-muted">
+      <Link to={`/places/${a.place?.id ?? ""}`} className="group flex min-h-11 min-w-0 flex-col py-3">
+        <span className="font-serif text-lg wrap-anywhere text-accent underline-offset-4 group-hover:underline">{where}</span>
+        <span className="text-sm wrap-anywhere text-ink-muted">
           {/* An hour arc's title already ends with its hour. */}
           {formatDay(a.localDate)} · <span className="text-ink">{a.title}</span>
         </span>
-        {a.excerpt && <span className="mt-2 line-clamp-2 font-serif text-ink">“{a.excerpt}”</span>}
-        <span className="mt-auto pt-3 text-sm">
+        {a.excerpt && <span className="mt-1 line-clamp-2 font-serif wrap-anywhere hyphens-manual text-ink">“{a.excerpt}”</span>}
+        <span className="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-ink-muted">
           {a.canonLoreId && (
-            <span className="mr-2 inline-flex items-center gap-1 font-medium text-accent">
-              <Crown aria-hidden size={16} />
+            <span className="inline-flex items-center gap-1 font-medium text-ink">
+              <Crown aria-hidden size={16} className="text-accent" />
               <CanonName name={a.canonLoreName} />
             </span>
           )}
-          <span className="text-ink-muted">
+          <span>
             {a.perspectiveCount} {a.perspectiveCount === 1 ? "story" : "stories"}
           </span>
         </span>
@@ -58,7 +56,7 @@ function PlaceCard({ a }: { a: EpicArc }) {
 
 /**
  * Where people are writing: the places with the most remembered days, one
- * card per place, each opening its place page. The way in stays a place
+ * row per place, each opening its place page. The way in stays a place
  * (A-049); this only shows which places have stories.
  */
 export function Storied() {
@@ -66,17 +64,17 @@ export function Storied() {
     queryKey: ["place", "getEpic", { placeId: "", tab: EpicTab.RANKED, pageSize: READ }],
     queryFn: ({ signal }) => clients.place.getEpic({ placeId: "", tab: EpicTab.RANKED, pageSize: READ }, { signal }),
   });
-  const cards = onePerPlace(top.data?.arcs ?? []);
-  if (cards.length === 0) return null;
+  const rows = onePerPlace(top.data?.arcs ?? []);
+  if (rows.length === 0) return null;
   return (
     <section aria-labelledby="landing-storied" className="mt-16 min-w-0">
       <h2 id="landing-storied" className="text-xl">
         Where people are writing
       </h2>
       <p className="mt-1 text-sm text-ink-muted">Places with stories, and the day people there remember most.</p>
-      <ul className="mt-4 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((a) => (
-          <PlaceCard key={a.arcId} a={a} />
+      <ul className="mt-4 min-w-0 divide-y divide-rule border-y border-rule">
+        {rows.map((a) => (
+          <PlaceRow key={a.arcId} a={a} />
         ))}
       </ul>
     </section>

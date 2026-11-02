@@ -268,6 +268,9 @@ func draftInput(m *perspectivv1.SaveDraftRequest) (DraftInput, error) {
 	if err := checkParts(in.Parts, false); err != nil {
 		return in, err
 	}
+	if !anyText(in.Parts) {
+		return in, apiutil.InvalidArg("a draft needs text in at least one part")
+	}
 	in.Characters, err = checkCharacters(m.GetCharacters())
 	return in, err
 }

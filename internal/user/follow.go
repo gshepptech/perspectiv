@@ -16,12 +16,18 @@ import (
 // maxFollowedListed caps ListFollowedWriters, newest follow first.
 const maxFollowedListed = 100
 
+// newStoryWindow is how far back a followed writer's stories count as new.
+const newStoryWindow = 7 * 24 * time.Hour
+
 // FollowedWriter is a writer the caller follows, as their profile shows them.
 type FollowedWriter struct {
 	UserID     uuid.UUID
 	Username   string
 	AvatarURL  string
 	FollowedAt time.Time
+	// NewThisWeek counts the writer's readable stories published in the
+	// last newStoryWindow, up to 100.
+	NewThisWeek int32
 }
 
 // FollowUser follows (on) or unfollows (!on) the writer named username for
@@ -77,12 +83,15 @@ func (s *Service) FollowUser(ctx context.Context, caller uuid.UUID, username str
 }
 
 // ListFollowedWriters returns the writers the caller follows, most recently
-// followed first, at most maxFollowedListed. Deleted accounts are left out.
+// followed first, at most maxFollowedListed, each with their new stories
+// this week. Deleted accounts are left out.
 func (s *Service) ListFollowedWriters(ctx context.Context, caller uuid.UUID) ([]FollowedWriter, error) {
 	if err := s.requireActive(ctx, s.q, caller); err != nil {
 		return nil, err
 	}
-	rows, err := s.q.ListFollowedWriters(ctx, dbq.ListFollowedWritersParams{FollowerID: caller, MaxRows: maxFollowedListed})
+	rows, err := s.q.ListFollowedWriters(ctx, dbq.ListFollowedWritersParams{
+		FollowerID: caller, MaxRows: maxFollowedListed, Since: time.Now().Add(-newStoryWindow),
+	})
 	if err != nil {
 		return nil, apiutil.Internal(fmt.Errorf("list followed writers: %w", err))
 	}
@@ -90,6 +99,7 @@ func (s *Service) ListFollowedWriters(ctx context.Context, caller uuid.UUID) ([]
 	for _, r := range rows {
 		out = append(out, FollowedWriter{
 			UserID: r.ID, Username: r.Username, AvatarURL: avatarURL(r.AvatarPath), FollowedAt: r.FollowedAt,
+			NewThisWeek: r.Recent,
 		})
 	}
 	return out, nil

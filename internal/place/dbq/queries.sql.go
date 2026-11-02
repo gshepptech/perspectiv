@@ -1298,13 +1298,15 @@ CROSS JOIN LATERAL (
           AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
           AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
           AND v.published_at > $2::timestamptz
+          AND v.author_id <> $3::uuid
         LIMIT 100) x
 ) rc
 `
 
 type RecentStoriesUnderParams struct {
-	Ids   []uuid.UUID
-	Since pgtype.Timestamptz
+	Ids      []uuid.UUID
+	Since    pgtype.Timestamptz
+	ReaderID uuid.UUID
 }
 
 type RecentStoriesUnderRow struct {
@@ -1313,9 +1315,10 @@ type RecentStoriesUnderRow struct {
 }
 
 // For each given place, readable stories at it or below published since the
-// cutoff, counted up to 100: what a follower has not seen yet this week.
+// cutoff by anyone but the reader, counted up to 100: what a follower has
+// not seen yet this week. The reader's own stories are not news to them.
 func (q *Queries) RecentStoriesUnder(ctx context.Context, arg RecentStoriesUnderParams) ([]RecentStoriesUnderRow, error) {
-	rows, err := q.db.Query(ctx, recentStoriesUnder, arg.Ids, arg.Since)
+	rows, err := q.db.Query(ctx, recentStoriesUnder, arg.Ids, arg.Since, arg.ReaderID)
 	if err != nil {
 		return nil, err
 	}

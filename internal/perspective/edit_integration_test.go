@@ -239,7 +239,7 @@ func TestListMine(t *testing.T) {
 	hourReq := w.publishReq()
 	hourReq.Hour = hourPtr(15)
 	hourPub := w.publish(me, hourReq)
-	draft, err := w.client.SaveDraft(ctx, as(me, &perspectivv1.SaveDraftRequest{PlaceId: w.place.String(), LocalDate: "2026-01-01"}))
+	draft, err := w.client.SaveDraft(ctx, as(me, &perspectivv1.SaveDraftRequest{PlaceId: w.place.String(), LocalDate: "2026-01-01", Parts: []string{"half a thought"}}))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,7 +337,7 @@ func TestListByAuthor(t *testing.T) {
 		VALUES ('PLACE_KIND_STORE', 'Corner Shop', $1, 'America/New_York', 'PLACE_SOURCE_USER') RETURNING id`, city)
 	pub(store, 9)
 	w.exec(`UPDATE places SET hidden_at = now() WHERE id = $1`, city)
-	if _, err := w.client.SaveDraft(ctx, as(me, &perspectivv1.SaveDraftRequest{PlaceId: w.place.String(), LocalDate: "2026-01-01"})); err != nil {
+	if _, err := w.client.SaveDraft(ctx, as(me, &perspectivv1.SaveDraftRequest{PlaceId: w.place.String(), LocalDate: "2026-01-01", Parts: []string{"half a thought"}})); err != nil {
 		t.Fatal(err)
 	}
 	w.publish(other, func() *perspectivv1.PublishRequest { r := w.publishReq(); r.TitleIfNewArc = ""; return r }())

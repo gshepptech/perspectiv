@@ -17,7 +17,10 @@ function PostRow({ post }: { post: UserPost }) {
   const at = post.createdAt ? timestampDate(post.createdAt) : undefined;
   return (
     <li className="py-3">
-      <Link to={`/lores/${encodeURIComponent(post.loreId)}`} className="group flex min-h-11 min-w-0 flex-col justify-center gap-0.5">
+      <Link
+        to={`/lores/${encodeURIComponent(post.loreId)}#post-${encodeURIComponent(post.id)}`}
+        className="group flex min-h-11 min-w-0 flex-col justify-center gap-0.5"
+      >
         <span className="font-medium wrap-anywhere text-accent underline-offset-4 group-hover:underline">
           {post.loreName || <em>Unnamed lore</em>}
         </span>
@@ -33,7 +36,8 @@ function PostRow({ post }: { post: UserPost }) {
 }
 
 /**
- * The writer's lore thread posts, newest first, each linking to its lore.
+ * The writer's lore thread posts, newest first, each linking to itself on
+ * its lore's page.
  * The server lists only posts a reader of the lore page sees.
  */
 export function ThreadPosts({ userId, username }: { userId: string; username: string }) {
@@ -59,7 +63,7 @@ export function ThreadPosts({ userId, username }: { userId: string; username: st
       )}
       {list.isSuccess && posts.length === 0 && <p className="text-ink-muted">{username} has not posted in a lore thread yet.</p>}
       {posts.length > 0 && (
-        <ul ref={more.list} aria-label="Thread posts" className="divide-y divide-rule border-y border-rule">
+        <ul ref={more.list} aria-label="Thread posts" className="divide-y divide-rule border-b border-rule">
           {posts.map((p) => (
             <PostRow key={p.id} post={p} />
           ))}

@@ -1,6 +1,7 @@
 /**
  * What a writer new to a day meets: a draft that is picked up again rather
- * than started twice and is named by its words, a notification that says
+ * than started twice (on load, and again when the day is changed to one it
+ * was started for) and is named by its words, a notification that says
  * who might be in a new story, and a request that quotes the claimant's own
  * story so it can be judged on the Requests page. Finn and Gil are the
  * find-yourself spec's accounts, signed in with their passwords in sessions
@@ -16,6 +17,12 @@ const STORE = "Muscogee Wharf Oyster Bar";
 const TITLE = "The night the oyster boats came in late";
 const OPENING = "The oyster boats came in after midnight and the whole bar went out onto the wharf to watch.";
 const CAST = ["the woman with the foam parrot", "the clerk", "the twins", "the drummer"];
+const EARLIER = "The fog sat on the wharf all morning and the shuckers worked by lamplight at noon.";
+
+/** The day n days back, as the composer's date field takes it. */
+function daysAgo(n: number): string {
+  return new Date(Date.now() - n * 24 * 3600_000).toISOString().slice(0, 10);
+}
 
 /** Opens the composer from Write in the header, at STORE for today. */
 async function composeAtStore(page: Page) {
@@ -30,6 +37,36 @@ test("a draft is resumed, a new story names who might be in it, and a request qu
   test.setTimeout(180_000);
   const { finn: finnAcct, gil: gilAcct } = findAccounts();
   const gil = await signInWithPassword(browser, gilAcct);
+
+  await test.step("a draft for a past day reopens when the writer comes back through Write, with no second draft", async () => {
+    const past = daysAgo(10);
+    await composeAtStore(gil.page);
+    await gil.page.getByLabel("Day of your visit").fill(past);
+    await gil.page.getByLabel("Part 1", { exact: true }).fill(EARLIER);
+    await expect(gil.page.getByRole("status", { name: "Save status" })).toHaveText("Draft saved");
+
+    // Leave, then find the draft on the front page with a way back in.
+    await visit(gil.page, gilAcct, "/");
+    const yours = gil.page.getByRole("region", { name: "Your perspectives" });
+    await expect(yours.getByRole("listitem").filter({ hasText: "Draft ·" })).toHaveCount(1);
+    await expect(yours.getByRole("link", { name: /^Continue The fog sat on the wharf/ })).toBeVisible();
+
+    // Come back the way the walkthrough did: Write, the place, then the day.
+    // The composer opens on today, so the draft is found only once the day is set.
+    await composeAtStore(gil.page);
+    await expect(gil.page.getByLabel("Part 1", { exact: true })).toHaveValue("");
+    await gil.page.getByLabel("Day of your visit").fill(past);
+    await expect(gil.page.getByLabel("Part 1", { exact: true })).toHaveValue(EARLIER);
+    await expect(gil.page.getByText("You started a draft for this day, so it is open again.")).toBeVisible();
+    await expect(gil.page).toHaveURL(/perspectiveId=/);
+
+    // No empty draft was made beside it.
+    await visit(gil.page, gilAcct, "/");
+    await expect(yours.getByRole("listitem").filter({ hasText: "Draft ·" })).toHaveCount(1);
+    await expect(yours).not.toContainText(/Untitled/);
+    await yours.getByRole("link", { name: /^Continue The fog sat on the wharf/ }).click();
+    await expect(gil.page.getByLabel("Part 1", { exact: true })).toHaveValue(EARLIER);
+  });
 
   await test.step("a draft is named by its first words and picked up again", async () => {
     await composeAtStore(gil.page);

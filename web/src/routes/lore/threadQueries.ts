@@ -3,6 +3,11 @@ import { infiniteQueryOptions, useQueryClient } from "@tanstack/react-query";
 import type { LorePostSort } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
 
+/** A post's element id on the lore page; `#post-<id>` links to it. */
+export function postAnchor(postId: string): string {
+  return `post-${postId}`;
+}
+
 /** Every page of a lore's thread in one order. */
 export function threadQuery(loreId: string, sort: LorePostSort) {
   return infiniteQueryOptions({

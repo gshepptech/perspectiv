@@ -41,8 +41,8 @@ func countWords(s string) int {
 
 // checkParts enforces the part limits. Both drafts and publishes hold at most
 // 10 parts of at most 300 words. A publish also needs at least one part, and
-// no part may be blank; a draft may be empty or hold blank parts while its
-// author is still writing.
+// no part may be blank; a draft may hold blank parts while its author is
+// still writing, though not only blank ones (see anyText).
 func checkParts(parts []string, publish bool) error {
 	if len(parts) > maxParts {
 		return apiutil.InvalidArg(fmt.Sprintf("a perspective has at most %d parts", maxParts))
@@ -63,6 +63,18 @@ func checkParts(parts []string, publish bool) error {
 		}
 	}
 	return nil
+}
+
+// anyText is whether at least one part holds a word. A draft without any is
+// refused: an empty draft saved beside a real one for the same day would be
+// the newest, and so the one the composer reopens in its place.
+func anyText(parts []string) bool {
+	for _, body := range parts {
+		if countWords(body) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // characterInput is one declared character after validation. id is uuid.Nil

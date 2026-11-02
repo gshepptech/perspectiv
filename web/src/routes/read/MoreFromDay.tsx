@@ -50,7 +50,7 @@ export function MoreFromDay({ p, res }: { p: Perspective; res: GetArcResponse | 
             <li key={s.id}>
               <Link to={`/perspectives/${encodeURIComponent(s.id)}`} className="group flex min-h-11 min-w-0 flex-col justify-center py-3">
                 <span className="text-sm text-ink-muted">{s.author?.username ?? "Someone"}</span>
-                <span className="line-clamp-2 font-serif wrap-anywhere text-ink group-hover:underline group-hover:underline-offset-4">
+                <span className="line-clamp-2 font-serif wrap-anywhere hyphens-manual text-ink group-hover:underline group-hover:underline-offset-4">
                   {s.excerpt || "Read this story"}
                 </span>
               </Link>

@@ -242,6 +242,7 @@ func (h *Handler) ListFollowedWriters(ctx context.Context, _ *connect.Request[pe
 	for _, w := range ws {
 		out = append(out, &perspectivv1.FollowedWriter{
 			UserId: w.UserID.String(), Username: w.Username, AvatarUrl: w.AvatarURL, FollowedAt: timestamppb.New(w.FollowedAt),
+			NewThisWeek: w.NewThisWeek,
 		})
 	}
 	return connect.NewResponse(&perspectivv1.ListFollowedWritersResponse{Writers: out}), nil

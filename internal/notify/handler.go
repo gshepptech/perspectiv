@@ -141,6 +141,7 @@ func notificationToProto(n Notification) *perspectivv1.Notification {
 	out.ClaimId = idString(p.ClaimID)
 	out.LoreId = idString(p.LoreID)
 	out.ReportId = idString(p.ReportID)
+	out.PostId = idString(p.PostID)
 	if n.ReadAt != nil {
 		out.ReadAt = timestamppb.New(*n.ReadAt)
 	}

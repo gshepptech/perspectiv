@@ -44,7 +44,7 @@ func TestFanoutThreadReply(t *testing.T) {
 	// ann hears of ben's, ben of cat's, and ann not of cat's.
 	annTop := post(s.ann, uuid.Nil)
 	benReply := reply(s.ben, annTop)
-	reply(s.cat, benReply)
+	catReply := reply(s.cat, benReply)
 	// Ann answering her own post tells nobody.
 	reply(s.ann, annTop)
 
@@ -79,9 +79,11 @@ func TestFanoutThreadReply(t *testing.T) {
 		login string
 		want  []perspectivv1.NotificationKind
 		actor uuid.UUID
+		// The reply the notification names, so the inbox opens the lore at it.
+		post uuid.UUID
 	}{
-		{name: "the top-level post's author hears of a direct reply, once", user: s.ann, login: "ann", want: one, actor: s.ben},
-		{name: "the author of an answered reply hears of the reply to it", user: s.ben, login: "ben", want: one, actor: s.cat},
+		{name: "the top-level post's author hears of a direct reply, once", user: s.ann, login: "ann", want: one, actor: s.ben, post: benReply},
+		{name: "the author of an answered reply hears of the reply to it", user: s.ben, login: "ben", want: one, actor: s.cat, post: catReply},
 		{name: "the replier hears nothing", user: s.cat, login: "cat"},
 		{name: "an author who blocked the replier hears nothing", user: dan, login: "dan"},
 		{name: "an author the replier blocked hears nothing", user: gus, login: "gus"},
@@ -94,12 +96,12 @@ func TestFanoutThreadReply(t *testing.T) {
 			t.Parallel()
 			rows := s.expect(t, tc.user, tc.login, tc.want, len(tc.want))
 			if len(rows) == 1 && (rows[0].payload["lore_id"] != lore.String() || rows[0].payload["actor_id"] != tc.actor.String() ||
-				rows[0].payload["arc_id"] != s.arc.String()) {
+				rows[0].payload["arc_id"] != s.arc.String() || rows[0].payload["post_id"] != tc.post.String()) {
 				t.Fatalf("payload = %v", rows[0].payload)
 			}
 		})
 	}
-	if got := s.emailJobs("ann@example.test"); len(got) == 1 && got[0].args.Data["path"] != "/lores/"+lore.String() {
+	if got := s.emailJobs("ann@example.test"); len(got) == 1 && got[0].args.Data["path"] != "/lores/"+lore.String()+"#post-"+benReply.String() {
 		t.Fatalf("email path = %q", got[0].args.Data["path"])
 	}
 }

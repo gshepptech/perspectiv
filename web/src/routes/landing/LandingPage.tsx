@@ -18,6 +18,30 @@ import { Storied } from "./Storied";
 import { WelcomeBack } from "./WelcomeBack";
 
 /**
+ * Links set as a run-in list, like a book's index: words in a wrapping line
+ * separated by middots, each link 44px tall (Folio, Landing).
+ */
+function RunIn({ links }: { links: { key: string; to: string; label: string }[] }) {
+  return (
+    <ul className="mt-3 flex flex-wrap items-center">
+      {links.map((l, i) => (
+        // The middot follows its word, so a wrapped line never starts with one.
+        <li key={l.key} className="inline-flex items-center">
+          <Link to={l.to} className="inline-flex min-h-11 items-center text-accent underline-offset-4 hover:underline">
+            {l.label}
+          </Link>
+          {i < links.length - 1 && (
+            <span aria-hidden className="px-2 text-ink-muted">
+              ·
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
  * The kinds of place with at least one day, each linking to the best days at
  * every place of that kind. Left out while loading, on error and when none
  * has a day: the front door does not show a broken row.
@@ -35,18 +59,7 @@ function BrowseKinds() {
       <h2 id="browse-kinds" className="text-xl">
         Browse by kind of place
       </h2>
-      <ul className="mt-4 flex flex-wrap gap-2">
-        {shown.map((c) => (
-          <li key={c}>
-            <Link
-              to={`/best/${categorySlug(c)}`}
-              className="inline-flex min-h-11 items-center rounded-full border border-rule bg-paper px-3.5 text-sm text-ink hover:border-accent hover:text-accent"
-            >
-              {placeCategoryLabel(c)}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <RunIn links={shown.map((c) => ({ key: String(c), to: `/best/${categorySlug(c)}`, label: placeCategoryLabel(c) }))} />
     </nav>
   );
 }
@@ -59,19 +72,8 @@ function BrowseStates() {
   if (!states.data || states.data.places.length === 0) return null;
   return (
     <nav aria-label="Browse by state" className="mt-16">
-      <h2 className="text-xl">Or browse by state</h2>
-      <ul className="mt-4 flex flex-wrap gap-2">
-        {states.data.places.map((state) => (
-          <li key={state.id}>
-            <Link
-              to={`/places/${state.id}`}
-              className="inline-flex min-h-11 items-center rounded-full border border-rule bg-paper px-3.5 text-sm text-ink hover:border-accent hover:text-accent"
-            >
-              {state.name}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <h2 className="text-xl">Browse by state</h2>
+      <RunIn links={states.data.places.map((state) => ({ key: state.id, to: `/places/${state.id}`, label: state.name }))} />
     </nav>
   );
 }
@@ -139,6 +141,11 @@ function MineRow({ p, onDeleted }: { p: Perspective; onDeleted: () => void }) {
       {!isDraft && (
         <Link to={edit} aria-label={`Edit ${title}`} className="inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4">
           Edit
+        </Link>
+      )}
+      {isDraft && !superseded && (
+        <Link to={edit} aria-label={`Continue ${title}`} className="inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4">
+          Continue
         </Link>
       )}
       {superseded && <DeleteDraft p={p} title={title} onDeleted={onDeleted} />}
@@ -209,11 +216,11 @@ export function Component() {
 
   const search = (
     <>
-      <PlaceSearchField value={text} onChange={setText} large className="mt-8" />
+      <PlaceSearchField value={text} onChange={setText} large className={session ? "mt-8" : "mx-auto mt-10 max-w-xl"} />
       {query ? (
         <PlaceSearchResults query={query} />
       ) : (
-        !session && <p className="mt-3 text-sm text-ink-muted">Anyone can read. Sign up to write your side.</p>
+        !session && <p className="mt-3 text-center text-sm text-ink-muted">Anyone can read. Sign up to write your side.</p>
       )}
     </>
   );
@@ -222,10 +229,10 @@ export function Component() {
   // them and their own writing come first, then the search.
   if (session) {
     return (
-      <section className="mx-auto min-w-0 max-w-shell pt-6 pb-16 sm:pt-10" aria-labelledby="landing-title">
+      <section className="mx-auto max-w-3xl min-w-0 pt-6 pb-16 sm:pt-10" aria-labelledby="landing-title">
         <WelcomeBack username={session.username} />
         <YourPerspectives />
-        <div className="max-w-2xl min-w-0">{search}</div>
+        <div className="max-w-xl min-w-0">{search}</div>
         <Following />
         <Storied />
         <BrowseKinds />
@@ -234,26 +241,27 @@ export function Component() {
     );
   }
 
+  // The front door is a book's title page (Folio, Landing): the promise, an
+  // ornament rule, what Perspectiv is, the search, then the example as two
+  // facing pages and how it works.
   return (
-    <section className="mx-auto min-w-0 max-w-shell pt-6 pb-16 sm:pt-12" aria-labelledby="landing-title">
-      {/* Phones read hero, example, then notes; from lg the notes sit under the search. */}
-      <div className="grid min-w-0 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-x-14">
-        <div className="min-w-0 lg:col-start-1 lg:row-start-1 lg:pt-6">
-          <h1 id="landing-title" className="text-4xl leading-[1.05] tracking-tight sm:text-6xl">
-            Same place. Same day. Every side of the story.
-          </h1>
-          <p className="mt-5 max-w-xl text-lg text-ink-muted">
-            Perspectiv is where people who were in the same place at the same time each write what they saw, and find
-            the strangers who were in their story.
-          </p>
-          {search}
-        </div>
-        <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
-          <ExampleArc />
-        </div>
-        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
-          <HowItWorks />
-        </div>
+    <section className="mx-auto max-w-3xl min-w-0 pb-16" aria-labelledby="landing-title">
+      <header className="pt-10 text-center sm:pt-20">
+        <h1 id="landing-title" className="mx-auto max-w-measure text-4xl leading-tight text-balance sm:text-5xl">
+          Same place. Same day. Every side of the story.
+        </h1>
+        <hr aria-hidden className="mx-auto mt-8 w-16 border-rule" />
+        <p className="mx-auto mt-8 max-w-measure font-serif text-prose text-ink-muted">
+          Perspectiv is where people who were in the same place at the same time each write what they saw, and find
+          the strangers who were in their story.
+        </p>
+      </header>
+      <div className="min-w-0">{search}</div>
+      <div className="mt-16 min-w-0">
+        <ExampleArc />
+      </div>
+      <div className="mt-12 min-w-0">
+        <HowItWorks />
       </div>
       <Storied />
       <BrowseKinds />

@@ -204,8 +204,10 @@ describe("a lore read as a book", () => {
     expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "Back to the lore" })).toHaveAttribute("href", "/lores/lore-1");
     await user.click(screen.getByRole("link", { name: "Read its thread" }));
-    // The lore page opens at its thread, whose heading takes focus.
-    expect(await screen.findByRole("heading", { level: 2, name: "Thread" })).toHaveFocus();
+    // The lore page opens at its thread, whose heading takes focus once the
+    // stories above it have loaded.
+    const threadHeading = await screen.findByRole("heading", { level: 2, name: "Thread" });
+    await waitFor(() => expect(threadHeading).toHaveFocus());
     expect(router.state.location.pathname).toBe("/lores/lore-1");
     expect(router.state.location.hash).toBe("#thread");
   });

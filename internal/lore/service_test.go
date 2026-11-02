@@ -1106,6 +1106,8 @@ func TestListClaimsIncoming(t *testing.T) {
 		ClaimantPerspectiveId: w.bob.perspective.String(),
 		Status:                perspectivv1.ClaimStatus_CLAIM_STATUS_PENDING,
 		CreatedAt:             first.GetCreatedAt(),
+		PlaceName:             "Ohio",
+		LocalDate:             "2026-10-01",
 	}
 	if first.GetCreatedAt() == nil || !proto.Equal(first, want) {
 		t.Errorf("incoming claim = %v, want %v", first, want)

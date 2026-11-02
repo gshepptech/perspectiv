@@ -125,7 +125,8 @@ export type Place = Message<"perspectiv.v1.Place"> & {
 
   /**
    * Readable stories at the place and below published in the last seven
-   * days, counted up to 100. Set by ListFollowing only.
+   * days by anyone but the caller, counted up to 100. Set by ListFollowing
+   * only.
    *
    * @generated from field: int32 new_this_week = 12;
    */

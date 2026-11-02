@@ -49,17 +49,24 @@ export function Component() {
       <AuthPanel>
         <AuthHeading>Your email is verified</AuthHeading>
         <p className="mt-4">You can now publish perspectives, claim characters, vote and react.</p>
-        <p className="mt-6">
-          {next ? (
+        {next ? (
+          <p className="mt-6">
             <Link to={through(next)} className={linkClass}>
               Continue where you were
             </Link>
-          ) : (
-            <Link to={currentSession() ? "/" : "/login"} className={linkClass}>
+          </p>
+        ) : (
+          // Verifying is when a new member may first publish, so the page
+          // offers writing first, then reading.
+          <p className="mt-4 flex flex-wrap gap-x-6">
+            <Link to={through("/compose")} className={`inline-flex min-h-11 items-center ${linkClass}`}>
+              {currentSession() ? "Write about a place you were at" : "Sign in to write about a place you were at"}
+            </Link>
+            <Link to={currentSession() ? "/" : "/login"} className={`inline-flex min-h-11 items-center ${linkClass}`}>
               {currentSession() ? "Start reading" : "Sign in"}
             </Link>
-          )}
-        </p>
+          </p>
+        )}
       </AuthPanel>
     );
   }

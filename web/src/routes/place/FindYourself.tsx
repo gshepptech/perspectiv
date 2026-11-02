@@ -28,7 +28,7 @@ export function FindYourself({ placeId, placeName }: { placeId: string; placeNam
   const chars = found.data?.characters ?? [];
   return (
     <section aria-labelledby={`${fieldId}-title`} className="min-w-0 rounded-md border border-rule bg-paper p-4 text-sm">
-      <h2 id={`${fieldId}-title`} className="font-sans text-base font-medium">
+      <h2 id={`${fieldId}-title`} className="text-lg">
         Were you in someone's story?
       </h2>
       <p className="mt-1 text-ink-muted wrap-anywhere">Search how people at {placeName} described the strangers they saw.</p>
@@ -42,7 +42,7 @@ export function FindYourself({ placeId, placeName }: { placeId: string; placeNam
           type="search"
           autoComplete="off"
           maxLength={60}
-          placeholder="gold paint, red umbrella…"
+          placeholder="red umbrella…"
           value={text}
           onChange={(e) => setText(e.target.value)}
           className="pl-9"

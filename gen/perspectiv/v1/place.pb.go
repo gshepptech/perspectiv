@@ -107,7 +107,8 @@ type Place struct {
 	// search tells same-named entries apart. Set by SearchPlaces only.
 	Stories int32 `protobuf:"varint,11,opt,name=stories,proto3" json:"stories,omitempty"`
 	// Readable stories at the place and below published in the last seven
-	// days, counted up to 100. Set by ListFollowing only.
+	// days by anyone but the caller, counted up to 100. Set by ListFollowing
+	// only.
 	NewThisWeek   int32 `protobuf:"varint,12,opt,name=new_this_week,json=newThisWeek,proto3" json:"new_this_week,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

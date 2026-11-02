@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -72,7 +72,19 @@ describe("Reader pages one part at a time (OT-033)", () => {
       "A man in a green coat ran for the escalator.",
     ]);
     expect(screen.queryByText("I followed him past the fountain.")).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2, name: "Part 1" })).toBeInTheDocument();
+    // A book's part number, not a form label (Folio, Pagination).
+    const part = screen.getByRole("heading", { level: 2, name: "Part 1" });
+    expect(part).toHaveClass("font-serif", "italic", "text-ink-muted");
+    expect(part.className).not.toMatch(/uppercase|tracking/);
+    // The position label is centred between the controls whatever their widths.
+    expect(screen.getByRole("navigation", { name: "Pages" })).toHaveClass("grid", "grid-cols-[1fr_auto_1fr]");
+  });
+
+  it("opens a chapter centred, its number over the title, under one heading named for both", () => {
+    render(<Reader chapter="Chapter 2" title="otter" parts={["One."]} part={1} onPartChange={() => {}} />);
+    const heading = screen.getByRole("heading", { level: 1, name: "Chapter 2: otter" });
+    expect(heading.closest("header")).toHaveClass("text-center");
+    expect(within(heading).getByText("otter")).toHaveClass("text-3xl");
   });
 
   it("keeps single line breaks inside a paragraph", () => {

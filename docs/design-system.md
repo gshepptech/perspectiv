@@ -49,6 +49,15 @@ Headings use Literata at weight 600. Interface text uses Public Sans at 400 and
 500 for emphasis; bold (700) is reserved for counts that need to be scanned.
 Running prose is left-aligned, never justified, with `hyphens: auto`.
 
+- **One heading style.** Every `h2` is the serif heading, including one that
+  sits inside a bordered box ("How this day works", "Is this you?", "Were you
+  in someone's story?", "How a day works"), which takes `text-lg` there. A
+  heading MUST NOT switch to the interface face to look smaller.
+- **Two-line previews** (an opening clamped to two lines in a row) set
+  `hyphens: manual` (`hyphens-manual`). Automatic hyphenation in a narrow
+  clamp breaks a word on most lines at 390px and reads as damage, not
+  typesetting; running prose keeps `auto`.
+
 ## Measure and layout
 
 - **Reading measure:** prose columns are capped at `--measure: 65ch` of the
@@ -113,7 +122,7 @@ ratios below are computed against `paper` and `surface`, and the unit test in
 | `surface` | `#EFECE5` | `#201E1C` | panels, menus, dialogs, inputs | |
 | `ink` | `#1F1D1A` | `#E8E4DC` | body text, headings | 15.4 / 14.3, 14.4 / 13.1 |
 | `ink-muted` | `#5C574F` | `#ABA59A` | metadata, helper text | 6.6 / 6.1, 7.5 / 6.8 |
-| `rule` | `#D6D1C7` | `#34312D` | decorative hairlines only | n/a (non-informational) |
+| `rule` | `#D6D1C7` | `#46413B` | decorative hairlines only | n/a (non-informational) |
 | `control` | `#8A8478` | `#7A746A` | input and control borders | 3.4 / 3.2, 3.9 / 3.6 (3:1 for UI components) |
 | `accent` | `#2B4C7E` | `#9DB8E6` | links, primary buttons, focus ring, current page | 7.9 / 7.3, 9.1 / 8.3 |
 | `accent-ink` | `#FFFFFF` | `#12223A` | text on `accent` | 8.6, 7.9 |
@@ -121,6 +130,12 @@ ratios below are computed against `paper` and `surface`, and the unit test in
 | `warning` | `#8A5A00` | `#E0B455` | pending, expiring drafts | 5.4 / 5.0, 9.4 / 8.6 |
 | `error` | `#A3322A` | `#F08A80` | validation and request errors | 6.3 / 5.8, 7.5 / 6.9 |
 | `info` | `#1F5F7A` | `#7FC4DD` | neutral notices | 6.5 / 6.0, 9.4 / 8.6 |
+
+Lamplight's `rule` sits at about 1.8:1 on `paper` (1.7:1 on `surface`),
+heavier than Paper's 1.4:1, because a dark hairline at the same ratio
+vanishes on most screens. It stays well under `control` (3.9:1), so a
+hairline never reads as a field's border, and nothing a reader must see to
+operate a control is drawn in `rule`.
 
 The accent is an ink blue, the colour of a fountain-pen annotation. Status
 colours keep their meaning everywhere and MUST NOT be used as decoration or as a
@@ -135,6 +150,13 @@ an icon beside it.
 - Each page has **previous** and **next** controls as real `<button>` or `<a>`
   elements, labelled ("Previous part", "Next part"), disabled at the ends, plus a
   "Part 3 of 7" position label announced to screen readers (`aria-live="polite"`).
+  The row is a three-column grid (`grid-cols-[1fr_auto_1fr]`): previous at the
+  start, the label centred on the measure whatever the buttons' widths, next
+  at the end.
+- **The part heading** ("Part 2") is set like a book's part number, not a
+  form label: the serif face in italic, `text-base`, weight 400, `ink-muted`,
+  with no capitals and no letter-spacing. It stays an `h2`, and it is the
+  same on one page and paged.
 - **Arrow keys page**: `ArrowLeft` goes back and `ArrowRight` goes forward while
   focus is not inside a text field. The part index is in the URL so a page is
   linkable and the browser back button returns to the previous part.
@@ -170,6 +192,42 @@ an icon beside it.
 - **Cast tags open the claimant's story.** An accepted claim's tag links to
   the claimant's own story of that day while it is readable (link named
   "otter's story"); otherwise it links to their profile.
+- **The cast is a plain list**, one character to a line, each a tag in the
+  sense of Flairs and tags below: a 16px icon (lucide `UserCheck` once
+  someone claimed it, `UserRound` while nobody has), the description in the
+  serif face, then " · " and the claimant's name. A username wraps only
+  where it must (`overflow-wrap: break-word`), never mid-name when the line
+  has room for it whole.
+
+## Reacts
+
+Reacts are a reader's aside, not the story's headline, so the row is quiet
+until someone uses it.
+
+- One toggle per emoji in the fixed set, borderless, 44px tall, in a `group`
+  named "Reacts". Hover gives it a `surface` fill; nothing else outlines it.
+  The first toggle is flush with the text column, as a flush ghost button
+  is.
+- An emoji the reader has not used is drawn greyscale at 70 percent opacity
+  (`grayscale opacity-70` on the glyph only); the reader's own react is in
+  full colour with its count in bold `ink` and a 2px `accent` underline
+  under the toggle, so the choice is never shown by colour or opacity alone.
+- A count of zero is not shown; the toggle shows the glyph alone. Counts
+  above zero are `text-sm` `ink-muted`.
+- The accessible name keeps the count ("Heart, 0", "Heart, 3") and
+  `aria-pressed` carries the reader's own react, whatever is drawn.
+
+## Lore page: stories
+
+The lore page's stories are chapters of one account, not cards on a board.
+
+- Each story is a plain `<article>` under the one before it, set apart by a
+  hairline and space (`border-t border-rule pt-8`; the first, right under
+  "The stories", has neither), with no box, fill or shadow, so the prose
+  takes the full measure at 390px.
+- Its heading ("otter's perspective", the name a link) is the serif `h3` at
+  `text-xl`; the genre sits on the same line in `text-sm` `ink-muted`.
+- The action row under it is the story page's.
 
 ## Page titles
 
@@ -216,7 +274,7 @@ ARIA behaviour come from Radix, not from hand-written handlers:
 
 | Component | Built on | Notes |
 |---|---|---|
-| `Button` | native `<button>` (Radix `Slot` for `asChild`) | variants `primary`, `secondary`, `ghost`, `danger`; sizes `sm`, `md` |
+| `Button` | native `<button>` (Radix `Slot` for `asChild`) | variants `primary`, `secondary`, `ghost`, `danger`; sizes `sm`, `md`; `flush` (below) |
 | `Input`, `Textarea` | native elements | `control` border, `surface` fill, `aria-invalid` turns the border `error` |
 | `Dialog` | `@radix-ui/react-dialog` | `surface` panel, full width minus the gutter on phones |
 | `Tabs` | `@radix-ui/react-tabs` | the epic's Ranked, Newest and Tales tabs |
@@ -228,6 +286,26 @@ ARIA behaviour come from Radix, not from hand-written handlers:
 Icons are `lucide-react`, imported by name, at 16px in interface text and 20px
 in navigation, with `aria-hidden` when a text label sits beside them.
 
+- **Flush ghost buttons.** A `ghost` button's padding is only there for its
+  hover fill, so one that starts a row of the text column (Follow on a
+  profile, Save under a story, a lore's "Report this name") takes `flush`:
+  a negative start margin equal to its padding, applied only while it is
+  its row's first child, so its icon lines up with the text above it. A
+  `flush` button later in a row keeps its place. A toggle that turns
+  `secondary` when on (Follow, Save) is flush only while it is `ghost`,
+  since a border MUST NOT hang outside the text column.
+
+## Flairs and tags
+
+Flairs (Canon, Contender, "In this lore", a profile's "In 2 canons" and "In
+5 lores") and cast tags are words, not objects: `text-sm`, with a 16px icon
+where one exists (`Crown` for canon, `Swords` for a contender, `Users` for
+lore membership, `UserCheck` or `UserRound` for a cast tag), and no pill,
+fill or border. Canon is `accent` and medium weight; the rest are
+`ink-muted`, or `ink` where the word is the point. A row of them wraps with
+a gap of 12px and never scrolls sideways. The one exception is the place
+page's "New" label, which keeps its 1px `accent` border (Place page epic).
+
 ## Arc page (the day)
 
 The arc page is an index, like a subreddit's front page: it organises the
@@ -236,7 +314,9 @@ on the story's own page, so the arc page MUST NOT carry a story's full action
 bar (cast, reacts, claim, report); those live on the story's page and on its
 lore page.
 
-- **Header:** the place chain, the arc title, then one metadata line:
+- **Header:** the place chain (as the place page's breadcrumb: `text-sm`
+  `accent` underlined links, each 44px tall, separated by an `ink-muted`
+  "›"), the arc title, then one metadata line:
   the place-local day and who started it. The primary action ("Write your
   perspective", or "Read yours" for a participant) sits in the header at every
   width.
@@ -367,6 +447,31 @@ answer, and nothing deeper than one step of indent.
   replies under it; one without replies leaves the thread.
 - **A post hidden by a moderator** is gone for readers, and so are the
   replies under it.
+- **Every post has an address.** A post's `<article>` carries
+  `id="post-<post id>"` and `tabindex="-1"`, so `/lores/<id>#post-<post
+  id>` opens the lore at that post. The profile's Thread posts rows and the
+  inbox's "replied to your post" row link there (the inbox to the reply).
+- **Arriving at an anchor.** The page waits until the lore, its stories
+  and the thread's first page have loaded, so nothing above the target
+  moves once it is reached, then scrolls the target into view without
+  animation and focuses it: the post's article for `#post-…`, the
+  thread's heading for `#thread`. A post not on the first page is looked
+  for in the Top order a page at a time, up to 10 pages (200 posts); a
+  reply is found when it is among the replies that come with its post.
+  The post found takes a 2px `accent` outline, offset 4px, for two seconds;
+  it appears and goes without a transition, so it is the same under
+  reduced motion. When the post cannot be found (deleted, hidden, among
+  the later replies of a long branch, or past the tenth page), focus goes
+  to the thread's heading and a `text-sm` `ink-muted` line under it, which
+  the heading's `aria-describedby` names, says "That post could not be
+  shown here. It may have been deleted, or it is further down among the
+  replies to its post."
+- **Thread link at the top.** Beside "Read as a book" in the lore's header
+  sits a link "Thread · 3 posts" (lucide `MessagesSquare` at 16px,
+  `accent`, underlined, 44px tall) to `#thread`, which lands as above.
+  The count is every post a reader of the thread sees, replies included,
+  never a deleted or hidden one: "1 post" for one, "no posts yet" for
+  none. The two links wrap onto two lines at 375px.
 
 ## Lore as a book
 
@@ -399,7 +504,22 @@ thread stay on the lore page.
   was who" follows the list.
 - **A chapter** is the story page's Reader with the measure, the part
   headings and the 150ms cross-fade unchanged. Its title is "Chapter 2:
-  otter" and its byline the writer and genre. A chapter always pages by part:
+  otter" and its byline the writer and genre.
+- **A chapter opens like one.** The chapter's header is centred, with
+  generous space above it (`pt-10`, `pt-16` from `sm`): "Chapter 2" on its
+  own line in `text-sm` `ink-muted` in the interface face, then the
+  writer's name under it in the serif face at `text-3xl`, then the byline.
+  Both lines are the one `h1`, named outright with `aria-label` "Chapter
+  2: otter", since readers join two block lines differently.
+- **The page-turn row stays put.** Every page of the book (title, contents,
+  each part of a chapter, the end) sits in a page frame at least the
+  viewport's height less 12rem (`min-h-[calc(100dvh-12rem)]`), with its
+  previous and next row pushed to the frame's foot, so the controls sit in
+  the same place from one page to the next while a page's text fits. The
+  row above the frame ("Back to the lore", "Contents") keeps its 44px
+  height on every page, empty on the closing page, so the frame starts at
+  the same place too. A chapter's "Chapters" navigation sits under the
+  frame. A chapter always pages by part:
   the lore page already shows every story whole, so the book offers no
   "Read all parts on one page" toggle. The label between the part controls
   reads "Chapter 2, part 3 of 4".
@@ -412,7 +532,7 @@ thread stay on the lore page.
   `#thread` and moves focus to the thread's heading.
 - **Turning pages.** The title, contents and closing pages carry the same
   previous and next row a chapter does, as links ("Previous page", "Next
-  page"), with the position between them. `ArrowLeft` and `ArrowRight` turn
+  page"), with the position centred between them as on a chapter. `ArrowLeft` and `ArrowRight` turn
   pages everywhere in the book while focus is not in a field, across
   chapter boundaries too: forward from a chapter's last part opens the next
   chapter's first, back from a first part opens the previous chapter's
@@ -459,6 +579,40 @@ places with stories first within each match tier. When the search reaches
 its cap, the line "More places match: add a town to narrow it" follows the
 list.
 
+## Composer: day and hour
+
+"Day of your visit" and "Hour" sit side by side from `sm`, each control
+44px tall (the Hour select's trigger is `h-11`) and top-aligned with the
+other, whatever the length of the help line under either. The day's help
+line reads "Today at *place* is October 16, 2026." ("at", since a place is
+as often a shop as a city).
+
+**Days already written about.** The composer opens on today, but most
+writers come to a day that has already happened, often one their friends
+wrote about. So under the two fields, across both columns, the place's
+recent days with stories are offered as one-tap choices, read from the
+place's Newest epic (GetEpic, NEWEST) and limited to days filed at this
+place itself, never at a place under it, five at most:
+
+- A `text-sm` `ink-muted` line, "Days already written about here", labels
+  the list (`aria-labelledby`).
+- Each choice is a `button` (not a link: it sets the form, it goes
+  nowhere) on its own line, full width, at least 44px tall, `rounded-md`
+  with a `control` border, `text-sm` text wrapping as it needs: the short
+  day ("Oct 3", with the year only when it is not this year), the hour for
+  an hour day ("Oct 3, 14:00", left off when the title already ends with
+  it), the day's title, then the count, joined by middots: "Oct 3 · Fourth
+  quarter, sixty thousand people · 14 stories".
+- Choosing one sets "Day of your visit" to that day and "Hour" to that hour
+  (or "Whole day"), so the joining note below answers at once.
+- The choice matching the form's day and hour is marked unmistakably:
+  `aria-pressed="true"`, an `accent` border and a leading `Check` icon
+  (`aria-hidden`), never by opacity alone. The others carry no icon and
+  keep their text where it was.
+- The list is left out while it loads, when it fails, when the place has
+  no days yet, when the day and hour are fixed (joining a story), and once
+  the story is published.
+
 ## Composer: joining the day
 
 Under the day and hour, a bordered note says what already exists for the
@@ -470,17 +624,45 @@ yet; a day that has an arc keeps its title, never silently drops the
 writer's. Search results say what a place is (a stadium's category rather
 than "Store") and how many stories it holds, so friends pick the same entry.
 
-Opening the composer for a place, day and hour where the writer already
-has a draft resumes that draft (the most recently edited, when several
-exist) instead of starting a blank one, and the usual `info` note at the
-top says so: "You started a draft for this day, so it is open again."
-The address then names the draft, so a reload reopens it.
+**Resuming a draft.** A writer has at most one draft in mind per place,
+day and hour, and the composer finds it wherever they come in:
+
+- Opening the composer for a place, day and hour where the writer already
+  has a draft resumes that draft instead of starting a blank one, and the
+  usual `info` note at the top says so: "You started a draft for this day,
+  so it is open again." The address then names the draft, so a reload
+  reopens it.
+- The same lookup runs again whenever the day or hour changes in the form
+  (typed, picked from the hour list or chosen from "Days already written
+  about here"), not only on load. When the form has nothing written yet,
+  the draft found opens in place: its text, genre, title and characters
+  fill the form, focus stays where the writer is, and the same note
+  appears at the top.
+- When the writer has already written something in this form and another
+  draft of theirs exists for the newly chosen day or hour, nothing they
+  typed is replaced. A bordered `warning` note under the day and hour says
+  "You already have a draft for this day." ("this hour" for an hour) with
+  an "Open that draft" link; their own text keeps saving as its own draft.
+- When several drafts exist for one place, day and hour, the one changed
+  most recently opens, and the note says so: "You started more than one
+  draft for this day, so the one you changed last is open. The others are
+  under Your perspectives on the front page."
+- A draft whose parts are all empty is never saved: autosave waits until a
+  part has text, and the save status line reads "Your draft saves once a
+  part has text." until then. The server refuses an all-empty draft as well, so an
+  empty draft can never sit beside a real one and be the one that reopens.
 
 ## Place page header and reports
 
 - Under the place name, one `text-sm` `ink-muted` word says what the place
   is, the same way search does: an imported store or mall with a category
   shows the category ("Sports"), never "Store" for a stadium.
+- **The action row** under it: "Write about this place" first, as the
+  `primary` button, since writing is what the page is for; then "Follow"
+  and "Report place" (and "Add a place here" where the place holds
+  others) as `ghost` buttons of one size, `sm` in type and 44px tall.
+  "Follow" is a toggle, `aria-pressed`, reading "Following" in the
+  `secondary` style when on.
 - That category word is a link (`accent`, underlined, 44px tall) to the best
   days at every place of that kind, `/best/<slug>`. Its accessible name
   starts with the word it shows and says where it goes ("Sports: the best
@@ -574,7 +756,11 @@ writer's work in two tabs.
   Thread posts is `?tab=posts`, Stories has no parameter, and any other
   value reads as Stories. Switching replaces the URL rather than adding a
   history entry, moves no focus, and keeps the reader's place on the page.
-  Each panel loads its list the first time it is shown.
+  Each panel loads its list the first time it is shown. The tab row's
+  hairline is the only rule above the first row: a list under the tabs
+  draws its dividers and a closing rule, never a top border of its own.
+- **Badges** in the header are flairs (Flairs and tags): "In 2 canons"
+  with a `Crown` in `accent`, "In 5 lores" with `Users` in `ink-muted`.
 - **Stories tab.** Each perspective row is one link at least 44px tall. It
   leads with where and when (place and day, `ink`, medium weight), then the
   day's title in the serif face, then the story's own opening (its first
@@ -600,7 +786,8 @@ writer's work in two tabs.
 ## Place page sidebar
 
 - **Were you in someone's story?** First in the sidebar: a search field
-  (placeholder "gold paint, red umbrella…") over unclaimed descriptions at the
+  (placeholder "red umbrella…", short enough to show whole in the 16rem
+  sidebar) over unclaimed descriptions at the
   place and below. Results quote the description in Literata, name the writer,
   place and day, and link "That was me" to the story with the claim dialog up.
   Under two characters nothing is searched; an empty result says so in a
@@ -643,6 +830,23 @@ writer's work in two tabs.
   who else was there" link to the reader's own story, where the invite
   dialog opens. The invite dialog asks only about characters nobody has
   claimed yet.
+- **What a request is about.** Each request names the story it concerns,
+  as a `text-sm` `accent` underlined link 44px tall, never a bare "Your
+  perspective": "About your story at UCF Stadium, October 3, 2026" on a
+  request on the reader's characters, "About otter's story at UCF Stadium,
+  October 3, 2026" on one of the reader's own claims, the day as the
+  reader sees days elsewhere ("October 3, 2026, 21:00" for an hour's
+  story). On one of the reader's own claims a second link, "Your story of
+  that day", opens the story they claimed from.
+- **Are you in their story too?** Once the reader accepts, the Linked lines
+  are followed by the claimant's characters that are still open to the
+  reader: no pending or accepted claim on them, and none the reader made
+  before. A `text-sm` `ink-muted` line "Are you in otter's story too?"
+  heads a list, one row per character: its description in quotes in
+  Literata, then a "That was me" link (44px tall) to
+  `/perspectives/<their story>?claim=<character id>`, where the claim
+  dialog opens. The block is left out while their story loads, when it
+  cannot be read, and when no character is open.
 - **Focus after a decision.** Accept and Reject leave with the request
   they decide, so focus moves to the request's new status line ("Linked…"
   or "Rejected"), never to the page body.
@@ -712,6 +916,15 @@ two rows for the same browser are told apart.
   leaves the list without a word and comes back if it is restored. With
   none, the page says "You have not saved any stories yet. Press Save under
   a story to keep it here."
+- **Unsaving from the list.** Each row carries the story's Save toggle
+  under its link, `flush`, reading "Saved". Pressing it unsaves the story,
+  but the row stays until the reader leaves the page: a `text-sm`
+  `ink-muted` "Removed." appears before the toggle (a visually hidden
+  polite `status` after it says the same to a screen reader), and the
+  toggle reads "Undo", named "Undo: save otter's perspective again", with
+  no `aria-pressed`. Undo saves it again in place. Focus stays on the
+  button throughout, since it is the same button. The next visit lists
+  only what is saved.
 - **Way in.** The account menu lists "Your profile" (lucide `User`,
   linking to `/users/<username>`) first, then "Saved" with a `Bookmark`
   icon, above Settings.
@@ -757,6 +970,14 @@ While sign-up is invite-only (the server says so through GetSignUpInfo):
   verified page offers "Continue where you were" (through sign-in when the
   tab is signed out). The password field says its rule before submit: "At
   least 10 characters; a common password is refused."
+- **The verified page is a start, not a dead end.** Verifying is when a
+  new member may first publish, so with nowhere kept to continue to the
+  page offers two text links on one wrapping line, each 44px tall: "Write
+  about a place you were at" first, opening the composer's place picker
+  (`/compose`), then "Start reading" (`/`). When the tab is signed out they
+  read "Sign in to write about a place you were at" (sign-in, then
+  `/compose`) and "Sign in". With a kept path, "Continue where you were"
+  is the only link, as before.
 
 ## Admin: beta access
 
@@ -841,28 +1062,31 @@ the age-and-agreement checkbox, so a keyboard user meets them first.
 
 ## Landing (the front door)
 
-The landing page is the one surface that has to sell the idea to someone who
-has never seen it, so it is the one page where Folio's quiet gives way to a
-modern front door. Reading pages stay bookish; the front door does not have
-to be. There is still no feed of posts (AC-006, A-049): the way in is a
-place. The page shows one illustrated example and the places where people
-are writing, each of which opens its place page.
+The founder's picture is that the app "starts out looking like a novel
+book", so the front door is a book's title page set in Folio, not a product
+hero: the same paper, type, hairlines and quiet as every reading page, with
+no exceptions to the principles above. There is still no feed of posts
+(AC-006, A-049): the way in is a place. The page shows one example, as two
+facing pages, and the places where people are writing, each of which opens
+its place page.
 
-- **Exceptions to Folio, here only.** Cards MAY use `rounded-xl` and a soft
-  shadow (`shadow-sm` and an offset "stacked page" layer) to read as objects
-  you can pick up. The accent MAY fill a tinted panel (`accent` at 6 to 10
-  percent over `paper`) behind the example. Still no gradients, blur or
-  motion.
-- **Hero.** One promise, said plainly: "Same place. Same day. Every side of
-  the story." in Literata 600, `text-4xl` rising to `text-6xl`, tight leading,
-  then one sentence that says what Perspectiv is in Public Sans at
-  `text-lg`, `ink-muted`.
-- **The search is the call to action.** A large rounded field (`rounded-full`,
-  `surface`, `control` border, 56px tall) labelled "Search places", with the
+- **One column.** The page, signed in or out, is one centred column at most
+  48rem wide (`max-w-3xl`), inside the 16px gutter. Sections are set apart
+  by space and `rule` hairlines; there are no cards, rounded panels,
+  shadows, tinted fills or offset "stacked page" layers.
+- **Title page.** Centred, with generous space above it (`pt-10`, `pt-20`
+  from `sm`): the promise "Same place. Same day. Every side of the story."
+  as the `h1` in Literata 600, `text-4xl` rising to `text-5xl` from `sm`,
+  balanced across its lines; a short centred `rule` hairline (4rem) under
+  it, as a title page's ornament; then one sentence that says what
+  Perspectiv is, in Literata at `text-prose`, `ink-muted`, at the measure.
+- **The search is the call to action.** Under that sentence, a 56px field
+  (Folio's `Input`: `rounded-md`, `surface`, `control` border, no shadow),
+  centred and at most `max-w-xl` wide, labelled "Search places", with the
   placeholder "A store, mall, town or city" (short enough to show whole in
-  a 375px field). Results drop
-  below it as before. Under it, one line for newcomers: "Anyone can read.
-  Sign up to write your side."
+  a 375px field). Results drop below it, left-aligned. Under it, one
+  centred `text-sm` `ink-muted` line for newcomers: "Anyone can read. Sign
+  up to write your side."
 - **A place and its town.** The search reads a name with the city or town
   it is in, either way round or after a comma ("starbucks tampa", "tampa
   starbucks", "starbucks, tampa"), and lists the places of that name in
@@ -870,24 +1094,36 @@ are writing, each of which opens its place page.
   stops at 20 places; when more match, the line "More places match: add a
   town to narrow it" (`text-sm`, `ink-muted`) follows the list, and the
   results' status line says it too, so the list never stops silently.
-- **The example arc.** A labelled "Example" panel that shows the product
-  working: a place chip and a day chip, then two perspective cards by two
-  usernames from the same evening, each a few lines of prose in Literata. A
-  phrase in one card is highlighted as a character, and a link line shows the
-  other writer claiming it ("that was me"). Under the cards a lore badge says
-  the linked stories became the canon of the day. On phones the cards stack.
-- **How it works, as notes on the example.** Four short captions sit beside
-  (desktop) or under (phone) the example, each with a lucide icon and no
-  numbers: pinned to a place and a day; everyone writes their own side; claim
-  the character who was you; linked stories become lore, and the favourite
-  becomes canon.
-- **Where people are writing.** Under the hero, up to six place cards from
-  the most remembered days anywhere, one card per place: the place name and
-  its city, the day's title, a two-line quote of its opening in Literata, and
-  "Canon" (with the lore's name when it has one, as on the place page) or
-  the story count. A card links to the place page, never straight
-  to a story, so the way in stays place first. Two columns from `sm`, three
-  from `lg`. The section is left out when no place has a story.
+- **The example: two facing pages.** A `figure` that shows the product
+  working, as a book opened flat. Its caption is one `text-sm` `ink-muted`
+  line, "Example · Moonbean Coffee, Portland · Friday, 9 PM", with "Example"
+  in medium-weight `ink`. Then two pages by two usernames from the same
+  evening, side by side from `sm` and split by a 1px `rule` gutter
+  (`divide-x`), stacked on phones with a `rule` hairline between them. Each
+  page carries its writer's name as a running head (`text-sm` `ink-muted`)
+  over a few lines of prose in Literata at `text-prose`. A phrase on the
+  first page is the character, underlined 2px in `accent` with no fill.
+  Under the pages, two `text-sm` lines, each with a 16px `ink-muted` icon:
+  the other writer claiming it ("that was me"), and the linked stories
+  becoming the canon of the night.
+- **How it works.** Under the example, the `h2` "How Perspectiv works" over
+  four numbered lines (an `<ol>`, `list-decimal`, no icons): every story is
+  pinned to a place and a day; everyone who was there writes their own
+  side; spot yourself in someone else's story and claim the character;
+  linked stories become a lore, and the lore the people who were there
+  favour most becomes canon.
+- **Where people are writing.** Under how it works (for a member, under
+  the search), up to six rows from the
+  most remembered days anywhere, one per place, in a list split by
+  `divide-rule` with a `rule` above and below, set as the place page's day
+  rows (`ArcItem`). Each row is one link, at least 44px tall, to the place
+  page: the place name and its city in Literata `text-lg`, `accent`,
+  underlined on hover; the day and its title on a `text-sm` `ink-muted`
+  line; the opening, quoted, in Literata clamped to two lines (a two-line
+  preview); then a `text-sm` line with "Canon" and a crown (with the
+  lore's name when it has one, as on the place page) and the story count.
+  A row never links straight to a story, so the way in stays place first.
+  The section is left out when no place has a story.
 - **Places you follow** (signed in, when there are any) sits above "Where
   people are writing": one pill per place with a bell icon, linking to it.
   A place with stories published at it or below in the last seven days
@@ -896,13 +1132,20 @@ are writing, each of which opens its place page.
   opens the place's Newest tab (`/places/:id?tab=newest`), where the new
   days are marked; a pill with nothing new opens the bare place page. When any are
   new, a line under the heading totals them ("5 new stories this week");
-  counts stop at 100 and show as "100+".
-  A place page carries a "Follow" toggle beside "Write about this place",
-  `aria-pressed`, reading "Following" with a filled style when on.
-- **Returning members** do not see the visitor hero, the example or the
-  how-it-works notes. The page leads with a compact "Welcome back" block:
-  the page heading "Welcome back, *username*" at the page-title size, then
-  one line per thing waiting, each a count in bold and a link ("2 unread
+  counts stop at 100 and show as "100+". The reader's own stories never
+  count as new.
+- **Writers you follow** (signed in) sits under "Places you follow", inside
+  the same section, under its own `h2`: one pill per followed writer who
+  published a readable story in the last seven days, most new first, each
+  a lucide `PenLine`, the username and "· 2 new" (the count in bold
+  accent, "100+" at the cap), linking to the writer's profile
+  (`/users/<username>`). Writers with nothing new are left out, and the
+  heading with them when none has anything new. The pills are the place
+  pills' shape: 44px tall, `rule` border, `accent` on hover.
+- **Returning members** do not see the title page, the example or how it
+  works. The page leads with a compact "Welcome back" block: the page
+  heading "Welcome back, *username*" at the page-title size, then one line
+  per thing waiting, each a count in bold and a link ("2 unread
   notifications · Open your inbox", "1 request waiting on you · Review
   requests"), or "Nothing is waiting on you." when both are zero. "Your
   perspectives" follows it, then the search field, then "Places you
@@ -912,9 +1155,9 @@ are writing, each of which opens its place page.
   "back": the heading reads "Welcome, *username*" at the same size, and
   the waiting lines are the same. Under them sits one call to action, the
   primary button "Write about a place you were at" (to `/compose`), and
-  beside it a text link "How a day works" that moves focus to a short
-  explainer further down the same block: an `h2` "How a day works" over
-  four numbered lines, the arc page's explainer without its counts:
+  under that a short explainer in a bordered `surface` box: the `h2` "How a
+  day works" over four numbered lines, the arc page's explainer without its
+  counts. No link points at the box; it sits right under the button.
   1. Every story is pinned to a place and a day, or one hour of it.
   2. Everyone who was there writes their own side.
   3. If someone else's story describes you, claim that character; your
@@ -934,15 +1177,22 @@ are writing, each of which opens its place page.
   in `warning` ink, and a "Delete" text button sits at the row's end,
   44px tall, labelled "Delete draft *title*". One press deletes it, the
   list is read again, and focus moves to the section heading. Nothing is
-  deleted without that press.
+  deleted without that press. Every other draft row ends with a
+  "Continue" text link where a published row has "Edit": the same
+  `text-sm` `accent` underlined word, 44px tall, labelled "Continue
+  *title*", opening the draft in the composer (the row's title links there
+  too).
 - **Browse by kind of place** sits above "Browse by state" for everyone: the
-  heading "Browse by kind of place", then one pill per category that has at
+  heading "Browse by kind of place", then one link per category that has at
   least one day, in the order of the place page's category chips, each its
   short label ("Sports", "Food & drink") linking to `/best/<slug>`. The
-  pills look like the state pills. The section is left out when no category
-  has a day, and while the list loads or fails, rather than showing an
-  error on the front door.
-- "Browse by state" closes the page for everyone.
+  links are a run-in list, like a book's index: `accent` underlined words
+  in a wrapping line, each 44px tall, separated by `ink-muted` middots
+  (`aria-hidden`). The section is left out when no category has a day, and
+  while the list loads or fails, rather than showing an error on the front
+  door.
+- "Browse by state" (the heading says just that) closes the page for
+  everyone, a run-in list of the states like the kinds.
 - Nothing animates, and everything keeps the 16px gutter with no sideways
   scroll at 375px.
 

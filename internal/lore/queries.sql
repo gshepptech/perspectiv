@@ -191,11 +191,14 @@ DELETE FROM lore_members WHERE perspective_id = $1;
 -- paged on (created_at, id). claimant_opening is the first 241 characters of
 -- the claimant's story, whitespace folded, while anyone may read it (published, neither deleted
 -- nor hidden, not filed at or below a hidden place), else ''; claimExcerpt
--- cuts it at a word. ListOutgoingClaims returns the same columns.
+-- cuts it at a word. place_name, local_date and hour say where and when the
+-- story declaring the character is set. ListOutgoingClaims returns the same
+-- columns.
 SELECT c.id, p.arc_id, c.character_id, ch.label, ch.perspective_id,
        p.author_id, au.username AS author_username,
        c.claimant_user_id, cu.username AS claimant_username,
        c.claimant_perspective_id, c.status, c.created_at, c.resolved_at,
+       coalesce(pl.name, '')::text AS place_name, ar.local_date, ar.hour,
        COALESCE((SELECT left(regexp_replace(btrim(pp.body), '\s+', ' ', 'g'), 241) FROM perspective_parts pp
                  JOIN perspectives cp ON cp.id = pp.perspective_id
                  JOIN arcs ca ON ca.id = cp.arc_id
@@ -210,6 +213,8 @@ JOIN characters ch ON ch.id = c.character_id
 JOIN perspectives p ON p.id = ch.perspective_id
 JOIN users au ON au.id = p.author_id
 JOIN users cu ON cu.id = c.claimant_user_id
+LEFT JOIN arcs ar ON ar.id = p.arc_id
+LEFT JOIN places pl ON pl.id = ar.place_id
 WHERE p.author_id = sqlc.arg(user_id)::uuid
   AND (sqlc.narg(status)::text IS NULL OR c.status = sqlc.narg(status)::text)
   AND (NOT sqlc.arg(has_after)::boolean
@@ -223,6 +228,7 @@ SELECT c.id, p.arc_id, c.character_id, ch.label, ch.perspective_id,
        p.author_id, au.username AS author_username,
        c.claimant_user_id, cu.username AS claimant_username,
        c.claimant_perspective_id, c.status, c.created_at, c.resolved_at,
+       coalesce(pl.name, '')::text AS place_name, ar.local_date, ar.hour,
        COALESCE((SELECT left(regexp_replace(btrim(pp.body), '\s+', ' ', 'g'), 241) FROM perspective_parts pp
                  JOIN perspectives cp ON cp.id = pp.perspective_id
                  JOIN arcs ca ON ca.id = cp.arc_id
@@ -237,6 +243,8 @@ JOIN characters ch ON ch.id = c.character_id
 JOIN perspectives p ON p.id = ch.perspective_id
 JOIN users au ON au.id = p.author_id
 JOIN users cu ON cu.id = c.claimant_user_id
+LEFT JOIN arcs ar ON ar.id = p.arc_id
+LEFT JOIN places pl ON pl.id = ar.place_id
 WHERE c.claimant_user_id = sqlc.arg(user_id)::uuid
   AND (sqlc.narg(status)::text IS NULL OR c.status = sqlc.narg(status)::text)
   AND (NOT sqlc.arg(has_after)::boolean
@@ -395,6 +403,22 @@ WHERE v.reply_to_id = sqlc.arg(post_id)::uuid AND v.hidden_at IS NULL AND NOT v.
        OR (v.created_at, v.id) > (sqlc.arg(after_at)::timestamptz, sqlc.arg(after_id)::uuid))
 ORDER BY v.created_at, v.id
 LIMIT sqlc.arg(row_limit)::int;
+
+-- name: CountThreadPosts :one
+-- The posts a reader of the lore's thread sees, replies included: neither
+-- deleted nor hidden, by a live account, and a reply only while its
+-- top-level post is not hidden. Top-level posts come through
+-- lore_posts_top_idx and replies through lore_posts_replies_idx.
+SELECT (
+    (SELECT count(*) FROM lore_posts t JOIN users tu ON tu.id = t.author_id
+     WHERE t.lore_id = @lore_id::uuid AND t.reply_to_id IS NULL
+       AND t.deleted_at IS NULL AND t.hidden_at IS NULL AND tu.deleted_at IS NULL)
+  + (SELECT count(*) FROM lore_posts t
+     JOIN lore_posts r ON r.reply_to_id = t.id
+     JOIN users ru ON ru.id = r.author_id
+     WHERE t.lore_id = @lore_id::uuid AND t.reply_to_id IS NULL AND t.hidden_at IS NULL
+       AND r.deleted_at IS NULL AND r.hidden_at IS NULL AND ru.deleted_at IS NULL)
+)::integer AS posts;
 
 -- name: GetThreadPost :one
 SELECT v.* FROM lore_thread_posts v WHERE v.id = $1;

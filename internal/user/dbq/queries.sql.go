@@ -427,15 +427,25 @@ func (q *Queries) ListBlocked(ctx context.Context, arg ListBlockedParams) ([]Lis
 }
 
 const listFollowedWriters = `-- name: ListFollowedWriters :many
-SELECT u.id, u.username, u.avatar_path, f.created_at AS followed_at
+SELECT u.id, u.username, u.avatar_path, f.created_at AS followed_at, rc.recent
 FROM user_follows f
 JOIN users u ON u.id = f.followee_id
-WHERE f.follower_id = $1::uuid AND u.deleted_at IS NULL
+CROSS JOIN LATERAL (
+    SELECT count(*)::integer AS recent FROM (
+        SELECT 1 FROM perspectives v JOIN arcs a ON a.id = v.arc_id
+        WHERE v.author_id = u.id
+          AND v.status = 'PERSPECTIVE_STATUS_PUBLISHED' AND v.deleted_at IS NULL AND v.hidden_at IS NULL
+          AND v.published_at > $1::timestamptz
+          AND NOT EXISTS (SELECT 1 FROM places h WHERE h.id = ANY(a.place_path) AND h.hidden_at IS NOT NULL)
+        LIMIT 100) x
+) rc
+WHERE f.follower_id = $2::uuid AND u.deleted_at IS NULL
 ORDER BY f.created_at DESC, u.id
-LIMIT $2::integer
+LIMIT $3::integer
 `
 
 type ListFollowedWritersParams struct {
+	Since      time.Time
 	FollowerID uuid.UUID
 	MaxRows    int32
 }
@@ -445,12 +455,15 @@ type ListFollowedWritersRow struct {
 	Username   string
 	AvatarPath *string
 	FollowedAt time.Time
+	Recent     int32
 }
 
 // The writers an account follows, most recently followed first, leaving out
-// deleted accounts.
+// deleted accounts. recent counts each writer's readable stories (published,
+// neither deleted nor hidden, not at or below a hidden place) published
+// since the cutoff, up to 100, through perspectives_author_published_idx.
 func (q *Queries) ListFollowedWriters(ctx context.Context, arg ListFollowedWritersParams) ([]ListFollowedWritersRow, error) {
-	rows, err := q.db.Query(ctx, listFollowedWriters, arg.FollowerID, arg.MaxRows)
+	rows, err := q.db.Query(ctx, listFollowedWriters, arg.Since, arg.FollowerID, arg.MaxRows)
 	if err != nil {
 		return nil, err
 	}
@@ -463,6 +476,7 @@ func (q *Queries) ListFollowedWriters(ctx context.Context, arg ListFollowedWrite
 			&i.Username,
 			&i.AvatarPath,
 			&i.FollowedAt,
+			&i.Recent,
 		); err != nil {
 			return nil, err
 		}

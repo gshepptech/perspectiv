@@ -1025,7 +1025,8 @@ export const ListSavedResponseSchema: GenMessage<ListSavedResponse> = /*@__PURE_
  */
 export const PerspectiveService: GenService<{
   /**
-   * Creates or replaces the caller's draft (autosave).
+   * Creates or replaces the caller's draft (autosave). InvalidArgument when
+   * no part holds any text: an empty draft is never stored.
    *
    * @generated from rpc perspectiv.v1.PerspectiveService.SaveDraft
    */

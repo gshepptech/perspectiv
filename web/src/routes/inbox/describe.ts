@@ -26,7 +26,7 @@ export function castLine(n: Pick<Notification, "unclaimedCharacters" | "moreUncl
  * the claims page where you accept or reject it; an event about one
  * perspective (a new one, a vote to remove one) opens that perspective; an
  * event about the arc as a whole opens the arc; a reply to your thread post
- * opens the lore page the thread is on. A resolved report has no page
+ * opens the lore page at that reply. A resolved report has no page
  * a non-admin can open, so it has no link.
  */
 export function describeNotification(n: Notification): Described {
@@ -53,8 +53,11 @@ export function describeNotification(n: Notification): Described {
       return { text: `${who} wrote a new story in ${arc}, at a place you follow.`, to: perspectivePage };
     case NotificationKind.NEW_STORY_BY_FOLLOWED_WRITER:
       return { text: `${who} wrote a new story in ${arc}.`, to: perspectivePage };
-    case NotificationKind.THREAD_REPLY:
-      return { text: `${who} replied to your post in the thread of ${arc}.`, to: n.loreId ? `/lores/${n.loreId}` : arcPage };
+    case NotificationKind.THREAD_REPLY: {
+      // The lore page scrolls to and focuses the reply its anchor names.
+      const lore = n.loreId ? `/lores/${n.loreId}${n.postId ? `#post-${n.postId}` : ""}` : arcPage;
+      return { text: `${who} replied to your post in the thread of ${arc}.`, to: lore };
+    }
     case NotificationKind.REPORT_RESOLVED:
       return { text: "A report you made was resolved. Thank you for keeping Perspectiv safe.", to: null };
     case NotificationKind.UNSPECIFIED:

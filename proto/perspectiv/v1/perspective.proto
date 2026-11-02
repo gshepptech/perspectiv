@@ -11,7 +11,8 @@ import "perspectiv/v1/user.proto";
 // PerspectiveService writes and reads perspectives: one user's entry in one
 // arc, at most 10 parts of at most 300 words, at most 10 characters.
 service PerspectiveService {
-  // Creates or replaces the caller's draft (autosave).
+  // Creates or replaces the caller's draft (autosave). InvalidArgument when
+  // no part holds any text: an empty draft is never stored.
   rpc SaveDraft(SaveDraftRequest) returns (SaveDraftResponse);
   // Publishes into the arc for the place, day and optional hour, creating the
   // arc in the same transaction when absent.

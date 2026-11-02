@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { ArrowLeft, ArrowRight, Clock, Crown, Pin, PenLine } from "lucide-react";
-import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useParams } from "react-router";
 
 import { UpvoteRule } from "@/components/actions/JoinFirst";
@@ -334,7 +334,7 @@ function HowItWorks({ arc, res, rights }: { arc: Arc; res: GetArcResponse; right
   const span = arcSpan(arc.hour);
   return (
     <aside aria-labelledby="arc-how" className="min-w-0 rounded-md border border-rule bg-surface p-4 text-sm">
-      <h2 id="arc-how" tabIndex={-1} className="font-sans text-base font-medium">
+      <h2 id="arc-how" tabIndex={-1} className="text-lg">
         How this {span} works
       </h2>
       <ol className="mt-2 grid list-decimal gap-1.5 pl-5 text-ink">
@@ -405,21 +405,20 @@ function ArcView({ res }: { res: GetArcResponse }) {
         </p>
       )}
       <header className="min-w-0">
-        <nav aria-label="Place" className="text-sm text-ink-muted">
-          <ol className="flex flex-wrap items-center gap-x-1">
+        {/* Set as the place page's breadcrumb (Folio, Arc page). */}
+        <nav aria-label="Place">
+          <ol className="flex flex-wrap items-center gap-x-2 text-sm text-ink-muted">
             {arc.placeChain.map((p, i) => (
-              <Fragment key={p.id}>
-                {i > 0 && <li aria-hidden>›</li>}
-                <li className="min-w-0 wrap-anywhere">
-                  <Link to={`/places/${p.id}`} className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">
-                    {p.name}
-                  </Link>
-                </li>
-              </Fragment>
+              <li key={p.id} className="inline-flex min-w-0 items-center gap-2">
+                {i > 0 && <span aria-hidden>›</span>}
+                <Link to={`/places/${p.id}`} className="inline-flex min-h-11 min-w-0 items-center wrap-anywhere text-accent underline underline-offset-4">
+                  {p.name}
+                </Link>
+              </li>
             ))}
           </ol>
         </nav>
-        <h1 id="arc-title" className="mt-2 text-2xl break-words sm:text-3xl">
+        <h1 id="arc-title" className="text-2xl break-words sm:text-3xl">
           {arc.title}
         </h1>
         <p className="mt-1 flex flex-wrap items-center gap-x-3 text-ink-muted">

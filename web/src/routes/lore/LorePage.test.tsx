@@ -67,11 +67,17 @@ describe("lore page", () => {
     // Unnamed, the lore is never titled with its day's own title.
     expect(await screen.findByRole("heading", { level: 1, name: "Unnamed lore" })).toBeInTheDocument();
     expect(screen.getByText(/^Open mic night · /)).toBeInTheDocument();
-    expect(screen.getByText("Canon of the day")).toBeInTheDocument();
+    // Flairs are words with an icon, never a pill (Folio, Flairs and tags).
+    expect(screen.getByText("Canon of the day").className).not.toMatch(/rounded-full|bg-accent/);
     const cast = await screen.findByRole("region", { name: "Who was who" });
     expect(cast).toHaveTextContent("otter was “the guy in the yellow raincoat” in wren’s story");
     expect(await screen.findByText("The power went out.")).toBeInTheDocument();
     expect(screen.getByText("I don't sing.")).toBeInTheDocument();
+    // Each story is a plain article under a hairline, headed in the serif (Folio, Lore page: stories).
+    const story = screen.getByRole("article", { name: "wren's perspective" });
+    expect(story).toHaveClass("border-t", "border-rule");
+    expect(story.className).not.toMatch(/rounded|shadow|\bp-5\b/);
+    expect(within(story).getByRole("heading", { level: 3 }).className).not.toMatch(/font-sans/);
     const thread = screen.getByRole("region", { name: "Thread" });
     expect(await within(thread).findByText("That was the best night.")).toBeInTheDocument();
     expect(within(thread).getByText("In this lore")).toBeInTheDocument();

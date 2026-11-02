@@ -28,6 +28,9 @@ export function FollowButton({ placeId, following }: { placeId: string; followin
     <>
       <Button
         variant={following ? "secondary" : "ghost"}
+        // One size with the place page's Report and Add (Folio, Place page header).
+        size="sm"
+        className="min-h-11"
         aria-pressed={following}
         pending={follow.isPending}
         onClick={() => {

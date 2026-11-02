@@ -21,16 +21,20 @@ import { useAutosave, type AutosaveState } from "./autosave";
 import {
   characterInputs,
   DAY,
+  hasText,
   hourOf,
   MAX_CHARACTERS,
   MAX_PARTS,
   MAX_WORDS_PER_PART,
   publishSchema,
+  valuesFromPerspective,
   wordCount,
   type ComposeValues,
 } from "./composeForm";
+import { resumedNotice, useDraftsFor } from "./drafts";
 import { genreLabel, genres } from "./genres";
 import { hourLabel, isLocalDate } from "./localDate";
+import { RecentDays } from "./RecentDays";
 
 const hours = Array.from({ length: 24 }, (_, h) => h);
 
@@ -93,10 +97,27 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
   const characters = useFieldArray({ control: form.control, name: "characters", keyName: "key" });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shownNotice, setShownNotice] = useState(notice);
+  const written = hasText(useWatch({ control: form.control, name: "parts" }));
 
+  // The draft this form saves into: a ref for the autosave, state for what
+  // the page shows.
   const draftId = useRef(perspective?.id ?? "");
+  const [ownDraft, setOwnDraft] = useState(perspective?.id ?? "");
   const namedRef = useRef(onDraftNamed);
   namedRef.current = onDraftNamed;
+  // A save that finishes after the composer has gone (the writer followed a
+  // link away) must not name its draft in an address that has moved on.
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  // Set while a found draft is loaded into the form, so loading it is not
+  // taken for an edit to save.
+  const adopting = useRef(false);
 
   const autosave = useAutosave(async () => {
     const v = form.getValues();
@@ -113,18 +134,52 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
     const id = res.perspective?.id;
     if (id && id !== draftId.current) {
       draftId.current = id;
-      namedRef.current(id);
+      if (alive.current) {
+        setOwnDraft(id);
+        namedRef.current(id);
+      }
     }
   }, describe);
 
   // Every edit to a draft restarts the autosave debounce. A published
-  // perspective is only written when the author saves it.
-  const { schedule } = autosave;
+  // perspective is only written when the author saves it. A draft with no
+  // text in any part is never saved (the server refuses one too): an empty
+  // draft beside a real one for the same day would be the newest, and so the
+  // one that reopens.
+  const { schedule, cancel, setState: setSaveState } = autosave;
   useEffect(() => {
     if (published) return;
-    const sub = form.watch(() => schedule());
+    const sub = form.watch((v) => {
+      if (adopting.current) return;
+      if (hasText(v.parts)) {
+        schedule();
+      } else {
+        cancel();
+        setSaveState({ kind: "idle" });
+      }
+    });
     return () => sub.unsubscribe();
-  }, [form, published, schedule]);
+  }, [form, published, schedule, cancel, setSaveState]);
+
+  // The writer's drafts for the day and hour in the form, looked up again
+  // whenever either changes, not only on load. A form with nothing written
+  // and no draft of its own opens the newest one in place; otherwise the
+  // page offers it (otherDraft below) and replaces nothing.
+  const drafts = useDraftsFor(place.id, chosenDate, chosenHour, !published);
+  const newestDraft = drafts.data?.[0];
+  useEffect(() => {
+    const found = drafts.data;
+    const newest = found?.[0];
+    if (!found || !newest || draftId.current !== "" || hasText(form.getValues().parts)) return;
+    adopting.current = true;
+    form.reset(valuesFromPerspective(newest, today));
+    adopting.current = false;
+    draftId.current = newest.id;
+    setOwnDraft(newest.id);
+    setShownNotice(resumedNotice(found.length));
+    namedRef.current(newest.id);
+  }, [drafts.data, form, today]);
+  const otherDraft = newestDraft && newestDraft.id !== ownDraft && (ownDraft !== "" || written) ? newestDraft : undefined;
 
   async function openExisting(v: ComposeValues): Promise<boolean> {
     const hour = hourOf(v);
@@ -233,12 +288,16 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
           </p>
         )}
 
-        {notice && (
-          <p className="flex gap-2 rounded-md border border-rule bg-surface p-3 text-sm text-ink">
-            <Info aria-hidden size={16} className="mt-0.5 shrink-0 text-info" />
-            <span>{notice}</span>
-          </p>
-        )}
+        {/* A live region from the start, so a draft opened in place as the day changes is announced.
+            Empty, it takes back the grid gap after it rather than leave a double space. */}
+        <div role="status" aria-label="Composer notice" className="empty:-mb-6">
+          {shownNotice && (
+            <p className="flex gap-2 rounded-md border border-rule bg-surface p-3 text-sm text-ink">
+              <Info aria-hidden size={16} className="mt-0.5 shrink-0 text-info" />
+              <span>{shownNotice}</span>
+            </p>
+          )}
+        </div>
 
         {published ? (
           <p className="text-sm text-ink-muted [overflow-wrap:anywhere]">
@@ -246,7 +305,28 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
             at {place.name}. The day and hour are fixed once published.
           </p>
         ) : (
-          <WhenFields control={form.control} place={place} today={today} fixed={joining} />
+          <WhenFields
+            control={form.control}
+            place={place}
+            today={today}
+            fixed={joining}
+            onChooseDay={(localDate, hour) => {
+              form.setValue("localDate", localDate, { shouldDirty: true });
+              form.setValue("hour", hour === undefined ? DAY : String(hour), { shouldDirty: true });
+            }}
+          />
+        )}
+
+        {otherDraft && (
+          <p role="status" className="rounded-md border border-warning p-3 text-sm">
+            You already have a draft for {chosenHour === undefined ? "this day" : "this hour"}.{" "}
+            <Link
+              to={`/compose?perspectiveId=${encodeURIComponent(otherDraft.id)}`}
+              className="inline-flex min-h-11 items-center font-medium text-accent underline underline-offset-4"
+            >
+              Open that draft
+            </Link>
+          </p>
         )}
 
         {alreadyWrote && (
@@ -373,7 +453,7 @@ export function Composer({ place, today, initial, perspective, notice, onDraftNa
             {published ? "Save changes" : "Publish"}
           </Button>
           {alreadyWrote && <span className="text-sm text-ink-muted">Held: you already have a story for this day or hour.</span>}
-          <SaveStatus state={autosave.state} published={published} />
+          <SaveStatus state={autosave.state} published={published} written={written} />
         </div>
       </form>
     </Form>
@@ -430,11 +510,13 @@ function WhenFields({
   place,
   today,
   fixed,
+  onChooseDay,
 }: {
   control: Control<ComposeValues>;
   place: Place;
   today: string;
   fixed: boolean;
+  onChooseDay: (localDate: string, hour: number | undefined) => void;
 }) {
   const localDate = useWatch({ control, name: "localDate" }) ?? "";
   const hour = hourOf({ hour: useWatch({ control, name: "hour" }) ?? DAY });
@@ -463,13 +545,14 @@ function WhenFields({
         control={control}
         name="localDate"
         render={({ field }) => (
-          <FormItem className="min-w-0">
+          // content-start: a longer help line beside it never stretches this field (Folio, Composer: day and hour).
+          <FormItem className="min-w-0 content-start">
             <FormLabel>Day of your visit</FormLabel>
             <FormControl>
               <Input type="date" max={today} required {...field} />
             </FormControl>
             <FormDescription className="[overflow-wrap:anywhere]">
-              Today in {place.name} is {formatDay(today)}.
+              Today at {place.name} is {formatDay(today)}.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -479,11 +562,11 @@ function WhenFields({
         control={control}
         name="hour"
         render={({ field }) => (
-          <FormItem className="min-w-0">
+          <FormItem className="min-w-0 content-start">
             <FormLabel>Hour</FormLabel>
             <Select value={field.value} onValueChange={field.onChange}>
               <FormControl>
-                <SelectTrigger onBlur={field.onBlur}>
+                <SelectTrigger onBlur={field.onBlur} className="h-11">
                   <SelectValue />
                 </SelectTrigger>
               </FormControl>
@@ -500,6 +583,7 @@ function WhenFields({
           </FormItem>
         )}
       />
+      <RecentDays place={place} today={today} localDate={localDate} hour={hour} onChoose={onChooseDay} />
       <DayArcNote place={place} localDate={localDate} hour={hour} />
       {!dayTitled && (
       <FormField
@@ -555,11 +639,11 @@ function PartField({ control, index, onRemove }: { control: Control<ComposeValue
   );
 }
 
-function SaveStatus({ state, published }: { state: AutosaveState; published: boolean }) {
+function SaveStatus({ state, published, written }: { state: AutosaveState; published: boolean; written: boolean }) {
   let text = "";
   switch (state.kind) {
     case "idle":
-      text = "";
+      text = published || written ? "" : "Your draft saves once a part has text.";
       break;
     case "pending":
       text = "Unsaved changes";

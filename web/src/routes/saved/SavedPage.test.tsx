@@ -51,6 +51,40 @@ describe("saved stories page", () => {
     expect(calls("PerspectiveService/ListSaved")).toEqual([{ pageSize: 20 }, { pageToken: "t-1", pageSize: 20 }]);
   });
 
+  it("unsaves from the row, keeps it with Removed and Undo until the page is left, and keeps focus on the toggle", async () => {
+    const user = userEvent.setup();
+    const { calls } = renderApp(
+      "/saved",
+      {
+        "PerspectiveService/ListSaved": () => ({ body: { perspectives: [saved("p-1", "The night the fountain froze", "otter")] } }),
+        "PerspectiveService/SavePerspective": (body) => ({ body: { saved: !!body.on } }),
+      },
+      { refresh: signedIn },
+    );
+    const list = await screen.findByRole("list", { name: "Saved stories" });
+    const toggle = within(list).getByRole("button", { name: "Saved otter's perspective" });
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(toggle);
+    const undo = await within(list).findByRole("button", { name: "Undo: save otter's perspective again" });
+    // The same button, so focus never left it.
+    expect(undo).toBe(toggle);
+    expect(undo).toHaveFocus();
+    expect(undo).not.toHaveAttribute("aria-pressed");
+    expect(within(list).getByRole("status")).toHaveTextContent("Removed.");
+    // The row stays: the list is not read again while the page is open.
+    expect(within(list).getByRole("link", { name: /The night the fountain froze/ })).toBeInTheDocument();
+    expect(calls("PerspectiveService/ListSaved")).toHaveLength(1);
+
+    await user.click(undo);
+    await waitFor(() => expect(within(list).getByRole("button", { name: "Saved otter's perspective" })).toHaveFocus());
+    expect(within(list).getByRole("status")).toBeEmptyDOMElement();
+    expect(calls("PerspectiveService/SavePerspective")).toEqual([
+      { perspectiveId: "p-1" },
+      { perspectiveId: "p-1", on: true },
+    ]);
+  });
+
   it("says how to save a story when none is saved", async () => {
     renderApp("/saved", { "PerspectiveService/ListSaved": () => ({ body: {} }) }, { refresh: signedIn });
     expect(

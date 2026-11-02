@@ -322,9 +322,18 @@ describe("react", () => {
     expect(within(group).getAllByRole("button")).toHaveLength(6);
 
     const fire = within(group).getByRole("button", { name: "Fire, 0" });
+    // Quiet until used (Folio, Reacts): no zero drawn, a faded greyscale glyph, no border.
+    expect(fire).toHaveTextContent(/^\S+$/u);
+    expect(fire.className).not.toMatch(/\bborder-control\b|\brounded-full\b/);
+    expect(fire.querySelector("span")?.className).toMatch(/\bgrayscale\b/);
     fire.focus();
     await userEvent.keyboard("{Enter}");
-    expect(await within(group).findByRole("button", { name: "Fire, 4" })).toHaveAttribute("aria-pressed", "true");
+    const mine = await within(group).findByRole("button", { name: "Fire, 4" });
+    expect(mine).toHaveAttribute("aria-pressed", "true");
+    // The reader's own react: full colour, its count drawn, an accent underline.
+    expect(mine).toHaveTextContent("4");
+    expect(mine.className).toMatch(/\bborder-accent\b/);
+    expect(mine.querySelector("span")?.className ?? "").not.toMatch(/grayscale/);
     expect(within(group).getByRole("button", { name: "Heart, 1" })).toHaveAttribute("aria-pressed", "false");
     expect(bodiesFor(app.api, "ReactService/React")[0]).toEqual({ perspectiveId: "p-otter", emoji: "EMOJI_FIRE", on: true });
   });

@@ -1,6 +1,5 @@
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
-import { useEffect, useId, useRef, useState } from "react";
-import { useLocation } from "react-router";
+import { useId, useRef, useState } from "react";
 
 import type { ArcSpan } from "@/components/reader/format";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +13,7 @@ import { useShowMore } from "@/lib/showMore";
 import { PostForm } from "./PostForm";
 import { ThreadBranch } from "./ThreadBranch";
 import { threadQuery, useInvalidateThread } from "./threadQueries";
+import { THREAD_HEADING_ID } from "./useThreadTarget";
 import { useFocusPost, useWritten, withWritten } from "./written";
 
 const sorts = { top: LorePostSort.TOP, new: LorePostSort.NEW } as const;
@@ -22,14 +22,24 @@ type SortName = keyof typeof sorts;
 /** What the hidden status says once the reader picks an order. */
 const sortSaid: Record<SortName, string> = { top: "Most upvoted first.", new: "Newest first." };
 
+type ThreadProps = {
+  loreId: string;
+  canPost: boolean;
+  span?: ArcSpan;
+  /** The address named a post that could not be shown; focus is on the heading. */
+  missedPost?: boolean;
+};
+
 /**
  * The lore's thread: the people in it talking about the day. Anyone can
  * read it, best first or newest first; someone with a perspective in the
  * arc can post, reply and upvote. The server enforces who may; hiding the
- * controls is usability only.
+ * controls is usability only. `#thread` and `#post-<id>` links land here
+ * through the lore page's useThreadTarget.
  */
-export function LoreThread({ loreId, canPost, span = "day" }: { loreId: string; canPost: boolean; span?: ArcSpan }) {
-  const headingId = useId();
+export function LoreThread({ loreId, canPost, span = "day", missedPost = false }: ThreadProps) {
+  const headingId = THREAD_HEADING_ID;
+  const noteId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
   const section = useRef<HTMLElement>(null);
   const [sort, setSort] = useState<SortName>("top");
@@ -55,19 +65,16 @@ export function LoreThread({ loreId, canPost, span = "day" }: { loreId: string; 
     written.gone(id);
     heading.current?.focus();
   };
-  // "Read its thread" at the end of the lore's book links here as #thread:
-  // focusing the heading brings the thread into view and starts a screen
-  // reader there.
-  const { hash } = useLocation();
-  useEffect(() => {
-    if (hash === "#thread") heading.current?.focus();
-  }, [hash]);
-
   return (
     <section ref={section} id="thread" aria-labelledby={headingId} className="mt-10 border-t border-rule pt-8">
-      <h2 id={headingId} ref={heading} tabIndex={-1} className="text-xl">
+      <h2 id={headingId} ref={heading} tabIndex={-1} aria-describedby={missedPost ? noteId : undefined} className="text-xl">
         Thread
       </h2>
+      {missedPost && (
+        <p id={noteId} className="mt-1 text-sm text-ink-muted">
+          That post could not be shown here. It may have been deleted, or it is further down among the replies to its post.
+        </p>
+      )}
       <p role="status" className="sr-only">
         {sortStatus}
       </p>
