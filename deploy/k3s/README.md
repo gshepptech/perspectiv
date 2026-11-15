@@ -37,7 +37,7 @@ Checked against their registries on 2026-10-16; re-verify before a bump.
 | Helm | 3.18 or later; chart `apiVersion: v2` also installs with Helm 4 |
 
 The Kubernetes project retired ingress-nginx in March 2026, so the 4.15 line
-receives no further fixes. v1 stays on it as the spec decided; moving to
+receives no further fixes. v1 stays on it; moving to
 another controller is a values change to `ingress.className` plus the HSTS and
 redirect settings in `ingress-nginx-values.yaml`, and needs its own ADR.
 

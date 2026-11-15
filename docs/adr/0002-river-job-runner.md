@@ -2,16 +2,15 @@
 
 - Status: accepted
 - Date: 2026-10-16
-- Deciders: project owner (interview answers A-024, A-026, A-045, A-061)
+- Deciders: project owner
 
 ## Context and Problem Statement
 
 Perspectiv needs three kinds of background work: a scheduled job per published
 perspective that marks it SOLO seven days after publish when no claim was
-accepted (A-024), a periodic job that recomputes lore rank and canon for arcs
-with new activity (A-026, A-045), and email delivery with retries that never
-blocks the request that caused it (A-061). The global stack names no job
-runner. What runs these jobs?
+accepted, a periodic job that recomputes lore rank and canon for arcs
+with new activity, and email delivery with retries that never
+blocks the request that caused it. What runs these jobs?
 
 ## Decision Drivers
 
@@ -20,7 +19,7 @@ runner. What runs these jobs?
 - PostgreSQL is already the system of record; the deployment (ADR 0003) is one
   VM with Postgres in-cluster, and a second stateful system is a second backup story.
 - Jobs must run application Go code against the domain services.
-- The binary layout is one `perspectiv` binary whose ROLE selects api, worker or all (A-047).
+- The binary layout is one `perspectiv` binary whose ROLE selects api, worker or all.
 
 ## Considered Options
 

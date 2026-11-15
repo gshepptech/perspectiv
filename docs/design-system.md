@@ -2,8 +2,7 @@
 
 Folio is the design system for Perspectiv. Perspectiv reads like a novel, not a
 feed: a perspective is a short book, each part is a page, and the chrome around
-it stays quiet. This file is the output of the design pass. The project
-`CLAUDE.md` names it, and where it and component code disagree, this file wins.
+it stays quiet. Where this file and component code disagree, this file wins.
 
 The tokens below live in `web/src/app/styles.css`. Component code uses the
 Tailwind utilities those tokens generate (`bg-paper`, `text-ink`,
@@ -483,8 +482,8 @@ answer, and nothing deeper than one step of indent.
 
 ## Lore as a book
 
-The founder's picture of the app is a novel, and of an entry "a page in a
-book". A lore read as a book is that picture: the lore's stories bound in
+The app is meant to read like a novel, and an entry like a page in a
+book. A lore read as a book is that idea made literal: the lore's stories bound in
 the lore page's order, one chapter each, read a page at a time. It is a
 reading surface, so the principles, the measure and the motion rules above
 hold on every page of it; the actions, the claim and react controls and the
@@ -1336,10 +1335,9 @@ age-and-agreement checkbox, so a keyboard user meets them first.
 ## How Perspectiv works (the guide)
 
 `/how-it-works` is a public reading page that explains the whole product
-to a first-time visitor. In two walkthroughs, newcomers could not work
-out day, story, lore, canon, claims, voting out or hours from the
-four-line summaries, so this page says each rule exactly, once, in the
-book's voice, and follows one worked example the whole way through.
+to a first-time visitor. Newcomers could not work out day, story, lore,
+canon, claims, voting out or hours from four-line summaries, so this page
+says each rule exactly, once, in the book's voice, and follows one worked example the whole way through.
 
 - **Shape.** One column at the reading measure, set like the legal pages:
   the `h1` "How Perspectiv works" (`text-2xl`, `text-3xl` from `sm`), a
@@ -1382,11 +1380,9 @@ book's voice, and follows one worked example the whole way through.
 
 ## Landing (the front door)
 
-The founder's picture is that the app "starts out looking like a novel
-book", so the front door is a book's title page set in Folio, not a product
+The app should start out looking like a novel, so the front door is a book's title page set in Folio, not a product
 hero: the same paper, type, hairlines and quiet as every reading page, with
-no exceptions to the principles above. There is still no feed of posts
-(AC-006, A-049): the way in is a place. The page shows one example, as two
+no exceptions to the principles above. There is no feed of posts: the way in is a place. The page shows one example, as two
 facing pages, and the places where people are writing, each of which opens
 its place page.
 
@@ -1526,7 +1522,7 @@ its place page.
 
 Interface copy is plain and short: "Publish", "Claim character", "Vote to
 remove". Canon is chosen by the people who wrote about the day, never by
-"readers": only they can upvote or post in a lore's thread (A-012). Copy says
+"readers": only they can upvote or post in a lore's thread. Copy says
 so ("the lore the people who were there favour most"), and a reader who
 cannot vote or post is told who can instead of being urged to write. Book words appear where they are true (part, page, chapter of an arc)
 and nowhere else.

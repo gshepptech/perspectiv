@@ -21,7 +21,7 @@ dependency, so they are recorded here.
   and the drift window, which sit next to Postgres state the library would
   not see.
 - The supply chain: every dependency is pinned, scanned and reviewed on bump.
-- No runtime call to a third party except the email provider (CLAUDE.md), so
+- No runtime call to a third party except the email provider, so
   the QR code is drawn in the page, never fetched from a QR service.
 - The design system's tokens: the QR code must draw in `ink` on `paper`.
 

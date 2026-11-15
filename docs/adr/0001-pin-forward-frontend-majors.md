@@ -2,22 +2,22 @@
 
 - Status: accepted
 - Date: 2026-10-16
-- Deciders: project owner (interview answers A-008, A-009, A-010)
+- Deciders: project owner
 
 ## Context and Problem Statement
 
-The global stack snapshot (2026-05-08) pins Vite ^7.3, TypeScript ~5.9, vitest ^4,
+The usual React stack templates pin Vite ^7.3, TypeScript ~5.9, vitest ^4,
 react-router ^7.14 Data Mode and lucide-react ^0.577. A registry check on
 2026-10-13 found a newer major of each on npm `latest`: Vite 8.3, TypeScript 7.0,
-vitest 5.0, react-router 8.4 and lucide-react 1.x. Perspectiv has no frontend
-code yet. Which majors does the web app start on?
+vitest 5.0, react-router 8.4 and lucide-react 1.x. Which majors does the web
+app start on?
 
 ## Decision Drivers
 
 - A greenfield tree has no configuration or call sites to migrate, so a major
   taken now costs nothing; the same major taken later costs a migration.
-- The global guide flags react-router 8 as expected and asks for a migration
-  plan within two quarterly reviews, or an ADR.
+- react-router 8 is the release the router's own docs point new apps at;
+  starting on 7 means planning that migration straight away.
 - Tooling compatibility: TypeScript 7's language service is newer than 5.9's.
 
 ## Considered Options
@@ -38,7 +38,7 @@ Chosen option: 1, pin forward. The majors are:
 | react-router | 8 (Data Mode, `createBrowserRouter`) | 8.4.0 |
 | lucide-react | 1 | 1.58.0 |
 
-The rest of the frontend stack stays on the global majors: React 19, Tailwind 4,
+The rest of the frontend stack stays on its current majors: React 19, Tailwind 4,
 TanStack Query 5, Connect-Web 2, `@bufbuild/protobuf` 2, Zod 4, react-hook-form 7,
 `@hookform/resolvers` 5, `@playwright/test` 1.
 
@@ -56,7 +56,7 @@ TanStack Query 5, Connect-Web 2, `@bufbuild/protobuf` 2, Zod 4, react-hook-form 
 ### Support Obligation
 
 The web-shell owner keeps `web/package.json` on these majors and re-verifies them
-at each quarterly guide review. A move back to an older major needs a new ADR
+each quarter. A move back to an older major needs a new ADR
 that supersedes this one.
 
 ## Pros and Cons of the Options
@@ -68,7 +68,7 @@ that supersedes this one.
 
 ### 2. Stay on the snapshot
 
-- Good: matches the global guide without an ADR.
+- Good: matches most templates and examples written in 2026.
 - Bad: five majors of migration owed on a codebase that did not exist when they shipped.
 
 ### 3. Mixed

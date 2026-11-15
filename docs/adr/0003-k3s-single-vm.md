@@ -2,19 +2,19 @@
 
 - Status: accepted
 - Date: 2026-10-16
-- Deciders: project owner (interview answers A-058, A-059, A-063)
+- Deciders: project owner
 
 ## Context and Problem Statement
 
-The v1 definition of done includes a production deployment on Kubernetes
-(A-058). The global guide says production does not depend on k3s or k3d, and
-names managed Kubernetes as the usual target. Where does v1 run?
+The v1 definition of done includes a production deployment on Kubernetes.
+Managed Kubernetes is the usual target for production, and k3s is more often
+seen as a development or edge distribution. Where does v1 run?
 
 ## Decision Drivers
 
 - Cost: v1 serves a single launch venue at first; spend scales later.
-- Simplicity: one operator, no CI in v1 (A-062), deploys by `helm upgrade`.
-- The global guide's position that production does not depend on k3s.
+- Simplicity: one operator, deploys by `helm upgrade`.
+- Portability: a later move to managed Kubernetes should not mean a rewrite.
 - Data safety: PostgreSQL holds every piece of user and security state.
 
 ## Considered Options
@@ -24,17 +24,15 @@ names managed Kubernetes as the usual target. Where does v1 run?
 
 ## Decision Outcome
 
-Chosen option: 2, k3s on one VM with PostgreSQL in-cluster (A-059, "Start simple
-for now with number 2"). Ingress is ingress-nginx with cert-manager and Let's
-Encrypt (A-063). This deviates from the global guide's rule that production
-does not depend on k3s, which is why this ADR exists.
+Chosen option: 2, k3s on one VM with PostgreSQL in-cluster. Ingress is
+ingress-nginx with cert-manager and Let's Encrypt.
 
 - The Helm chart under `deploy/chart` stays portable: nothing in it is
   k3s-specific beyond the storage class value, so a later move to managed
   Kubernetes is a values change plus a data migration.
 - The API (`ROLE=api`) and worker (`ROLE=worker`) run as separate Deployments;
   migrations run as a Job before either starts.
-- A cloud load balancer and a Cloudflare front are post-v1 work (A-063).
+- A cloud load balancer and a Cloudflare front are post-v1 work.
 
 ### Consequences
 
@@ -56,7 +54,7 @@ that supersedes this one.
 
 ### 1. Managed Kubernetes and managed PostgreSQL
 
-- Good: managed backups, failover and upgrades; matches the global guide.
+- Good: managed backups, failover and upgrades.
 - Bad: higher fixed cost before there is traffic to justify it; provider choice needed now.
 
 ### 2. k3s on one VM, PostgreSQL in-cluster

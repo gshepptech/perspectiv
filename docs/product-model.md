@@ -140,7 +140,7 @@ first writer's story to belong to the day.
 
 ## The front page
 
-The way in is a place (A-049): a search box, then a place page, then its
+The way in is a place: a search box, then a place page, then its
 days. There is no feed of posts. Under the search the front page shows
 **where people are writing**: up to six places, each with the day people
 there remember most, and each card opens its place page.
