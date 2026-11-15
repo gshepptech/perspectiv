@@ -34,7 +34,7 @@ func hiddenRune(r rune) bool {
 
 // PlainLine is s with hidden characters (see HasHiddenRune) removed and its
 // whitespace collapsed (see OneLine): how text stored before those rules
-// existed is shown where it could otherwise forge a line, as in an email.
+// existed is shown where it could otherwise fake a line, as in an email.
 func PlainLine(s string) string {
 	return OneLine(strings.Map(func(r rune) rune {
 		if hiddenRune(r) {

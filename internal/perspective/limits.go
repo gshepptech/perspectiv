@@ -88,7 +88,7 @@ type characterInput struct {
 // label of 1 to 80 characters on one line (every run of whitespace, line
 // breaks included, becomes one space) with no control, zero-width or bidi
 // override characters, and no id named twice. A label is read out in other
-// people's email, so it may not forge a line there. Whether a named id
+// people's email, so it may not fake a line there. Whether a named id
 // belongs to the perspective is checked against the store.
 func checkCharacters(in []*perspectivv1.CharacterInput) ([]characterInput, error) {
 	if len(in) > maxCharacters {

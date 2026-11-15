@@ -62,8 +62,8 @@ ORDER BY c.place_id, c.depth DESC;
 --
 -- Every prefix match outranks every substring match, so the prefix matches
 -- are read first and the substring scan (the trigram index) runs only when
--- they leave room: a common word such as "park" used to rank 15,000
--- substring matches to keep 100. The prefix ranking reads only the name,
+-- they leave room: otherwise a common word such as "park" would rank
+-- 15,000 substring matches to keep 100. The prefix ranking reads only the name,
 -- kind and id, which places_name_rank_idx carries, so even "th" (21,000
 -- matches) is ranked from the index without a heap read; the remaining
 -- columns are read for the 100 candidates only. Under parent_ids, a prefix

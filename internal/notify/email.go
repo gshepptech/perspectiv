@@ -336,7 +336,7 @@ func recoveryCodeUsedBody(left string) string {
 // notificationContent builds one notification's email; cast is the
 // unclaimed characters a new story names. The arc title is put on one line
 // with hidden characters dropped (apiutil.PlainLine), so a title stored
-// before saving enforced that cannot forge a line or a header.
+// before saving enforced that cannot fake a line or a header.
 func (w *emailWorker) notificationContent(data map[string]string, cast cast) (content, error) {
 	kind := perspectivv1.NotificationKind(perspectivv1.NotificationKind_value[data[dataKind]])
 	actor := data[dataActor]

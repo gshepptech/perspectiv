@@ -56,8 +56,8 @@ function PlaceRow({ a }: { a: EpicArc }) {
 
 /**
  * Where people are writing: the places with the most remembered days, one
- * row per place, each opening its place page. The way in stays a place
- * (A-049); this only shows which places have stories.
+ * row per place, each opening its place page. The way in stays a place;
+ * this only shows which places have stories.
  */
 export function Storied() {
   const top = useQuery({

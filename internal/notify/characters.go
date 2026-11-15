@@ -99,7 +99,7 @@ func addCastSubject(ev event, data map[string]string) {
 // "and N more": “a”, “b” and “c”; or “a”, “b”, “c” and 2 more. It is ""
 // when there are no labels. Each label is put on one line with hidden
 // characters dropped (apiutil.PlainLine): a label stored before saving
-// enforced that cannot forge a line in the email. A label with nothing
+// enforced that cannot fake a line in the email. A label with nothing
 // left is not listed.
 func castPhrase(c cast) string {
 	quoted := make([]string, 0, len(c.Labels)+1)

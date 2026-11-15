@@ -55,7 +55,7 @@ func readablePost(p lockedPost) bool {
 }
 
 // canPost refuses a caller with no readable published perspective in the
-// lore's arc, the rule for posting, replying and voting alike (A-012).
+// lore's arc, the rule for posting, replying and voting alike.
 func canPost(ctx context.Context, q *dbq.Queries, loreID, caller uuid.UUID, refusal error) error {
 	can, err := q.CanPostToLore(ctx, dbq.CanPostToLoreParams{LoreID: loreID, UserID: caller})
 	if err != nil {

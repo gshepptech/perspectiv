@@ -4,10 +4,10 @@
 //
 //   - The only top-level packages under internal/ are the ten domains (auth,
 //     user, place, arc, perspective, lore, vote, react, notify, moderation),
-//     internal/jobs, and the shared infrastructure packages the cross-slice
-//     contract defines: internal/api (with apiutil, metrics, logging,
-//     telemetry, buildinfo below it), internal/db and internal/testdb. The
-//     only package under pkg/ is pkg/crypto.
+//     internal/jobs, and the shared infrastructure packages internal/api
+//     (with apiutil, metrics, logging, telemetry, buildinfo below it),
+//     internal/db and internal/testdb. The only package under pkg/ is
+//     pkg/crypto.
 //   - No package anywhere in the module is named util, utils, helper or
 //     helpers. Narrow cross-domain helpers such as internal/api/apiutil are
 //     fine: the rule is on the package name, not on a suffix.

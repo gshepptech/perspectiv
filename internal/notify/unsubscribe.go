@@ -18,7 +18,7 @@ import (
 
 // Unsubscriber signs and checks the account id in an unsubscribe link, so a
 // link turns off one account's emails without a sign-in and cannot be
-// forged for another account. The signature never expires: a link in an
+// rewritten for another account. The signature never expires: a link in an
 // old email keeps working, as mail clients and the law expect.
 type Unsubscriber struct {
 	key []byte
@@ -80,7 +80,7 @@ func (s *Service) Unsubscribe(ctx context.Context, rawUserID, token string) erro
 
 // OneClickMount is the RFC 8058 one-click endpoint, mounted under /api. A
 // mail client POSTs to it with the link's own query; it answers 200 once
-// email is off, 400 for a forged link and 405 for anything but POST, so a
+// email is off, 400 for a tampered link and 405 for anything but POST, so a
 // link scanner that GETs it changes nothing.
 func (h *Handler) OneClickMount(_ ...connect.HandlerOption) (string, http.Handler) {
 	return unsubscribeOneClick, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

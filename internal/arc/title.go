@@ -45,7 +45,7 @@ var dateLayouts = []string{
 // line: every run of whitespace, line breaks included, becomes one space. A
 // title is required, 3 to 80 characters, holds no control, zero-width or
 // bidi override characters (it is read out in other people's email, so it
-// may not forge a line there), and may not be the place name, the date, or
+// may not fake a line there), and may not be the place name, the date, or
 // the place name and the date together in either order.
 //
 // "Equal" is decided on titleKey: lower case with everything but letters and

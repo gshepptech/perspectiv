@@ -10,8 +10,7 @@ import { ReadMoreLink } from "@/routes/guide/ReadMore";
  * character in the other's story, and the linked stories becoming canon. It
  * is drawn as a book opened flat, two facing pages split by a hairline
  * gutter (Folio, Landing). The place, people and prose are invented and the
- * figure is labelled "Example"; it is never real content and never a feed
- * (AC-006).
+ * figure is labelled "Example"; it is never real content and never a feed.
  */
 export function ExampleArc() {
   return (
