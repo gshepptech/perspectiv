@@ -22,7 +22,7 @@ func TestCheckTitle(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{name: "three characters accepted (OT-013)", title: "abc", want: "abc"},
+		{name: "three characters accepted", title: "abc", want: "abc"},
 		{name: "eighty characters accepted", title: strings.Repeat("x", 80), want: strings.Repeat("x", 80)},
 		{name: "eighty multibyte characters accepted", title: strings.Repeat("é", 80), want: strings.Repeat("é", 80)},
 		{name: "surrounding whitespace trimmed", title: "  A long night  ", want: "A long night"},
@@ -35,12 +35,12 @@ func TestCheckTitle(t *testing.T) {
 		{name: "a bidi isolate rejected", title: "A long \u2066night", wantErr: true},
 		{name: "a byte order mark rejected", title: "\ufeffA long night", wantErr: true},
 		{name: "a control character rejected", title: "A long\x1bnight", wantErr: true},
-		{name: "empty title rejected (FR-014)", title: "", wantErr: true},
+		{name: "empty title rejected", title: "", wantErr: true},
 		{name: "whitespace only rejected", title: "     ", wantErr: true},
 		{name: "two characters rejected", title: "ab", wantErr: true},
 		{name: "two characters after trimming rejected", title: "  ab  ", wantErr: true},
 		{name: "eighty-one characters rejected", title: strings.Repeat("x", 81), wantErr: true},
-		{name: "place name rejected (OT-013)", title: "Joe's Diner", wantErr: true},
+		{name: "place name rejected", title: "Joe's Diner", wantErr: true},
 		{name: "place name in other case and spacing rejected", title: "joes   DINER", wantErr: true},
 		{name: "ISO date rejected", title: "2026-10-16", wantErr: true},
 		{name: "US numeric date rejected", title: "10/16/2026", wantErr: true},
@@ -48,7 +48,7 @@ func TestCheckTitle(t *testing.T) {
 		{name: "day-first long date rejected", title: "16 Oct 2026", wantErr: true},
 		{name: "weekday date rejected", title: "Friday, October 16, 2026", wantErr: true},
 		{name: "month and day without year rejected", title: "October 16", wantErr: true},
-		{name: "place then date rejected (AC-011)", title: "Joe's Diner 2026-10-16", wantErr: true},
+		{name: "place then date rejected", title: "Joe's Diner 2026-10-16", wantErr: true},
 		{name: "date then place rejected", title: "2026-10-16 - Joe's Diner", wantErr: true},
 		{name: "place and long date rejected", title: "Joe's Diner, October 16, 2026", wantErr: true},
 	}

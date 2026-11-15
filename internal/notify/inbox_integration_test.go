@@ -27,7 +27,7 @@ func (e *env) seed(user uuid.UUID, n int, payload string) []uuid.UUID {
 	return ids
 }
 
-// The inbox and preference calls need a signed-in caller (CT-014).
+// The inbox and preference calls need a signed-in caller.
 func TestNotifyServiceRequiresSignIn(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -60,8 +60,7 @@ func TestNotifyServiceRequiresSignIn(t *testing.T) {
 }
 
 // The inbox lists only the caller's notifications, newest first, with the
-// actor as a username and the arc title, through cursor pages (CT-014,
-// NFR-008).
+// actor as a username and the arc title, through cursor pages.
 func TestListInbox(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -253,7 +252,7 @@ func prefMap(t *testing.T, ps []*perspectivv1.Preference) map[perspectivv1.Notif
 }
 
 // Both toggles default on for every kind; an update changes only the
-// kinds it lists (AC-041, CT-014).
+// kinds it lists.
 func TestPreferences(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)

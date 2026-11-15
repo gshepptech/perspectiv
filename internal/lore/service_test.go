@@ -297,7 +297,6 @@ func wantDomainCode(t *testing.T, err error, code connect.Code) {
 	}
 }
 
-// FR-019, FR-021, AC-018, AC-020, OT-019, OT-021, CT-006, ST-012, FR-053, FR-065.
 // A case with code 0 is one the rules allow.
 func TestClaimCharacterRefusals(t *testing.T) {
 	t.Parallel()
@@ -485,7 +484,7 @@ func TestClaimCharacterRejectsMalformedIDs(t *testing.T) {
 	}
 }
 
-// CT-006: a claim is PENDING, notifies the author and leaves lore unchanged.
+// A claim is PENDING, notifies the author and leaves lore unchanged.
 func TestClaimCharacterOpensPendingClaimAndNotifies(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
@@ -521,7 +520,6 @@ func TestClaimCharacterAllowsSoloTales(t *testing.T) {
 	}
 }
 
-// CT-007, ST-003, ST-005, AC-019, OT-020, FR-020, NFR-009.
 func TestResolveClaimAcceptLinksBothIntoOneLore(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
@@ -590,7 +588,6 @@ func TestResolveClaimAcceptLinksBothIntoOneLore(t *testing.T) {
 	}
 }
 
-// CT-007, ST-006, OT-021.
 func TestResolveClaimRejectLeavesLoreAlone(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
@@ -621,7 +618,7 @@ func TestResolveClaimRejectLeavesLoreAlone(t *testing.T) {
 	wantCode(t, err, connect.CodeFailedPrecondition)
 }
 
-// CT-007 error cases.
+// TestResolveClaimRefusals covers the ways resolving a claim is refused.
 func TestResolveClaimRefusals(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -713,7 +710,7 @@ func TestResolveClaimRefusals(t *testing.T) {
 	}
 }
 
-// ST-004, AC-023, OT-023: an expiry SOLO tale returns to IN_LORE on a later
+// An expiry SOLO tale returns to IN_LORE on a later
 // accepted claim, from either side of the claim.
 func TestAcceptRevivesSoloTale(t *testing.T) {
 	t.Parallel()
@@ -742,7 +739,7 @@ func TestAcceptRevivesSoloTale(t *testing.T) {
 	}
 }
 
-// FR-045, AC-025, OT-024: A-B, B-C, C-D form one lore of 4; E-F a second.
+// A-B, B-C, C-D form one lore of 4; E-F a second.
 func TestRecomputeArcFormsConnectedGroups(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
@@ -924,7 +921,6 @@ func checkReleasedToSolo(t *testing.T, withdraw string) {
 	}
 }
 
-// ST-012, AC-023, AC-024 (lore's part), FR-058.
 func TestRemoveFromLore(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
@@ -1003,7 +999,7 @@ func TestRemoveFromLoreRefusals(t *testing.T) {
 	wantDomainCode(t, err, connect.CodeFailedPrecondition)
 }
 
-// AC-025: PENDING, SOLO and REMOVED perspectives are in no lore.
+// PENDING, SOLO and REMOVED perspectives are in no lore.
 func TestMembershipOfOutsideLore(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
@@ -1083,7 +1079,7 @@ func sameIDs(got []string, want ...string) bool {
 	return slices.Equal(got, want)
 }
 
-// AC-021: claims show usernames only, never an email.
+// Claims show usernames only, never an email.
 func TestListClaimsIncoming(t *testing.T) {
 	t.Parallel()
 	w := newClaimsWorld(t)

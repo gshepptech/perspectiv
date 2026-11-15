@@ -344,7 +344,7 @@ func codeOf(err error) connect.Code {
 }
 
 // An up-vote is a toggle: voting twice leaves one row, clearing removes it,
-// and the response carries the perspective's total (OT-026, AC-027, FR-054).
+// and the response carries the perspective's total.
 func TestVoteToggle(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -388,8 +388,7 @@ func TestVoteToggle(t *testing.T) {
 	}
 }
 
-// Only participants vote; a reader with no perspective in the arc is refused
-// (OT-025, AC-026, CT-008).
+// Only participants vote; a reader with no perspective in the arc is refused.
 func TestVoteRefusals(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -452,7 +451,7 @@ func TestVoteRefusals(t *testing.T) {
 }
 
 // A user the author blocked cannot up-vote the author's perspective but can
-// clear a vote they already hold (FR-053, FR-065).
+// clear a vote they already hold.
 func TestVoteBlocked(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -480,7 +479,7 @@ func TestVoteBlocked(t *testing.T) {
 // In a 4-member lore, 2 remove votes from the other 3 members set the target
 // REMOVED and dissolve its links; the author's own vote and a vote from a
 // member of a different lore in the same arc are rejected; the first vote
-// opens the vote-out (OT-030, AC-024, ST-009, CT-009, FR-025, FR-055, FR-058).
+// opens the vote-out.
 func TestVoteRemoveMajority(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -563,7 +562,7 @@ func TestVoteRemoveMajority(t *testing.T) {
 }
 
 // Remove votes open only in a lore of 4 or more members, on a target that is
-// IN_LORE (CT-009, AC-024).
+// IN_LORE.
 func TestVoteRemovePreconditions(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -636,7 +635,7 @@ func TestVoteRemoveCountsCurrentMembers(t *testing.T) {
 	}
 }
 
-// A member the target's author blocked cannot vote the author out (FR-053).
+// A member the target's author blocked cannot vote the author out.
 func TestVoteRemoveBlocked(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)

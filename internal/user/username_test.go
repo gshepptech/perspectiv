@@ -10,7 +10,7 @@ import (
 	"perspectiv/internal/user"
 )
 
-// AC-002 (user part): the username rule shared by signup and ChangeUsername.
+// The username rule shared by signup and ChangeUsername.
 func TestValidateUsername(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

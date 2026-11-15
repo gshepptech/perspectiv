@@ -46,7 +46,7 @@ func validEnv() map[string]string {
 	}
 }
 
-// GI-005, FR-059: ROLE selects api, worker or all, defaulting to all, and the
+// ROLE selects api, worker or all, defaulting to all, and the
 // documented defaults apply when a setting is absent.
 func TestLoadConfigDefaults(t *testing.T) {
 	t.Parallel()

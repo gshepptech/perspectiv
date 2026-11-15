@@ -29,7 +29,7 @@ function open(path: string, getArc: FakeHandler, opts: { signedIn?: boolean; rou
 const before = (a: Element, b: Element) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
 
 describe("arc page reading order", () => {
-  it("AC-030 FR-030 OT-032: renders canon, then contenders, then stories standing alone, with a demoted lore still listed", async () => {
+  it("renders canon, then contenders, then stories standing alone, with a demoted lore still listed", async () => {
     await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Closing night at Moonbean" })).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe("arc page reading order", () => {
 });
 
 describe("hour timeline", () => {
-  it("AC-033 OT-035: lists hour child arcs in ascending hour order after the day canon, each with its canon", async () => {
+  it("lists hour child arcs in ascending hour order after the day canon, each with its canon", async () => {
     await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
     const hours = await screen.findByRole("region", { name: "Hours" });
     const canon = screen.getByRole("region", { name: "Canon" });
@@ -174,7 +174,7 @@ describe("hour timeline", () => {
 const UPVOTE_RULE = "Only people who wrote about this day can upvote its stories, so the people who were there choose its canon.";
 
 describe("signed-out reader", () => {
-  it("AC-009: reads canon, contenders and stories standing alone, with counts but no upvote button", async () => {
+  it("reads canon, contenders and stories standing alone, with counts but no upvote button", async () => {
     const { api } = await open("/arcs/arc-day", () => ({ body: dayArcResponse() }));
     const canon = await screen.findByRole("region", { name: "Canon" });
     expect(within(canon).getByText("Canon text by otter")).toBeInTheDocument();
@@ -271,7 +271,7 @@ describe("participation", () => {
   });
 });
 
-describe("arc page lists are paged (NFR-008)", () => {
+describe("arc page lists are paged", () => {
   it("shows more tales from the token GetArc returned, after the first page", async () => {
     const user = userEvent.setup();
     const res = { ...dayArcResponse(), talesNextPageToken: "tales-2" };

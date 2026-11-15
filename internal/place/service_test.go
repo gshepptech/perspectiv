@@ -151,7 +151,7 @@ func epicPages(t *testing.T, c perspectivv1connect.PlaceServiceClient, req *pers
 	return nil
 }
 
-// TestSearchPlaces covers CT-003, AC-006 and FR-042: typeahead over names
+// TestSearchPlaces checks that typeahead over names
 // with the parent chain, the user_added flag, kind and parent filters,
 // moderation hiding, and the documented ranking.
 func TestSearchPlaces(t *testing.T) {
@@ -266,7 +266,7 @@ func TestSearchPlacesLimit(t *testing.T) {
 	}
 }
 
-// TestDrillDown covers AC-007 and FR-006: from the states down, each level's
+// TestDrillDown checks that from the states down, each level's
 // children are the next level, paged by name.
 func TestDrillDown(t *testing.T) {
 	t.Parallel()
@@ -368,7 +368,7 @@ func TestGetPlace(t *testing.T) {
 	}
 }
 
-// TestCreatePlace covers CT-004, FR-008, FR-043, FR-067, OT-008 and OT-009.
+// TestCreatePlace covers adding a place under an existing parent.
 func TestCreatePlace(t *testing.T) {
 	t.Parallel()
 	h := newHierarchy(t)
@@ -378,7 +378,7 @@ func TestCreatePlace(t *testing.T) {
 	bob := h.user(true)
 	unverified := h.user(false)
 
-	// OT-008: a STORE under a MALL another user added is live and searchable.
+	// A STORE under a MALL another user added is live and searchable.
 	mallRes, err := c.CreatePlace(ctx, as(alice, &perspectivv1.CreatePlaceRequest{
 		Name: "  Riverside   Plaza ", Kind: perspectivv1.PlaceKind_PLACE_KIND_MALL, ParentId: h.city.String(),
 	}))
@@ -457,9 +457,8 @@ func arcTitles(arcs []*perspectivv1.EpicArc) []string {
 	return out
 }
 
-// TestGetEpicRanked covers CT-012, AC-008, FR-031, FR-051, OT-011 and
-// GI-001: arcs at the city and its descendants, canon first by the stored
-// canon score, then member count, then newest.
+// TestGetEpicRanked checks the epic order: arcs at the city and its
+// descendants, canon first by the stored canon score, then member count, then newest.
 func TestGetEpicRanked(t *testing.T) {
 	t.Parallel()
 	h := newHierarchy(t)
@@ -472,7 +471,7 @@ func TestGetEpicRanked(t *testing.T) {
 		h.perspective(a, by, perspectivv1.Genre_GENRE_COMEDY, perspectivv1.LoreStatus_LORE_STATUS_IN_LORE, created, "text")
 		return a
 	}
-	// OT-011: the store arc has a canon; the newer city arc does not.
+	// The store arc has a canon; the newer city arc does not.
 	storeArc := mk(h.store, "2026-10-01", "Store with canon", t0)
 	h.canon(storeArc, 2.5, 4)
 	cityArc := mk(h.city, "2026-10-02", "City no canon big", t0.Add(time.Hour))

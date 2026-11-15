@@ -207,7 +207,7 @@ func waitJobState(t *testing.T, pool *pgxpool.Pool, id int64, want string, timeo
 	}
 }
 
-// OT-044, GI-005, FR-059, AC-044: ROLE=api serves the API and runs no River
+// ROLE=api serves the API and runs no River
 // workers; ROLE=worker runs the workers and serves no API, but still answers
 // /healthz and /metrics; ROLE=all does both.
 func TestServeByRole(t *testing.T) {
@@ -334,7 +334,7 @@ func TestServeMigrateOnStart(t *testing.T) {
 	}
 }
 
-// AC-044: perspectiv migrate applies the goose and River migrations to an
+// perspectiv migrate applies the goose and River migrations to an
 // empty database and exits 0; running it again is a no-op that also exits 0.
 func TestMigrateSubcommand(t *testing.T) {
 	t.Parallel()
@@ -354,7 +354,7 @@ func TestMigrateSubcommand(t *testing.T) {
 	}
 }
 
-// CT-015, OT-006, AC-039: perspectiv admin grant <username> sets the account's
+// perspectiv admin grant <username> sets the account's
 // role to ADMIN and writes an audit row; an unknown username exits non-zero
 // and changes nothing.
 func TestAdminGrant(t *testing.T) {

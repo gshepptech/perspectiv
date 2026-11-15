@@ -1,5 +1,5 @@
 /**
- * NFR-004: the lore journey. Four strangers write about the same store on the
+ * The lore journey. Four strangers write about the same store on the
  * same day, link up by claiming each other's characters, become canon when
  * the rank job runs, and then vote one of themselves out of the lore. The
  * three left then talk it over in the lore's thread: a post, a reply that
@@ -60,7 +60,7 @@ async function voteToRemove(w: Writer, arc: string, target: string) {
   return actions;
 }
 
-test("NFR-004 four accounts publish, claim, accept, reach canon within 60 seconds and vote one out", async ({ browser }) => {
+test("four accounts publish, claim, accept, reach canon within 60 seconds and vote one out", async ({ browser }) => {
   test.setTimeout(480_000);
   const { ana: anaAcct, ben: benAcct, cal: calAcct, dee: deeAcct } = loreAccounts();
   const ana = await signedIn(browser, anaAcct);

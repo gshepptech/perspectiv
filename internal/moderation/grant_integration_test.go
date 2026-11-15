@@ -10,7 +10,7 @@ import (
 	"perspectiv/internal/moderation"
 )
 
-// CT-015, OT-006, AC-039 (moderation part): GrantAdmin sets ROLE_ADMIN on the
+// GrantAdmin sets ROLE_ADMIN on the
 // account a username names, matched without regard to case, and writes one
 // audit row with no actor. Granting again changes nothing.
 func TestGrantAdmin(t *testing.T) {
@@ -48,7 +48,7 @@ func TestGrantAdmin(t *testing.T) {
 	}
 }
 
-// CT-015, OT-006: an unknown username, a deleted account's old username or a
+// An unknown username, a deleted account's old username or a
 // blank one is an error and changes nothing.
 func TestGrantAdminUnknownUser(t *testing.T) {
 	t.Parallel()
@@ -87,7 +87,7 @@ func TestGrantAdminUnknownUser(t *testing.T) {
 	})
 }
 
-// AC-039: a freshly granted admin can open the queue at once, because the
+// A freshly granted admin can open the queue at once, because the
 // service reads the stored role.
 func TestGrantedAdminCanOpenQueue(t *testing.T) {
 	t.Parallel()

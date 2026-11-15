@@ -38,7 +38,7 @@ func (e *env) verifiedRoutes(access string) map[string]error {
 	return out
 }
 
-// AC-001, FR-064, ST-011: login before verification succeeds, and publish,
+// Login before verification succeeds, and publish,
 // claim, vote, react, create place and report are refused with
 // FAILED_PRECONDITION until the verification link is followed.
 func TestVerifiedEmailGate(t *testing.T) {

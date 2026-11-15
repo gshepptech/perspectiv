@@ -27,7 +27,7 @@ func countPlaces(t *testing.T, pool *pgxpool.Pool) int {
 	return n
 }
 
-// OT-010: placectl import of the United States fixtures produces STATE, CITY
+// placectl import of the United States fixtures produces STATE, CITY
 // and TOWN rows with parent links and an IANA zone on every row.
 func TestPlacectlImportFixtures(t *testing.T) {
 	t.Parallel()
@@ -65,7 +65,7 @@ func TestPlacectlImportFixtures(t *testing.T) {
 	}
 }
 
-// CT-016: an unparsable file or an unresolved division parent exits non-zero
+// An unparsable file or an unresolved division parent exits non-zero
 // and writes nothing.
 func TestPlacectlImportFailuresWriteNothing(t *testing.T) {
 	t.Parallel()
@@ -104,7 +104,7 @@ func TestPlacectlImportFailuresWriteNothing(t *testing.T) {
 	}
 }
 
-// FR-050: a US places extract with POIs whose locality is empty or is not an
+// A US places extract with POIs whose locality is empty or is not an
 // imported city or town still imports; those POIs are left out, counted and
 // reported, and every other row is written.
 func TestPlacectlImportLeavesOutUnfiledPlaces(t *testing.T) {

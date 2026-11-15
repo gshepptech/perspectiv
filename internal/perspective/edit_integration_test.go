@@ -13,7 +13,7 @@ import (
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
 )
 
-// AC-014, OT-018, FR-018: text stays editable after publish; a character with
+// Text stays editable after publish; a character with
 // an accepted claim cannot be removed, one without can.
 func TestUpdateCharacters(t *testing.T) {
 	t.Parallel()
@@ -130,7 +130,7 @@ func TestUpdateRules(t *testing.T) {
 	}
 }
 
-// ST-010, AC-038, OT-040, FR-036: delete soft-deletes, shows a placeholder,
+// Delete soft-deletes, shows a placeholder,
 // dissolves claims and marks the arc for the rank job.
 func TestDeleteInLore(t *testing.T) {
 	t.Parallel()

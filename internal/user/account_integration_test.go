@@ -14,7 +14,7 @@ import (
 	"perspectiv/internal/user"
 )
 
-// FR-053, FR-065 (user part): BlockUser writes the blocks row the other
+// BlockUser writes the blocks row the other
 // domains read; UnblockUser removes it; reading is unchanged both ways.
 func TestBlockUser(t *testing.T) {
 	t.Parallel()
@@ -108,7 +108,7 @@ func TestBlockUserRejects(t *testing.T) {
 	wantCode(t, err, connect.CodeInvalidArgument)
 }
 
-// ST-010, AC-038 (user part): deleting an account sets deleted_at on it and on
+// Deleting an account sets deleted_at on it and on
 // every perspective it wrote, marks their arcs for the next rank run, frees
 // its email and username, drops its avatar and saved stories and ends its
 // sessions.

@@ -40,7 +40,7 @@ function readPage(path: string, reply: () => { status?: number; body: unknown } 
   return renderApp(path, { "PerspectiveService/Get": reply }, opts);
 }
 
-describe("read page (US-007, OT-033, OT-036)", () => {
+describe("read page", () => {
   it("lets a signed-out reader read the first part, with the arc, author, place and day", async () => {
     const { calls } = readPage("/perspectives/p-1");
     expect(await screen.findByRole("heading", { level: 1, name: "The night the fountain froze" })).toBeInTheDocument();

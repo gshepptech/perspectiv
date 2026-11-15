@@ -14,7 +14,7 @@ import (
 	"perspectiv/gen/perspectiv/v1/perspectivv1connect"
 )
 
-// AC-001, CT-001, OT-001: sign up returns a user id and queues a
+// Sign up returns a user id and queues a
 // verification email whose link carries a token.
 func TestSignUpQueuesVerificationEmail(t *testing.T) {
 	t.Parallel()
@@ -47,7 +47,7 @@ func TestSignUpQueuesVerificationEmail(t *testing.T) {
 	}
 }
 
-// AC-002, AC-003, CT-001, OT-002, OT-005: invalid input is refused with
+// Invalid input is refused with
 // INVALID_ARGUMENT and nothing is written.
 func TestSignUpRejectsInvalidInput(t *testing.T) {
 	t.Parallel()
@@ -93,7 +93,7 @@ func TestSignUpRejectsInvalidInput(t *testing.T) {
 	}
 }
 
-// AC-002, CT-001: a username or an email differing only by case collides.
+// A username or an email differing only by case collides.
 func TestSignUpCollisionsIgnoreCase(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -123,7 +123,7 @@ func TestSignUpCollisionsIgnoreCase(t *testing.T) {
 	}
 }
 
-// FR-039, CT-001: sign ups from one address are rate limited in Postgres.
+// Sign ups from one address are rate limited in Postgres.
 func TestSignUpRateLimitedPerIP(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)

@@ -122,7 +122,7 @@ describe("LoginPage second step", () => {
     expect(screen.getByRole("button", { name: "Start again" })).toHaveFocus();
   });
 
-  it("OT-037: fits a 375px viewport", async () => {
+  it("fits a 375px viewport", async () => {
     const { view } = await toCodeStep({});
     expectFitsPhone(view.container);
   });

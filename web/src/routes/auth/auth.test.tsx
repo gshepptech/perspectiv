@@ -16,14 +16,14 @@ afterEach(() => vi.unstubAllGlobals());
 const inbox = { "NotifyService/ListInbox": () => ok({ notifications: [], unreadCount: 0 }) };
 
 describe("SignUpPage", () => {
-  it("AC-040: states in its terms that real names and handles of non-users are prohibited", async () => {
+  it("states in its terms that real names and handles of non-users are prohibited", async () => {
     renderRoute("/signup");
     const terms = await screen.findByRole("region", { name: "Rules for writing here" });
     expect(terms).toHaveTextContent(/real names and handles of people who are not users are prohibited/i);
     expect(terms).toHaveTextContent(/report/i);
   });
 
-  it("AC-003: refuses to submit without the 18-or-over confirmation", async () => {
+  it("refuses to submit without the 18-or-over confirmation", async () => {
     const { api, user } = renderRoute("/signup", { "AuthService/SignUp": () => ok({ userId: "u-1" }) });
     await user.type(await screen.findByLabelText("Email"), "wren@example.com");
     await user.type(screen.getByLabelText("Username"), "wren_writes");
@@ -34,7 +34,7 @@ describe("SignUpPage", () => {
     expect(api.sent("AuthService/SignUp")).toHaveLength(0);
   });
 
-  it("AC-003: sends the affirmative age confirmation, keyboard only, and asks the user to check their email", async () => {
+  it("sends the affirmative age confirmation, keyboard only, and asks the user to check their email", async () => {
     const { api, user } = renderRoute("/signup", { "AuthService/SignUp": () => ok({ userId: "u-1" }) });
     await user.click(await screen.findByLabelText("Email"));
     await user.keyboard("wren@example.com");
@@ -124,7 +124,7 @@ describe("SignUpPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("That username is taken.");
   });
 
-  it("OT-037: fits a 375px viewport", async () => {
+  it("fits a 375px viewport", async () => {
     const { view } = renderRoute("/signup");
     await screen.findByRole("heading", { name: "Sign up" });
     expectFitsPhone(view.container);
@@ -193,7 +193,7 @@ describe("LoginPage", () => {
     );
   });
 
-  it("OT-037: fits a 375px viewport", async () => {
+  it("fits a 375px viewport", async () => {
     const { view } = renderRoute("/login");
     await screen.findByRole("heading", { name: "Sign in" });
     expectFitsPhone(view.container);
@@ -401,7 +401,7 @@ describe("ResetPasswordPage", () => {
     expect(screen.queryByLabelText("New password")).not.toBeInTheDocument();
   });
 
-  it("OT-037: fits a 375px viewport", async () => {
+  it("fits a 375px viewport", async () => {
     const { view } = renderRoute("/reset-password?token=t");
     await screen.findByLabelText("New password");
     expectFitsPhone(view.container);

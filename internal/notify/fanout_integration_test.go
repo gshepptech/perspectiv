@@ -64,8 +64,7 @@ func (s *story) expect(t *testing.T, user uuid.UUID, name string, inbox []perspe
 	return rows
 }
 
-// A claim notifies the author of the claimed character, not the claimant
-// (FR-037, AC-041).
+// A claim notifies the author of the claimed character, not the claimant.
 func TestFanoutClaimReceived(t *testing.T) {
 	t.Parallel()
 	s := newStory(t)
@@ -94,7 +93,7 @@ func TestFanoutClaimReceived(t *testing.T) {
 }
 
 // Accepting a claim notifies the claimant by their toggles and never the
-// accepting author (OT-041, AC-041).
+// accepting author.
 func TestFanoutClaimAccepted(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -131,7 +130,7 @@ func TestFanoutClaimAccepted(t *testing.T) {
 	}
 }
 
-// A user who blocked the actor gets nothing from them (FR-053, FR-065).
+// A user who blocked the actor gets nothing from them.
 func TestFanoutDropsBlockedActor(t *testing.T) {
 	t.Parallel()
 	s := newStory(t)

@@ -253,7 +253,7 @@ func TestStoreInsertDedup(t *testing.T) {
 
 // TestStoreKindRestriction covers the kind restriction at the store: the
 // database refuses a kind outside the five levels, and the PlaceKind enum
-// has exactly STATE, CITY, TOWN, MALL and STORE (AC-007).
+// has exactly STATE, CITY, TOWN, MALL and STORE.
 func TestStoreKindRestriction(t *testing.T) {
 	t.Parallel()
 	f := newFx(t)

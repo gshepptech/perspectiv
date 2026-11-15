@@ -84,7 +84,7 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 			wantHTML:    []string{"<li><a href=\"" + baseURL + "/claims\">otter says they are in your story</a></li>", baseURL + "/inbox"},
 		},
 		{
-			name:        "verification link built from a token (AC-043)",
+			name:        "verification link built from a token",
 			args:        jobs.EmailArgs{To: "new@example.test", Template: jobs.TemplateVerifyEmail, Data: map[string]string{"token": "tok-123"}},
 			wantSubject: "Verify your email",
 			wantText:    []string{baseURL + "/verify-email?token=tok-123"},
@@ -179,7 +179,7 @@ func TestEmailWorkerRendersTemplates(t *testing.T) {
 			wantText:    []string{"the old codes no longer work", baseURL + "/forgot-password"},
 		},
 		{
-			name: "claim received names the claimant and the arc (FR-037)",
+			name: "claim received names the claimant and the arc",
 			args: jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplateNotification, Data: map[string]string{
 				"user_id": recipientID, "kind": "NOTIFICATION_KIND_CLAIM_RECEIVED", "actor": "sam", "arc_title": "Rainy Tuesday", "path": "/claims",
 			}},
@@ -323,7 +323,7 @@ func TestEmailWorkerCancelsUnrenderableJobs(t *testing.T) {
 }
 
 // A provider failure is counted and returned so River retries it; the last
-// allowed attempt cancels the job instead (AC-042, NFR-009).
+// allowed attempt cancels the job instead.
 func TestEmailWorkerProviderFailure(t *testing.T) {
 	t.Parallel()
 	args := jobs.EmailArgs{To: "a@example.test", Template: jobs.TemplatePasswordReset, Data: map[string]string{"token": "x"}}

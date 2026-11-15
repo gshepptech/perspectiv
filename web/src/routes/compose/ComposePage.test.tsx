@@ -80,7 +80,7 @@ async function pickGenre(user: ReturnType<typeof userEvent.setup>, name: string)
 }
 
 describe("composer date picker", () => {
-  it("defaults to today in the place's time zone, not the device's (OT-014, AC-016)", async () => {
+  it("defaults to today in the place's time zone, not the device's", async () => {
     vi.useFakeTimers({ toFake: ["Date"], now: LATE_EVENING_LA });
     // The device really is on the previous calendar day.
     expect(new Date().getDate()).toBe(15);
@@ -89,7 +89,7 @@ describe("composer date picker", () => {
     expect(screen.getByText(/today at Corner Books is/i)).toHaveTextContent("October 16, 2026");
   });
 
-  it("files a perspective under the day the author picks, not the publish day (OT-014, AC-016)", async () => {
+  it("files a perspective under the day the author picks, not the publish day", async () => {
     vi.useFakeTimers({ toFake: ["Date"], now: LATE_EVENING_LA });
     const user = userEvent.setup();
     const api = await openComposer("/compose?placeId=p-ny", {
@@ -147,7 +147,7 @@ describe("composer hour", () => {
   });
 });
 
-describe("composer autosave (FR-044)", () => {
+describe("composer autosave", () => {
   it(`saves a draft through SaveDraft once edits pause for ${AUTOSAVE_DEBOUNCE_MS}ms, and not before`, async () => {
     const api = await openComposer("/compose?placeId=p-ny&date=2026-10-01", {
       "PerspectiveService/SaveDraft": (body) => draftReply("d-1", body),
@@ -542,7 +542,7 @@ describe("publishing", () => {
     await waitFor(() => expect(screen.queryByRole("heading", { name: "Write a story" })).toBeNull());
   });
 
-  it("on ALREADY_EXISTS opens the author's existing perspective for that place and day (OT-016, AC-012)", async () => {
+  it("on ALREADY_EXISTS opens the author's existing perspective for that place and day", async () => {
     const user = userEvent.setup();
     const api = await openComposer("/compose?placeId=p-ny&date=2026-10-15&hour=14", {
       "PerspectiveService/SaveDraft": (body) => draftReply("d-2", body),
@@ -788,7 +788,7 @@ describe("choosing a place", () => {
     expect(api.callsTo("PlaceService/CreatePlace")[0]?.body).toEqual({ name: "Tiny Tea", kind: "PLACE_KIND_STORE", parentId: "p-city" });
   });
 
-  it("adds a store that is not listed and opens the composer there (FR-008)", async () => {
+  it("adds a store that is not listed and opens the composer there", async () => {
     const user = userEvent.setup();
     const added = { ...nyStore, id: "p-new", name: "Tiny Tea", parentId: "p-city", userAdded: true };
     const { api, form } = await startAdding(user, {

@@ -25,7 +25,7 @@ func (e *env) inbox(access string) error {
 	return err
 }
 
-// CT-002: login returns an access JWT in the body and the refresh token only
+// Login returns an access JWT in the body and the refresh token only
 // as an HttpOnly Secure cookie; the access token authenticates a User route.
 func TestLoginIssuesTokens(t *testing.T) {
 	t.Parallel()
@@ -67,7 +67,7 @@ func TestLoginIssuesTokens(t *testing.T) {
 	}
 }
 
-// CT-002: bad credentials are UNAUTHENTICATED, the same for an unknown email
+// Bad credentials are UNAUTHENTICATED, the same for an unknown email
 // as for a wrong password, and a deleted account cannot sign in.
 func TestLoginBadCredentials(t *testing.T) {
 	t.Parallel()
@@ -96,7 +96,7 @@ func TestLoginBadCredentials(t *testing.T) {
 	}
 }
 
-// AC-004, NFR-001, OT-003: the eleventh login after ten wrong passwords in 15
+// The eleventh login after ten wrong passwords in 15
 // minutes is RESOURCE_EXHAUSTED even with the right password, the counter
 // is in Postgres so a restarted server still refuses, and the lockout lifts
 // once the failures age out of the window.

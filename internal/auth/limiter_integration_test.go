@@ -14,7 +14,7 @@ import (
 	"perspectiv/internal/testdb"
 )
 
-// FR-039, NFR-002, GI-006: each action allows its documented number of hits
+// Each action allows its documented number of hits
 // per subject in a window, counted in Postgres, user and IP separately.
 func TestLimiterThresholds(t *testing.T) {
 	t.Parallel()

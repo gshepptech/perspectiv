@@ -130,11 +130,11 @@ func TestExpiryWorker(t *testing.T) {
 		wantDirty bool
 	}{
 		{
-			name:      "no claims becomes solo (AC-022, ST-002)",
+			name:      "no claims becomes solo",
 			wantState: "LORE_STATUS_SOLO", wantDirty: true,
 		},
 		{
-			name: "pending claim on its character does not count (FR-057, OT-022)",
+			name: "pending claim on its character does not count",
 			setup: func(w *world) {
 				other := w.published(w.user("other"))
 				w.claim(w.character(w.perspective), other, "CLAIM_STATUS_PENDING")
@@ -142,7 +142,7 @@ func TestExpiryWorker(t *testing.T) {
 			wantState: "LORE_STATUS_SOLO", wantDirty: true,
 		},
 		{
-			name: "pending claim it made does not count (FR-057)",
+			name: "pending claim it made does not count",
 			setup: func(w *world) {
 				other := w.published(w.user("other"))
 				w.claim(w.character(other), w.perspective, "CLAIM_STATUS_PENDING")
@@ -150,7 +150,7 @@ func TestExpiryWorker(t *testing.T) {
 			wantState: "LORE_STATUS_SOLO", wantDirty: true,
 		},
 		{
-			name:      "other perspectives in the arc do not count (FR-057, OT-022)",
+			name:      "other perspectives in the arc do not count",
 			setup:     func(w *world) { w.published(w.user("other")); w.published(w.user("third")) },
 			wantState: "LORE_STATUS_SOLO", wantDirty: true,
 		},
@@ -163,7 +163,7 @@ func TestExpiryWorker(t *testing.T) {
 			wantState: "LORE_STATUS_SOLO", wantDirty: true,
 		},
 		{
-			name: "accepted claim on its character keeps it pending (ST-002)",
+			name: "accepted claim on its character keeps it pending",
 			setup: func(w *world) {
 				other := w.published(w.user("other"))
 				w.claim(w.character(w.perspective), other, "CLAIM_STATUS_ACCEPTED")
@@ -171,7 +171,7 @@ func TestExpiryWorker(t *testing.T) {
 			wantState: "LORE_STATUS_PENDING", wantDirty: false,
 		},
 		{
-			name: "accepted claim it made keeps it pending (ST-002)",
+			name: "accepted claim it made keeps it pending",
 			setup: func(w *world) {
 				other := w.published(w.user("other"))
 				w.claim(w.character(other), w.perspective, "CLAIM_STATUS_ACCEPTED")
@@ -313,7 +313,7 @@ func enqueueExpiry(t *testing.T, w *world, commit bool) time.Time {
 // transaction rolls back.
 func TestExpiryTxIsTransactional(t *testing.T) {
 	t.Parallel()
-	t.Run("commit leaves a scheduled job (FR-047, OT-022)", func(t *testing.T) {
+	t.Run("commit leaves a scheduled job", func(t *testing.T) {
 		t.Parallel()
 		w := newWorld(t)
 		runAt := enqueueExpiry(t, w, true)
@@ -462,7 +462,7 @@ func waitFor(t *testing.T, events <-chan *river.Event, kind string) *river.Event
 func TestExpiryJobFiresAtScheduledTime(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
-	// A pending claim and another perspective must not save it (OT-022).
+	// A pending claim and another perspective must not save it.
 	other := w.published(w.user("other"))
 	w.claim(w.character(w.perspective), other, "CLAIM_STATUS_PENDING")
 
@@ -524,7 +524,7 @@ type panicWorker struct {
 
 func (panicWorker) Work(context.Context, *river.Job[panicArgs]) error { panic("boom") }
 
-// Every failed attempt, error or panic, counts in job_failures_total (NFR-009).
+// Every failed attempt, error or panic, counts in job_failures_total.
 func TestFailedAttemptsIncrementJobFailures(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

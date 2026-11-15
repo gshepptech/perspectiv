@@ -168,7 +168,7 @@ describe("Settings two-factor sign-in", () => {
     expect(await block()).toHaveTextContent(/Lost your phone and every recovery code\? Write to us from this account's email address/);
   });
 
-  it("OT-037: fits a 375px viewport through the QR step", async () => {
+  it("fits a 375px viewport through the QR step", async () => {
     const { user, view } = settings({ "AuthService/BeginTwoFactorSetup": () => ok({ secret: SECRET, otpauthUri: URI }) });
     const twoFactor = await block();
     await user.click(await within(twoFactor).findByRole("button", { name: "Turn on two-factor sign-in…" }));

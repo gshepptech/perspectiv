@@ -23,7 +23,7 @@ import (
 	"perspectiv/internal/user"
 )
 
-// FR-003, OT-004: another user's profile carries no email and no account; the
+// Another user's profile carries no email and no account; the
 // caller's own profile carries its Account.
 func TestGetProfile(t *testing.T) {
 	t.Parallel()
@@ -166,7 +166,7 @@ func avatarFiles(t *testing.T, dir string) []string {
 	return names
 }
 
-// FR-001, FR-052: bio and a small avatar on local disk, served back over HTTP.
+// Bio and a small avatar on local disk, served back over HTTP.
 func TestUpdateProfile(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -293,7 +293,7 @@ func TestAvatarMountRefusesOtherPaths(t *testing.T) {
 	}
 }
 
-// AC-002 (user part), AC-005, FR-005: rule, case-insensitive uniqueness and
+// Rule, case-insensitive uniqueness and
 // the 30-day window.
 func TestChangeUsername(t *testing.T) {
 	t.Parallel()

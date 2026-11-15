@@ -97,7 +97,7 @@ func canonWritesInFile(path string) ([]string, error) {
 
 // No handler and no domain outside the rank job writes canon state: the vote,
 // react, perspective and arc domains, every other domain, and the lore
-// service itself hold no statement that writes it. (AC-029, OT-029, GI-003)
+// service itself hold no statement that writes it.
 func TestOnlyTheRankJobWritesCanon(t *testing.T) {
 	t.Parallel()
 	root := moduleRoot(t)

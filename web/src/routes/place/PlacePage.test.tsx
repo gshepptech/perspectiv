@@ -132,7 +132,7 @@ describe("following a place", () => {
   });
 });
 
-describe("place page (AC-008, FR-066, FR-032)", () => {
+describe("place page", () => {
   it("shows the place with its parent chain and Ranked, Newest and Tales tabs, Ranked first", async () => {
     placePage();
     expect(await screen.findByRole("heading", { level: 1, name: "Springfield" })).toBeInTheDocument();

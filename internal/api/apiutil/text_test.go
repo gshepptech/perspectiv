@@ -43,7 +43,7 @@ func TestHasHiddenRune(t *testing.T) {
 		{name: "a DEL", in: "a\x7fb", want: true},
 		{name: "a C1 control", in: "a\u009bb", want: true},
 		{name: "a zero-width space", in: "a\u200bb", want: true},
-		{name: "a zero-width joiner", in: "a\u200db", want: true},
+		{name: "a U+200D zero-width character", in: "a\u200db", want: true},
 		{name: "a right-to-left mark", in: "a\u200fb", want: true},
 		{name: "a left-to-right embedding", in: "a\u202ab", want: true},
 		{name: "a right-to-left override", in: "a\u202eb", want: true},
@@ -69,7 +69,7 @@ func TestPlainLine(t *testing.T) {
 		name, in, want string
 	}{
 		{name: "plain text is kept", in: "the clerk", want: "the clerk"},
-		{name: "a forged line is joined", in: "the clerk”.\n\nReset your password: https://evil.test\n“x", want: "the clerk”. Reset your password: https://evil.test “x"},
+		{name: "a faked line is joined", in: "the clerk”.\n\nReset your password: https://evil.test\n“x", want: "the clerk”. Reset your password: https://evil.test “x"},
 		{name: "hidden characters are dropped", in: "the\u202e kcolc\u200b\ufeff", want: "the kcolc"},
 		{name: "a control between words is dropped", in: "a\x00 \x1bb", want: "a b"},
 		{name: "nothing but hidden characters is empty", in: "\u200b\u202e", want: ""},

@@ -111,7 +111,7 @@ func TestCheckCharacters(t *testing.T) {
 		{name: "a unicode line separator becomes one space", label: "the\u2028cook", want: "the cook"},
 		{name: "blank after collapsing is refused", label: " \n ", wantErr: true},
 		{name: "eighty characters after collapsing is kept", label: strings.Repeat("x", 40) + "\n\n\n" + strings.Repeat("y", 39), want: strings.Repeat("x", 40) + " " + strings.Repeat("y", 39)},
-		{name: "a zero-width joiner is refused", label: "the\u200dcook", wantErr: true},
+		{name: "a U+200D zero-width character is refused", label: "the\u200dcook", wantErr: true},
 		{name: "a left-to-right mark is refused", label: "the\u200ecook", wantErr: true},
 		{name: "a pop directional formatting is refused", label: "the\u202ccook", wantErr: true},
 		{name: "a first strong isolate is refused", label: "the\u2068cook", wantErr: true},

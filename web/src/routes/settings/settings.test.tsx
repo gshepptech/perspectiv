@@ -252,7 +252,7 @@ describe("SettingsPage writers you follow", () => {
 });
 
 describe("SettingsPage notification toggles", () => {
-  it("FR-037: offers an in-app and an email toggle for each kind", async () => {
+  it("offers an in-app and an email toggle for each kind", async () => {
     settings();
     const region = await screen.findByRole("region", { name: "Notifications" });
     const labels = [
@@ -442,7 +442,7 @@ describe("SettingsPage sign-in and security", () => {
 });
 
 describe("SettingsPage layout", () => {
-  it("OT-037: fits a 375px viewport with a long email and many blocks", async () => {
+  it("fits a 375px viewport with a long email and many blocks", async () => {
     const { view } = settings({
       "UserService/GetProfile": () =>
         ok({
@@ -506,7 +506,7 @@ describe("UnsubscribePage", () => {
     expect(api.sent("NotifyService/Unsubscribe")).toEqual([{ userId: "user-1", token: "sig" }]);
   });
 
-  it("points to Settings when the link is forged or damaged", async () => {
+  it("points to Settings when the link is tampered with or damaged", async () => {
     const { user } = renderRoute("/unsubscribe?u=user-1&t=bad", {
       "NotifyService/Unsubscribe": () => fail("invalid_argument", "this unsubscribe link is not valid"),
     });

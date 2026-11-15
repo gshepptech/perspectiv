@@ -44,25 +44,25 @@ func TestRankPromotesHighestScoringLore(t *testing.T) {
 	}
 	gotA, gotB := w.lore(loreA), w.lore(loreB)
 	if gotB.status != standingCanon || gotA.status != standingSublore {
-		t.Fatalf("standings A=%s B=%s, want B canon (OT-027)", gotA.status, gotB.status)
+		t.Fatalf("standings A=%s B=%s, want B canon", gotA.status, gotB.status)
 	}
 	if gotA.members != 4 || gotA.upvotes != 2 || !near(gotA.score, scoreOf(4, 2)) || !gotA.computed {
-		t.Fatalf("lore A = %+v, want 4 members, 2 upvotes, score %v (AC-028)", gotA, scoreOf(4, 2))
+		t.Fatalf("lore A = %+v, want 4 members, 2 upvotes, score %v", gotA, scoreOf(4, 2))
 	}
 	if gotB.members != 4 || gotB.upvotes != 5 || !near(gotB.score, scoreOf(4, 5)) {
 		t.Fatalf("lore B = %+v, want 4 members, 5 upvotes, score %v", gotB, scoreOf(4, 5))
 	}
 	arc := w.arcState(w.arc)
 	if arc.canon != valid(loreB) || !near(arc.score, scoreOf(4, 5)) || arc.members != 8 || arc.dirty {
-		t.Fatalf("arc = %+v, want canon %s, canon score %v, 8 members, mark cleared (FR-051)", arc, loreB, scoreOf(4, 5))
+		t.Fatalf("arc = %+v, want canon %s, canon score %v, 8 members, mark cleared", arc, loreB, scoreOf(4, 5))
 	}
 	ch := w.changes(w.arc)
 	if len(ch) != 1 || ch[0].from.Valid || ch[0].to != valid(loreB) || ch[0].fromScore != nil ||
 		ch[0].toScore == nil || !near(*ch[0].toScore, scoreOf(4, 5)) {
-		t.Fatalf("canon_changes = %+v, want one row none -> %s with its score (OT-027)", ch, loreB)
+		t.Fatalf("canon_changes = %+v, want one row none -> %s with its score", ch, loreB)
 	}
 	if got := testutil.ToFloat64(w.metrics.CanonChanges); got != 1 {
-		t.Fatalf("canon_changes_total = %v, want 1 (NFR-009)", got)
+		t.Fatalf("canon_changes_total = %v, want 1", got)
 	}
 	if got := w.canonNotifications(w.arc); len(got) != 1 || got[0] != loreB.String() {
 		t.Fatalf("canon-change notify jobs = %v, want [%s]", got, loreB)
@@ -86,7 +86,7 @@ func TestRankSmallLoreNeverEligible(t *testing.T) {
 		t.Fatalf("setup: small lore score %v should outscore the big lore's %v", s.score, b.score)
 	}
 	if s.status != standingSublore || b.status != standingCanon {
-		t.Fatalf("standings small=%s big=%s, want big canon (OT-028, FR-063)", s.status, b.status)
+		t.Fatalf("standings small=%s big=%s, want big canon", s.status, b.status)
 	}
 	if !near(s.score, scoreOf(3, 40)) {
 		t.Fatalf("small lore score = %v, want it ranked at %v", s.score, scoreOf(3, 40))
@@ -135,7 +135,7 @@ func TestRankChallengerOvertakesCanon(t *testing.T) {
 	w.run()
 
 	if w.lore(loreA).status != standingSublore || w.lore(loreB).status != standingCanon {
-		t.Fatalf("after overtaking: A=%s B=%s, want B canon and A sublore (ST-008)",
+		t.Fatalf("after overtaking: A=%s B=%s, want B canon and A sublore",
 			w.lore(loreA).status, w.lore(loreB).status)
 	}
 	ch := w.changes(w.arc)
@@ -145,7 +145,7 @@ func TestRankChallengerOvertakesCanon(t *testing.T) {
 	last := ch[1]
 	if last.from != valid(loreA) || last.to != valid(loreB) || last.fromScore == nil || last.toScore == nil ||
 		!near(*last.fromScore, scoreOf(4, 3)) || !near(*last.toScore, scoreOf(5, 4)) {
-		t.Fatalf("audit row = %+v, want %s (%v) -> %s (%v) (AC-028)", last, loreA, scoreOf(4, 3), loreB, scoreOf(5, 4))
+		t.Fatalf("audit row = %+v, want %s (%v) -> %s (%v)", last, loreA, scoreOf(4, 3), loreB, scoreOf(5, 4))
 	}
 	if arc := w.arcState(w.arc); arc.canon != valid(loreB) || !near(arc.score, scoreOf(5, 4)) || arc.members != 9 {
 		t.Fatalf("arc = %+v, want canon %s", arc, loreB)
@@ -190,7 +190,7 @@ func TestRankDemotesShrunkCanonAndClears(t *testing.T) {
 		shrink func(w *world, member uuid.UUID)
 	}{
 		{
-			name: "perspective deleted (AC-038, FR-036, OT-040)",
+			name: "perspective deleted",
 			shrink: func(w *world, member uuid.UUID) {
 				w.exec(`UPDATE perspectives SET deleted_at = now() WHERE id = $1`, member)
 				w.exec(`UPDATE arcs SET lore_dirty_at = now() FROM perspectives p WHERE p.id = $1 AND arcs.id = p.arc_id`, member)
@@ -204,7 +204,7 @@ func TestRankDemotesShrunkCanonAndClears(t *testing.T) {
 			},
 		},
 		{
-			name: "perspective voted out of lore (OT-028)",
+			name: "perspective voted out of lore",
 			shrink: func(w *world, member uuid.UUID) {
 				err := pgx.BeginFunc(context.Background(), w.pool, func(tx pgx.Tx) error {
 					return w.svc.RemoveFromLore(context.Background(), tx, member)
@@ -243,11 +243,11 @@ func assertCleared(t *testing.T, w *world, canon uuid.UUID, fromScore float64) {
 	t.Helper()
 	got := w.lore(canon)
 	if got.status != standingSublore || got.members != 3 {
-		t.Fatalf("lore = %+v, want a 3-member sublore (ST-013)", got)
+		t.Fatalf("lore = %+v, want a 3-member sublore", got)
 	}
 	arc := w.arcState(w.arc)
 	if arc.canon.Valid || arc.score != 0 || arc.dirty {
-		t.Fatalf("arc = %+v, want canon cleared, score 0 (FR-061)", arc)
+		t.Fatalf("arc = %+v, want canon cleared, score 0", arc)
 	}
 	ch := w.changes(w.arc)
 	if len(ch) != 2 {
@@ -342,7 +342,7 @@ func TestRankProcessesOnlyDirtyArcsIndependently(t *testing.T) {
 		t.Fatalf("hour arc = %+v, want its own lore as canon", got)
 	}
 	if got := w.arcState(w.arc); got.canon != valid(w.loreOf(d[0])) || got.members != 4 {
-		t.Fatalf("day arc = %+v, want its own lore as canon, not the hour's (GI-001)", got)
+		t.Fatalf("day arc = %+v, want its own lore as canon, not the hour's", got)
 	}
 	if got := w.arcState(other); got.canon.Valid || got.members != 0 {
 		t.Fatalf("clean arc = %+v, want it untouched", got)
@@ -451,5 +451,5 @@ func TestPeriodicJobPromotesCanon(t *testing.T) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	t.Fatalf("no canon within 60 seconds of the job starting (OT-027)")
+	t.Fatalf("no canon within 60 seconds of the job starting")
 }

@@ -37,7 +37,7 @@ func fixturePlan(t *testing.T) *importer.Plan {
 	return plan
 }
 
-// FR-050, OT-010: every row of the US fixtures has a kind, a parent of the
+// Every row of the US fixtures has a kind, a parent of the
 // expected node and an IANA zone.
 func TestPrepareFixtures(t *testing.T) {
 	t.Parallel()
@@ -160,7 +160,7 @@ const (
 	goodDivs = usDiv + "\n" + txDiv + "\n" + cityDiv + "\n"
 )
 
-// CT-016: a file that cannot be parsed and a division parent that cannot be
+// A file that cannot be parsed and a division parent that cannot be
 // resolved are errors naming the file and line. A place whose address names
 // no imported city or town is not an error; see TestPrepareUnfiledPlaces.
 func TestPrepareErrors(t *testing.T) {
@@ -268,7 +268,7 @@ func checkPrepareError(t *testing.T, err error, wantParse bool, file string, lin
 	}
 }
 
-// FR-050: the US places releases carry POIs whose address locality is
+// The US places releases carry POIs whose address locality is
 // empty or names a neighbourhood, borough or unincorporated area. The free-text
 // address is not an authoritative parent, so such a POI is left out and
 // counted, and the rest of the import goes ahead.

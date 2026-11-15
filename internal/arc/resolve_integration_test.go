@@ -46,7 +46,7 @@ func (w *world) arcRow(t *testing.T, id uuid.UUID) arcRow {
 	return r
 }
 
-// FR-013, AC-011, OT-012: the first writer creates and titles the day arc; a
+// The first writer creates and titles the day arc; a
 // second writer joins it without a title.
 func TestResolveDayArc_FirstWriterCreatesSecondJoins(t *testing.T) {
 	t.Parallel()
@@ -96,7 +96,7 @@ func TestResolveDayArc_DateOnly(t *testing.T) {
 	}
 }
 
-// AC-011, OT-013: title rules apply when the publish creates the arc.
+// Title rules apply when the publish creates the arc.
 func TestResolveDayArc_TitleRules(t *testing.T) {
 	t.Parallel()
 
@@ -162,7 +162,7 @@ func TestResolve_RejectsBadInput(t *testing.T) {
 	}
 }
 
-// AC-011: the arc is created in the caller's transaction, so a publish that
+// The arc is created in the caller's transaction, so a publish that
 // rolls back leaves no arc behind.
 func TestResolve_CreatesInCallerTransaction(t *testing.T) {
 	t.Parallel()
@@ -185,7 +185,7 @@ func TestResolve_CreatesInCallerTransaction(t *testing.T) {
 	}
 }
 
-// FR-010, FR-011, AC-013: an hour creates or joins the hour child of the day
+// An hour creates or joins the hour child of the day
 // arc. When one publish creates both, the title names the day arc and the
 // hour child takes the day title plus the hour label.
 func TestResolveHourArc(t *testing.T) {
@@ -239,7 +239,7 @@ func TestResolveHourArc_NewDayNeedsTitle(t *testing.T) {
 	}
 }
 
-// OT-012, FR-062: two concurrent first writers produce exactly one day arc
+// Two concurrent first writers produce exactly one day arc
 // (and one hour arc); the second converges on the first's rows.
 func TestResolve_ConcurrentFirstWritersConverge(t *testing.T) {
 	t.Parallel()

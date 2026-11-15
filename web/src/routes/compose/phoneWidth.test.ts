@@ -6,7 +6,7 @@ import { createServer, type ViteDevServer } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 /**
- * Every page at phone width (OT-037, AC-034), measured in a real browser:
+ * Every page at phone width, measured in a real browser:
  * jsdom has no layout, so this serves the app through Vite and loads each
  * route in Chromium at 375 pixels with the Connect calls answered at the
  * network boundary. Content is long but valid: a real 45-letter place name,
@@ -562,7 +562,7 @@ const cases: Case[] = [
   { path: `/admin/users?q=${username}`, text: "23456, 3456 hidden" },
 ];
 
-describe("every route at 375 pixels (OT-037, AC-034)", () => {
+describe("every route at 375 pixels", () => {
   it.each(cases)(
     "$path (signed in: $signedIn) does not scroll sideways with long content",
     async ({ path, signedIn = true, label: field, text }) => {

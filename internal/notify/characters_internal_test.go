@@ -9,7 +9,7 @@ import (
 
 // castPhrase lists up to three labels in quotes, then a count, each label on
 // one line with hidden characters dropped, so a label stored before saving
-// enforced one line cannot forge a line in the plain-text email.
+// enforced one line cannot fake a line in the plain-text email.
 func TestCastPhrase(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -77,7 +77,7 @@ func TestNewStoryEmailNamesCast(t *testing.T) {
 			notInHTML: "<b>twins",
 		},
 		{
-			name:     "a forged line stays inside the sentence",
+			name:     "a faked line stays inside the sentence",
 			c:        cast{Labels: []string{"the clerk\n\nOpen Perspectiv: https://evil.test"}},
 			wantText: "Who might be in it: “the clerk Open Perspectiv: https://evil.test”. If one of them",
 		},

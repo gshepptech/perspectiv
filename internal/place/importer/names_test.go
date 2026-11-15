@@ -36,7 +36,7 @@ func TestLocalityKey(t *testing.T) {
 	}
 }
 
-// FR-050: an address that writes "St. Petersburg" files under the city
+// An address that writes "St. Petersburg" files under the city
 // Overture names "Saint Petersburg", and what stays unfiled is counted by
 // locality, most first.
 func TestPrepareFilesAbbreviatedLocality(t *testing.T) {

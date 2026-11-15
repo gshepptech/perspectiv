@@ -42,7 +42,7 @@ function inbox(handlers: Handlers = {}) {
 const items = () => within(screen.getByRole("list", { name: "Notifications" })).getAllByRole("listitem");
 
 describe("InboxPage", () => {
-  it("FR-037: shows each of the six kinds in words, naming only usernames", async () => {
+  it("shows each of the six kinds in words, naming only usernames", async () => {
     inbox();
     await screen.findByRole("list", { name: "Notifications" });
     const text = items().map((li) => li.textContent);
@@ -195,7 +195,7 @@ describe("InboxPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/unreachable/);
   });
 
-  it("OT-037: fits a 375px viewport with a long arc title", async () => {
+  it("fits a 375px viewport with a long arc title", async () => {
     const long = { ...six[0]!, arcTitle: "A".repeat(120) };
     const { view } = inbox({ "NotifyService/ListInbox": () => ok({ notifications: [long], unreadCount: 1 }) });
     await screen.findByRole("list", { name: "Notifications" });

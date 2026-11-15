@@ -51,7 +51,7 @@ test("a draft is resumed, a new story names who might be in it, and a request qu
     await expect(yours.getByRole("listitem").filter({ hasText: "Draft ·" })).toHaveCount(1);
     await expect(yours.getByRole("link", { name: /^Continue The fog sat on the wharf/ })).toBeVisible();
 
-    // Come back the way the walkthrough did: Write, the place, then the day.
+    // Come back the way a new writer would: Write, the place, then the day.
     // The composer opens on today, so the draft is found only once the day is set.
     await composeAtStore(gil.page);
     await expect(gil.page.getByLabel("Part 1", { exact: true })).toHaveValue("");

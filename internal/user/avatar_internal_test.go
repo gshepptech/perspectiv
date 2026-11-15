@@ -36,7 +36,7 @@ func jpegBytes(t *testing.T, w, h int) []byte {
 	return buf.Bytes()
 }
 
-// FR-052: the avatar limits decided in avatar.go.
+// The avatar limits decided in avatar.go.
 func TestNormalizeAvatar(t *testing.T) {
 	t.Parallel()
 	gif := []byte("GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;")

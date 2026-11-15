@@ -14,7 +14,7 @@ import (
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
 )
 
-// FR-034, CT-013: a verified user reports a perspective, a place or a user
+// A verified user reports a perspective, a place or a user
 // with the real-name reason; the report is stored OPEN with what was given.
 func TestReportStoresOpenReport(t *testing.T) {
 	t.Parallel()
@@ -158,7 +158,7 @@ func TestReportRefusals(t *testing.T) {
 	})
 }
 
-// CT-013, AC-001: Report needs a verified email (FAILED_PRECONDITION) and a
+// Report needs a verified email (FAILED_PRECONDITION) and a
 // signed-in caller, and counts against the report rate limit
 // (RESOURCE_EXHAUSTED). None of the refusals writes a report.
 func TestReportGates(t *testing.T) {

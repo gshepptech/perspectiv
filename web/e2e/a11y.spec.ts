@@ -1,5 +1,5 @@
 /**
- * NFR-011: an axe scan of the pages a signed-in member reads and writes on,
+ * An axe scan of the pages a signed-in member reads and writes on,
  * the admin pages, and the signed-out sign-in and sign-up pages. Two writers
  * publish at a store no other spec writes at and link by a claim, so the
  * place, arc, story, claims and lore pages are scanned with real content.
@@ -76,7 +76,7 @@ function report(findings: Finding[]): string {
     .join("\n");
 }
 
-test("NFR-011 the main routes have no serious or critical WCAG 2.1 A/AA violations", async ({ browser }) => {
+test("the main routes have no serious or critical WCAG 2.1 A/AA violations", async ({ browser }) => {
   test.setTimeout(360_000);
   const { ivy: ivyAcct } = a11yAccounts();
   const { gil: gilAcct } = findAccounts();

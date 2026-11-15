@@ -165,7 +165,7 @@ describe("on a story's own page", () => {
 
 describe("signed-out reader on a story's page", () => {
   for (const [label, name] of [["report", /^Report:/], ["save", /^Save /]] as const) {
-    it(`AC-009: the ${label} action redirects to login without calling the server`, async () => {
+    it(`the ${label} action redirects to login without calling the server`, async () => {
       const { api } = await openStory("p-otter", OTTER, {
         signedOut: true,
         over: { characters: [{ id: "c-any", position: 1, label: "a stranger" }] },
@@ -181,7 +181,7 @@ describe("signed-out reader on a story's page", () => {
   // not be enough: the reader is told why, with the way to sign in.
   // Reacting needs only an account, and is explained the same way rather
   // than by leaving the page.
-  it("AC-009: Upvote says who can vote, offers writing your side and signing in, without calling the server", async () => {
+  it("Upvote says who can vote, offers writing your side and signing in, without calling the server", async () => {
     const { api } = await openStory("p-otter", OTTER, {
       signedOut: true,
       over: { place: { id: "pl-9", name: "Moonbean" }, localDate: "2026-10-01" },
@@ -208,7 +208,7 @@ describe("signed-out reader on a story's page", () => {
     ["claim", "Claim a character", "To say this was you, write your side of this day first.", "%2Fperspectives%2Fp-otter%3Fclaim%3D1"],
     ["react", /^Heart/, "To react to a story, sign in or create an account.", "%2Fperspectives%2Fp-otter"],
   ] as const) {
-    it(`AC-009: the ${label} action says why and offers sign-in and sign-up, without calling the server`, async () => {
+    it(`the ${label} action says why and offers sign-in and sign-up, without calling the server`, async () => {
       const { api } = await openStory("p-otter", OTTER, {
         signedOut: true,
         over: { characters: [{ id: "c-any", position: 1, label: "a stranger" }] },
@@ -538,7 +538,7 @@ describe("remove vote", () => {
 });
 
 describe("report", () => {
-  it("AC-040 OT-043: the report form offers the real-name-or-handle reason and sends it for the perspective", async () => {
+  it("the report form offers the real-name-or-handle reason and sends it for the perspective", async () => {
     const app = await openStory("p-otter", OTTER, { routes: { "ModerationService/Report": () => ({ body: { reportId: "r-9" } }) } });
     const actions = await story();
     await userEvent.click(await within(actions).findByRole("button", { name: /^Report:/ }));

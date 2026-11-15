@@ -238,7 +238,7 @@ func codeOf(err error) connect.Code {
 }
 
 // A reader with no perspective in the arc can react, and counts come back
-// per emoji with the caller's own reacts marked (OT-025, AC-026, AC-031).
+// per emoji with the caller's own reacts marked.
 func TestReactByReader(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -263,7 +263,7 @@ func TestReactByReader(t *testing.T) {
 }
 
 // A user holds up to one of each of the 6 emoji and never two of the same;
-// clearing removes only that emoji (OT-031, FR-029).
+// clearing removes only that emoji.
 func TestReactToggleSixDistinct(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)
@@ -306,7 +306,7 @@ func TestReactToggleSixDistinct(t *testing.T) {
 }
 
 // A blocked user cannot add a react to the blocker's perspective but can
-// clear one they already hold; anyone else is unaffected (FR-053, FR-065).
+// clear one they already hold; anyone else is unaffected.
 func TestReactBlocked(t *testing.T) {
 	t.Parallel()
 	e := newEnv(t)

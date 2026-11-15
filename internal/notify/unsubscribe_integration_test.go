@@ -68,7 +68,7 @@ func TestUnsubscribeLink(t *testing.T) {
 		name, user, sig string
 	}{
 		{name: "another account's id", user: ben.String(), sig: link.Get("t")},
-		{name: "a forged signature", user: wren.String(), sig: "bm90LWEtcmVhbC1zaWc"},
+		{name: "a tampered signature", user: wren.String(), sig: "bm90LWEtcmVhbC1zaWc"},
 		{name: "no signature", user: wren.String()},
 		{name: "not an id", user: "wren", sig: link.Get("t")},
 	}
@@ -138,13 +138,13 @@ func TestOneClickUnsubscribe(t *testing.T) {
 	if got := send(http.MethodGet, endpoint); got != http.StatusMethodNotAllowed {
 		t.Fatalf("GET status = %d, want 405", got)
 	}
-	forged := url.Values{"u": {wren.String()}, "t": {"bm90LWEtcmVhbC1zaWc"}}
-	if got := post(e.srv.URL + "/api/email/unsubscribe?" + forged.Encode()); got != http.StatusBadRequest {
-		t.Fatalf("forged POST status = %d, want 400", got)
+	tampered := url.Values{"u": {wren.String()}, "t": {"bm90LWEtcmVhbC1zaWc"}}
+	if got := post(e.srv.URL + "/api/email/unsubscribe?" + tampered.Encode()); got != http.StatusBadRequest {
+		t.Fatalf("tampered POST status = %d, want 400", got)
 	}
 	for kind, on := range e.emailOn(wren) {
 		if !on {
-			t.Fatalf("a GET or forged POST turned %v email off", kind)
+			t.Fatalf("a GET or tampered POST turned %v email off", kind)
 		}
 	}
 	if got := post(endpoint); got != http.StatusOK {

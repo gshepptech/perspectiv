@@ -1,5 +1,5 @@
 /**
- * NFR-004: the admin report flow. A reader reports a perspective that names a
+ * The admin report flow. A reader reports a perspective that names a
  * real person, the queue is closed to anyone but an admin, an admin hides the
  * perspective, and from then on every reader sees only the placeholder.
  */
@@ -11,7 +11,7 @@ import { reader, signedIn, visit, writeAt } from "./support/ui.ts";
 const STORE = "Harbor Light Laundromat";
 const HIDDEN = "This story was hidden by a moderator.";
 
-test("NFR-004 a report is resolved by an admin and the perspective is hidden from readers", async ({ browser }) => {
+test("a report is resolved by an admin and the perspective is hidden from readers", async ({ browser }) => {
   test.setTimeout(180_000);
   const { writer: writerAcct, reporter: reporterAcct, admin: adminAcct } = reportAccounts();
   const writer = await signedIn(browser, writerAcct);

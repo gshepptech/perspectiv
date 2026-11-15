@@ -67,7 +67,7 @@ func readPlaces(t *testing.T, pool *pgxpool.Pool) map[string]placeRow {
 	return out
 }
 
-// OT-010, CT-016, FR-050: the US fixtures import as STATE, CITY, TOWN, MALL
+// The US fixtures import as STATE, CITY, TOWN, MALL
 // and STORE rows with parent links and an IANA zone on every row.
 func TestImportFixtures(t *testing.T) {
 	t.Parallel()

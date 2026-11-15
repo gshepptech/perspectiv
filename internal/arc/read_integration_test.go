@@ -40,7 +40,7 @@ func sameIDs(t *testing.T, what string, got []string, want ...uuid.UUID) {
 	}
 }
 
-// CT-011, FR-030, AC-030, OT-032, FR-024, FR-036: an arc page carries canon,
+// An arc page carries canon,
 // then every other lore (a demoted one included), then tales, with deleted
 // and hidden perspectives as placeholders.
 func TestGetArc_Sections(t *testing.T) {
@@ -145,7 +145,7 @@ func checkSummaries(t *testing.T, got *perspectivv1.GetArcResponse, canon uuid.U
 	}
 }
 
-// AC-033, OT-035, FR-011: a day arc lists its hour child arcs in ascending
+// A day arc lists its hour child arcs in ascending
 // hour order, each with its own canon; an hour arc names its parent.
 func TestGetArc_HourTimeline(t *testing.T) {
 	t.Parallel()
@@ -235,7 +235,7 @@ func TestGetArc_Errors(t *testing.T) {
 		id   string
 		want connect.Code
 	}{
-		{name: "unknown arc (CT-011)", id: uuid.NewString(), want: connect.CodeNotFound},
+		{name: "unknown arc", id: uuid.NewString(), want: connect.CodeNotFound},
 		{name: "arc at a hidden place", id: hiddenArc.String(), want: connect.CodeNotFound},
 		{name: "malformed id", id: "not-a-uuid", want: connect.CodeInvalidArgument},
 		{name: "missing id", id: "", want: connect.CodeInvalidArgument},
@@ -397,7 +397,7 @@ func hourIDs(hs []*perspectivv1.HourArc) []string {
 	return out
 }
 
-// NFR-008: every list on an arc page pages with a cursor token while the
+// Every list on an arc page pages with a cursor token while the
 // canon stays first, and the viewer's standing comes from the server, not
 // from whichever page their perspective is on.
 func TestArcPagination(t *testing.T) {

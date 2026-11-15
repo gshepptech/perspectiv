@@ -61,7 +61,7 @@ afterEach(() => {
   delete (HTMLElement.prototype as { animate?: unknown }).animate;
 });
 
-describe("Reader pages one part at a time (OT-033)", () => {
+describe("Reader pages one part at a time", () => {
   it("renders only the current part, as paragraphs inside an article headed by the title", () => {
     render(<Harness />);
     const article = screen.getByRole("article");
@@ -224,7 +224,7 @@ describe("Reader pages one part at a time (OT-033)", () => {
   });
 });
 
-describe("Reader motion (OT-034)", () => {
+describe("Reader motion", () => {
   it("cross-fades a page change with opacity only, no flip or slide", async () => {
     stubMotion(false);
     const animate = stubAnimate();

@@ -17,7 +17,7 @@ import (
 	perspectivv1 "perspectiv/gen/perspectiv/v1"
 )
 
-// AC-010, OT-015, FR-015: part count and words per part.
+// Part count and words per part.
 func TestPublishPartLimits(t *testing.T) {
 	t.Parallel()
 	ten := make([]string, 10)
@@ -69,7 +69,7 @@ func assertParts(t *testing.T, p *perspectivv1.Perspective, want []string) {
 	}
 }
 
-// AC-017, FR-021: at most 10 characters.
+// At most 10 characters.
 func TestPublishCharacterLimit(t *testing.T) {
 	t.Parallel()
 	chars := func(n int) []*perspectivv1.CharacterInput {
@@ -117,7 +117,7 @@ func TestPublishCharacterLimit(t *testing.T) {
 
 // A character's label is read out in other people's email, so saving or
 // publishing puts it on one line and refuses characters that hide
-// themselves: a label cannot forge a line or reorder the text around it.
+// themselves: a label cannot fake a line or reorder the text around it.
 func TestCharacterLabelsReadAsOneLine(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -204,7 +204,7 @@ func checkLabel(t *testing.T, err error, code connect.Code, stored func() []*per
 	}
 }
 
-// AC-011, CT-005: the first publish needs a valid title and creates the arc.
+// The first publish needs a valid title and creates the arc.
 func TestPublishNewArcTitle(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -240,7 +240,7 @@ func TestPublishNewArcTitle(t *testing.T) {
 	}
 }
 
-// AC-011, OT-012: a second user at the same place and day joins the arc
+// A second user at the same place and day joins the arc
 // without a title.
 func TestPublishJoinsArcWithoutTitle(t *testing.T) {
 	t.Parallel()
@@ -260,7 +260,7 @@ func TestPublishJoinsArcWithoutTitle(t *testing.T) {
 	}
 }
 
-// OT-012: concurrent first publishes produce exactly one day arc.
+// Concurrent first publishes produce exactly one day arc.
 func TestPublishConcurrentFirstWriters(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
@@ -295,7 +295,7 @@ func TestPublishConcurrentFirstWriters(t *testing.T) {
 	}
 }
 
-// AC-012, OT-016, FR-016, FR-060: one perspective per user per arc.
+// One perspective per user per arc.
 func TestPublishSecondInArcAlreadyExists(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -369,7 +369,7 @@ func TestPublishAfterDeleteInSameArc(t *testing.T) {
 	}
 }
 
-// AC-013, OT-017, FR-012: an hour files under the hour child arc.
+// An hour files under the hour child arc.
 func TestPublishHourArc(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -409,7 +409,7 @@ func TestPublishHourArc(t *testing.T) {
 	}
 }
 
-// AC-016, OT-014, FR-009: the picked local date is what is stored.
+// The picked local date is what is stored.
 func TestPublishKeepsPickedDate(t *testing.T) {
 	t.Parallel()
 	w := newWorld(t)
@@ -438,7 +438,7 @@ func TestPublishKeepsPickedDate(t *testing.T) {
 	}
 }
 
-// AC-015, FR-017: exactly one genre from the enum.
+// Exactly one genre from the enum.
 func TestPublishGenre(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -469,7 +469,7 @@ func TestPublishGenre(t *testing.T) {
 	}
 }
 
-// CT-005, ST-001: an unverified or signed-out caller cannot publish; an
+// An unverified or signed-out caller cannot publish; an
 // unknown place is NotFound.
 func TestPublishGuards(t *testing.T) {
 	t.Parallel()
@@ -491,7 +491,7 @@ func TestPublishGuards(t *testing.T) {
 	}
 }
 
-// FR-047, NFR-009: publish enqueues the expiry job and the new-perspective
+// Publish enqueues the expiry job and the new-perspective
 // event in its transaction and counts the publish.
 func TestPublishSideEffects(t *testing.T) {
 	t.Parallel()
@@ -539,7 +539,7 @@ func TestPublishSideEffects(t *testing.T) {
 	}
 }
 
-// ST-001, AC-014, FR-018, FR-044: drafts autosave and publish is explicit.
+// Drafts autosave and publish is explicit.
 func TestDraftThenPublish(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

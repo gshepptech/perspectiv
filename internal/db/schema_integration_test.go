@@ -134,7 +134,7 @@ func wantOK(t *testing.T, err error) {
 	}
 }
 
-// TestNoTenantColumn covers GI-004, NFR-005 and OT-048: the schema is
+// TestNoTenantColumn checks that the schema is
 // single-tenant and no table carries a tenant key.
 func TestNoTenantColumn(t *testing.T) {
 	t.Parallel()
@@ -215,7 +215,7 @@ func TestEnumColumnsAcceptExactlyTheProtoValues(t *testing.T) {
 	}
 }
 
-// TestArcUniquePerPlaceDayHour covers FR-062: the unique index treats a NULL
+// TestArcUniquePerPlaceDayHour checks that the unique index treats a NULL
 // hour as equal, so one place and day has one day arc and one arc per hour.
 func TestArcUniquePerPlaceDayHour(t *testing.T) {
 	t.Parallel()
@@ -289,7 +289,8 @@ func TestArcUniquePerPlaceDayHour(t *testing.T) {
 	})
 }
 
-// TestOnePerspectivePerUserPerArc covers FR-016.
+// TestOnePerspectivePerUserPerArc checks that an author has at most one
+// published perspective per arc.
 func TestOnePerspectivePerUserPerArc(t *testing.T) {
 	t.Parallel()
 	t.Run("a second published perspective by the same author collides", func(t *testing.T) {
@@ -318,7 +319,7 @@ func (w world) user2() uuid.UUID {
 	return w.user("bob")
 }
 
-// TestPerspectiveGenre covers AC-015 and FR-017 in storage: a published
+// TestPerspectiveGenre checks storage: a published
 // perspective holds exactly one genre from the enum.
 func TestPerspectiveGenre(t *testing.T) {
 	t.Parallel()
@@ -569,7 +570,7 @@ func TestUsernameAndEmailAreCaseInsensitivelyUnique(t *testing.T) {
 	}
 }
 
-// TestHotQueriesAreIndexBacked covers the schema side of NFR-008: with
+// TestHotQueriesAreIndexBacked checks that, with
 // sequential scans priced out, the epic, arc page and inbox reads run on
 // indexes, so their cost tracks the page size rather than the table size.
 func TestHotQueriesAreIndexBacked(t *testing.T) {

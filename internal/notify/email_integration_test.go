@@ -133,7 +133,7 @@ func (e *env) enqueueEmail(a jobs.EmailArgs) int64 {
 }
 
 // A verification email sent through the SMTP mailer lands in Mailpit, and its
-// link can be read back from Mailpit's API (AC-043, OT-001, FR-038).
+// link can be read back from Mailpit's API.
 func TestVerificationEmailReachesMailpit(t *testing.T) {
 	t.Parallel()
 	mp := startMailpit(t)
@@ -158,8 +158,7 @@ func TestVerificationEmailReachesMailpit(t *testing.T) {
 	}
 }
 
-// A notification fanned out end to end arrives in Mailpit for the recipient
-// (FR-037, FR-048).
+// A notification fanned out end to end arrives in Mailpit for the recipient.
 func TestNotificationEmailReachesMailpit(t *testing.T) {
 	t.Parallel()
 	mp := startMailpit(t)
@@ -178,8 +177,7 @@ func TestNotificationEmailReachesMailpit(t *testing.T) {
 }
 
 // A failing Resend call leaves the originating transaction committed and the
-// email job retryable, counted in email_send_failures_total (OT-042, AC-042,
-// NFR-009).
+// email job retryable, counted in email_send_failures_total.
 func TestResendFailureLeavesJobRetryable(t *testing.T) {
 	t.Parallel()
 	calls := make(chan struct{}, 10)

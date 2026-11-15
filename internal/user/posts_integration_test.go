@@ -227,7 +227,7 @@ func TestListUserPostsRejects(t *testing.T) {
 	}{
 		{name: "no user", req: &perspectivv1.ListUserPostsRequest{}, code: connect.CodeInvalidArgument},
 		{name: "malformed user", req: &perspectivv1.ListUserPostsRequest{UserId: "nope"}, code: connect.CodeInvalidArgument},
-		{name: "forged page token", req: &perspectivv1.ListUserPostsRequest{UserId: uuid.NewString(), PageToken: "bm9wZQ"}, code: connect.CodeInvalidArgument},
+		{name: "tampered page token", req: &perspectivv1.ListUserPostsRequest{UserId: uuid.NewString(), PageToken: "bm9wZQ"}, code: connect.CodeInvalidArgument},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

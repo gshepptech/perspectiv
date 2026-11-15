@@ -25,7 +25,7 @@ function report(over: Record<string, unknown> = {}) {
   };
 }
 
-describe("report queue access (AC-036)", () => {
+describe("report queue access", () => {
   it("tells a non-admin the queue is for site admins and never asks the server for it", async () => {
     const api = installApi({ "ModerationService/ListReports": () => ok({ reports: [report()] }) });
     renderRoute("/admin/reports");
@@ -41,7 +41,7 @@ describe("report queue access (AC-036)", () => {
   });
 });
 
-describe("report queue (FR-035)", () => {
+describe("report queue", () => {
   it("lists open reports with their target, reason, details and reporter", async () => {
     const api = installApi({ "ModerationService/ListReports": () => ok({ reports: [report()] }) }, admin);
     renderRoute("/admin/reports");
@@ -211,7 +211,7 @@ describe("report queue (FR-035)", () => {
     });
   });
 
-  it("suspends the author of a reported perspective through a report on that user (US-008, CT-013)", async () => {
+  it("suspends the author of a reported perspective through a report on that user", async () => {
     const user = userEvent.setup();
     const author = { userId: "u-author", username: "loudmouth" };
     const api = installApi(

@@ -21,8 +21,8 @@ func valueNames(e protoreflect.EnumDescriptor) []string {
 	return names
 }
 
-// TestEnumValues pins the enum values the spec fixes (OT-007, AC-007, AC-015)
-// and the two sets the spec leaves open: the six emoji and the report reasons.
+// TestEnumValues pins the enum values the product model fixes, including the
+// six emoji and the report reasons.
 func TestEnumValues(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -31,7 +31,7 @@ func TestEnumValues(t *testing.T) {
 		want []string
 	}{
 		{
-			name: "OT-007 AC-007 place kind is exactly the five levels",
+			name: "place kind is exactly the five levels",
 			enum: perspectivv1.PlaceKind(0).Descriptor(),
 			want: []string{"PLACE_KIND_UNSPECIFIED", "PLACE_KIND_STATE", "PLACE_KIND_CITY", "PLACE_KIND_TOWN", "PLACE_KIND_MALL", "PLACE_KIND_STORE"},
 		},
@@ -41,7 +41,7 @@ func TestEnumValues(t *testing.T) {
 			want: []string{"PLACE_SOURCE_UNSPECIFIED", "PLACE_SOURCE_OVERTURE", "PLACE_SOURCE_FOURSQUARE", "PLACE_SOURCE_USER"},
 		},
 		{
-			name: "AC-015 FR-017 genre is the fixed seven",
+			name: "genre is the fixed seven",
 			enum: perspectivv1.Genre(0).Descriptor(),
 			want: []string{"GENRE_UNSPECIFIED", "GENRE_DRAMA", "GENRE_COMEDY", "GENRE_ROMANCE", "GENRE_MYSTERY", "GENRE_HORROR", "GENRE_SLICE_OF_LIFE", "GENRE_ACTION"},
 		},
@@ -155,8 +155,8 @@ func TestEnumValues(t *testing.T) {
 }
 
 // services lists every service of the API with the RPCs the contract fixes.
-// ListByAuthor serves the profile's perspectives and tales (AC-023), and
-// ListArcSection the arc page's later pages (NFR-008). CreateInvite and
+// ListByAuthor serves the profile's perspectives and tales, and
+// ListArcSection the arc page's later pages. CreateInvite and
 // GetInvite serve the "I was there too" share link, ListLorePosts and
 // AddLorePost a lore's thread (ListLorePostReplies, VoteLorePost,
 // EditLorePost and DeleteLorePost its replies, upvotes, edits and deletes),
@@ -243,8 +243,8 @@ func emailFieldsReachable(m protoreflect.MessageDescriptor, path string, seen ma
 	return out
 }
 
-// TestNoResponseCarriesAnEmailExceptTheCallersOwnAccount covers FR-003 and
-// OT-004 at the wire contract: the only full email field reachable from any
+// TestNoResponseCarriesAnEmailExceptTheCallersOwnAccount checks the wire
+// contract: the only full email field reachable from any
 // RPC response is Account.email, and Account is reachable only from the
 // caller's own profile. The admin waitlist carries masked hints only.
 func TestNoResponseCarriesAnEmailExceptTheCallersOwnAccount(t *testing.T) {
@@ -276,7 +276,7 @@ func TestNoResponseCarriesAnEmailExceptTheCallersOwnAccount(t *testing.T) {
 	}
 }
 
-// TestGlossaryVocabulary covers FR-041: the wire types carry the product
+// TestGlossaryVocabulary checks that the wire types carry the product
 // glossary's names.
 func TestGlossaryVocabulary(t *testing.T) {
 	t.Parallel()
@@ -303,7 +303,7 @@ func TestGlossaryVocabulary(t *testing.T) {
 	}
 }
 
-// TestPerspectiveCarriesOneGenre covers FR-017 and AC-015 on the wire: a
+// TestPerspectiveCarriesOneGenre checks the wire contract: a
 // perspective and every write request carry a single, non-repeated genre.
 func TestPerspectiveCarriesOneGenre(t *testing.T) {
 	t.Parallel()

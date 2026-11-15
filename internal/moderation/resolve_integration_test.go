@@ -75,7 +75,7 @@ func (e *env) notifyJobs(report uuid.UUID) []jobs.NotifyArgs {
 	return out
 }
 
-// AC-036, OT-038 (moderation part): only an ADMIN may open the queue or
+// Only an ADMIN may open the queue or
 // resolve. A USER token is refused by the interceptor; a token that still
 // claims ADMIN for an account whose stored role is USER, or whose account is
 // suspended, is refused by the service. Every refusal is PERMISSION_DENIED
@@ -140,7 +140,7 @@ func TestAdminOnly(t *testing.T) {
 	})
 }
 
-// AC-037, OT-039, CT-013: each action resolves the report, applies to its
+// Each action resolves the report, applies to its
 // target and writes one audit row with actor, target, report and reason, and
 // queues a REPORT_RESOLVED notification that names no actor.
 func TestResolveActions(t *testing.T) {
@@ -429,7 +429,7 @@ func reportIDs(rs []*perspectivv1.Report) []string {
 	return out
 }
 
-// FR-035: the queue lists reports oldest first, filters by status, pages with
+// The queue lists reports oldest first, filters by status, pages with
 // a cursor and labels each target.
 func TestListReports(t *testing.T) {
 	t.Parallel()
