@@ -23,7 +23,7 @@ import { sessionsKey } from "./DeviceList";
 import { Saved } from "./Section";
 
 // Query keys follow ["domain", "operation", ...inputs].
-export const twoFactorStatusKey = ["auth", "getTwoFactorStatus"] as const;
+const twoFactorStatusKey = ["auth", "getTwoFactorStatus"] as const;
 
 const day = new Intl.DateTimeFormat(undefined, { dateStyle: "medium" });
 

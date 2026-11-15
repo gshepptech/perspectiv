@@ -12,7 +12,7 @@ export type RouteModule = { Component: ComponentType; loader?: LoaderFunction };
 /** Loads a route module by its path under src/routes, e.g. "landing/LandingPage". */
 export type PageLoader = (module: string) => Promise<RouteModule>;
 
-export type RootLoaderData = { session: Session | null };
+type RootLoaderData = { session: Session | null };
 
 type Page = {
   path: string;

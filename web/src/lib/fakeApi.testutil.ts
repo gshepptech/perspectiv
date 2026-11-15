@@ -5,7 +5,7 @@ import { vi } from "vitest";
  * protocol JSON requests that the real transport sends through
  * globalThis.fetch. Only tests import it.
  */
-export type FakeCall = { procedure: string; authorization: string | null; credentials: RequestCredentials | undefined };
+type FakeCall = { procedure: string; authorization: string | null; credentials: RequestCredentials | undefined };
 
 export type FakeReply = { status?: number; body: unknown };
 

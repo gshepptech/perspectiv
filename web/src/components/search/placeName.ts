@@ -28,7 +28,7 @@ function capitaliseParts(word: string): string {
 }
 
 /** Title-cases an all-lower-case name word by word, as the importer does. */
-export function titleCase(name: string): string {
+function titleCase(name: string): string {
   const words = name.split(/\s+/).filter(Boolean);
   return words.map((w, i) => (i > 0 && i < words.length - 1 && minorWords.has(w) ? w : capitaliseParts(w))).join(" ");
 }

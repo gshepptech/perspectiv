@@ -16,7 +16,7 @@ import { useShowMore } from "@/lib/showMore";
 import { actionLabel, targetHref, targetKindLabel } from "./labels";
 import { ResolveDialog, type Resolution } from "./ResolveDialog";
 
-export const reportsKey = ["moderation", "listReports"] as const;
+const reportsKey = ["moderation", "listReports"] as const;
 export const ADMINS_ONLY = "Only site admins can open the report queue.";
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 

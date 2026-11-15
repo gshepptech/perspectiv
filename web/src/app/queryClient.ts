@@ -13,7 +13,7 @@ const final = new Set([
 ]);
 
 /** Retries a failed query up to twice, but never one the server refused on its merits. */
-export function shouldRetry(failureCount: number, error: unknown): boolean {
+function shouldRetry(failureCount: number, error: unknown): boolean {
   if (final.has(ConnectError.from(error).code)) return false;
   return failureCount < 2;
 }

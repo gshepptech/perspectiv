@@ -52,7 +52,7 @@ export function applyTheme(theme: Theme): void {
   }
 }
 
-export function applyTextSize(size: TextSize): void {
+function applyTextSize(size: TextSize): void {
   const root = document.documentElement;
   if (size === "standard") delete root.dataset.text;
   else root.dataset.text = size;

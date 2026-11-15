@@ -11,7 +11,7 @@ import { postAnchor, threadQuery } from "./threadQueries";
 export const THREAD_HEADING_ID = "thread-heading";
 
 /** How many pages of the Top order (20 posts each) are read looking for a post. */
-export const MAX_THREAD_PAGES = 10;
+const MAX_THREAD_PAGES = 10;
 
 /** How long a post reached by its anchor keeps its outline. */
 const HIGHLIGHT_MS = 2000;

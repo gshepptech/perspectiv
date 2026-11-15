@@ -10,7 +10,7 @@ import { clients } from "@/lib/connect";
 import { actionError } from "./errors";
 
 /** The address an invite code opens, on this site. */
-export function inviteURL(code: string): string {
+function inviteURL(code: string): string {
   return `${window.location.origin}/i/${code}`;
 }
 

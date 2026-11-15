@@ -12,7 +12,7 @@ export type Described = { text: string; to: string | null; detail?: string };
  * labels in quotes, then "and N more" ("“a”, “b”, “c” and 2 more"). Empty
  * when the server names none. The email words it the same way.
  */
-export function castLine(n: Pick<Notification, "unclaimedCharacters" | "moreUnclaimedCharacters">): string {
+function castLine(n: Pick<Notification, "unclaimedCharacters" | "moreUnclaimedCharacters">): string {
   const items = n.unclaimedCharacters.map((label) => `“${label}”`);
   if (items.length === 0) return "";
   if (n.moreUnclaimedCharacters > 0) items.push(`${n.moreUnclaimedCharacters} more`);

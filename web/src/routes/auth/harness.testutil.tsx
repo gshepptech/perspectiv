@@ -15,9 +15,9 @@ import { preloadedPageLoader, preloadPages } from "@/app/routes.testutil";
  * each request's decoded JSON body so a test can assert what the page sent.
  * Only tests import it.
  */
-export type Call = { procedure: string; body: Record<string, unknown>; authorization: string | null };
+type Call = { procedure: string; body: Record<string, unknown>; authorization: string | null };
 export type Reply = { status?: number; body: unknown };
-export type Handler = (body: Record<string, unknown>, call: Call) => Reply | Promise<Reply>;
+type Handler = (body: Record<string, unknown>, call: Call) => Reply | Promise<Reply>;
 export type Handlers = Record<string, Handler>;
 
 const statusFor: Record<string, number> = {

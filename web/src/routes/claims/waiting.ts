@@ -4,7 +4,7 @@ import { ClaimDirection, ClaimStatus } from "@/gen/perspectiv/v1/enums_pb";
 import { clients } from "@/lib/connect";
 
 /** Under the requests page's key prefix, so accepting or rejecting one refreshes this count. */
-export const waitingRequestsKey = ["lore", "listClaims", "waiting"] as const;
+const waitingRequestsKey = ["lore", "listClaims", "waiting"] as const;
 
 /** The most requests one read counts; more than this reads "100+". */
 const COUNTED = 100;

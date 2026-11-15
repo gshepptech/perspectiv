@@ -17,7 +17,7 @@ export function perspectiveQuery(perspectiveId: string) {
 /** Every page of the caller's Saved stories, as the Saved page reads them. */
 export const savedListKey = ["perspective", "listSaved"] as const;
 
-export const arcKey = (arcId: string) => ["arc", "getArc", { arcId }] as const;
+const arcKey = (arcId: string) => ["arc", "getArc", { arcId }] as const;
 
 /**
  * An arc's page as the arc page reads it: the arc, its canon and the first

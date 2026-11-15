@@ -2,7 +2,7 @@ import { Genre, LoreStatus, PlaceCategory, PlaceKind } from "@/gen/perspectiv/v1
 import type { PlaceRef } from "@/gen/perspectiv/v1/place_pb";
 
 /** The reader-facing word for a place kind. */
-export function placeKindLabel(kind: PlaceKind): string {
+function placeKindLabel(kind: PlaceKind): string {
   switch (kind) {
     case PlaceKind.STATE:
       return "State";

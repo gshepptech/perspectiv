@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
  * at that end turns there, shown and named by `label`, instead of sitting
  * disabled.
  */
-export type ReaderEdge = {
+type ReaderEdge = {
   /** The control's visible text and its name: "Next chapter", "Contents". */
   label: string;
   onTurn: () => void;
@@ -68,7 +68,7 @@ const PART_HEADING = "font-serif text-base font-normal text-ink-muted italic";
 export const SHORT_STORY_WORDS = 600;
 
 /** Where a viewer's "Read all parts on one page" choice is kept. */
-export const WHOLE_STORY_KEY = "perspectiv.reader.whole";
+const WHOLE_STORY_KEY = "perspectiv.reader.whole";
 
 export function wordCount(parts: readonly string[]): number {
   return parts.reduce((n, body) => n + body.split(/\s+/).filter(Boolean).length, 0);

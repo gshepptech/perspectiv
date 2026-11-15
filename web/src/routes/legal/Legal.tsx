@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import { useDocumentTitle } from "@/lib/title";
 
 /** When the legal pages last changed; shown on each. */
-export const LEGAL_UPDATED = "November 2, 2026";
+const LEGAL_UPDATED = "November 2, 2026";
 
 /** A legal or trust page: a title, the date it last changed, and prose at the reading measure. */
 export function LegalPage({ title, children }: { title: string; children: ReactNode }) {

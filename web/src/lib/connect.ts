@@ -22,7 +22,7 @@ const authServiceName = AuthService.typeName;
  * AuthService calls are passed through untouched so a failing refresh can
  * never recurse into another refresh.
  */
-export const authInterceptor: Interceptor = (next) => async (req) => {
+const authInterceptor: Interceptor = (next) => async (req) => {
   if (req.service.typeName === authServiceName) {
     const token = getAccessToken();
     if (token) req.header.set("Authorization", `Bearer ${token}`);
