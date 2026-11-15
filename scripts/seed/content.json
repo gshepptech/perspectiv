@@ -51,7 +51,7 @@
           "characters": []
         },
         {
-          "user": "grill_dad_ray",
+          "user": "grill_dad_rob",
           "genre": "SLICE_OF_LIFE",
           "parts": [
             "Lot 7, same spot for eleven seasons. Burgers on at noon, kickoff at seven, and somewhere in between a couple in a dented silver Civic two rows over could not get it to turn over. I had cables. I always have cables.",
@@ -122,9 +122,9 @@
         { "claimant": "naples_mom_k", "author": "knightsfan_04", "character": "the woman crying into a hot dog wrapper" },
         { "claimant": "frosh_tyler", "author": "naples_mom_k", "character": "my son, somewhere in the student section" },
         { "claimant": "low_brass_lyd", "author": "frosh_tyler", "character": "the tuba player who winked at our row" },
-        { "claimant": "civic_jess", "author": "grill_dad_ray", "character": "the couple with the dead Civic" },
-        { "claimant": "grill_dad_ray", "author": "civic_jess", "character": "the man at the grill with the jumper cables" },
-        { "claimant": "sir_knightly", "author": "grill_dad_ray", "character": "the guy in the full knight costume" },
+        { "claimant": "civic_jess", "author": "grill_dad_rob", "character": "the couple with the dead Civic" },
+        { "claimant": "grill_dad_rob", "author": "civic_jess", "character": "the man at the grill with the jumper cables" },
+        { "claimant": "sir_knightly", "author": "grill_dad_rob", "character": "the guy in the full knight costume" },
         { "claimant": "dad_of_three_fl", "author": "stand14_marco", "character": "the dad holding a jar of quarters" },
         { "claimant": "stand14_marco", "author": "dad_of_three_fl", "character": "the nacho guy at stand 14" }
       ],
@@ -133,14 +133,14 @@
         { "in_lore_of": "knightsfan_04", "user": "naples_mom_k", "body": "I read all five of these out loud to my husband. He says he is coming to the next one." },
         { "in_lore_of": "knightsfan_04", "user": "knightsfan_04", "body": "Same seats for the next home game. Gray hoodie optional, gold paint encouraged." },
         { "in_lore_of": "knightsfan_04", "user": "low_brass_lyd", "body": "Band vote is in: the wink stays." },
-        { "in_lore_of": "grill_dad_ray", "user": "civic_jess", "body": "Ray, I owe you a battery and at least one burger." },
-        { "in_lore_of": "grill_dad_ray", "user": "grill_dad_ray", "body": "Lot 7, same spot, next home game. Bring the knight." },
-        { "in_lore_of": "grill_dad_ray", "user": "sir_knightly", "body": "The knight will be there. The knight is bringing his own burgers this time." },
+        { "in_lore_of": "grill_dad_rob", "user": "civic_jess", "body": "Rob, I owe you a battery and at least one burger." },
+        { "in_lore_of": "grill_dad_rob", "user": "grill_dad_rob", "body": "Lot 7, same spot, next home game. Bring the knight." },
+        { "in_lore_of": "grill_dad_rob", "user": "sir_knightly", "body": "The knight will be there. The knight is bringing his own burgers this time." },
         { "in_lore_of": "stand14_marco", "user": "dad_of_three_fl", "body": "She wants to know if you take nickels." }
       ],
       "names": [
         { "in_lore_of": "knightsfan_04", "user": "paintedknight", "name": "The pick in the fourth" },
-        { "in_lore_of": "grill_dad_ray", "user": "civic_jess", "name": "The Lot 7 tailgate" },
+        { "in_lore_of": "grill_dad_rob", "user": "civic_jess", "name": "The Lot 7 tailgate" },
         { "in_lore_of": "stand14_marco", "user": "dad_of_three_fl", "name": "Twenty-two dollars in quarters" }
       ]
     },
