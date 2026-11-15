@@ -21,13 +21,11 @@ exclude_dir = [
   "bin",
   "deploy",
   "docs",
-  "forge-specs",
   "gen",
   "node_modules",
   "proto",
   "scripts",
   "tmp",
-  "trowel-archive",
   "web",
 ]
 # Generated sqlc accessors live in each domain's dbq/ directory.

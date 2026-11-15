@@ -178,10 +178,9 @@ coverage-floors: ## Enforce per-package coverage floors over the unit and integr
 e2e: ## Playwright E2E against the running dev loop (make dev-up first)
 	@$(DEV) e2e
 
-lint: $(GOLANGCI_LINT) $(WEB_DIST) ## golangci-lint, module layout, design-pass order, shellcheck, web lint
+lint: $(GOLANGCI_LINT) $(WEB_DIST) ## golangci-lint, module layout, shellcheck, web lint
 	$(GOLANGCI_LINT) run ./...
 	go run ./scripts/layoutcheck
-	go run ./scripts/designcheck
 	@command -v shellcheck >/dev/null || { echo "shellcheck is not on PATH: brew install shellcheck"; exit 1; }
 	shellcheck scripts/*.sh
 ifneq ($(HAS_WEB),)
