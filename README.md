@@ -23,28 +23,28 @@ production path on a throwaway k3d cluster.
 
 ## Key features
 
-- **Helm chart with migrations first.** Each install or upgrade runs a
-  migration Job; the api and worker pods wait on it in an init container, so
-  no pod ever serves against an old schema.
-- **Backups that check themselves.** A CronJob writes a `pg_dump` archive
-  every night, verifies it with `pg_restore --list` and keeps the newest 14.
-  The backup script has its own integration test against PostgreSQL 18.
-- **End-to-end deploy test on k3d.** `deploy/k3s/e2e.sh` builds the image,
+- A Helm chart that migrates first. Each install or upgrade runs a migration
+  Job, and the api and worker pods wait on it in an init container, so no pod
+  serves against an old schema.
+- Nightly backups that check themselves. A CronJob writes a `pg_dump` archive,
+  verifies it with `pg_restore --list` and keeps the newest 14. The backup
+  script has its own integration test against PostgreSQL 18.
+- An end-to-end deploy test on k3d. `deploy/k3s/e2e.sh` builds the image,
   installs ingress-nginx, cert-manager and the chart, then checks migration
   ordering, TLS with HSTS, that `/metrics` is not reachable at the edge, a
   backup run and a Helm upgrade.
-- **Two-factor sign-in.** RFC 6238 TOTP written against the RFC's own test
-  vectors, with replay protection, ten single-use recovery codes, and secrets
-  encrypted at rest with `age` under rotatable keys.
-- **Security state in PostgreSQL.** Lockouts, rate limits and session
-  revocation survive restarts and are shared across replicas. Responses carry
-  `nosniff` and a strict referrer policy; refresh tokens live in
-  `HttpOnly; Secure` cookies.
-- **Background jobs in the same database.** River runs the story expiry
-  timers, the periodic canon ranking and email delivery, with jobs enqueued in
-  the same transaction as the write that caused them.
-- **Real backends in tests.** Integration tests run against PostgreSQL 18 in
-  testcontainers, with per-package coverage floors enforced by `make check`.
+- Two-factor sign-in with RFC 6238 TOTP, written against the RFC's own test
+  vectors. It has replay protection and ten single-use recovery codes, and the
+  secrets are encrypted at rest with `age` under rotatable keys.
+- Security state kept in PostgreSQL. Lockouts, rate limits and session
+  revocation survive restarts and are shared across replicas. Refresh tokens
+  live in `HttpOnly; Secure` cookies, and responses carry `nosniff` and a
+  strict referrer policy.
+- Background jobs in the same database. River runs the story expiry timers,
+  the periodic canon ranking and email delivery, and each job is enqueued in
+  the same transaction as the write that caused it.
+- Tests against real backends. Integration tests run against PostgreSQL 18 in
+  testcontainers, and `make check` enforces per-package coverage floors.
 
 ## Quick start
 
@@ -93,24 +93,24 @@ make seed
                  StatefulSet: PostgreSQL 18  <-- CronJob: nightly pg_dump
 ```
 
-- **One binary, three roles.** `cmd/perspectiv` runs as `api`, `worker` or
-  `all` depending on `ROLE`. The api serves the React app (embedded in the
-  binary) and the Connect-RPC API; the worker runs River jobs. In development
-  one process does both.
-- **Domain packages.** Each domain under `internal/` (`auth`, `place`, `arc`,
-  `perspective`, `lore`, `vote`, `react`, `notify`, `moderation`, `user`)
-  splits into handler, service and store. Queries are written in SQL and
-  compiled with sqlc; the API is defined in `proto/` and generated with buf
-  for both Go and TypeScript.
-- **Interceptor chain.** Every RPC passes through recovery, request id and
-  tracing, structured logging, authentication, authorization from a static
-  route-to-role map, rate limiting and validation before its handler.
-- **Observability.** zerolog JSON logs, OpenTelemetry traces over OTLP, and
-  Prometheus metrics on `/metrics`. `make dev-grafana` starts Grafana,
+- `cmd/perspectiv` is one binary with three roles: it runs as `api`,
+  `worker` or `all` depending on `ROLE`. The api serves the React app
+  (embedded in the binary) and the Connect-RPC API; the worker runs River
+  jobs. In development one process does both.
+- Each domain under `internal/` (`auth`, `place`, `arc`, `perspective`,
+  `lore`, `vote`, `react`, `notify`, `moderation`, `user`) splits into
+  handler, service and store. Queries are written in SQL and compiled with
+  sqlc; the API is defined in `proto/` and generated with buf for both Go and
+  TypeScript.
+- Every RPC passes through recovery, request id and tracing, structured
+  logging, authentication, authorization from a static route-to-role map,
+  rate limiting and validation before its handler.
+- Logs are zerolog JSON, traces go out over OpenTelemetry OTLP, and
+  Prometheus scrapes `/metrics`. `make dev-grafana` starts Grafana,
   Prometheus, Tempo and Loki locally.
-- **Place data.** `cmd/placectl` imports open US place data into PostgreSQL
-  and folds duplicate stores and malls. Search runs on trigram and prefix
-  indexes; nothing calls an outside map service.
+- `cmd/placectl` imports open US place data into PostgreSQL and folds
+  duplicate stores and malls. Search runs on trigram and prefix indexes;
+  nothing calls an outside map service.
 
 Design decisions are recorded as ADRs in [`docs/adr`](docs/adr). The product
 rules are in [`docs/product-model.md`](docs/product-model.md) and the visual
