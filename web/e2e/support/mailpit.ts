@@ -42,7 +42,7 @@ export async function waitForEmail(to: string, subject: string, timeoutMs = 30_0
 }
 
 /** The first link in `text` to `path` on `origin`, with its query string. */
-export function linkIn(text: string, origin: string, path: string): string | null {
+function linkIn(text: string, origin: string, path: string): string | null {
   const escaped = (origin + path).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const m = new RegExp(`${escaped}\\?[^\\s"<>]+`).exec(text);
   return m ? m[0] : null;

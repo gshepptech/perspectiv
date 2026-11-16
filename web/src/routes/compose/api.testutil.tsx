@@ -17,7 +17,7 @@ preloadPages();
  * globalThis.fetch and records each request body, so a test can assert what
  * the page actually sent. Only tests import it.
  */
-export type ApiCall = { procedure: string; body: Record<string, unknown> };
+type ApiCall = { procedure: string; body: Record<string, unknown> };
 export type ApiReply = { status?: number; body: unknown };
 export type ApiHandler = (body: Record<string, unknown>, call: ApiCall) => ApiReply | Promise<ApiReply>;
 

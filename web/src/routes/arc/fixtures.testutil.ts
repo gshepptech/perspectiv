@@ -7,10 +7,10 @@ export const user = (userId: string, username: string) => ({ userId, username })
 export const WREN = user(ME, "wren");
 export const OTTER = user("u-otter", "otter");
 export const HERON = user("u-heron", "heron");
-export const LARK = user("u-lark", "lark");
+const LARK = user("u-lark", "lark");
 export const MOTH = user("u-moth", "moth");
-export const FINCH = user("u-finch", "finch");
-export const VOLE = user("u-vole", "vole");
+const FINCH = user("u-finch", "finch");
+const VOLE = user("u-vole", "vole");
 
 type Summary = {
   id: string;

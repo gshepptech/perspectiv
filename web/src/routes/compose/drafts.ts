@@ -5,9 +5,9 @@ import { clients } from "@/lib/connect";
 
 import { isLocalDate } from "./localDate";
 
-export const RESUMED_NOTICE = "You started a draft for this day, so it is open again.";
+const RESUMED_NOTICE = "You started a draft for this day, so it is open again.";
 
-export const RESUMED_NEWEST_NOTICE =
+const RESUMED_NEWEST_NOTICE =
   "You started more than one draft for this day, so the one you changed last is open. The others are under Your stories on the front page.";
 
 /** The note the composer opens with after an emptied draft is deleted. */

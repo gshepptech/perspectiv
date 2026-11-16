@@ -31,7 +31,7 @@ export const e2eDir = join(webDir, "e2e");
 export const workDir = join(repoRoot, "tmp", "e2e");
 
 /** Reads KEY=VALUE lines the way bash's `source` reads .env.dev: comments and blank lines skipped, one level of quotes removed. */
-export function parseEnvFile(text: string): Record<string, string> {
+function parseEnvFile(text: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
@@ -78,7 +78,7 @@ function portFrom(value: string | undefined, fallback: number): number {
  * production interval, so a server left on the 60-second default fails the
  * journey instead of passing slowly.
  */
-export function rankIntervalSeconds(env: Record<string, string | undefined> = process.env): number {
+function rankIntervalSeconds(env: Record<string, string | undefined> = process.env): number {
   const n = Number(env.E2E_RANK_INTERVAL_SECONDS ?? "2");
   if (!Number.isFinite(n) || n <= 0 || n > 10) {
     throw new Error(`E2E_RANK_INTERVAL_SECONDS must be a number of seconds above 0 and at most 10, got ${env.E2E_RANK_INTERVAL_SECONDS}`);

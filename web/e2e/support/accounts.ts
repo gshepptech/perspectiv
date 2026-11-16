@@ -26,7 +26,7 @@ export type Account = {
  * inherited by the setup and test workers, so every process names the same
  * accounts. Usernames stay within the 20-character limit.
  */
-export function runId(): string {
+function runId(): string {
   const id = process.env.E2E_RUN_ID;
   if (!id || !/^[a-z0-9]{1,8}$/.test(id)) {
     throw new Error("E2E_RUN_ID is not set; run the suite through playwright.config.ts");

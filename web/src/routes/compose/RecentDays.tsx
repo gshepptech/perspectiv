@@ -20,7 +20,7 @@ const SHOWN = 5;
 const READ = 30;
 
 /** "Oct 3", with the year only when it is not the year of `today`. */
-export function shortDay(localDate: string, today: string): string {
+function shortDay(localDate: string, today: string): string {
   const sameYear = localDate.slice(0, 4) === today.slice(0, 4);
   return new Date(`${localDate}T00:00:00Z`).toLocaleDateString("en-US", {
     timeZone: "UTC",
@@ -31,7 +31,7 @@ export function shortDay(localDate: string, today: string): string {
 }
 
 /** "Oct 3, 14:00 · Title · 14 stories": one choice as the writer reads it. */
-export function dayChoiceLabel(arc: Pick<EpicArc, "localDate" | "hour" | "title" | "perspectiveCount">, today: string): string {
+function dayChoiceLabel(arc: Pick<EpicArc, "localDate" | "hour" | "title" | "perspectiveCount">, today: string): string {
   const day = shortDay(arc.localDate, today);
   const when = arc.hour === undefined || titleEndsWithHour(arc.title, arc.hour) ? day : `${day}, ${hourLabel(arc.hour)}`;
   return [when, arc.title, storiesLabel(arc.perspectiveCount)].join(" · ");

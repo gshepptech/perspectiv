@@ -14,7 +14,7 @@ import { resetSessionForTests } from "@/lib/session";
 preloadPages();
 
 /** One request the app sent: the procedure ("PlaceService/GetEpic") and its Connect JSON body. */
-export type SentRequest = { procedure: string; body: Record<string, unknown> };
+type SentRequest = { procedure: string; body: Record<string, unknown> };
 
 /** Answers a procedure from the request body the app sent. */
 export type BodyHandler = (body: Record<string, unknown>) => FakeReply | Promise<FakeReply>;

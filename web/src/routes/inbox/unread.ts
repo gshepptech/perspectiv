@@ -6,7 +6,7 @@ import { clients } from "@/lib/connect";
  * Under the inbox's own key prefix, so marking notifications read on the
  * inbox page refreshes every count shown elsewhere.
  */
-export const unreadCountKey = ["notify", "listInbox", "unreadCount"] as const;
+const unreadCountKey = ["notify", "listInbox", "unreadCount"] as const;
 
 /**
  * How many of the signed-in reader's notifications are unread, from the

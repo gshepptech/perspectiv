@@ -8,8 +8,8 @@ import { isLocalDate } from "./localDate";
 export const MAX_PARTS = 10;
 export const MAX_WORDS_PER_PART = 300;
 export const MAX_CHARACTERS = 10;
-export const TITLE_MIN = 3;
-export const TITLE_MAX = 80;
+const TITLE_MIN = 3;
+const TITLE_MAX = 80;
 
 /** Words as an author counts them: runs of non-space characters. */
 export function wordCount(text: string): number {

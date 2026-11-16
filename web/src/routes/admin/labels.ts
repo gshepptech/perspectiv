@@ -49,7 +49,7 @@ export function resolutionMessage(r: Resolution): string {
  * The actions the server applies to a report: the one that acts on the
  * reported target's own kind, and dismissal.
  */
-export function actionsFor(kind: ReportTargetKind): ModerationAction[] {
+function actionsFor(kind: ReportTargetKind): ModerationAction[] {
   switch (kind) {
     case ReportTargetKind.PERSPECTIVE:
       return [ModerationAction.HIDE_PERSPECTIVE, ModerationAction.DISMISS];

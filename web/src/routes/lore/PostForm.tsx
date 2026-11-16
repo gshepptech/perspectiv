@@ -7,7 +7,7 @@ import { actionError } from "@/components/actions/errors";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 
-export const MAX_POST = 1000;
+const MAX_POST = 1000;
 
 const schema = z.object({
   body: z
