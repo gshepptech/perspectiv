@@ -456,10 +456,11 @@ beforeAll(async () => {
   browser = await chromium.launch();
 }, 120_000);
 
+// Closing a real browser and Vite can pass the 10s default when the machine is loaded.
 afterAll(async () => {
   await browser?.close();
   await server?.close();
-});
+}, 30_000);
 
 const session = {
   accessToken: "tok",
