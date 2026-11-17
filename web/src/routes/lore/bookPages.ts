@@ -1,6 +1,6 @@
 /**
  * The pages of a lore read as a book, and where a reader is in it
- * (docs/design-system.md, Lore as a book). In order: the title page, the
+ * (docs/design/reading.md, Lore as a book). In order: the title page, the
  * contents, every chapter a part at a time, then the closing page. A chapter
  * is one readable member story; `parts` holds each chapter's part count.
  */

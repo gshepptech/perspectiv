@@ -70,7 +70,7 @@ function capitalised(s: string): string {
 }
 
 /**
- * Each chapter's title (docs/design-system.md, Lore as a book): its writer's
+ * Each chapter's title (docs/design/reading.md, Lore as a book): its writer's
  * role in the lore, the first character they are in "Who was who" across
  * the chapters, else its story's opening words. The writer's name is never
  * the title, only a fallback for a story with no words at all.

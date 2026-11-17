@@ -92,7 +92,7 @@ function UnknownKind() {
 }
 
 /**
- * The best days at one kind of place (docs/design-system.md, Best days at a
+ * The best days at one kind of place (docs/design/places.md, Best days at a
  * kind of place): the place page's epic across every place of a category,
  * Ranked by canon or Newest.
  */
