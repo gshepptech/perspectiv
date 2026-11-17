@@ -237,7 +237,7 @@ function pageIdentity(page: BookPage): string {
 }
 
 /**
- * A lore read as a book (docs/design-system.md, Lore as a book): a title
+ * A lore read as a book (docs/design/reading.md, Lore as a book): a title
  * page, the contents, one chapter per readable member story in the lore
  * page's order paged by part through the story page's Reader, and a closing
  * page. The page is in the address; the arrow keys turn pages across

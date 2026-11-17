@@ -7,7 +7,7 @@ import { CanonName } from "./CanonName";
 import { formatDayBeside } from "./format";
 
 /**
- * One day in an epic listing (docs/design-system.md, Place page epic): its
+ * One day in an epic listing (docs/design/places.md, Place page epic): its
  * title, the opening of its canon's first story (or its first story), then
  * its canon by name, how many stories it has and how many of those are
  * linked. `withCity` names the place with its city, for a listing that spans

@@ -114,7 +114,8 @@ make seed
 
 Design decisions are recorded as ADRs in [`docs/adr`](docs/adr). The product
 rules are in [`docs/product-model.md`](docs/product-model.md) and the visual
-design system in [`docs/design-system.md`](docs/design-system.md).
+design system in [`docs/design-system.md`](docs/design-system.md), with a
+page per surface under [`docs/design`](docs/design).
 
 ## Deploying
 

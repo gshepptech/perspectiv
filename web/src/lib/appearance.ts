@@ -1,5 +1,5 @@
 /**
- * The reader's Appearance choices (docs/design-system.md, Appearance). They
+ * The reader's Appearance choices (docs/design/accounts.md, Appearance). They
  * belong to the device: kept in localStorage, never sent to the server, and
  * applied as data attributes on the root element that styles.css reads.
  * public/appearance.js applies them before the first paint with the same
